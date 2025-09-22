@@ -56,6 +56,7 @@ SEED_ADMIN_EMAIL = os.getenv("SEED_ADMIN_EMAIL", "admin@example.com")
 SEED_ADMIN_PASS = os.getenv("SEED_ADMIN_PASS", "admin123")
 SEED_ADMIN_NAME = os.getenv("SEED_ADMIN_NAME", "Admin")
 
+GOOGLE_PLACES_API_KEY = os.getenv("GOOGLE_PLACES_API_KEY", "")
 NOMINATIM_URL = "https://nominatim.openstreetmap.org/search"
 OSRM_URL = "https://router.project-osrm.org/route/v1/driving/{lon1},{lat1};{lon2},{lat2}?overview=false"
 
@@ -116,6 +117,7 @@ def seed_admin():
             "email": SEED_ADMIN_EMAIL,
             "password_hash": generate_password_hash(SEED_ADMIN_PASS),
             "role": "admin",
+            "approved": True,  # Admin is always approved
             "created_at": datetime.datetime.utcnow(),
         })
 
@@ -218,6 +220,17 @@ def route_km(pickup_addr: str, dropoff_addr: str):
 
 
 # ----------------- AUTH UTILS -----------------
+
+def translate_status(status):
+    """Translate English status to Finnish"""
+    translations = {
+        'NEW': 'UUSI',
+        'CONFIRMED': 'VAHVISTETTU',
+        'IN_TRANSIT': 'KULJETUKSESSA',
+        'DELIVERED': 'TOIMITETTU',
+        'CANCELLED': 'PERUUTETTU'
+    }
+    return translations.get(status, status)
 def current_user():
     uid = session.get("uid")
     if not uid:
@@ -238,8 +251,6 @@ PAGE_HEAD = """
 <!doctype html><html lang="fi"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Autonkuljetus – Portaali</title>
-<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link
   rel="stylesheet"
   href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
@@ -251,127 +262,30 @@ PAGE_HEAD = """
   integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
   crossorigin=""
 ></script>
-<style>
-:root{
-  --bg:#ffffff; --text:#0b1020; --muted:#5b677d; --accent:#2563eb; --accent-2:#1d4ed8;
-  --border:#e6e8ee; --card:#ffffff; --shadow:0 8px 24px rgba(16,24,40,.06);
-  --ok:#16a34a; --warn:#ea580c; --bad:#dc2626;
-}
-#map { width:100%; height:320px; border-radius:14px; border:1px solid var(--border); }
-.autocomplete { position:relative }
-.ac-list { position:absolute; left:0; right:0; top:100%; z-index:20; background:#fff; border:1px solid var(--border); border-radius:12px; box-shadow:var(--shadow); overflow:hidden; display:none; }
-.ac-item { padding:8px 10px; cursor:pointer; }
-.ac-item:hover { background:#f3f6ff }
-
-/* === Suggestion list / autocomplete === */
-.autocomplete { position:relative }
-.ac-list { position:absolute; left:0; right:0; top:100%; z-index:30; background:#fff;
-  border:1px solid var(--line); border-radius:12px; box-shadow:0 12px 28px rgba(16,24,40,.12);
-  overflow:hidden; display:none; max-height:260px; overflow-y:auto; }
-.ac-item { padding:10px 12px; cursor:pointer; white-space:nowrap; text-overflow:ellipsis; overflow:hidden; }
-.ac-item:hover, .ac-item.active { background:#eef2ff }
-.ac-empty { padding:10px 12px; color:var(--muted) }
-
-/* === Map === */
-#map, .mini-map { width:100%; height:320px; border-radius:14px; border:1px solid var(--line) }
-.mini-map { height:220px }
-.leaflet-control-zoom a { border-radius:8px !important }
-
-
-*{box-sizing:border-box}
-html,body{margin:0;padding:0}
-body{font-family:Inter,system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--text)}
-a{color:var(--accent);text-decoration:none}
-header{position:sticky;top:0;background:#fff;border-bottom:1px solid var(--border);z-index:10}
-.header-inner{max-width:1100px;margin:0 auto;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px}
-.header-inner{max-width:1100px;margin:0 auto;padding:6px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px}
-
-.brand{display:flex;align-items:center}
-.brand-link{display:flex;align-items:center; overflow:visible}
-.brand .logo{
-  width:36px; height:36px; display:block; object-fit:contain;
-  transform: scale(3.5);           /* näyttää ~61px, mutta layout pysyy 36px */
-  transform-origin: left center;   /* kasvu oikealle päin */
-}
-header{ overflow:visible; }         /* varmuuden vuoksi, ettei leikkaannu */
-
-
-.nav{display:flex;gap:14px;flex-wrap:wrap}
-.nav a{padding:8px 12px;border-radius:10px;color:#0b1020}
-.nav a:hover{background:#f3f5f9}
-main{max-width:1100px;margin:22px auto;padding:0 16px 48px}
-footer{border-top:1px solid var(--border);padding:14px 16px;color:var(--muted);text-align:center;background:#fff}
-
-.card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:16px;box-shadow:var(--shadow)}
-.card h2{margin:0 0 8px 0}
-.grid{display:grid;gap:16px}
-.cols-2{grid-template-columns:repeat(2,minmax(0,1fr))}
-@media(max-width:900px){.cols-2{grid-template-columns:1fr}}
-.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
-
-label{display:block;margin:8px 0 6px;color:var(--muted);font-size:13px}
-input,textarea,select{width:100%;padding:12px 12px;border-radius:12px;border:1px solid var(--border);background:#fff;color:var(--text);outline:none}
-input:focus,textarea:focus,select:focus{border-color:#c7d2fe;box-shadow:0 0 0 4px #e0e7ff}
-button{background:var(--accent);color:#fff;border:none;padding:10px 14px;border-radius:12px;font-weight:600;cursor:pointer}
-button:hover{background:var(--accent-2)}
-.ghost{background:#f6f8fc;color:#0b1020;border:1px solid var(--border)}
-.ghost:hover{background:#eef2f9}
-
-table{width:100%;border-collapse:collapse}
-th,td{border-bottom:1px solid var(--border);padding:12px 10px;text-align:left;vertical-align:top}
-thead th{font-size:13px;color:var(--muted);font-weight:600}
-
-.status{font-weight:700}
-.status.NEW{color:var(--warn)}
-.status.CONFIRMED{color:var(--ok)}
-.status.IN_TRANSIT{color:#2563eb}
-.status.DELIVERED{color:#059669}
-.status.CANCELLED{color:var(--bad)}
-
-.pill{padding:6px 10px;border-radius:999px;border:1px solid var(--border);background:#f8fafc;font-size:13px;color:#0b1020}
-
-.wizard{display:grid;grid-template-columns:280px 1fr;gap:20px}
-@media(max-width:900px){.wizard{grid-template-columns:1fr}}
-.stepnav{background:#fff;border:1px solid var(--border);border-radius:16px;padding:12px}
-.stepnav .item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:12px}
-.stepnav .item.active{background:#f3f6ff;border:1px solid #dbe5ff}
-
-.progress{display:flex;gap:18px;align-items:center;margin:6px 0 14px}
-.progress .node{display:flex;flex-direction:column;align-items:center;gap:6px;min-width:110px}
-.progress .dot{width:26px;height:26px;border-radius:999px;border:2px solid #d1d5db;background:#fff;
-  display:grid;place-items:center;font-size:12px;color:#6b7280}
-.progress .dot.done{background:#2563eb;color:#fff;border-color:#2563eb}
-.progress .label{font-size:12px;color:#6b7280;text-align:center}
-.progress .bar{height:2px;flex:1;background:#e5e7eb}
-.progress .bar.done{background:#2563eb}
-
-.tabs{display:flex;gap:8px;margin:8px 0 14px}
-.tab{padding:8px 12px;border-radius:999px;border:1px solid var(--border);background:#fff;color:#0b1020}
-.tab.active{background:#2563eb;color:#fff;border-color:#2563eb}
-
-/* pieni “kuitti”-kortti hintaa varten */
-.receipt{border:1px dashed #d1d5db;border-radius:14px;padding:12px;background:#fbfdff}
-.receipt .rowline{display:flex;justify-content:space-between;margin:4px 0}
-.receipt .total{font-weight:700;font-size:18px}
-.small{font-size:12px;color:var(--muted)}
-
-.callout{background:#f3f6ff;border:1px solid #dbe5ff;border-radius:12px;padding:10px}
-</style>
+__GOOGLE_MAPS_SCRIPT__
+<link rel="stylesheet" href="__CSS_MAIN__">
 </head><body>
-<header>
-  <div class="header-inner">
-    <div class="brand">
+<header class="header">
+  <div class="container">
+    <div class="header-inner">
+      <div class="brand">
         <a href="/" class="brand-link" aria-label="Etusivu">
-        <img src="__LOGO__" alt="" class="logo">
-      </a>
+          <img src="__LOGO__" alt="" class="brand-logo">
+        </a>
+      </div>
+      <button class="mobile-menu-toggle" aria-label="Avaa menu" onclick="toggleMobileMenu()">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+      <nav class="nav" id="nav-menu">
+        <a href="/" class="nav-link">Etusivu</a>
+        <a href="/order/new/step1" class="nav-link">Uusi tilaus</a>
+        <a href="/dashboard" class="nav-link">Oma sivu</a>
+        __ADMIN__
+        __AUTH__
+      </nav>
     </div>
-    <nav class="nav">
-      <a href="/">Etusivu</a>
-      <a href="/order/new/step1">Uusi tilaus</a>
-      <a href="/dashboard">Oma sivu</a>
-      __ADMIN__
-      __AUTH__
-    </nav>
   </div>
 </header>
 <main>
@@ -379,9 +293,45 @@ thead th{font-size:13px;color:var(--muted);font-weight:600}
 
 PAGE_FOOT = """
 </main>
-<footer class="muted" style="text-align:center">
-© 2025 – Levoro
+<footer class="footer">
+  <div class="container">
+    <div class="footer-inner">
+      <div class="text-center">
+        __FOOTER_CALCULATOR__
+        <p style="margin: 0; opacity: 0.8;">© 2025 Levoro – Luotettava autonkuljetus</p>
+      </div>
+    </div>
+  </div>
 </footer>
+<script>
+function toggleMobileMenu() {
+  const nav = document.getElementById('nav-menu');
+  const toggle = document.querySelector('.mobile-menu-toggle');
+  nav.classList.toggle('mobile-open');
+  toggle.classList.toggle('active');
+}
+
+// Close mobile menu when clicking on a link
+document.querySelectorAll('.nav-link').forEach(link => {
+  link.addEventListener('click', () => {
+    const nav = document.getElementById('nav-menu');
+    const toggle = document.querySelector('.mobile-menu-toggle');
+    nav.classList.remove('mobile-open');
+    toggle.classList.remove('active');
+  });
+});
+
+// Close mobile menu when clicking outside
+document.addEventListener('click', (e) => {
+  const nav = document.getElementById('nav-menu');
+  const toggle = document.querySelector('.mobile-menu-toggle');
+  if (!nav.contains(e.target) && !toggle.contains(e.target)) {
+    nav.classList.remove('mobile-open');
+    toggle.classList.remove('active');
+  }
+});
+
+</script>
 </body></html>
 """
 
@@ -389,14 +339,25 @@ PAGE_FOOT = """
 def wrap(content: str, user=None):
     # Yläpalkin oikea reuna: kirjautumislinkit tai käyttäjän nimi + ulos
     if not user:
-        auth = "<a href='/login'>Kirjaudu</a> <a class='ghost' href='/register'>Luo tili</a>"
+        auth = "<a href='/login' class='nav-link'>Kirjaudu</a> <a href='/register' class='nav-link'>Luo tili</a>"
     else:
-        auth = f"<span class='pill'>Hei, {user['name']}</span> <a class='ghost' href='/logout'>Ulos</a>"
+        auth = f"<span class='pill'>Hei, {user['name']}</span> <a class='nav-link' href='/logout'>Ulos</a>"
 
     # Logo ja admin-linkki
     from flask import url_for
     logo_src = url_for('static', filename='LevoroLogo.png')
-    admin_link = '<a href="/admin">Admin</a>' if (user and user.get("role") == "admin") else ""
+    admin_link = '<a href="/admin" class="nav-link">Admin</a>' if (user and user.get("role") == "admin") else ""
+
+    # Google Maps script if API key is available
+    google_script = ""
+    if GOOGLE_PLACES_API_KEY:
+        google_script = f'<script src="https://maps.googleapis.com/maps/api/js?key={GOOGLE_PLACES_API_KEY}&libraries=places&loading=async" async defer></script>'
+
+    # Footer calculator button based on authentication
+    if not user:
+        footer_calculator = '<div class="footer-cta" style="margin-bottom: 1rem;"><a href="/register" class="btn btn-primary">Kirjaudu ja laske hinta</a></div>'
+    else:
+        footer_calculator = '<div class="footer-cta" style="margin-bottom: 1rem;"><a href="/calculator" class="btn btn-primary">Laske hinta</a></div>'
 
     # Kootaan head
     head = (
@@ -404,76 +365,17 @@ def wrap(content: str, user=None):
         .replace("__LOGO__", logo_src)
         .replace("__ADMIN__", admin_link)
         .replace("__AUTH__", auth)
+        .replace("__CSS_MAIN__", url_for('static', filename='css/main.css'))
+        .replace("__GOOGLE_MAPS_SCRIPT__", google_script)
     )
 
-    # Etenemispalkin (progress-tracker) CSS – käytössä esim. order_view:ssa
-    progress_css = """
-    <style>
-/* --- 3-step progress (Picked up -> In transit -> Delivered) --- */
-.progress{
-  display:flex;
-  align-items:center;
-  gap:12px;
-  margin:10px 0 18px;
-}
+    # Kootaan footer
+    foot = (
+        PAGE_FOOT
+        .replace("__FOOTER_CALCULATOR__", footer_calculator)
+    )
 
-/* solmut (pallot + labelit) */
-.progress .node{
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-  gap:6px;
-  flex:0 0 auto;              /* ei veny */
-  min-width:72px;             /* pitää solmut paikoillaan */
-}
-
-/* pallo */
-.progress .dot{
-  position:static !important; /* yliajaa aiemman absolute-tyylin */
-  transform:none !important;  /* ei siirtoja */
-  width:28px;
-  height:28px;
-  border-radius:50%;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  font-weight:700;
-  color:#9aa3b2;
-  background:#eef1f7;
-  border:3px solid #cfd8e3;
-}
-.progress .dot.done{
-  background:#6c63ff;
-  border-color:#6c63ff;
-  color:#fff;
-}
-
-/* label pallon alla */
-.progress .label{
-  font-size:12px;
-  color:#667085;
-  white-space:nowrap;
-  text-align:center;
-}
-
-/* väliviivat solmujen välissä */
-.progress .bar{
-  position:relative !important;  /* varmistetaan ettei absolute sotke */
-  flex:1 1 auto;
-  height:6px;
-  border-radius:999px;
-  background:#e9eef5;
-}
-.progress .bar.done{
-  background:linear-gradient(90deg,#6c63ff 0%, #6c63ff 100%);
-}
-</style>
-
-    """
-
-    # Palautetaan koko sivu
-    return head + progress_css + content + PAGE_FOOT
-
+    return head + content + foot
 
 
 # ----------------- ROUTES: HOME -----------------
@@ -481,195 +383,117 @@ def wrap(content: str, user=None):
 def home():
     u = current_user()
     body = """
-<style>
-  /* tausta hieman vaaleaksi, jotta kuplat erottuvat */
-  html, body { background:#f8fafc; }
-
-  .mx { max-width: 1100px; margin: 0 auto; padding: 0 16px; }
-
-  /* --- Hero --- */
-  .hero {
-    margin: 28px auto 18px; border-radius: 18px; color: #fff;
-    background:
-      radial-gradient(800px 200px at 10% 10%, rgba(59,130,246,.35), transparent 60%),
-      linear-gradient(180deg,#0b1020 0%,#111829 70%,#0b1020 100%);
-    box-shadow: 0 16px 48px rgba(0,0,0,.25);
-  }
-  .hero-inner { padding: 40px 22px 26px 22px; }
-  .badge {
-    display:inline-block; padding:8px 12px; border-radius:999px;
-    background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.2);
-    font-size:13px
-  }
-  .title { font-size: clamp(38px, 5.2vw, 64px); line-height:1.04; letter-spacing:-.02em; margin:10px 0 6px }
-  .sub   { font-size:18px; opacity:.9; max-width: 760px }
-  .cta   { display:flex; gap:10px; flex-wrap:wrap; margin-top:16px }
-  .btn   { display:inline-flex; align-items:center; gap:10px; padding:12px 16px; border-radius:12px; font-weight:700; text-decoration:none }
-  .btn-primary { background:linear-gradient(180deg,#3b82f6,#1d4ed8); color:#fff; box-shadow:0 10px 24px rgba(37,99,235,.35) }
-  .btn-ghost   { background:rgba(255,255,255,.08); color:#fff; border:1px solid rgba(255,255,255,.2) }
-
-  .chiprow{ display:flex; gap:10px; flex-wrap:wrap; margin-top:14px }
-  .chip{
-    padding:6px 10px; border-radius:999px;
-    background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.22);
-    font-size:13px; color:#fff
-  }
-
-  /* --- Content sections --- */
-  .section { margin: 26px 0; }
-  .h2 { font-size: 28px; margin: 0 0 10px 0; color:#0b1020 }
-
-  .grid3 { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:16px }
-  @media(max-width:900px){ .grid3{ grid-template-columns:1fr } }
-  .card { background:#fff; border:1px solid #e6e8ee; border-radius:16px; padding:18px; box-shadow:0 8px 24px rgba(16,24,40,.06) }
-  .card h3{ margin:6px 0 6px; color:#0b1020 }
-  .card p{ color:#5b677d }
-  .icon{ width:36px; height:36px; border-radius:10px; display:grid; place-items:center; background:#eef2ff; color:#1d4ed8; font-weight:800 }
-
-  .steps{ display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:16px }
-  @media(max-width:900px){ .steps{ grid-template-columns:1fr } }
-  .step .num{
-    width:28px; height:28px; border-radius:999px; display:inline-grid; place-items:center;
-    font-weight:800; background:#111827; color:#fff; margin-right:8px
-  }
-
-  /* --- Vakuutusbanneri + iso ikoni --- */
-  .banner{
-    background:#0b1020; color:#fff; border-radius:16px; padding:18px;
-    display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap;
-  }
-  .banner-left{ display:flex; align-items:center; gap:14px; }
-  .shield{
-    width:72px; height:72px; border-radius:18px;
-    background: linear-gradient(180deg,#ecfdf5,#dcfce7);
-    border:1px solid #bbf7d0; display:grid; place-items:center;
-    box-shadow: 0 8px 20px rgba(16,185,129,.25);
-  }
-  .shield svg{ width:36px; height:36px; stroke:#16a34a; }
-  .shield svg path{ vector-effect: non-scaling-stroke; }
-  .banner-title{ font-weight:800; font-size:18px; line-height:1.25; margin-bottom:2px }
-  .banner-sub{ opacity:.92 }
-
-  /* --- Vihreät reunakuplat (elementteinä) --- */
-  :root{
-    --bubble-green-1: rgba(16,185,129,.28);
-    --bubble-green-2: rgba(20,184,166,.22);
-  }
-  .bg-bubble{
-    position: fixed; z-index: 0; pointer-events:none;
-    width: 660px; height: 660px;
-    background:
-      radial-gradient(closest-side at 60% 40%, var(--bubble-green-1), rgba(0,0,0,0) 70%),
-      radial-gradient(closest-side at 30% 70%, var(--bubble-green-2), rgba(0,0,0,0) 70%);
-    filter: blur(1px);
-  }
-  .bg-bubble.left  { left:-180px; bottom:40px;  transform: rotate(-8deg); }
-  .bg-bubble.right { right:-160px; top:120px;   transform: rotate(16deg); }
-
-  /* sisältö varmasti kuplien päällä */
-  .mx, .hero, .section { position: relative; z-index: 1; }
-
-  /* mobiilissa pienemmäksi */
-  @media (max-width: 900px){
-    .bg-bubble{ width: 380px; height: 380px; }
-    .bg-bubble.left{ left:-120px; bottom:10px; }
-    .bg-bubble.right{ right:-110px; top:80px; }
-  }
-  
-  /* Badge: iso emoji, teksti normaalina */
-.badge{
-  display:inline-flex; align-items:center; gap:8px;
-  padding:8px 12px; border-radius:999px;
-  background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.2);
-  font-size:13px;  /* säilytä tekstin koko */
-}
-.badge-emoji{
-  font-size:20px;   /* itse emojin koko */
-  line-height:1; 
-  transform: translateY(1px); /* tasaa emojin baselinea */
-}
-</style>
-
-<!-- Reunakuplat -->
-<div class="bg-bubble left"></div>
-<div class="bg-bubble right"></div>
-
 <!-- HERO -->
-<div class="mx hero">
-  <div class="hero-inner">
-    <span class="badge"><span class="badge-emoji" aria-hidden="true">🚗</span> Saman päivän auton kuljetukset</span>
-    <h1 class="title">Samana päivänä, ja halvin.<br/>Levorolla mahdollista.</h1>
-    <p class="sub">Suomen nopein, edullisin ja luotettavin tapa siirtää autoja. Läpinäkyvä hinnoittelu, reaaliaikainen seuranta ja helppo tilausportaali.</p>
-    <div class="cta">
-      <a class="btn btn-primary" href="/calculator">Laske halvin hinta nyt</a>
-      <a class="btn btn-ghost" href="#how">Miten se toimii</a>
-    </div>
-    <div class="chiprow">
-      <div class="chip">Toimitus samana päivänä</div>
-      <div class="chip">PK-seudulla kuljetukset 30€</div>
-      <div class="chip">Kokeilualennus yritysasiakkaille</div>
+<div class="container">
+  <div class="hero">
+    <div class="hero-content">
+      <div class="hero-badge">
+        <span aria-hidden="true">🚗</span> 
+        Saman päivän auton kuljetukset
+      </div>
+      <h1 class="hero-title">Samana päivänä, ja halvin.<br/>Levorolla mahdollista.</h1>
+      <p class="hero-subtitle">Suomen nopein, edullisin ja luotettavin tapa siirtää autoja. Läpinäkyvä hinnoittelu, reaaliaikainen seuranta ja helppo tilausportaali.</p>
+      <div class="hero-actions">
+        <a class="btn btn-primary btn-lg" href="/calculator">Laske halvin hinta nyt</a>
+        <a class="btn btn-secondary btn-lg" href="#how">Miten se toimii</a>
+      </div>
+      <div class="hero-features">
+        <div class="hero-feature">Toimitus samana päivänä</div>
+        <div class="hero-feature">PK-seudulla kuljetukset 30€</div>
+        <div class="hero-feature">Kokeilualennus yritysasiakkaille
+        </div>
+      </div>
     </div>
   </div>
 </div>
 
 <!-- MIKSI MEIDÄT -->
-<div class="mx section">
-  <h2 class="h2">Miksi valita meidät</h2>
-  <div class="grid3">
-    <div class="card">
-      <div class="icon">⚡</div>
-      <h3>Nopeus</h3>
-      <p>Optimointi, eurooppalaiset vakioreitit ja oma verkosto. Useimmat toimitukset 3–5 päivässä.</p>
+<div class="container">
+  <section class="section-padding">
+    <div class="section-header">
+      <h2 class="section-title">Miksi valita meidät</h2>
     </div>
-    <div class="card">
-      <div class="icon">💶</div>
-      <h3>Hinta</h3>
-      <p>Reilu ja läpinäkyvä. Ei piilokuluja – näet hinnan ennen tilausta.</p>
+    <div class="grid grid-cols-3">
+      <div class="feature-card">
+        <div class="feature-icon">⚡</div>
+        <h3 class="feature-title">Nopeus</h3>
+        <p class="feature-description">Optimointi, eurooppalaiset vakioreitit ja oma verkosto. Useimmat toimitukset 3–5 päivässä.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">💶</div>
+        <h3 class="feature-title">Hinta</h3>
+        <p class="feature-description">Reilu ja läpinäkyvä. Ei piilokuluja – näet hinnan ennen tilausta.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🛡️</div>
+        <h3 class="feature-title">Luotettavuus</h3>
+        <p class="feature-description">Vakuutus koko matkan, CMR-dokumentointi ja seuranta portaalissa.</p>
+      </div>
     </div>
-    <div class="card">
-      <div class="icon">🛡️</div>
-      <h3>Luotettavuus</h3>
-      <p>Vakuutus koko matkan, CMR-dokumentointi ja seuranta portaalissa.</p>
-    </div>
-  </div>
+  </section>
 </div>
 
 <!-- MITEN SE TOIMII -->
-<div id="how" class="mx section">
-  <h2 class="h2">Miten se toimii</h2>
-  <div class="steps">
-    <div class="card step"><h3><span class="num">1</span>Lähetä reitti</h3><p>Valitse nouto ja kohde portaalissa. Saat hinnan heti.</p></div>
-    <div class="card step"><h3><span class="num">2</span>Vahvista tilaus</h3><p>Valitse sopiva aika ja lisää tiedot (avaimet, yhteyshenkilöt).</p></div>
-    <div class="card step"><h3><span class="num">3</span>Seuraa toimitusta</h3><p>Näet etenemisen ja saat ilmoitukset – kuittaukset tallentuvat portaaliin.</p></div>
-  </div>
-</div>
-
-<!-- VAKUUTUSBANNERI + ISO IKONI -->
-<div class="mx section">
-  <div class="banner">
-    <div class="banner-left">
-      <div class="shield">
-        <svg viewBox="0 0 24 24" aria-hidden="true">
-          <path d="M12 3l7 3v5c0 5-3.5 9-7 10-3.5-1-7-5-7-10V6l7-3z" fill="none" stroke-width="2" stroke-linejoin="round"></path>
-          <path d="M8 12l3 3 5-5" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
-        </svg>
+<div id="how" class="container">
+  <section class="section-padding">
+    <h2 class="section-title">Miten se toimii</h2>
+    <div class="grid grid-cols-3">
+      <div class="feature-card">
+        <h3 class="feature-title">
+          <span class="step-number">1</span>
+          Lähetä reitti
+        </h3>
+        <p class="feature-description">Valitse nouto ja kohde portaalissa. Saat hinnan heti.</p>
       </div>
-      <div>
-        <div class="banner-title">Kaikki ajamamme autot suojattu täysin vastuuvakuutuksella</div>
-        <div class="banner-sub">Vakuutusturva koko kuljetuksen ajan – ilman lisämaksuja.</div>
+      <div class="feature-card">
+        <h3 class="feature-title">
+          <span class="step-number">2</span>
+          Vahvista tilaus
+        </h3>
+        <p class="feature-description">Valitse sopiva aika ja lisää tiedot (avaimet, yhteyshenkilöt).</p>
+      </div>
+      <div class="feature-card">
+        <h3 class="feature-title">
+          <span class="step-number">3</span>
+          Seuraa toimitusta
+        </h3>
+        <p class="feature-description">Näet etenemisen ja saat ilmoitukset – kuittaukset tallentuvat portaaliin.</p>
       </div>
     </div>
-    <a class="btn btn-primary" href="/calculator">Laske hinta →</a>
-  </div>
+  </section>
+</div>
+
+
+<!-- VAKUUTUSBANNERI -->
+<div class="container">
+  <section class="section-padding">
+    <div class="trust-banner">
+      <div class="trust-content">
+        <div class="trust-icon">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M12 3l7 3v5c0 5-3.5 9-7 10-3.5-1-7-5-7-10V6l7-3z" fill="none" stroke-width="2" stroke-linejoin="round"></path>
+            <path d="M8 12l3 3 5-5" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+          </svg>
+        </div>
+        <div class="trust-text">
+          <h3>Kaikki ajamamme autot suojattu täysin vastuuvakuutuksella</h3>
+          <p>Vakuutusturva koko kuljetuksen ajan – ilman lisämaksuja.</p>
+        </div>
+      </div>
+      <a class="btn btn-primary btn-lg" href="/calculator">Laske hinta →</a>
+    </div>
+  </section>
 </div>
 
 <!-- FOOTER-CTA -->
-<div class="mx section" style="text-align:center; margin-bottom:34px">
-  <div style="font-size:14px; color:#5b677d">Onko sinulla jo tili?</div>
-  <div class="cta" style="justify-content:center; margin-top:8px">
-    <a class="btn btn-ghost" href="/login">Kirjaudu sisään</a>
-    <a class="btn btn-ghost" href="/register">Luo yritystili</a>
-  </div>
+<div class="container">
+  <section class="section-padding text-center">
+    <p class="text-muted">Onko sinulla jo tili?</p>
+    <div class="flex justify-center gap-4 mt-4 footer-cta">
+      <a class="btn btn-ghost" href="/login">Kirjaudu sisään</a>
+      <a class="btn btn-ghost" href="/register">Luo yritystili</a>
+    </div>
+  </section>
 </div>
 """
     return wrap(body, u)
@@ -682,16 +506,46 @@ def home():
 def register():
     if request.method == "GET":
         return wrap("""
-<div class="card">
-  <h2>Luo tili</h2>
-  <form method="POST" class="grid cols-2">
-    <div class="card">
-      <label>Nimi</label><input name="name" required>
-      <label>Sähköposti</label><input type="email" name="email" required>
-      <label>Salasana</label><input type="password" name="password" minlength="6" required>
-      <button type="submit" style="margin-top:10px">Rekisteröidy</button>
+<div class="container">
+  <div class="section-padding">
+    <div class="text-center mb-8">
+      <h1 class="calculator-title">Luo yritystili</h1>
+      <p class="calculator-subtitle">Täytä tiedot alla luodaksesi tilin kuljetuspalveluun</p>
     </div>
-  </form>
+  </div>
+  
+  <div class="calculator-grid" style="grid-template-columns: 1fr; max-width: 600px; margin: 0 auto;">
+    <div class="card calculator-form">
+      <div class="card-header">
+        <h2 class="card-title">Rekisteröintitiedot</h2>
+        <p class="card-subtitle">Kaikki kentät ovat pakollisia</p>
+      </div>
+      
+      <div class="card-body">
+        <form method="POST">
+          <div class="form-group">
+            <label class="form-label">Nimi *</label>
+            <input name="name" required class="form-input" placeholder="Etunimi Sukunimi">
+          </div>
+          
+          <div class="form-group">
+            <label class="form-label">Sähköposti *</label>
+            <input type="email" name="email" required class="form-input" placeholder="nimi@yritys.fi">
+          </div>
+          
+          <div class="form-group">
+            <label class="form-label">Salasana *</label>
+            <input type="password" name="password" minlength="6" required class="form-input" placeholder="Vähintään 6 merkkiä">
+          </div>
+          
+          <div class="calculator-actions">
+            <button type="submit" class="btn btn-primary btn-lg">Rekisteröidy</button>
+            <a href="/login" class="btn btn-ghost">Onko sinulla jo tili? Kirjaudu</a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
 </div>
 """, current_user())
 
@@ -712,10 +566,37 @@ def register():
         "email": email,
         "password_hash": generate_password_hash(password),
         "role": "customer",
+        "approved": False,  # Require admin approval
         "created_at": datetime.datetime.utcnow(),
     })
-    session["uid"] = uid
-    return redirect("/dashboard")
+
+    # Don't log in immediately - require admin approval first
+    return wrap("""
+<div class="container">
+  <div class="section-padding">
+    <div class="text-center mb-8">
+      <h1 class="calculator-title">Rekisteröinti onnistui!</h1>
+      <p class="calculator-subtitle">Tilisi odottaa ylläpidon hyväksyntää. Saat sähköpostiviestin kun tili on aktivoitu.</p>
+    </div>
+  </div>
+
+  <div class="calculator-grid" style="grid-template-columns: 1fr; max-width: 600px; margin: 0 auto;">
+    <div class="card calculator-form">
+      <div class="card-header">
+        <h2 class="card-title">Mitä tapahtuu seuraavaksi?</h2>
+        <p class="card-subtitle">Ylläpitäjämme tarkistaa tilisi tiedot ja aktivoi sen mahdollisimman pian</p>
+      </div>
+
+      <div class="card-body">
+        <div class="calculator-actions">
+          <a href="/login" class="btn btn-primary btn-lg">Takaisin kirjautumissivulle</a>
+          <a href="/" class="btn btn-ghost">Etusivulle</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+""", current_user())
 
 
 
@@ -723,6 +604,130 @@ def register():
 def logout():
     session.clear()
     return redirect("/")
+
+@app.post("/api/places_autocomplete")
+def api_places_autocomplete():
+    """Google Places Autocomplete API endpoint with Nominatim fallback"""
+    data = request.get_json(force=True, silent=True) or {}
+    query = (data.get("query") or "").strip()
+
+    if not query:
+        return jsonify({"error": "Query required"}), 400
+
+    # Try Google Places API first if key is configured
+    if GOOGLE_PLACES_API_KEY:
+        try:
+            # Google Places Autocomplete API request
+            url = "https://maps.googleapis.com/maps/api/place/autocomplete/json"
+            params = {
+                "input": query,
+                "key": GOOGLE_PLACES_API_KEY,
+                "components": "country:fi",  # Restrict to Finland
+                "language": "fi",
+                "types": "address|establishment|geocode",  # Include more types for better postal code coverage
+            }
+
+            response = requests.get(url, params=params, timeout=10)
+            response.raise_for_status()
+
+            data = response.json()
+
+            if data.get("status") == "OK":
+                return jsonify({
+                    "predictions": data.get("predictions", []),
+                    "status": data.get("status"),
+                    "source": "google"
+                })
+            elif data.get("status") == "REQUEST_DENIED":
+                # API key issue, fall back to Nominatim
+                print(f"Google Places API denied: {data.get('error_message', 'Unknown error')}")
+            else:
+                # Other API errors, fall back to Nominatim
+                print(f"Google Places API error: {data.get('status')} - {data.get('error_message', 'Unknown error')}")
+
+        except Exception as e:
+            print(f"Google Places API exception: {str(e)}")
+
+    # Fallback to Nominatim (similar to original implementation)
+    try:
+        url = f"{NOMINATIM_URL}?format=jsonv2&addressdetails=1&limit=10&dedupe=1&countrycodes=fi&viewbox=19,59,32,71&bounded=1&q={query}"
+
+        response = requests.get(url, headers={
+            'User-Agent': USER_AGENT,
+            'Accept-Language': 'fi'
+        }, timeout=10)
+        response.raise_for_status()
+
+        data = response.json()
+
+        # Convert Nominatim results to Google Places format
+        predictions = []
+        seen = set()
+
+        for place in data:
+            if not (place.get('address') and place['address'].get('country_code') == 'fi'):
+                continue
+
+            # Create a description similar to Google Places format
+            addr = place['address']
+            road = addr.get('road') or addr.get('pedestrian') or addr.get('cycleway') or addr.get('footway') or ""
+            house_number = addr.get('house_number', "")
+            city = (addr.get('city') or addr.get('town') or addr.get('municipality')
+                   or addr.get('village') or addr.get('suburb') or addr.get('city_district') or "")
+            postcode = addr.get('postcode', "")
+
+            if road:
+                description = f"{road}"
+                if house_number:
+                    description += f" {house_number}"
+                if postcode:
+                    description += f", {postcode}"
+                if city:
+                    description += f" {city}"
+            else:
+                description = city if city else place.get('display_name', '')
+                if postcode and city:
+                    description = f"{postcode} {city}"
+
+            description = description.strip()
+            if not description or description.lower() in seen:
+                continue
+
+            seen.add(description.lower())
+
+            # Create secondary text with postal code
+            if road:
+                main_text = f"{road} {house_number}".strip()
+                secondary_parts = []
+                if postcode:
+                    secondary_parts.append(postcode)
+                if city:
+                    secondary_parts.append(city)
+                secondary_text = " ".join(secondary_parts)
+            else:
+                main_text = city
+                secondary_text = postcode if postcode else ""
+
+            predictions.append({
+                "description": description,
+                "place_id": place.get('place_id', ''),
+                "structured_formatting": {
+                    "main_text": main_text,
+                    "secondary_text": secondary_text
+                }
+            })
+
+        # Sort to prioritize addresses with house numbers
+        predictions.sort(key=lambda x: 0 if any(char.isdigit() for char in x['description']) else 1)
+
+        return jsonify({
+            "predictions": predictions[:8],  # Limit to 8 results
+            "status": "OK",
+            "source": "nominatim"
+        })
+
+    except Exception as e:
+        return jsonify({"error": f"Fallback API failed: {str(e)}"}), 500
 
 @app.post("/api/route_geo")
 def api_route_geo():
@@ -758,33 +763,63 @@ def api_route_geo():
 @app.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "GET":
-        nxt = request.args.get("next", "/")
+        nxt = request.args.get("next", "")
         body = """
-<div class="card">
-  <h2>Kirjaudu</h2>
-  <form method="POST" class="grid cols-2">
-    <div class="card">
-      <label>Sähköposti</label><input type="email" name="email" required>
-      <label>Salasana</label><input type="password" name="password" required>
-      <input type="hidden" name="next" value="__NEXT__">
-      <button type="submit" style="margin-top:10px">Kirjaudu</button>
+<div class="container">
+  <div class="section-padding">
+    <div class="text-center mb-8">
+      <h1 class="calculator-title">Kirjaudu sisään</h1>
+      <p class="calculator-subtitle">Syötä tunnuksesi päästäksesi omalle sivullesi</p>
     </div>
-    <div class="card muted">Tarvitsetko tilin? <a href="/register">Luo tili</a>.</div>
-  </form>
+  </div>
+  
+  <div class="calculator-grid" style="grid-template-columns: 1fr; max-width: 600px; margin: 0 auto;">
+    <div class="card calculator-form">
+      <div class="card-header">
+        <h2 class="card-title">Kirjautumistiedot</h2>
+        <p class="card-subtitle">Syötä sähköpostisi ja salasanasi</p>
+      </div>
+      
+      <div class="card-body">
+        <form method="POST">
+          <div class="form-group">
+            <label class="form-label">Sähköposti</label>
+            <input type="email" name="email" required class="form-input" placeholder="nimi@yritys.fi">
+          </div>
+          
+          <div class="form-group">
+            <label class="form-label">Salasana</label>
+            <input type="password" name="password" required class="form-input" placeholder="Salasanasi">
+          </div>
+          
+          <input type="hidden" name="next" value="__NEXT__">
+          
+          <div class="calculator-actions">
+            <button type="submit" class="btn btn-primary btn-lg">Kirjaudu</button>
+            <a href="/register" class="btn btn-ghost">Tarvitsetko tilin? Luo tili</a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
 </div>
 """.replace("__NEXT__", nxt)
         return wrap(body, current_user())
 
     email = (request.form.get("email") or "").strip().lower()
     password = request.form.get("password") or ""
-    nxt = request.form.get("next") or "/"
+    nxt = request.form.get("next") or ""
 
-    row = users_col().find_one({"email": email}, {"_id": 0, "id": 1, "password_hash": 1})
+    row = users_col().find_one({"email": email}, {"_id": 0, "id": 1, "password_hash": 1, "approved": 1, "role": 1})
     if not row or not check_password_hash(row.get("password_hash", ""), password):
         return wrap("<div class='card'><h3>Väärä sähköposti tai salasana</h3></div>", current_user())
 
+    # Check if user is approved (admins are always approved)
+    if not row.get("approved", False) and row.get("role") != "admin":
+        return wrap("<div class='card'><h3>Tilisi odottaa ylläpidon hyväksyntää. Yritä myöhemmin uudelleen.</h3></div>", current_user())
+
     session["uid"] = int(row["id"])
-    return redirect(nxt or "/")
+    return redirect(nxt or "/dashboard")
 
 
 
@@ -808,33 +843,53 @@ def dashboard():
 
     rows = ""
     for r in orders:
+        status_fi = translate_status(r['status'])
         rows += f"""
 <tr>
   <td>#{r['id']}</td>
-  <td><span class="status {r['status']}">{r['status']}</span></td>
+  <td><span class="status {r['status']}">{status_fi}</span></td>
   <td>{r['pickup_address']} → {r['dropoff_address']}</td>
   <td>{float(r['distance_km']):.1f} km</td>
   <td>{float(r['price_gross']):.2f} €</td>
-  <td><a class="ghost" href="/order/{r['id']}">Avaa</a></td>
+  <td><a class="btn btn-ghost btn-sm" href="/order/{r['id']}">Avaa</a></td>
 </tr>
 """
 
     tabs_html = f"""
-<div class="tabs">
-  <a href="/dashboard?tab=active" class="{'active' if tab=='active' else ''}">Aktiiviset</a>
-  <a href="/dashboard?tab=completed" class="{'active' if tab=='completed' else ''}">Valmistuneet</a>
+<div class="tabs mb-4">
+  <a href="/dashboard?tab=active" class="btn {'btn-primary' if tab=='active' else 'btn-ghost'} mr-2">Aktiiviset</a>
+  <a href="/dashboard?tab=completed" class="btn {'btn-primary' if tab=='completed' else 'btn-ghost'}">Valmistuneet</a>
 </div>
 """
 
     body = f"""
-<div class="card">
-  <h2>Omat tilaukset</h2>
-  {tabs_html}
-  <div class="row"><a class="ghost" href="/order/new/step1">+ Uusi tilaus</a></div>
-  <table>
-    <thead><tr><th>ID</th><th>Tila</th><th>Reitti</th><th>Km</th><th>Hinta</th><th></th></tr></thead>
-    <tbody>{rows or "<tr><td colspan='6' class='muted'>Ei tilauksia</td></tr>"}</tbody>
-  </table>
+<div class="container">
+  <div class="section-padding">
+    <div class="text-center mb-8">
+      <h1 class="calculator-title">Omat tilaukset</h1>
+      <p class="calculator-subtitle">Hallinnoi kuljetustilauksiasi ja seuraa niiden etenemistä</p>
+    </div>
+  </div>
+
+  <div class="calculator-grid" style="grid-template-columns: 1fr; max-width: 1200px; margin: 0 auto;">
+    <div class="card calculator-form">
+      <div class="card-header">
+        <h2 class="card-title">Tilaushistoria</h2>
+        <p class="card-subtitle">Näet kaikki tilauksesi ja niiden tilan alla</p>
+      </div>
+      
+      <div class="card-body">
+        {tabs_html}
+        <div class="calculator-actions mb-4">
+          <a class="btn btn-primary" href="/order/new/step1">+ Uusi tilaus</a>
+        </div>
+        <table class="dashboard-table">
+          <thead><tr><th>ID</th><th>Tila</th><th>Reitti</th><th>Km</th><th>Hinta</th><th></th></tr></thead>
+          <tbody>{rows or "<tr><td colspan='6' style='text-align: center; color: var(--text-muted); font-style: italic;'>Ei tilauksia</td></tr>"}</tbody>
+        </table>
+      </div>
+    </div>
+  </div>
 </div>
 """
     return wrap(body, u)
@@ -861,40 +916,113 @@ def order_view(order_id: int):
 
     step = progress_step(r.get("status", "NEW"))
 
-    # sama 3-step palkki kuin aiemmin
+    # Progress bar with better styling
     bar = f"""
-<div class="progress">
-  <div class="node">
-    <div class="dot {'done' if step >= 1 else ''}">1</div>
-    <div class="label">Picked up</div>
+<div class="order-progress">
+  <div class="progress-step {'completed' if step >= 1 else ''}">
+    <div class="step-number">1</div>
+    <div class="step-label">Noudettu</div>
   </div>
-  <div class="bar {'done' if step >= 1 else ''}"></div>
-  <div class="node">
-    <div class="dot {'done' if step >= 2 else ''}">2</div>
-    <div class="label">In transit</div>
+  <div class="progress-line {'completed' if step >= 2 else ''}"></div>
+  <div class="progress-step {'completed' if step >= 2 else ''}">
+    <div class="step-number">2</div>
+    <div class="step-label">Kuljetuksessa</div>
   </div>
-  <div class="bar {'done' if step >= 3 else ''}"></div>
-  <div class="node">
-    <div class="dot {'done' if step >= 3 else ''}">3</div>
-    <div class="label">Delivered</div>
+  <div class="progress-line {'completed' if step >= 3 else ''}"></div>
+  <div class="progress-step {'completed' if step >= 3 else ''}">
+    <div class="step-number">3</div>
+    <div class="step-label">Toimitettu</div>
   </div>
 </div>
 """
 
+    status_fi = translate_status(r.get('status', 'NEW'))
     body = f"""
-<div class="card">
-  <h2>Tilaus #{r['id']}</h2>
-  <p><strong>Tila:</strong> <span class="status {r.get('status','NEW')}">{r.get('status','NEW')}</span></p>
+<link rel='stylesheet' href='/static/css/order-view.css'>
+<div class="order-container">
+  <div class="order-header">
+    <h1 class="order-title">Tilaus #{r['id']}</h1>
+    <div class="order-status">
+      <span class="status-label">Tila:</span>
+      <span class="status-badge status-{r.get('status','NEW').lower()}">{status_fi}</span>
+    </div>
+  </div>
+  
   {bar}
-  <table>
-    <tr><th>Reitti</th><td>{r.get('pickup_address','?')} → {r.get('dropoff_address','?')}</td></tr>
-    <tr><th>Ajoneuvo</th><td>{r.get('vin','') or ''} {r.get('make','') or ''} {r.get('model','') or ''}</td></tr>
-    <tr><th>Talvirenkaat</th><td>{"Kyllä" if r.get('winter_tires') else "Ei"}</td></tr>
-    <tr><th>Km</th><td>{distance_km:.1f}</td></tr>
-    <tr><th>Hinta</th><td><strong>{price_gross:.2f} €</strong></td></tr>
-    <tr><th>Lisätiedot</th><td>{(r.get('additional_info') or '').replace('<', '&lt;')}</td></tr>
-    <tr><th>PIN</th><td><span class="pill">{r.get('pin','')}</span></td></tr>
-  </table>
+  
+  <div class="order-details">
+    <div class="detail-section full-width">
+      <h3 class="section-title">Reitti</h3>
+      <div class="route-info">
+        <div class="route-point pickup">
+          <span class="route-label">Nouto:</span>
+          <span class="route-address">{r.get('pickup_address','?')}</span>
+        </div>
+        <div class="route-arrow">→</div>
+        <div class="route-point delivery">
+          <span class="route-label">Toimitus:</span>
+          <span class="route-address">{r.get('dropoff_address','?')}</span>
+        </div>
+      </div>
+    </div>
+    
+    <div class="detail-section">
+      <h3 class="section-title">Ajoneuvo</h3>
+      <div class="vehicle-info">
+        <div class="vehicle-detail">
+          <span class="detail-label">Rekisterinumero:</span>
+          <span class="detail-value">{r.get('reg_number','') or 'Ei tiedossa'}</span>
+        </div>
+        <div class="vehicle-detail">
+          <span class="detail-label">Talvirenkaat:</span>
+          <span class="detail-value">{"Kyllä" if r.get('winter_tires') else "Ei"}</span>
+        </div>
+      </div>
+    </div>
+    
+    <div class="detail-section">
+      <h3 class="section-title">Hinta ja matka</h3>
+      <div class="price-info">
+        <div class="price-detail">
+          <span class="detail-label">Matka:</span>
+          <span class="detail-value">{distance_km:.1f} km</span>
+        </div>
+        <div class="price-detail highlight">
+          <span class="detail-label">Hinta:</span>
+          <span class="detail-value price">{price_gross:.2f} €</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="detail-section full-width">
+      <h3 class="section-title">Yhteystiedot</h3>
+      <div class="contact-info">
+        <div class="contact-detail">
+          <span class="detail-label">Nimi:</span>
+          <span class="detail-value">{r.get('customer_name','') or 'Ei tiedossa'}</span>
+        </div>
+        <div class="contact-detail">
+          <span class="detail-label">Sähköposti:</span>
+          <span class="detail-value">{r.get('email','') or 'Ei tiedossa'}</span>
+        </div>
+        <div class="contact-detail">
+          <span class="detail-label">Puhelin:</span>
+          <span class="detail-value">{r.get('phone','') or 'Ei tiedossa'}</span>
+        </div>
+      </div>
+    </div>
+
+    {f'''<div class="detail-section full-width">
+      <h3 class="section-title">Lisätiedot</h3>
+      <div class="additional-info">
+        <p>{(r.get('additional_info') or 'Ei lisätietoja').replace('<', '&lt;')}</p>
+      </div>
+    </div>''' if r.get('additional_info') else ''}
+  </div>
+  
+  <div class="order-actions">
+    <a href="/dashboard" class="btn btn-ghost">← Takaisin tilauksiin</a>
+  </div>
 </div>
 """
     return wrap(body, u)
@@ -935,36 +1063,40 @@ def admin_home():
     for r in rows:
         distance_km = float(r.get("distance_km", 0.0))
         price_gross = float(r.get("price_gross", 0.0))
+        status_fi = translate_status(r['status'])
         tr += f"""
 <tr>
   <td>#{r['id']}</td>
-  <td><span class="status {r['status']}">{r['status']}</span></td>
+  <td><span class="status {r['status']}">{status_fi}</span></td>
   <td>{r.get('user_name','?')} &lt;{r.get('user_email','?')}&gt;</td>
   <td>{r['pickup_address']} → {r['dropoff_address']}</td>
   <td>{distance_km:.1f} km</td>
   <td>{price_gross:.2f} €</td>
   <td>
-    <form method="POST" action="/admin/update" class="row" style="gap:6px">
+    <form method="POST" action="/admin/update" class="admin-inline-form">
       <input type="hidden" name="id" value="{r['id']}">
       <select name="status">
-        <option {'selected' if r['status'] == 'NEW' else ''}>NEW</option>
-        <option {'selected' if r['status'] == 'CONFIRMED' else ''}>CONFIRMED</option>
-        <option {'selected' if r['status'] == 'IN_TRANSIT' else ''}>IN_TRANSIT</option>
-        <option {'selected' if r['status'] == 'DELIVERED' else ''}>DELIVERED</option>
-        <option {'selected' if r['status'] == 'CANCELLED' else ''}>CANCELLED</option>
+        <option value="NEW" {'selected' if r['status'] == 'NEW' else ''}>UUSI</option>
+        <option value="CONFIRMED" {'selected' if r['status'] == 'CONFIRMED' else ''}>VAHVISTETTU</option>
+        <option value="IN_TRANSIT" {'selected' if r['status'] == 'IN_TRANSIT' else ''}>KULJETUKSESSA</option>
+        <option value="DELIVERED" {'selected' if r['status'] == 'DELIVERED' else ''}>TOIMITETTU</option>
+        <option value="CANCELLED" {'selected' if r['status'] == 'CANCELLED' else ''}>PERUUTETTU</option>
       </select>
-      <button>Päivitä</button>
+      <button type="submit">Päivitä</button>
     </form>
   </td>
 </tr>
 """
     body = f"""
-<div class="card">
-  <div class="row" style="justify-content:space-between">
+<div class="admin-container">
+  <div class="admin-header">
     <h2>Admin – Tilaukset</h2>
-    <a class="ghost" href="/logout">Kirjaudu ulos</a>
+    <div class="admin-actions">
+      <a class="btn btn-ghost" href="/admin/users">Käyttäjät</a>
+      <a class="btn btn-secondary" href="/logout">Kirjaudu ulos</a>
+    </div>
   </div>
-  <table>
+  <table class="admin-table">
     <thead><tr><th>ID</th><th>Tila</th><th>Asiakas</th><th>Reitti</th><th>Km</th><th>Hinta</th><th>Päivitä</th></tr></thead>
     <tbody>{tr or "<tr><td colspan='7' class='muted'>Ei tilauksia</td></tr>"}</tbody>
   </table>
@@ -974,13 +1106,89 @@ def admin_home():
 
 
 
-@app.post("/admin/update")
-def admin_update():
+@app.get("/admin/users")
+def admin_users():
+    u = current_user()
+    if not u or u.get("role") != "admin":
+        return wrap("<div class='card'><h2>Adminalue</h2><p class='muted'>Kirjaudu admin-käyttäjänä.</p></div>", u)
+
+    # Get all users sorted by creation date (newest first)
+    users = list(users_col().find({}, {"_id": 0}).sort("created_at", -1))
+
+    user_rows = ""
+    for user in users:
+        approved_status = "✅ Hyväksytty" if user.get("approved", False) else "⏳ Odottaa"
+        role_badge = "Admin" if user.get("role") == "admin" else "Asiakas"
+
+        action_buttons = ""
+        if user.get("role") != "admin":  # Don't allow modifying admin accounts
+            if user.get("approved", False):
+                action_buttons = f"""
+                <form method="POST" action="/admin/users/deny" class="admin-inline-form">
+                  <input type="hidden" name="user_id" value="{user['id']}">
+                  <button type="submit" class="btn btn-sm" style="background: #dc2626; color: white;">Hylkää</button>
+                </form>
+                """
+            else:
+                action_buttons = f"""
+                <div class="admin-inline-form">
+                  <form method="POST" action="/admin/users/approve" class="admin-inline-form">
+                    <input type="hidden" name="user_id" value="{user['id']}">
+                    <button type="submit" class="btn btn-success btn-sm">Hyväksy</button>
+                  </form>
+                  <form method="POST" action="/admin/users/deny" class="admin-inline-form">
+                    <input type="hidden" name="user_id" value="{user['id']}">
+                    <button type="submit" class="btn btn-sm" style="background: #dc2626; color: white;">Hylkää</button>
+                  </form>
+                </div>
+                """
+
+        user_rows += f"""
+<tr>
+  <td>#{user['id']}</td>
+  <td>{user['name']}</td>
+  <td>{user['email']}</td>
+  <td><span class="pill">{role_badge}</span></td>
+  <td><span class="status {'status-confirmed' if user.get('approved', False) else 'status-new'}">{approved_status}</span></td>
+  <td>{user.get('created_at', '').strftime('%d.%m.%Y %H:%M') if user.get('created_at') else '-'}</td>
+  <td>{action_buttons}</td>
+</tr>
+"""
+
+    body = f"""
+<div class="admin-container">
+  <div class="admin-header">
+    <h2>Käyttäjien hallinta</h2>
+    <div class="admin-actions">
+      <a class="btn btn-ghost" href="/admin">Takaisin tilauksiin</a>
+      <a class="btn btn-secondary" href="/logout">Kirjaudu ulos</a>
+    </div>
+  </div>
+  <p class="text-muted">Hallinnoi käyttäjätilien hyväksyntää ja hylkäämistä.</p>
+  <table class="admin-table admin-users-table">
+    <thead><tr><th>ID</th><th>Nimi</th><th>Sähköposti</th><th>Rooli</th><th>Tila</th><th>Luotu</th><th>Toiminnot</th></tr></thead>
+    <tbody>{user_rows or "<tr><td colspan='7' class='muted'>Ei käyttäjiä</td></tr>"}</tbody>
+  </table>
+</div>
+"""
+    return wrap(body, u)
+
+
+
+@app.post("/admin/users/approve")
+def admin_approve_user():
     admin_required()
-    oid = int(request.form.get("id"))
-    status = (request.form.get("status") or "NEW").strip()
-    orders_col().update_one({"id": oid}, {"$set": {"status": status}})
-    return redirect(url_for("admin_home"))
+    user_id = int(request.form.get("user_id"))
+    users_col().update_one({"id": user_id}, {"$set": {"approved": True}})
+    return redirect(url_for("admin_users"))
+
+
+@app.post("/admin/users/deny")
+def admin_deny_user():
+    admin_required()
+    user_id = int(request.form.get("user_id"))
+    users_col().update_one({"id": user_id}, {"$set": {"approved": False}})
+    return redirect(url_for("admin_users"))
 
 
 

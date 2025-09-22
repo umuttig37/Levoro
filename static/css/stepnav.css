@@ -1,0 +1,104 @@
+/* Step Navigation Styling */
+.stepnav {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+    padding: 24px;
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+    border-radius: 16px;
+    border: 1px solid var(--color-gray-200, #e5e7eb);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
+}
+
+.stepnav .item {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--color-gray-600, #4b5563);
+    background: var(--color-white, #fff);
+    border-radius: 12px;
+    padding: 16px 20px;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    letter-spacing: 0.01em;
+    border: 2px solid transparent;
+    position: relative;
+    cursor: default;
+    display: block;
+    text-decoration: none;
+}
+
+.stepnav .item:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.stepnav .item.clickable {
+    cursor: pointer;
+    text-decoration: none;
+    color: var(--color-gray-700, #374151);
+}
+
+.stepnav .item.clickable:hover {
+    background: var(--color-primary-50, #eff6ff);
+    border-color: var(--color-primary-200, #bfdbfe);
+    color: var(--color-primary-700, #1d4ed8);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(59, 130, 246, 0.15);
+}
+
+.stepnav .item.disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    background: var(--color-gray-100, #f3f4f6);
+    color: var(--color-gray-400, #9ca3af);
+}
+
+.stepnav .item.disabled:hover {
+    transform: none;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.stepnav .item.active {
+    background: linear-gradient(135deg, var(--color-primary, #3b82f6) 0%, var(--color-primary-dark, #2563eb) 100%);
+    color: var(--color-white, #fff);
+    box-shadow: 0 6px 20px rgba(59, 130, 246, 0.25);
+    border-color: var(--color-primary-light, #60a5fa);
+    transform: translateY(-2px);
+}
+
+.stepnav .item.active::before {
+    content: '';
+    position: absolute;
+    top: -2px;
+    left: -2px;
+    right: -2px;
+    bottom: -2px;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.2) 0%, transparent 50%, rgba(255, 255, 255, 0.1) 100%);
+    border-radius: 14px;
+    z-index: -1;
+}
+
+/* Mobile adjustments for stepnav */
+@media (max-width: 768px) {
+    .stepnav {
+        flex-direction: row;
+        overflow-x: auto;
+        gap: 8px;
+        padding: 16px;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+        -ms-overflow-style: none;
+    }
+
+    .stepnav::-webkit-scrollbar {
+        display: none;
+    }
+
+    .stepnav .item {
+        white-space: nowrap;
+        min-width: max-content;
+        padding: 12px 16px;
+        font-size: 1rem;
+    }
+}

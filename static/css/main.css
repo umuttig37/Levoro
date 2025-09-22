@@ -1,0 +1,1271 @@
+/* ==========================================================================
+   Main Stylesheet - Car Transport Portal
+   Modern CSS Architecture for UI Modernization
+   ========================================================================== */
+
+/* Import all CSS modules in order */
+@import './variables.css';
+@import './base.css';
+@import './layout.css';
+@import './components.css';
+
+/* ================================================================/* Calculator form actions */
+.calculator-actions {
+    display: flex;
+    gap: var(--space-3);
+    margin-top: var(--space-6);
+    flex-wrap: wrap;
+}
+
+.calculator-actions .btn-primary {
+    flex: 1;
+    min-width: 200px;
+    background: var(--color-primary);
+    color: var(--color-white);
+    border: none;
+    font-weight: var(--font-weight-semibold);
+}
+
+.calculator-actions .btn-primary:hover {
+    background: var(--color-primary-dark);
+    color: var(--color-white);
+}
+
+.calculator-actions .btn-ghost {
+    color: var(--color-gray-700);
+    background: var(--color-gray-100);
+    border: 1px solid var(--color-gray-300);
+}
+
+.calculator-actions .btn-ghost:hover {
+    color: var(--color-gray-900);
+    background: var(--color-gray-200);
+    border-color: var(--color-gray-400);
+}
+
+/* Calculator continue button */
+/* ==========================================================================
+   Additional Background Enhancements
+   ========================================================================== */
+
+/* Subtle dot pattern overlay for texture */
+main {
+    position: relative;
+}
+
+main::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image:
+        radial-gradient(circle at 1px 1px, rgba(59, 130, 246, 0.15) 1px, transparent 0);
+    background-size: 40px 40px;
+    background-position: 0 0, 20px 20px;
+    opacity: 0.3;
+    pointer-events: none;
+    z-index: -1;
+}
+
+/* ==========================================================================
+   Hero Section Styles (Phase 2 preparation)
+   ========================================================================== */
+
+.hero {
+    position: relative;
+    background: var(--bg-hero);
+    color: var(--color-gray-200);
+    overflow: hidden;
+    margin: var(--space-6) auto var(--space-4);
+    border-radius: var(--radius-2xl);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    padding: 40px 22px 26px 22px;
+}
+
+.hero::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -10%;
+    width: 120%;
+    height: 200%;
+    background: radial-gradient(circle at 20% 20%, var(--bg-hero-subtle) 0%, transparent 50%),
+        radial-gradient(circle at 80% 80%, rgba(34, 197, 94, 0.02) 0%, transparent 50%);
+    pointer-events: none;
+    z-index: 0;
+}
+
+.hero-content {
+    position: relative;
+    z-index: 1;
+    text-align: left;
+}
+
+.hero-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-2) var(--space-4);
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: var(--radius-full);
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-medium);
+    margin-bottom: var(--space-6);
+    color: var(--text-white);
+}
+
+.hero-title {
+    font-size: clamp(38px, 5.2vw, 64px);
+    font-weight: var(--font-weight-extrabold);
+    line-height: 1.04;
+    letter-spacing: -.02em;
+    margin: 10px 0 6px;
+    color: var(--text-white);
+}
+
+.hero-subtitle {
+    font-size: 18px;
+    opacity: .85;
+    max-width: 760px;
+    line-height: var(--line-height-relaxed);
+    color: var(--color-gray-300);
+    margin-bottom: var(--space-8);
+}
+
+.hero-actions {
+    display: flex;
+    align-items: center;
+    gap: var(--space-4);
+    flex-wrap: wrap;
+    margin-bottom: var(--space-8);
+}
+
+.hero-features {
+    display: flex;
+    gap: var(--space-6);
+    flex-wrap: wrap;
+    margin-top: 14px;
+}
+
+.hero-feature {
+    padding: var(--space-2) var(--space-4);
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: var(--radius-full);
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-medium);
+    color: var(--text-white);
+}
+
+@media (max-width: 768px) {
+
+    /* Mobile hero improvements */
+    .hero {
+        margin: var(--space-4) auto var(--space-2);
+        padding: 32px 16px 20px 16px;
+    }
+
+    .hero-content {
+        padding: var(--space-8) var(--space-3);
+        text-align: center;
+    }
+
+    .hero-title {
+        font-size: var(--font-size-4xl);
+        line-height: 1.1;
+        margin: 8px 0 12px;
+    }
+
+    .hero-subtitle {
+        font-size: var(--font-size-lg);
+        line-height: 1.4;
+        margin-bottom: var(--space-6);
+    }
+
+    .hero-badge {
+        margin-bottom: var(--space-4);
+        font-size: var(--font-size-xs);
+        padding: var(--space-1) var(--space-3);
+    }
+
+    .hero-actions {
+        flex-direction: column;
+        align-items: stretch;
+        gap: var(--space-3);
+        margin: var(--space-6) 0;
+    }
+
+    .hero-actions .btn {
+        padding: var(--space-4) var(--space-6);
+        font-size: var(--font-size-base);
+        min-height: 48px;
+        /* Better touch target */
+    }
+
+    .hero-features {
+        flex-direction: column;
+        align-items: center;
+        gap: var(--space-2);
+        margin-top: var(--space-4);
+    }
+
+    .hero-feature {
+        font-size: var(--font-size-sm);
+        padding: var(--space-1) 0;
+    }
+
+    /* Mobile feature cards improvements */
+    .feature-card {
+        padding: var(--space-6);
+        text-align: center;
+        margin-bottom: var(--space-4);
+    }
+
+    .feature-icon {
+        font-size: 2.5rem;
+        margin-bottom: var(--space-3);
+    }
+
+    .feature-title {
+        font-size: var(--font-size-xl);
+        margin-bottom: var(--space-3);
+    }
+
+    .feature-description {
+        font-size: var(--font-size-base);
+        line-height: 1.5;
+    }
+
+    /* Mobile trust banner improvements */
+    .trust-banner {
+        flex-direction: column;
+        text-align: center;
+        padding: var(--space-6);
+        gap: var(--space-4);
+    }
+
+    .trust-content {
+        flex-direction: column;
+        align-items: center;
+        gap: var(--space-3);
+    }
+
+    .trust-text h3 {
+        font-size: var(--font-size-xl);
+        margin-bottom: var(--space-2);
+    }
+
+    .trust-text p {
+        font-size: var(--font-size-base);
+    }
+
+    /* Mobile section improvements */
+    .section-padding {
+        padding: var(--space-12) var(--space-4);
+    }
+
+    .section-title {
+        font-size: var(--font-size-3xl);
+        margin-bottom: var(--space-8);
+        text-align: center;
+    }
+
+    /* Mobile container improvements */
+    .container {
+        padding-left: var(--space-4);
+        padding-right: var(--space-4);
+    }
+
+    /* Mobile navigation improvements */
+    .nav {
+        padding: var(--space-2) 0;
+    }
+
+    .nav .nav-link {
+        padding: var(--space-3) var(--space-4);
+        font-size: var(--font-size-base);
+        min-height: 44px;
+        /* Better touch target */
+        display: flex;
+        align-items: center;
+    }
+
+    /* Mobile header improvements */
+    .header {
+        padding: var(--space-3) 0;
+    }
+
+    .header-inner {
+        padding: 0 var(--space-4);
+    }
+
+    /* Mobile calculator improvements */
+    .calculator-title {
+        font-size: 1.8rem;
+        line-height: 1.2;
+    }
+
+    .calculator-subtitle {
+        font-size: var(--font-size-base);
+        padding: 0 var(--space-2);
+    }
+
+    /* Mobile footer improvements */
+    .footer {
+        padding: var(--space-8) 0;
+    }
+
+    .footer .container {
+        padding: 0 var(--space-4);
+    }
+
+    .footer-cta {
+        flex-direction: column;
+        gap: var(--space-3);
+    }
+
+    .footer-cta .btn {
+        padding: var(--space-3) var(--space-6);
+        min-height: 44px;
+    }
+
+    /* Mobile step number improvements for homepage */
+    .step-number {
+        font-size: var(--font-size-base);
+        padding: var(--space-2);
+        margin-bottom: var(--space-2);
+    }
+}
+
+/* ==========================================================================
+   Statistics Section
+   ========================================================================== */
+
+.stats {
+    background: var(--bg-primary);
+    padding: var(--space-16) 0;
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: var(--space-8);
+}
+
+.stat-item {
+    text-align: center;
+}
+
+.stat-number {
+    font-size: var(--font-size-4xl);
+    font-weight: var(--font-weight-extrabold);
+    color: var(--color-primary);
+    margin-bottom: var(--space-2);
+    display: block;
+}
+
+.stat-label {
+    font-size: var(--font-size-base);
+    color: var(--text-secondary);
+    font-weight: var(--font-weight-medium);
+}
+
+/* ==========================================================================
+   Feature Cards
+   ========================================================================== */
+
+.feature-card {
+    text-align: left;
+    padding: var(--space-6);
+    border-radius: 0;
+    background: rgba(255, 255, 255, 0.8);
+    border: 1px solid var(--color-primary-lighter);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15);
+    backdrop-filter: blur(8px);
+}
+
+.feature-card:hover {
+    border-color: var(--color-primary);
+}
+
+.feature-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    margin-bottom: var(--space-4);
+    border-radius: var(--radius-lg);
+    background: var(--color-primary-lightest);
+    font-size: 22px;
+    color: var(--color-primary);
+}
+
+.feature-card:hover .feature-icon {
+    background: var(--color-primary-lighter);
+}
+
+.feature-title {
+    font-size: var(--font-size-xl);
+    font-weight: var(--font-weight-semibold);
+    color: var(--color-gray-900);
+    margin-bottom: var(--space-3);
+    line-height: var(--line-height-tight);
+}
+
+.feature-description {
+    color: var(--color-gray-600);
+    line-height: var(--line-height-relaxed);
+    font-size: var(--font-size-base);
+}
+
+/* ==========================================================================
+   Trust Section (Insurance banner)
+   ========================================================================== */
+
+.trust-banner {
+    background: #0b1020;
+    color: var(--text-white);
+    border-radius: var(--radius-xl);
+    padding: var(--space-8);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-6);
+    flex-wrap: wrap;
+    margin: var(--space-12) 0;
+}
+
+.trust-content {
+    display: flex;
+    align-items: center;
+    gap: var(--space-4);
+}
+
+.trust-icon {
+    width: 72px;
+    height: 72px;
+    background: linear-gradient(180deg, #ecfdf5, #dcfce7);
+    border: 1px solid #bbf7d0;
+    border-radius: var(--radius-xl);
+    display: grid;
+    place-items: center;
+    box-shadow: 0 8px 20px rgba(16, 185, 129, .25);
+}
+
+.trust-icon svg {
+    width: 36px;
+    height: 36px;
+    stroke: #16a34a;
+}
+
+.trust-icon svg path {
+    vector-effect: non-scaling-stroke;
+}
+
+.trust-text h3 {
+    font-size: var(--font-size-xl);
+    font-weight: var(--font-weight-bold);
+    margin-bottom: var(--space-1);
+    color: var(--text-white);
+}
+
+.trust-text p {
+    color: rgba(255, 255, 255, 0.9);
+    margin-bottom: 0;
+    opacity: .92;
+}
+
+@media (max-width: 768px) {
+    .trust-banner {
+        flex-direction: column;
+        text-align: center;
+    }
+}
+
+/* ==========================================================================
+   Enhanced Table Styles
+   ========================================================================== */
+
+.table-container {
+    overflow-x: auto;
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border-light);
+    background: var(--bg-primary);
+}
+
+.table-enhanced {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 0;
+}
+
+.table-enhanced th {
+    background: var(--bg-secondary);
+    font-weight: var(--font-weight-semibold);
+    color: var(--text-primary);
+    font-size: var(--font-size-sm);
+    padding: var(--space-4);
+    text-align: left;
+    border-bottom: 1px solid var(--border-light);
+    white-space: nowrap;
+}
+
+.table-enhanced td {
+    padding: var(--space-4);
+    border-bottom: 1px solid var(--border-light);
+    vertical-align: middle;
+}
+
+.table-enhanced tbody tr:hover {
+    background: var(--color-gray-50);
+}
+
+.table-enhanced tbody tr:last-child td {
+    border-bottom: none;
+}
+
+/* ==========================================================================
+   Testimonials Section
+   ========================================================================== */
+
+.testimonials {
+    background: var(--color-gray-50);
+    position: relative;
+    overflow: hidden;
+}
+
+.testimonials::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, var(--color-primary-50) 0%, var(--color-white) 50%, var(--color-gray-50) 100%);
+    opacity: 0.8;
+    z-index: 0;
+}
+
+.testimonials-content {
+    position: relative;
+    z-index: 1;
+}
+
+.testimonials-header {
+    text-align: center;
+    margin-bottom: var(--space-12);
+}
+
+.testimonials-title {
+    font-size: var(--font-size-3xl);
+    font-weight: var(--font-weight-extrabold);
+    color: var(--color-gray-900);
+    margin-bottom: var(--space-4);
+    line-height: var(--line-height-tight);
+}
+
+.testimonials-subtitle {
+    font-size: var(--font-size-lg);
+    color: var(--color-gray-600);
+    max-width: 600px;
+    margin: 0 auto;
+    line-height: var(--line-height-relaxed);
+}
+
+.testimonials-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: var(--space-8);
+    margin-bottom: var(--space-8);
+}
+
+.testimonial-card {
+    background: var(--color-white);
+    border-radius: var(--radius-xl);
+    padding: var(--space-8);
+    box-shadow: var(--shadow-lg);
+    border: 1px solid var(--color-gray-100);
+    transition: all var(--transition-base);
+    position: relative;
+    overflow: hidden;
+}
+
+.testimonial-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 4px;
+    background: linear-gradient(90deg, var(--color-primary) 0%, var(--color-secondary) 100%);
+}
+
+.testimonial-card:hover {
+    box-shadow: var(--shadow-xl);
+    border-color: var(--color-primary-200);
+}
+
+.testimonial-quote {
+    font-size: var(--font-size-lg);
+    line-height: var(--line-height-relaxed);
+    color: var(--color-gray-700);
+    margin-bottom: var(--space-6);
+    font-style: italic;
+    position: relative;
+}
+
+.testimonial-quote::before {
+    content: '"';
+    font-size: var(--font-size-4xl);
+    color: var(--color-primary-300);
+    position: absolute;
+    top: -8px;
+    left: -8px;
+    font-family: Georgia, serif;
+    line-height: 1;
+}
+
+.testimonial-author {
+    display: flex;
+    align-items: center;
+    gap: var(--space-4);
+}
+
+.testimonial-avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: var(--radius-full);
+    background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--color-white);
+    font-weight: var(--font-weight-bold);
+    font-size: var(--font-size-lg);
+    flex-shrink: 0;
+}
+
+.testimonial-author-info {
+    flex: 1;
+}
+
+.testimonial-author-name {
+    font-size: var(--font-size-base);
+    font-weight: var(--font-weight-semibold);
+    color: var(--color-gray-900);
+    margin: 0 0 var(--space-1) 0;
+}
+
+.testimonial-author-title {
+    font-size: var(--font-size-sm);
+    color: var(--color-gray-600);
+    margin: 0;
+}
+
+.testimonials-navigation {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: var(--space-4);
+    margin-top: var(--space-8);
+}
+
+.testimonials-nav-button {
+    width: 48px;
+    height: 48px;
+    border-radius: var(--radius-full);
+    background: var(--color-white);
+    border: 2px solid var(--color-gray-200);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    color: var(--color-gray-600);
+    font-size: var(--font-size-lg);
+}
+
+.testimonials-nav-button:hover {
+    background: var(--color-primary);
+    border-color: var(--color-primary);
+    color: var(--color-white);
+    transform: scale(1.05);
+}
+
+.testimonials-nav-button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.testimonials-nav-button:disabled:hover {
+    background: var(--color-white);
+    border-color: var(--color-gray-200);
+    color: var(--color-gray-600);
+}
+
+/* Mobile responsive design for testimonials */
+@media (max-width: 768px) {
+    .testimonials-title {
+        font-size: var(--font-size-2xl);
+    }
+
+    .testimonials-subtitle {
+        font-size: var(--font-size-base);
+        padding: 0 var(--space-4);
+    }
+
+    .testimonials-grid {
+        grid-template-columns: 1fr;
+        gap: var(--space-6);
+        padding: 0 var(--space-4);
+    }
+
+    .testimonial-card {
+        padding: var(--space-6);
+    }
+
+    .testimonial-quote {
+        font-size: var(--font-size-base);
+    }
+
+    .testimonials-navigation {
+        gap: var(--space-3);
+        margin-top: var(--space-6);
+    }
+
+    .testimonials-nav-button {
+        width: 40px;
+        height: 40px;
+        font-size: var(--font-size-base);
+    }
+}
+
+/* ==========================================================================
+   Animation Classes
+   ========================================================================== */
+
+.fade-in {
+    animation: fadeIn 0.6s ease-out;
+}
+
+.slide-up {
+    animation: slideUp 0.6s ease-out;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* ==========================================================================
+   Calculator Page Styles
+   ========================================================================== */
+
+.calculator-title {
+    font-size: 2.5rem;
+    font-weight: var(--font-weight-extrabold);
+    line-height: var(--line-height-tight);
+    letter-spacing: -0.02em;
+    margin-bottom: 1rem;
+    color: var(--color-gray-900);
+    text-align: center;
+}
+
+.calculator-subtitle {
+    font-size: var(--font-size-lg);
+    line-height: var(--line-height-relaxed);
+    color: var(--color-gray-600);
+    max-width: 600px;
+    margin: 0 auto;
+    text-align: center;
+}
+
+/* Calculator grid layout */
+.calculator-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-8);
+    margin-bottom: var(--space-8);
+    align-items: start;
+}
+
+/* Calculator column containers */
+.calculator-left-column {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+}
+
+.calculator-right-column {
+    display: flex;
+    flex-direction: column;
+}
+
+/* Ensure calculator map takes full height */
+.calculator-right-column .calculator-map {
+    height: 100%;
+    min-height: 600px;
+    display: flex;
+    flex-direction: column;
+}
+
+.calculator-map .card-header {
+    flex-shrink: 0;
+}
+
+.calculator-map-container {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding: 0;
+    margin: 0;
+    border-radius: 0 0 var(--radius-xl) var(--radius-xl);
+    overflow: hidden;
+}
+
+.calculator-map-element {
+    flex: 1;
+    height: 100%;
+    min-height: 500px;
+    border: none;
+    border-radius: 0;
+}
+
+/* Remove hover transform animations for calculator cards */
+.calculator-form.card:hover,
+.calculator-results.card:hover,
+.calculator-map.card:hover {
+    transform: none;
+}
+
+/* Calculator card text improvements for readability */
+.calculator-form .card-title,
+.calculator-results .card-title,
+.calculator-map .card-title {
+    color: var(--color-gray-900) !important;
+    font-weight: var(--font-weight-bold);
+}
+
+.calculator-form .card-subtitle,
+.calculator-results .card-subtitle,
+.calculator-map .card-subtitle {
+    color: var(--color-gray-700) !important;
+    font-weight: var(--font-weight-medium);
+}
+
+/* Standardized calculator card styling - remove borders, use shadows */
+.calculator-form.card,
+.calculator-results.card,
+.calculator-map.card {
+    background: var(--color-white);
+    border: none;
+    box-shadow: var(--shadow-lg);
+    border-radius: var(--radius-xl);
+}
+
+/* Calculator form input improvements */
+.calculator-form .form-input,
+.calculator-form .form-select,
+.calculator-form .form-textarea {
+    background: var(--color-white);
+    border: 2px solid var(--border-light);
+    padding: var(--space-4);
+    font-size: var(--font-size-base);
+    color: var(--color-gray-900);
+    transition: all var(--transition-fast);
+    border-radius: var(--radius-lg);
+}
+
+.calculator-form .form-input:focus,
+.calculator-form .form-select:focus,
+.calculator-form .form-textarea:focus {
+    background: var(--color-white);
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px var(--color-primary-100);
+}
+
+.calculator-form .form-input::placeholder {
+    color: var(--color-gray-500);
+}
+
+.calculator-form .form-label {
+    color: var(--color-gray-700);
+    font-weight: var(--font-weight-semibold);
+    margin-bottom: var(--space-2);
+}
+
+.calculator-form .form-label {
+    color: var(--color-gray-700);
+    font-weight: var(--font-weight-semibold);
+    margin-bottom: var(--space-2);
+}
+
+/* Calculator form actions */
+.calculator-actions {
+    display: flex;
+    gap: var(--space-3);
+    margin-top: var(--space-6);
+    flex-wrap: wrap;
+}
+
+.calculator-actions .btn-primary {
+    flex: 1;
+    min-width: 200px;
+}
+
+/* Calculator results styling */
+.calculator-results {
+    background: var(--color-white);
+    border: none;
+    border-radius: var(--radius-xl);
+    padding: 0;
+    box-shadow: var(--shadow-lg);
+    color: var(--color-gray-900) !important;
+}
+
+.calculator-results .card-header {
+    background: var(--color-white);
+    border-bottom: 1px solid var(--color-gray-100);
+    padding: var(--space-4);
+    border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+}
+
+.calculator-results .card-body {
+    padding: var(--space-4);
+}
+
+/* Ensure all text in calculator results uses dark colors */
+.calculator-results * {
+    color: var(--color-gray-900) !important;
+}
+
+.calculator-results .card-title {
+    color: var(--color-gray-900) !important;
+    font-size: var(--font-size-lg);
+    margin-bottom: var(--space-1);
+}
+
+.calculator-results .card-subtitle {
+    color: var(--color-gray-700) !important;
+    font-size: var(--font-size-sm);
+    margin-bottom: 0;
+}
+
+.calculator-no-results {
+    background: var(--color-gray-50);
+    border: none;
+    border-radius: var(--radius-lg);
+    padding: var(--space-6);
+    text-align: center;
+    color: var(--color-gray-600);
+    margin: var(--space-2) 0;
+    box-shadow: var(--shadow-sm);
+}
+
+.calculator-no-results p {
+    color: var(--color-gray-700);
+    font-weight: var(--font-weight-medium);
+    margin: 0;
+}
+
+/* Calculator continue button */
+.calculator-continue {
+    margin-top: var(--space-4);
+}
+
+.calculator-continue .btn {
+    width: 100%;
+    justify-content: center;
+}
+
+.calculator-continue .btn-success {
+    background: var(--color-success);
+    color: var(--color-white);
+    border: none;
+    font-weight: var(--font-weight-semibold);
+}
+
+.calculator-continue .btn-success:hover {
+    background: var(--color-secondary-dark);
+    color: var(--color-white);
+}
+
+.calculator-footer {
+    margin-top: var(--space-3);
+    text-align: center;
+}
+
+.calculator-footer .btn-ghost {
+    color: var(--color-gray-600);
+    background: transparent;
+    border: 1px solid var(--color-gray-300);
+}
+
+.calculator-footer .btn-ghost:hover {
+    color: var(--color-gray-800);
+    background: var(--color-gray-100);
+}
+
+/* Enhanced receipt styling for calculator */
+.calculator-results .receipt {
+    background: var(--color-white);
+    border: 1px solid var(--color-gray-100);
+    border-radius: var(--radius-lg);
+    padding: var(--space-4);
+    margin: var(--space-2) 0;
+    box-shadow: var(--shadow-md);
+    border-left: 4px solid var(--color-primary);
+}
+
+.calculator-results .receipt .rowline {
+    display: flex;
+    justify-content: space-between;
+    margin: var(--space-1) 0;
+    font-size: var(--font-size-base);
+    color: var(--color-gray-700) !important;
+    font-weight: var(--font-weight-medium);
+}
+
+.calculator-results .receipt .rowline span {
+    color: var(--color-gray-700) !important;
+}
+
+.calculator-results .receipt .rowline span:first-child {
+    color: var(--color-gray-600) !important;
+}
+
+.calculator-results .receipt .rowline span:last-child {
+    color: var(--color-gray-900) !important;
+    font-weight: var(--font-weight-semibold);
+}
+
+.calculator-results .receipt .total {
+    font-weight: var(--font-weight-bold);
+    font-size: var(--font-size-lg);
+    border-top: 2px solid var(--color-gray-200);
+    padding-top: var(--space-2);
+    margin-top: var(--space-2);
+    color: var(--color-gray-800) !important;
+}
+
+.calculator-results .receipt .total span {
+    color: var(--color-gray-800) !important;
+}
+
+.calculator-results .receipt .total span:first-child {
+    color: var(--color-gray-800) !important;
+}
+
+.calculator-results .receipt .total span:last-child {
+    color: var(--color-primary) !important;
+    font-size: var(--font-size-xl);
+}
+
+/* Calculator map styling */
+.calculator-map {
+    background: var(--color-white);
+    border: none;
+    box-shadow: var(--shadow-lg);
+}
+
+.calculator-map-container {
+    padding: 0;
+    margin: 0;
+    border-radius: 0 0 var(--radius-xl) var(--radius-xl);
+    overflow: hidden;
+}
+
+.calculator-map-element {
+    width: 100%;
+    height: 400px;
+    border: none;
+    border-radius: 0;
+}
+
+/* Hide all Leaflet map controls for static display */
+.calculator-map-element .leaflet-control-container,
+.calculator-map-element .leaflet-control-zoom,
+.calculator-map-element .leaflet-control-zoom-in,
+.calculator-map-element .leaflet-control-zoom-out,
+.calculator-map-element .leaflet-control-attribution {
+    display: none !important;
+    visibility: hidden !important;
+}
+
+/* Disable pointer events on map for static display, but allow labels */
+.calculator-map-element {
+    pointer-events: none;
+}
+
+.calculator-map-element .leaflet-marker-pane {
+    pointer-events: auto;
+}
+
+/* Distance label styling on map */
+.leaflet-div-icon.distance-label {
+    background: none !important;
+    border: none !important;
+    z-index: 1000 !important;
+}
+
+.distance-text {
+    background: var(--color-primary) !important;
+    color: var(--color-white) !important;
+    padding: 8px 12px !important;
+    border-radius: 8px !important;
+    font-weight: 600 !important;
+    font-size: 14px !important;
+    text-align: center !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
+    border: 2px solid var(--color-white) !important;
+    white-space: nowrap !important;
+    display: block !important;
+    pointer-events: none !important;
+    position: relative !important;
+    z-index: 1001 !important;
+}
+
+/* Enhance autocomplete for calculator */
+.calculator-form .autocomplete {
+    position: relative;
+}
+
+.calculator-form .ac-list {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 100%;
+    z-index: var(--z-dropdown);
+    background: var(--color-white);
+    border: 2px solid var(--color-primary-100);
+    border-top: none;
+    border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+    box-shadow: var(--shadow-lg);
+    overflow: hidden;
+    display: none;
+    max-height: 260px;
+    overflow-y: auto;
+}
+
+.calculator-form .ac-item {
+    padding: var(--space-3) var(--space-4);
+    cursor: pointer;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    overflow: hidden;
+    transition: background-color var(--transition-fast);
+    border-bottom: 1px solid var(--color-gray-100);
+    color: var(--color-gray-700);
+}
+
+.calculator-form .ac-item:hover,
+.calculator-form .ac-item.active {
+    background: var(--color-primary-50);
+    color: var(--color-primary-700);
+}
+
+.calculator-form .ac-item:last-child {
+    border-bottom: none;
+}
+
+.calculator-form .ac-empty {
+    padding: var(--space-3) var(--space-4);
+    color: var(--color-gray-500);
+    font-style: italic;
+}
+
+/* Responsive design for calculator */
+@media (max-width: 1024px) {
+    .calculator-grid {
+        gap: var(--space-6);
+    }
+
+    .calculator-left-column {
+        gap: var(--space-4);
+    }
+
+    .calculator-right-column .calculator-map {
+        min-height: 500px;
+    }
+}
+
+@media (max-width: 768px) {
+    .calculator-title {
+        font-size: 2rem;
+    }
+
+    .calculator-subtitle {
+        font-size: var(--font-size-base);
+    }
+
+    .calculator-grid {
+        grid-template-columns: 1fr;
+        gap: var(--space-6);
+    }
+
+    .calculator-left-column {
+        gap: var(--space-4);
+    }
+
+    .calculator-right-column .calculator-map {
+        min-height: 400px;
+    }
+
+    .calculator-map-element {
+        min-height: 350px;
+    }
+
+    .calculator-actions {
+        flex-direction: column;
+    }
+
+    .calculator-actions .btn {
+        width: 100%;
+    }
+}
+
+/* ==========================================================================
+   Print Styles
+   ========================================================================== */
+
+@media print {
+
+    .header,
+    .footer,
+    .btn,
+    .nav {
+        display: none;
+    }
+
+    .card {
+        border: 1px solid #000;
+        box-shadow: none;
+    }
+
+    body {
+        font-size: 12pt;
+        line-height: 1.4;
+    }
+}

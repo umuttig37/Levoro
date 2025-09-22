@@ -1,78 +1,123 @@
 # marketing.py
+from flask import redirect, url_for
 from app import app, wrap, current_user
 
 
 @app.get("/calculator")
 def calculator():
     u = current_user()
+    if not u:
+        return redirect(url_for("login", next="/calculator"))
     body = """
-<div class="grid cols-2">
-  <div class="card">
-    <h2>Laske hinta</h2>
-    <p class="small">Kirjoita lähtö ja kohde — saat reitin kartalle sekä hinnan.</p>
-
-    <div class="autocomplete">
-      <label>Lähtöosoite</label>
-      <input id="from" placeholder="Esim. Antaksentie 4, Vantaa"
-             autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" name="from_addr">
-      <div id="ac_from" class="ac-list"></div>
+<div class="container">
+  <!-- Page Header -->
+  <div class="section-padding">
+    <div class="text-center mb-8">
+      <h1 class="calculator-title">Laske kuljetushinta</h1>
+      <p class="calculator-subtitle">Syötä lähtö- ja kohdeosoitteet saadaksesi tarkan hinnan ja nähdäksesi reitin kartalla.</p>
     </div>
-
-    <div class="autocomplete">
-      <label>Kohdeosoite</label>
-      <input id="to" placeholder="Esim. Kirstinmäki 6, Espoo"
-             autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" name="to_addr">
-      <div id="ac_to" class="ac-list"></div>
-    </div>
-
-
-    <div class="row" style="margin-top:10px">
-      <button onclick="calc()">Laske hinta ja reitti</button>
-      <button class="ghost" onclick="demo()">Täytä esimerkki</button>
-    </div>
-    <p id="err" class="small" style="display:none;color:#b91c1c;margin-top:8px"></p>
-
-    <div id="map" style="margin-top:12px"></div>
   </div>
 
-  <div class="card" id="quick">
-    <h2>Nopea aloitus</h2>
-    <div class="callout small">Kun hinta on laskettu, voit jatkaa suoraan tilaukseen samoilla osoitteilla.</div>
+  <!-- Main Calculator -->
+  <div class="calculator-grid">
+    <!-- Left Column: Form + Results -->
+    <div class="calculator-left-column">
+      <!-- Calculator Form -->
+      <div class="card calculator-form">
+        <div class="card-header">
+          <h2 class="card-title">Reitin tiedot</h2>
+          <p class="card-subtitle">Täytä osoitteet alla oleviin kenttiin</p>
+        </div>
+        
+        <div class="card-body">
+          <div class="form-group">
+            <label class="form-label">Lähtöosoite</label>
+            <div class="autocomplete">
+              <input id="from" class="form-input" placeholder="Esim. Antaksentie 4, Vantaa"
+                     autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" name="from_addr">
+              <div id="ac_from" class="ac-list"></div>
+            </div>
+          </div>
 
-    <div id="receipt" class="receipt" style="display:none;margin-top:12px">
-      <div class="rowline"><span>Matka</span><span id="r_km">—</span></div>
-      <div class="rowline total"><span>Hinta</span><span id="r_gross">—</span></div>
+          <div class="form-group">
+            <label class="form-label">Kohdeosoite</label>
+            <div class="autocomplete">
+              <input id="to" class="form-input" placeholder="Esim. Kirstinmäki 6, Espoo"
+                     autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" name="to_addr">
+              <div id="ac_to" class="ac-list"></div>
+            </div>
+          </div>
+
+          <div class="calculator-actions">
+            <button class="btn btn-primary btn-lg" onclick="calc()">Laske hinta ja reitti</button>
+            <button class="btn btn-ghost" onclick="demo()">Täytä esimerkki</button>
+          </div>
+          
+          <p id="err" class="form-error-message hidden mt-3"></p>
+        </div>
+      </div>
+
+      <!-- Results Panel -->
+      <div class="card calculator-results">
+        <div class="card-header">
+          <h2 class="card-title">Hinta ja reitti</h2>
+          <p class="card-subtitle">Tulos näkyy tässä laskennan jälkeen</p>
+        </div>
+        
+        <div class="card-body">
+          <div id="receipt" class="receipt hidden">
+            <div class="rowline"><span>Matka</span><span id="r_km">—</span></div>
+            <div class="rowline total"><span>Kokonaishinta</span><span id="r_gross">—</span></div>
+          </div>
+
+          <div id="no-results" class="calculator-no-results">
+            <div class="mb-4" style="font-size: 3rem;">🗺️</div>
+            <p>Syötä osoitteet laskeaksesi hinnan</p>
+          </div>
+
+          <div class="calculator-continue">
+            <a id="continueBtn" href="/order/new/step1" class="btn btn-success btn-lg link-disabled">
+              Jatka tilaukseen →
+            </a>
+          </div>
+          
+          <div class="calculator-footer">
+            <a class="btn btn-ghost btn-sm" href="/dashboard">Omat tilaukset</a>
+          </div>
+        </div>
+      </div>
     </div>
 
-    <div class="row" style="margin-top:12px">
-      <a id="continueBtn" href="/order/new/step1" style="pointer-events:none;opacity:.5">
-        <button>Jatka tilaukseen →</button>
-      </a>
-      <a class="ghost" href="/dashboard">Omat tilaukset</a>
+    <!-- Right Column: Map -->
+    <div class="calculator-right-column">
+      <div class="card calculator-map">
+        <div class="card-header">
+          <h3 class="card-title">Reitti kartalla</h3>
+          <p class="card-subtitle">Kuljetusreitti näkyy kartalla laskennan jälkeen</p>
+        </div>
+        <div class="calculator-map-container">
+          <div id="map" class="calculator-map-element"></div>
+        </div>
+      </div>
     </div>
   </div>
 </div>
 
 <script>
 // ====== Utilities ======
-const FI_VIEWBOX = '19,59,32,71'; // Suomi (lon_min,lat_min,lon_max,lat_max)
-
-function shortFi(adr = {}) {
-  const road = adr.road || adr.pedestrian || adr.cycleway || adr.footway || "";
-  const num  = adr.house_number ? " " + adr.house_number : "";
-  const city = adr.city || adr.town || adr.municipality || adr.village || adr.suburb || adr.city_district || "";
-  return `${road}${num}${city ? ", " + city : ""}`.trim();
-}
 function euro(n){ return (Number(n).toFixed(2)+' €').replace('.',','); }
 function kmfmt(n){ return Number(n).toFixed(1).replace('.',',')+' km'; }
 
-// ====== Autocomplete (Flovi-tyyli: debouncaus, nuolinäppäimet, dedupe, vain FI) ======
-class AddressAutocomplete {
+// ====== Google Places Autocomplete ======
+class GooglePlacesAutocomplete {
   constructor(input, listEl){
     this.input = input;
     this.list = listEl;
     this.timer = null;
     this.items = [];
+    this.cache = new Map();
+    this.CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+
     input.setAttribute('autocomplete','off');
     input.setAttribute('autocorrect','off');
     input.setAttribute('autocapitalize','off');
@@ -82,51 +127,90 @@ class AddressAutocomplete {
     input.addEventListener('keydown', (e)=> this.onKey(e));
     document.addEventListener('click', (e)=>{ if(!this.list.contains(e.target) && e.target!==this.input){ this.hide() }});
   }
+
   onInput(){
     clearTimeout(this.timer);
     const q = this.input.value.trim();
     if(!q){ this.hide(); this.list.innerHTML=''; return; }
-    this.timer = setTimeout(()=> this.fetch(q), 200);
-  }
-  async fetch(q){
-    try{
-      const url = 'https://nominatim.openstreetmap.org/search'
-        + '?format=jsonv2&addressdetails=1&limit=10&dedupe=1&countrycodes=fi'
-        + '&viewbox='+FI_VIEWBOX+'&bounded=1&q='+encodeURIComponent(q);
-      const r = await fetch(url, { headers:{'User-Agent':'Portal/1.0','Accept-Language':'fi'} });
-      const arr = await r.json();
 
-      const seen = new Set();
-      const out = [];
-      for(const p of arr){
-        if(!(p.address && p.address.country_code === 'fi')) continue;
-        const label = shortFi(p.address);
-        if(!label) continue;
-        const key = label.toLowerCase();
-        if(seen.has(key)) continue;
-        seen.add(key);
-        out.push({label, lat: +p.lat, lon: +p.lon, hasNumber: !!p.address.house_number});
-      }
-      out.sort((a,b)=> Number(b.hasNumber)-Number(a.hasNumber));
-      this.items = out.slice(0, 8);
+    // Check cache first
+    const cacheKey = q.toLowerCase();
+    const cached = this.cache.get(cacheKey);
+    if (cached && (Date.now() - cached.timestamp < this.CACHE_DURATION)) {
+      this.items = cached.results;
       this.render();
-    }catch(_){
+      return;
+    }
+
+    this.showLoading();
+    this.timer = setTimeout(()=> this.fetch(q), 150);
+  }
+
+  showLoading() {
+    this.list.innerHTML = '<div class="ac-loading" style="padding: 0.5rem; color: #666;">Haetaan osoitteita...</div>';
+    this.list.style.display = 'block';
+  }
+
+  async fetch(q){
+    // Use server endpoint only for consistent postal code support
+    try {
+      const response = await fetch('/api/places_autocomplete', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ query: q })
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      if (data.error) {
+        throw new Error(data.error);
+      }
+
+      this.items = data.predictions || [];
+
+      // Cache the results
+      const cacheKey = q.toLowerCase();
+      this.cache.set(cacheKey, {
+        results: this.items,
+        timestamp: Date.now()
+      });
+
+      this.render();
+    } catch (e) {
+      console.warn('Places API error:', e);
       this.items = [];
-      this.list.innerHTML = '<div class="ac-empty">Ei ehdotuksia</div>';
-      this.show();
+      this.list.innerHTML = '<div class="ac-error" style="padding: 0.5rem; color: #ef4444;">Virhe osoitteiden haussa</div>';
+      this.list.style.display = 'block';
     }
   }
+
+
   render(){
-    if(!this.items.length){ this.list.innerHTML = '<div class="ac-empty">Ei ehdotuksia</div>'; this.show(); return; }
-    this.list.innerHTML = this.items.map((it,i)=>(
-      `<div class="ac-item" data-i="${i}">${it.label}</div>`
-    )).join('');
+    if(!this.items.length){
+      this.list.innerHTML = '<div class="ac-empty">Ei ehdotuksia</div>';
+      this.show();
+      return;
+    }
+
+    this.list.innerHTML = this.items.slice(0, 8).map((item, i) =>
+      `<div class="ac-item" data-i="${i}">${item.description}</div>`
+    ).join('');
     this.show();
+
     Array.from(this.list.children).forEach(el=>{
-      el.onclick = ()=> this.pick(+el.getAttribute('data-i'));
+      if (el.classList.contains('ac-item')) {
+        el.onclick = ()=> this.pick(+el.getAttribute('data-i'));
+      }
     });
     this.activeIndex = -1;
   }
+
   onKey(e){
     if(this.list.style.display!=='block') return;
     const max = this.items.length - 1;
@@ -135,21 +219,20 @@ class AddressAutocomplete {
     else if(e.key==='Enter'){ if(this.activeIndex>=0){ e.preventDefault(); this.pick(this.activeIndex); } }
     else if(e.key==='Escape'){ this.hide(); }
   }
+
   paintActive(){
     Array.from(this.list.children).forEach((el,i)=> el.classList.toggle('active', i===this.activeIndex));
   }
+
   async pick(i){
-    const it = this.items[i]; if(!it) return;
-    this.input.value = it.label; this.hide();
-    // reverse: siisti teksti pisteestä (jos Nominatim antaa paremman)
-    try{
-      const rr = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&addressdetails=1&accept-language=fi&lat=${it.lat}&lon=${it.lon}`, {headers:{'User-Agent':'Portal/1.0'}});
-      const jj = await rr.json();
-      const fixed = shortFi(jj.address||{});
-      if(fixed) this.input.value = fixed;
-    }catch(_){}
+    const item = this.items[i];
+    if(!item) return;
+
+    this.input.value = item.description;
+    this.hide();
     this.input.dispatchEvent(new Event('change'));
   }
+
   show(){ this.list.style.display='block'; }
   hide(){ this.list.style.display='none'; }
 }
@@ -157,19 +240,46 @@ class AddressAutocomplete {
 // ====== Leaflet Route Map (tyylikäs polyline + markerit) ======
 class RouteMap {
   constructor(elId, mini=false){
-    this.map = L.map(elId, { zoomControl: true });
+    this.map = L.map(elId, { 
+      zoomControl: false,
+      dragging: false,
+      touchZoom: false,
+      scrollWheelZoom: false,
+      doubleClickZoom: false,
+      boxZoom: false,
+      keyboard: false
+    });
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{ maxZoom: 19 }).addTo(this.map);
     this.map.setView([61.9241,25.7482], mini?5:6); // Suomi
-    this.poly = null; this.m1 = null; this.m2 = null;
+    this.poly = null; this.m1 = null; this.m2 = null; this.distanceLabel = null;
   }
-  draw(latlngs, start, end){
+  draw(latlngs, start, end, distance){
     if(this.poly) this.poly.remove();
     if(this.m1) this.m1.remove();
     if(this.m2) this.m2.remove();
+    if(this.distanceLabel) this.distanceLabel.remove();
+    
     this.poly = L.polyline(latlngs, { weight: 5, opacity: 0.9 }).addTo(this.map);
     this.m1 = L.marker([start[0],start[1]]).addTo(this.map);
     this.m2 = L.marker([end[0],end[1]]).addTo(this.map);
     this.map.fitBounds(this.poly.getBounds(), { padding:[24,24] });
+    
+    // Add distance label in the center of the route
+    if(distance) {
+      const bounds = this.poly.getBounds();
+      const center = bounds.getCenter();
+      console.log('Adding distance label:', distance, 'at position:', center);
+      this.distanceLabel = L.marker(center, {
+        icon: L.divIcon({
+          className: 'distance-label',
+          html: `<div class="distance-text">${distance} km</div>`,
+          iconSize: [100, 35],
+          iconAnchor: [50, 17]
+        }),
+        zIndexOffset: 1000
+      }).addTo(this.map);
+      console.log('Distance label added to map');
+    }
   }
 }
 
@@ -185,24 +295,22 @@ async function calcAndRender({fromId, toId, receiptIds, continueId, mapInst}){
   if(!r.ok){ alert(j.error||'Hinnan laskenta epäonnistui'); return; }
   document.getElementById(receiptIds.km).textContent   = kmfmt(j.km);
   document.getElementById(receiptIds.gross).textContent= euro(j.gross);
-  document.getElementById(receiptIds.box).style.display='block';
+  document.getElementById(receiptIds.box).classList.remove('hidden');
 
   // reitti
   const rr = await fetch('/api/route_geo',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pickup:f,dropoff:t})});
   const jj = await rr.json();
-  if(rr.ok){ mapInst.draw(jj.latlngs, jj.start, jj.end); }
+  if(rr.ok){ mapInst.draw(jj.latlngs, jj.start, jj.end, j.km); }
 
   // jatka tilaukseen
-  const cont = document.getElementById(continueId);
-  cont.href = '/order/new/step1?pickup='+encodeURIComponent(f)+'&dropoff='+encodeURIComponent(t);
-  cont.style.pointerEvents='auto'; cont.style.opacity='1';
+  cont.classList.remove('link-disabled');
 }
 
 // === Helppo init molemmille sivuille ===
 function initQuoteUI(cfg){
-  // 1) Autocomplete (nuolinäppäimet + dedupe + vain Suomi)
-  const acFrom = new AddressAutocomplete(document.getElementById(cfg.fromId), document.getElementById(cfg.acFromId));
-  const acTo   = new AddressAutocomplete(document.getElementById(cfg.toId),   document.getElementById(cfg.acToId));
+  // 1) Google Places Autocomplete
+  const acFrom = new GooglePlacesAutocomplete(document.getElementById(cfg.fromId), document.getElementById(cfg.acFromId));
+  const acTo   = new GooglePlacesAutocomplete(document.getElementById(cfg.toId),   document.getElementById(cfg.acToId));
 
   // 2) Kartta
   const map = new RouteMap(cfg.mapId, cfg.miniMap||false);
@@ -243,10 +351,18 @@ async function calc(){
   initMap();
   const f=document.getElementById('from').value.trim(), t=document.getElementById('to').value.trim();
   const errEl=document.getElementById('err'), rec=document.getElementById('receipt'), cont=document.getElementById('continueBtn');
-  errEl.style.display='none';
-  rec.style.display='none'; cont.style.pointerEvents='none'; cont.style.opacity='.5';
+  const noResults = document.getElementById('no-results');
+  
+  errEl.classList.add('hidden');
+  rec.classList.add('hidden'); 
+  cont.classList.add('link-disabled');
+  if(noResults) noResults.style.display = 'block';
 
-  if(!f||!t){ errEl.textContent='Syötä molemmat osoitteet.'; errEl.style.display='block'; return; }
+  if(!f||!t){ 
+    errEl.textContent='Syötä molemmat osoitteet.'; 
+    errEl.classList.remove('hidden'); 
+    return; 
+  }
 
   // 1) Hinta
   try{
@@ -255,8 +371,14 @@ async function calc(){
     if(!r.ok) throw new Error(j.error||'Tuntematon virhe');
     document.getElementById('r_km').textContent = kmfmt(j.km);
     document.getElementById('r_gross').textContent = euro(j.gross);
-    rec.style.display='block';
-  }catch(e){ errEl.textContent='Hinnan laskenta epäonnistui: '+e.message; errEl.style.display='block'; return; }
+    rec.classList.remove('hidden');
+    if(noResults) noResults.style.display = 'none';
+    cont.classList.remove('link-disabled');
+  }catch(e){ 
+    errEl.textContent='Hinnan laskenta epäonnistui: '+e.message; 
+    errEl.classList.remove('hidden'); 
+    return; 
+  }
 
   // 2) Reittigeometria kartalle
   try{
@@ -285,114 +407,16 @@ function demo(){
   document.getElementById('to').value='Kirstinmäki 6, Espoo';
 }
 
-// --- Autocomplete (Nominatim) ---
-let acTimer=null;
-function fiShortAddress(adr){
-  const road = adr.road || adr.pedestrian || adr.cycleway || adr.footway || "";
-  const num  = adr.house_number ? " " + adr.house_number : "";
-  const city = adr.city || adr.town || adr.municipality || adr.village || adr.suburb || adr.city_district || "";
-  // HUOM: EI postinumeroa tarkoituksella → vältytään vääriltä koodeilta
-  return `${road}${num}${city ? ", " + city : ""}`.trim();
-}
+// --- Google Places Autocomplete bindings ---
+const fromAutocomplete = new GooglePlacesAutocomplete(
+  document.getElementById('from'),
+  document.getElementById('ac_from')
+);
 
-function bindAC(inputId, listId){
-  const inp  = document.getElementById(inputId);
-  const list = document.getElementById(listId);
-  let timer  = null;
-
-  // varmistetaan että selaimen oma muistilista ei näy
-  inp.setAttribute('autocomplete','off');
-  inp.setAttribute('autocorrect','off');
-  inp.setAttribute('autocapitalize','off');
-  inp.setAttribute('spellcheck','false');
-
-  inp.addEventListener('input', ()=>{
-    clearTimeout(timer);
-    const q = inp.value.trim();
-    if(!q){ list.style.display='none'; list.innerHTML=''; return; }
-
-    timer = setTimeout(async ()=>{
-      try{
-        const url = 'https://nominatim.openstreetmap.org/search'
-          + '?format=jsonv2'
-          + '&addressdetails=1'
-          + '&limit=10'
-          + '&dedupe=1'
-          + '&countrycodes=fi'
-          + '&viewbox=19,59,32,71'   // lon_min,lat_min,lon_max,lat_max (Suomi)
-          + '&bounded=1'
-          + '&q=' + encodeURIComponent(q);
-
-        const resp = await fetch(url, { headers:{'User-Agent':'Portal/1.0','Accept-Language':'fi'} });
-        const arr  = await resp.json();
-
-        // 1) suodata vain FI-osoitteet
-        const candidates = arr.filter(p => (p.address && p.address.country_code === 'fi'));
-
-        // 2) tee lyhyt label ja poista duplikaatit (sama katu+numero+kaupunki)
-        const seen = new Set();
-        const items = [];
-        for(const p of candidates){
-          const adr = p.address || {};
-          const short = fiShortAddress(adr);
-          if(!short) continue;
-
-          // suositaan “talonumero löytyy” -tuloksia
-          const hasNumber = !!adr.house_number;
-
-          // avain dedupeen
-          const key = (short.toLowerCase());
-
-          if(!seen.has(key)){
-            seen.add(key);
-            items.push({ short, lat: p.lat, lon: p.lon, hasNumber });
-          }
-        }
-
-        // 3) järjestä: ensin osoitteet joissa on talonumero, sitten muut
-        items.sort((a,b)=> (Number(b.hasNumber) - Number(a.hasNumber)));
-
-        list.innerHTML = items.slice(0,8).map(it =>
-          `<div class="ac-item" data-label="${it.short.replace(/"/g,'&quot;')}" data-lat="${it.lat}" data-lon="${it.lon}">${it.short}</div>`
-        ).join('');
-        list.style.display = items.length ? 'block' : 'none';
-
-        // 4) klikkaus: aseta lyhyt osoite ja yritä tarkentaa reverse-geocodella
-        Array.from(list.children).forEach(el=>{
-          el.onclick = async ()=>{
-            const label = el.getAttribute('data-label');
-            const lat   = el.getAttribute('data-lat');
-            const lon   = el.getAttribute('data-lon');
-            inp.value = label;
-            list.style.display='none';
-
-            // Reverse: haetaan täsmällinen osoite pisteestä ja kirjoitetaan lyhyenä (ilman postinumeroa)
-            try{
-              const r = await fetch('https://nominatim.openstreetmap.org/reverse?format=jsonv2&addressdetails=1&accept-language=fi'
-                                    + '&lat='+encodeURIComponent(lat)+'&lon='+encodeURIComponent(lon),
-                                    { headers:{'User-Agent':'Portal/1.0'} });
-              const pr = await r.json();
-              const fixed = fiShortAddress(pr.address || {});
-              if(fixed) inp.value = fixed;
-            }catch(_){}
-          };
-        });
-      }catch(e){
-        list.style.display='none';
-        list.innerHTML='';
-      }
-    }, 220);
-  });
-
-  // klik ulos → piilota lista
-  document.addEventListener('click', (e)=>{
-    if(!list.contains(e.target) && e.target!==inp){ list.style.display='none'; }
-  });
-}
-
-// kutsut FUNKTION ulkopuolella:
-bindAC('from','ac_from');
-bindAC('to','ac_to');
+const toAutocomplete = new GooglePlacesAutocomplete(
+  document.getElementById('to'),
+  document.getElementById('ac_to')
+);
 </script>
 """
     return wrap(body, u)
