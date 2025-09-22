@@ -641,19 +641,11 @@ def api_places_autocomplete():
             "types": "address",  # Only address type to avoid API conflicts
         }
 
-        print(f"[DEBUG] Google Places API request: {url}")
-        print(f"[DEBUG] Request params: {params}")
-        
         response = requests.get(url, params=params, timeout=10)
-        print(f"[DEBUG] HTTP Status: {response.status_code}")
-        
         response.raise_for_status()
         data = response.json()
-        
-        print(f"[DEBUG] Google API Response: {data}")
 
         if data.get("status") == "OK":
-            print(f"[DEBUG] Success: Found {len(data.get('predictions', []))} predictions")
             return jsonify({
                 "predictions": data.get("predictions", []),
                 "status": data.get("status"),
@@ -661,16 +653,13 @@ def api_places_autocomplete():
             })
         else:
             error_msg = f"Google Places API error: {data.get('status')} - {data.get('error_message', 'Unknown error')}"
-            print(f"[ERROR] {error_msg}")
             return jsonify({"error": error_msg}), 500
 
     except requests.exceptions.RequestException as e:
         error_msg = f"HTTP request failed: {str(e)}"
-        print(f"[ERROR] {error_msg}")
         return jsonify({"error": error_msg}), 500
     except Exception as e:
         error_msg = f"Google Places API failed: {str(e)}"
-        print(f"[ERROR] {error_msg}")
         return jsonify({"error": error_msg}), 500
 
 @app.get("/api/test_places_api")
@@ -687,14 +676,9 @@ def test_places_api():
             "key": GOOGLE_PLACES_API_KEY
         }
         
-        print(f"[DEBUG] Testing Google Places API with geocoding: {url}")
         response = requests.get(url, params=params, timeout=10)
-        print(f"[DEBUG] Test response status: {response.status_code}")
-        
         response.raise_for_status()
         data = response.json()
-        
-        print(f"[DEBUG] Test response data: {data}")
         
         return jsonify({
             "status": "success",
@@ -704,7 +688,6 @@ def test_places_api():
         
     except Exception as e:
         error_msg = f"API test failed: {str(e)}"
-        print(f"[ERROR] {error_msg}")
         return jsonify({"error": error_msg}), 500
 
 @app.post("/api/route_geo")

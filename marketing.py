@@ -205,7 +205,7 @@ class GooglePlacesAutocomplete {
 
       this.render();
     } catch (e) {
-      console.warn('Places API error:', e);
+      // Places API error - silently handle
       this.items = [];
       // Only show error after a longer delay to avoid premature error messages
       setTimeout(() => {
@@ -294,7 +294,6 @@ class RouteMap {
     if(distance) {
       const bounds = this.poly.getBounds();
       const center = bounds.getCenter();
-      console.log('Adding distance label:', distance, 'at position:', center);
       this.distanceLabel = L.marker(center, {
         icon: L.divIcon({
           className: 'distance-label',
@@ -304,7 +303,6 @@ class RouteMap {
         }),
         zIndexOffset: 1000
       }).addTo(this.map);
-      console.log('Distance label added to map');
     }
   }
 }
@@ -420,7 +418,7 @@ async function calc(){
     fromMarker = L.marker([j.start[0], j.start[1]]).addTo(map);
     toMarker = L.marker([j.end[0], j.end[1]]).addTo(map);
     map.fitBounds(routeLayer.getBounds(), {padding:[20,20]});
-  }catch(e){ console.warn(e); }
+  }catch(e){ /* Route error - silently handle */ }
 
   // 3) Jatka tilaukseen
   const url = '/order/new/step1?pickup='+encodeURIComponent(f)+'&dropoff='+encodeURIComponent(t);

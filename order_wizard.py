@@ -149,7 +149,7 @@ class WizardGooglePlacesAutocomplete {
       if (typeof google !== 'undefined' && google.maps && google.maps.places) {
         this.autocompleteService = new google.maps.places.AutocompleteService();
         this.googleMapsLoaded = true;
-        console.log('Google Places client-side API initialized');
+        // Google Places client-side API initialized
         break;
       }
       await new Promise(resolve => setTimeout(resolve, 100));
@@ -157,7 +157,7 @@ class WizardGooglePlacesAutocomplete {
     }
 
     if (!this.googleMapsLoaded) {
-      console.log('Google Maps API not available');
+      // Google Maps API not available
     }
   }
 
@@ -238,7 +238,7 @@ class WizardGooglePlacesAutocomplete {
 
       this.render();
     } catch (e) {
-      console.warn('Places API error:', e);
+      // Places API error - silently handle
       this.items = [];
       // Only show error after a longer delay to avoid premature error messages
       setTimeout(() => {
@@ -443,7 +443,7 @@ class WizardGooglePlacesAutocomplete {
       });
       this.render();
     } catch (e) {
-      console.warn('Places API error:', e);
+      // Places API error - silently handle
       this.items = [];
       // Only show error after a longer delay to avoid premature error messages
       setTimeout(() => {
@@ -868,7 +868,7 @@ document.addEventListener('DOMContentLoaded', function() {{
         map.draw(data.latlngs, data.start, data.end, {km:.1f});
       }}
     }})
-    .catch(error => console.log('Could not load route:', error));
+    .catch(error => { /* Could not load route - silently handle */ });
 }});
 </script>
 """
