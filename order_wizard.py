@@ -176,16 +176,38 @@ class WizardGooglePlacesAutocomplete {
     }
 
     this.showLoading();
-    this.timer = setTimeout(()=> this.fetch(q), 150);
+    this.timer = setTimeout(()=> this.fetch(q), 200);
   }
 
   showLoading() {
-    this.list.innerHTML = '<div class="ac-loading" style="padding: 0.5rem; color: #666;">Haetaan osoitteita...</div>';
+    this.list.innerHTML = '<div class="ac-loading" style="padding: 0.75rem; color: #666; display: flex; align-items: center; gap: 0.5rem;"><div class="spinner"></div>Haetaan osoitteita...</div>';
     this.list.style.display = 'block';
+    
+    // Add spinner CSS if not already present
+    if (!document.querySelector('#spinner-css')) {
+      const style = document.createElement('style');
+      style.id = 'spinner-css';
+      style.textContent = `
+        .spinner {
+          width: 16px;
+          height: 16px;
+          border: 2px solid #e0e0e0;
+          border-top: 2px solid #666;
+          border-radius: 50%;
+          animation: spin 1s linear infinite;
+          flex-shrink: 0;
+        }
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+      `;
+      document.head.appendChild(style);
+    }
   }
 
   async fetch(q){
-    // Use server-side endpoint with postal code support
+    // Use server-side endpoint for address suggestions
     try {
       const response = await fetch('/api/places_autocomplete', {
         method: 'POST',
@@ -218,8 +240,12 @@ class WizardGooglePlacesAutocomplete {
     } catch (e) {
       console.warn('Places API error:', e);
       this.items = [];
-      this.list.innerHTML = '<div class="ac-error" style="padding: 0.5rem; color: #ef4444;">Virhe osoitteiden haussa</div>';
-      this.list.style.display = 'block';
+      // Only show error after a longer delay to avoid premature error messages
+      setTimeout(() => {
+        if (this.list.style.display === 'block') {
+          this.list.innerHTML = '<div class="ac-error" style="padding: 0.5rem; color: #ef4444;">Virhe osoitteiden haussa</div>';
+        }
+      }, 500);
     }
   }
 
@@ -364,16 +390,38 @@ class WizardGooglePlacesAutocomplete {
     }
 
     this.showLoading();
-    this.timer = setTimeout(()=> this.fetch(q), 150);
+    this.timer = setTimeout(()=> this.fetch(q), 200);
   }
 
   showLoading() {
-    this.list.innerHTML = '<div class="ac-loading" style="padding: 0.5rem; color: #666;">Haetaan osoitteita...</div>';
+    this.list.innerHTML = '<div class="ac-loading" style="padding: 0.75rem; color: #666; display: flex; align-items: center; gap: 0.5rem;"><div class="spinner"></div>Haetaan osoitteita...</div>';
     this.list.style.display = 'block';
+    
+    // Add spinner CSS if not already present
+    if (!document.querySelector('#spinner-css')) {
+      const style = document.createElement('style');
+      style.id = 'spinner-css';
+      style.textContent = `
+        .spinner {
+          width: 16px;
+          height: 16px;
+          border: 2px solid #e0e0e0;
+          border-top: 2px solid #666;
+          border-radius: 50%;
+          animation: spin 1s linear infinite;
+          flex-shrink: 0;
+        }
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+      `;
+      document.head.appendChild(style);
+    }
   }
 
   async fetch(q){
-    // Use server-side endpoint with postal code support
+    // Use server-side endpoint for address suggestions
     try {
       const response = await fetch('/api/places_autocomplete', {
         method: 'POST',
@@ -397,8 +445,12 @@ class WizardGooglePlacesAutocomplete {
     } catch (e) {
       console.warn('Places API error:', e);
       this.items = [];
-      this.list.innerHTML = '<div class="ac-error" style="padding: 0.5rem; color: #ef4444;">Virhe osoitteiden haussa</div>';
-      this.list.style.display = 'block';
+      // Only show error after a longer delay to avoid premature error messages
+      setTimeout(() => {
+        if (this.list.style.display === 'block') {
+          this.list.innerHTML = '<div class="ac-error" style="padding: 0.5rem; color: #ef4444;">Virhe osoitteiden haussa</div>';
+        }
+      }, 500);
     }
   }
 

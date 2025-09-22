@@ -57,7 +57,7 @@ SEED_ADMIN_PASS = os.getenv("SEED_ADMIN_PASS", "admin123")
 SEED_ADMIN_NAME = os.getenv("SEED_ADMIN_NAME", "Admin")
 
 GOOGLE_PLACES_API_KEY = os.getenv("GOOGLE_PLACES_API_KEY", "")
-NOMINATIM_URL = "https://nominatim.openstreetmap.org/search"
+# NOMINATIM_URL removed - using Google Places API only
 OSRM_URL = "https://router.project-osrm.org/route/v1/driving/{lon1},{lat1};{lon2},{lat2}?overview=false"
 
 USER_AGENT = "Umut-Autotransport-Portal/1.0 (contact: example@example.com)"
@@ -194,15 +194,27 @@ def price_from_km(km: float, pickup_addr: str = "", dropoff_addr: str = "", retu
 
 
 def geocode(addr: str):
-    """Return (lat, lon) for address using Nominatim."""
-    r = requests.get(NOMINATIM_URL, params={"format": "json", "q": addr},
-                     headers={"User-Agent": USER_AGENT, "Accept-Language": "fi"},
-                     timeout=12)
+    """Return (lat, lon) for address using Google Places Geocoding API."""
+    if not GOOGLE_PLACES_API_KEY:
+        raise ValueError("Google Places API key not configured")
+    
+    url = "https://maps.googleapis.com/maps/api/geocode/json"
+    params = {
+        "address": addr,
+        "key": GOOGLE_PLACES_API_KEY,
+        "components": "country:FI",
+        "language": "fi"
+    }
+    
+    r = requests.get(url, params=params, timeout=12)
     r.raise_for_status()
     data = r.json()
-    if not data:
+    
+    if data.get("status") != "OK" or not data.get("results"):
         raise ValueError(f"Address not found: {addr}")
-    return float(data[0]["lat"]), float(data[0]["lon"])
+    
+    location = data["results"][0]["geometry"]["location"]
+    return float(location["lat"]), float(location["lng"])
 
 
 def route_km(pickup_addr: str, dropoff_addr: str):
@@ -607,127 +619,93 @@ def logout():
 
 @app.post("/api/places_autocomplete")
 def api_places_autocomplete():
-    """Google Places Autocomplete API endpoint with Nominatim fallback"""
+    """Google Places Autocomplete API endpoint"""
     data = request.get_json(force=True, silent=True) or {}
     query = (data.get("query") or "").strip()
 
     if not query:
         return jsonify({"error": "Query required"}), 400
 
-    # Try Google Places API first if key is configured
-    if GOOGLE_PLACES_API_KEY:
-        try:
-            # Google Places Autocomplete API request
-            url = "https://maps.googleapis.com/maps/api/place/autocomplete/json"
-            params = {
-                "input": query,
-                "key": GOOGLE_PLACES_API_KEY,
-                "components": "country:fi",  # Restrict to Finland
-                "language": "fi",
-                "types": "address|establishment|geocode",  # Include more types for better postal code coverage
-            }
+    # Check if Google Places API key is configured
+    if not GOOGLE_PLACES_API_KEY:
+        return jsonify({"error": "Google Places API key not configured"}), 500
 
-            response = requests.get(url, params=params, timeout=10)
-            response.raise_for_status()
-
-            data = response.json()
-
-            if data.get("status") == "OK":
-                return jsonify({
-                    "predictions": data.get("predictions", []),
-                    "status": data.get("status"),
-                    "source": "google"
-                })
-            elif data.get("status") == "REQUEST_DENIED":
-                # API key issue, fall back to Nominatim
-                print(f"Google Places API denied: {data.get('error_message', 'Unknown error')}")
-            else:
-                # Other API errors, fall back to Nominatim
-                print(f"Google Places API error: {data.get('status')} - {data.get('error_message', 'Unknown error')}")
-
-        except Exception as e:
-            print(f"Google Places API exception: {str(e)}")
-
-    # Fallback to Nominatim (similar to original implementation)
     try:
-        url = f"{NOMINATIM_URL}?format=jsonv2&addressdetails=1&limit=10&dedupe=1&countrycodes=fi&viewbox=19,59,32,71&bounded=1&q={query}"
+        # Google Places Autocomplete API request
+        url = "https://maps.googleapis.com/maps/api/place/autocomplete/json"
+        params = {
+            "input": query,
+            "key": GOOGLE_PLACES_API_KEY,
+            "components": "country:FI",  # Restrict to Finland (uppercase country code)
+            "language": "fi",
+            "types": "address",  # Only address type to avoid API conflicts
+        }
 
-        response = requests.get(url, headers={
-            'User-Agent': USER_AGENT,
-            'Accept-Language': 'fi'
-        }, timeout=10)
+        print(f"[DEBUG] Google Places API request: {url}")
+        print(f"[DEBUG] Request params: {params}")
+        
+        response = requests.get(url, params=params, timeout=10)
+        print(f"[DEBUG] HTTP Status: {response.status_code}")
+        
         response.raise_for_status()
-
         data = response.json()
+        
+        print(f"[DEBUG] Google API Response: {data}")
 
-        # Convert Nominatim results to Google Places format
-        predictions = []
-        seen = set()
-
-        for place in data:
-            if not (place.get('address') and place['address'].get('country_code') == 'fi'):
-                continue
-
-            # Create a description similar to Google Places format
-            addr = place['address']
-            road = addr.get('road') or addr.get('pedestrian') or addr.get('cycleway') or addr.get('footway') or ""
-            house_number = addr.get('house_number', "")
-            city = (addr.get('city') or addr.get('town') or addr.get('municipality')
-                   or addr.get('village') or addr.get('suburb') or addr.get('city_district') or "")
-            postcode = addr.get('postcode', "")
-
-            if road:
-                description = f"{road}"
-                if house_number:
-                    description += f" {house_number}"
-                if postcode:
-                    description += f", {postcode}"
-                if city:
-                    description += f" {city}"
-            else:
-                description = city if city else place.get('display_name', '')
-                if postcode and city:
-                    description = f"{postcode} {city}"
-
-            description = description.strip()
-            if not description or description.lower() in seen:
-                continue
-
-            seen.add(description.lower())
-
-            # Create secondary text with postal code
-            if road:
-                main_text = f"{road} {house_number}".strip()
-                secondary_parts = []
-                if postcode:
-                    secondary_parts.append(postcode)
-                if city:
-                    secondary_parts.append(city)
-                secondary_text = " ".join(secondary_parts)
-            else:
-                main_text = city
-                secondary_text = postcode if postcode else ""
-
-            predictions.append({
-                "description": description,
-                "place_id": place.get('place_id', ''),
-                "structured_formatting": {
-                    "main_text": main_text,
-                    "secondary_text": secondary_text
-                }
+        if data.get("status") == "OK":
+            print(f"[DEBUG] Success: Found {len(data.get('predictions', []))} predictions")
+            return jsonify({
+                "predictions": data.get("predictions", []),
+                "status": data.get("status"),
+                "source": "google"
             })
+        else:
+            error_msg = f"Google Places API error: {data.get('status')} - {data.get('error_message', 'Unknown error')}"
+            print(f"[ERROR] {error_msg}")
+            return jsonify({"error": error_msg}), 500
 
-        # Sort to prioritize addresses with house numbers
-        predictions.sort(key=lambda x: 0 if any(char.isdigit() for char in x['description']) else 1)
-
-        return jsonify({
-            "predictions": predictions[:8],  # Limit to 8 results
-            "status": "OK",
-            "source": "nominatim"
-        })
-
+    except requests.exceptions.RequestException as e:
+        error_msg = f"HTTP request failed: {str(e)}"
+        print(f"[ERROR] {error_msg}")
+        return jsonify({"error": error_msg}), 500
     except Exception as e:
-        return jsonify({"error": f"Fallback API failed: {str(e)}"}), 500
+        error_msg = f"Google Places API failed: {str(e)}"
+        print(f"[ERROR] {error_msg}")
+        return jsonify({"error": error_msg}), 500
+
+@app.get("/api/test_places_api")
+def test_places_api():
+    """Test endpoint to validate Google Places API configuration"""
+    if not GOOGLE_PLACES_API_KEY:
+        return jsonify({"error": "Google Places API key not configured"}), 500
+    
+    try:
+        # Test with a simple geocoding request
+        url = "https://maps.googleapis.com/maps/api/geocode/json"
+        params = {
+            "address": "Helsinki, Finland",
+            "key": GOOGLE_PLACES_API_KEY
+        }
+        
+        print(f"[DEBUG] Testing Google Places API with geocoding: {url}")
+        response = requests.get(url, params=params, timeout=10)
+        print(f"[DEBUG] Test response status: {response.status_code}")
+        
+        response.raise_for_status()
+        data = response.json()
+        
+        print(f"[DEBUG] Test response data: {data}")
+        
+        return jsonify({
+            "status": "success",
+            "api_key_valid": data.get("status") == "OK",
+            "google_response": data
+        })
+        
+    except Exception as e:
+        error_msg = f"API test failed: {str(e)}"
+        print(f"[ERROR] {error_msg}")
+        return jsonify({"error": error_msg}), 500
 
 @app.post("/api/route_geo")
 def api_route_geo():
