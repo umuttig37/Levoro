@@ -868,7 +868,7 @@ document.addEventListener('DOMContentLoaded', function() {{
         map.draw(data.latlngs, data.start, data.end, {km:.1f});
       }}
     }})
-    .catch(error => { /* Could not load route - silently handle */ });
+    .catch(error => {{ /* Could not load route - silently handle */ }});
 }});
 </script>
 """

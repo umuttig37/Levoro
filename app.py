@@ -45,11 +45,11 @@ VAT_RATE = float(os.getenv("VAT_RATE", "0.24"))
 # --- Your business pricing anchors ---
 # All prices below are TARGET **gross** (incl. VAT) that we want to hit.
 METRO_CITIES = {"helsinki", "espoo", "vantaa", "kauniainen"}
-METRO_GROSS = float(os.getenv("METRO_GROSS", "30"))  # 30–32€ → default 30€
+METRO_GROSS = float(os.getenv("METRO_GROSS", "27"))  # 30–32€ → default 27€ (10% reduction)
 MID_KM = 170.0  # “about 150–200 km”
-MID_GROSS = float(os.getenv("MID_GROSS", "90"))  # ~90€
+MID_GROSS = float(os.getenv("MID_GROSS", "81"))  # ~81€ (10% reduction)
 LONG_KM = 600.0
-LONG_GROSS = float(os.getenv("LONG_GROSS", "230"))  # ~230€
+LONG_GROSS = float(os.getenv("LONG_GROSS", "207"))  # ~207€ (10% reduction)
 ROUNDTRIP_DISCOUNT = 0.30  # 30% off return leg
 
 SEED_ADMIN_EMAIL = os.getenv("SEED_ADMIN_EMAIL", "admin@example.com")
@@ -411,7 +411,7 @@ def home():
       </div>
       <div class="hero-features">
         <div class="hero-feature">Toimitus samana päivänä</div>
-        <div class="hero-feature">PK-seudulla kuljetukset 30€</div>
+        <div class="hero-feature">PK-seudulla kuljetukset 27€</div>
         <div class="hero-feature">Kokeilualennus yritysasiakkaille
         </div>
       </div>
