@@ -130,7 +130,7 @@ def seed_admin():
             "password_hash": generate_password_hash(SEED_ADMIN_PASS),
             "role": "admin",
             "approved": True,  # Admin is always approved
-            "created_at": datetime.datetime.utcnow(),
+            "created_at": datetime.datetime.now(ZoneInfo("Europe/Helsinki")),
         })
 
 
@@ -352,6 +352,17 @@ def translate_status(status):
         'CANCELLED': 'PERUUTETTU'
     }
     return translations.get(status, status)
+
+def get_status_description(status):
+    """Get user-friendly status description"""
+    descriptions = {
+        'NEW': 'Tilaus odottaa vahvistusta',
+        'CONFIRMED': 'Tilaus vahvistettu, odottaa noutoa',
+        'IN_TRANSIT': 'Ajoneuvo on kuljetuksessa',
+        'DELIVERED': 'Kuljetus suoritettu onnistuneesti',
+        'CANCELLED': 'Tilaus on peruutettu'
+    }
+    return descriptions.get(status, 'Tuntematon tila')
 def current_user():
     uid = session.get("uid")
     if not uid:
@@ -697,7 +708,7 @@ def register():
         "password_hash": generate_password_hash(password),
         "role": "customer",
         "approved": False,  # Require admin approval
-        "created_at": datetime.datetime.utcnow(),
+        "created_at": datetime.datetime.now(ZoneInfo("Europe/Helsinki")),
     })
 
     # Don't log in immediately - require admin approval first
@@ -1045,102 +1056,131 @@ def order_view(order_id: int):
 """
 
     status_fi = translate_status(r.get('status', 'NEW'))
+    status_description = get_status_description(r.get('status', 'NEW'))
+
+    # Smart content logic
+    has_reg_number = bool(r.get('reg_number', '').strip())
+    has_winter_tires = r.get('winter_tires') is not None
+    has_customer_info = bool(r.get('customer_name', '').strip() or r.get('email', '').strip() or r.get('phone', '').strip())
+    has_additional_info = bool(r.get('additional_info', '').strip())
+    has_images = bool(r.get('images', {}))
+
+    # Show vehicle section only if there's meaningful data
+    show_vehicle_section = has_reg_number or has_winter_tires
+
     body = f"""
 <link rel='stylesheet' href='/static/css/order-view.css'>
 <link rel='stylesheet' href='/static/css/client-images.css'>
 <div class="order-container">
-  <div class="order-header">
-    <h1 class="order-title">Tilaus #{r['id']}</h1>
-    <div class="order-status">
-      <span class="status-label">Tila:</span>
-      <span class="status-badge status-{r.get('status','NEW').lower()}">{status_fi}</span>
+  <!-- Hero Section with Key Information -->
+  <div class="order-hero status-{r.get('status','NEW').lower()}">
+    <div class="hero-content">
+      <div class="hero-header">
+        <h1 class="order-title">Tilaus #{r['id']}</h1>
+        <div class="order-status-main">
+          <span class="status-badge status-{r.get('status','NEW').lower()}">{status_fi}</span>
+          <p class="status-description">{status_description}</p>
+        </div>
+      </div>
+
+      <!-- Route Display - Most Important Information -->
+      <div class="hero-route">
+        <div class="route-card">
+          <div class="route-point pickup">
+            <div class="point-icon">📍</div>
+            <div class="point-details">
+              <span class="point-label">Nouto</span>
+              <span class="point-address">{r.get('pickup_address','?')}</span>
+            </div>
+          </div>
+          <div class="route-connector">
+            <div class="route-line"></div>
+            <div class="route-arrow">→</div>
+          </div>
+          <div class="route-point delivery">
+            <div class="point-icon">📍</div>
+            <div class="point-details">
+              <span class="point-label">Toimitus</span>
+              <span class="point-address">{r.get('dropoff_address','?')}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Key Metrics -->
+        <div class="hero-metrics">
+          <div class="metric-card">
+            <span class="metric-value">{distance_km:.1f} km</span>
+            <span class="metric-label">Matka</span>
+          </div>
+          <div class="metric-card price-card">
+            <span class="metric-value">{price_gross:.2f} €</span>
+            <span class="metric-label">Hinta</span>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
+
+  <!-- Progress Section -->
+  <div class="progress-section">
+    {bar}
+  </div>
   
-  {bar}
-  
+  <!-- Secondary Information -->
   <div class="order-details">
-    <div class="detail-section full-width">
-      <h3 class="section-title">Reitti</h3>
-      <div class="route-info">
-        <div class="route-point pickup">
-          <span class="route-label">Nouto:</span>
-          <span class="route-address">{r.get('pickup_address','?')}</span>
+    <div class="details-grid">
+      {f'''<div class="detail-card">
+        <h3 class="card-title">🚗 Ajoneuvo</h3>
+        <div class="card-content">
+          {f'<div class="detail-row"><span class="detail-label">Rekisterinumero</span><span class="detail-value">{r.get("reg_number","")}</span></div>' if has_reg_number else ''}
+          {f'<div class="detail-row"><span class="detail-label">Talvirenkaat</span><span class="detail-value">{"Kyllä" if r.get("winter_tires") else "Ei"}</span></div>' if has_winter_tires else ''}
+          {'''<div class="detail-row empty-state">
+            <span class="detail-label">📝</span>
+            <span class="detail-value">Ajoneuvotiedot täydennetään noudettaessa</span>
+          </div>''' if not show_vehicle_section else ''}
         </div>
-        <div class="route-arrow">→</div>
-        <div class="route-point delivery">
-          <span class="route-label">Toimitus:</span>
-          <span class="route-address">{r.get('dropoff_address','?')}</span>
+      </div>''' if show_vehicle_section or r.get('status') == 'NEW' else ''}
+
+      {f'''<div class="detail-card">
+        <h3 class="card-title">👤 Yhteystiedot</h3>
+        <div class="card-content">
+          {f'<div class="detail-row"><span class="detail-label">Nimi</span><span class="detail-value">{r.get("customer_name","")}</span></div>' if r.get('customer_name','').strip() else ''}
+          {f'<div class="detail-row"><span class="detail-label">Sähköposti</span><span class="detail-value">{r.get("email","")}</span></div>' if r.get('email','').strip() else ''}
+          {f'<div class="detail-row"><span class="detail-label">Puhelin</span><span class="detail-value">{r.get("phone","")}</span></div>' if r.get('phone','').strip() else ''}
+          {'''<div class="detail-row empty-state">
+            <span class="detail-label">📞</span>
+            <span class="detail-value">Yhteystiedot päivitetään tilauksen käsittelyn yhteydessä</span>
+          </div>''' if not has_customer_info else ''}
         </div>
-      </div>
-    </div>
-    
-    <div class="detail-section">
-      <h3 class="section-title">Ajoneuvo</h3>
-      <div class="vehicle-info">
-        <div class="vehicle-detail">
-          <span class="detail-label">Rekisterinumero:</span>
-          <span class="detail-value">{r.get('reg_number','') or 'Ei tiedossa'}</span>
-        </div>
-        <div class="vehicle-detail">
-          <span class="detail-label">Talvirenkaat:</span>
-          <span class="detail-value">{"Kyllä" if r.get('winter_tires') else "Ei"}</span>
-        </div>
-      </div>
-    </div>
-    
-    <div class="detail-section">
-      <h3 class="section-title">Hinta ja matka</h3>
-      <div class="price-info">
-        <div class="price-detail">
-          <span class="detail-label">Matka:</span>
-          <span class="detail-value">{distance_km:.1f} km</span>
-        </div>
-        <div class="price-detail highlight">
-          <span class="detail-label">Hinta:</span>
-          <span class="detail-value price">{price_gross:.2f} €</span>
-        </div>
-      </div>
+      </div>''' if has_customer_info or r.get('status') == 'NEW' else ''}
     </div>
 
-    <div class="detail-section full-width">
-      <h3 class="section-title">Yhteystiedot</h3>
-      <div class="contact-info">
-        <div class="contact-detail">
-          <span class="detail-label">Nimi:</span>
-          <span class="detail-value">{r.get('customer_name','') or 'Ei tiedossa'}</span>
-        </div>
-        <div class="contact-detail">
-          <span class="detail-label">Sähköposti:</span>
-          <span class="detail-value">{r.get('email','') or 'Ei tiedossa'}</span>
-        </div>
-        <div class="contact-detail">
-          <span class="detail-label">Puhelin:</span>
-          <span class="detail-value">{r.get('phone','') or 'Ei tiedossa'}</span>
-        </div>
-      </div>
-    </div>
-
-    {f'''<div class="detail-section full-width">
-      <h3 class="section-title">Lisätiedot</h3>
-      <div class="additional-info">
-        <p>{(r.get('additional_info') or 'Ei lisätietoja').replace('<', '&lt;')}</p>
+    {f'''
+    <div class="detail-card full-width">
+      <h3 class="card-title">📝 Lisätiedot</h3>
+      <div class="card-content">
+        <p class="additional-info-text">{(r.get('additional_info') or 'Ei lisätietoja').replace('<', '&lt;')}</p>
       </div>
     </div>''' if r.get('additional_info') else ''}
 
-    <div class="detail-section full-width">
-      <h3 class="section-title">📷 Kuljetuskuvat</h3>
-      <div class="order-images">
-        <div class="image-group">
-          <h4 class="image-title">Nouto</h4>
-          {create_client_image_section(r.get('images', {}), 'pickup')}
+    {f'''<div class="detail-card full-width">
+      <h3 class="card-title">📷 Kuljetuskuvat</h3>
+      <div class="card-content">
+        <div class="images-grid">
+          <div class="image-section">
+            <h4 class="image-section-title">Nouto</h4>
+            {create_client_image_section(r.get('images', {}), 'pickup')}
+          </div>
+          <div class="image-section">
+            <h4 class="image-section-title">Toimitus</h4>
+            {create_client_image_section(r.get('images', {}), 'delivery')}
+          </div>
         </div>
-        <div class="image-group">
-          <h4 class="image-title">Toimitus</h4>
-          {create_client_image_section(r.get('images', {}), 'delivery')}
-        </div>
+        {'''<div class="images-status">
+          <p class="status-info">📸 Kuljetuskuvat lisätään kuljetuksen aikana</p>
+        </div>''' if not has_images and r.get('status') in ['NEW', 'CONFIRMED'] else ''}
       </div>
-    </div>
+    </div>''' if has_images or r.get('status') in ['NEW', 'CONFIRMED', 'IN_TRANSIT'] else ''}
   </div>
 
   <div class="order-actions">
@@ -1400,7 +1440,7 @@ def admin_order_detail(order_id):
             "id": 1, "status": 1,
             "pickup_address": 1, "dropoff_address": 1,
             "distance_km": 1, "price_gross": 1,
-            "vehicle_type": 1, "pickup_date": 1,
+            "reg_number": 1, "winter_tires": 1, "pickup_date": 1,
             "extras": 1, "images": 1,
             "user_name": "$user.name",
             "user_email": "$user.email"
@@ -1500,8 +1540,12 @@ def admin_order_detail(order_id):
                             <span class="info-value">{order.get('user_name', 'Tuntematon')} ({order.get('user_email', 'Tuntematon')})</span>
                         </div>
                         <div class="info-item">
-                            <span class="info-label">Ajoneuvo:</span>
-                            <span class="info-value">{order.get('vehicle_type', 'Tuntematon')}</span>
+                            <span class="info-label">Rekisterinumero:</span>
+                            <span class="info-value">{order.get('reg_number', 'Ei tiedossa')}</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Talvirenkaat:</span>
+                            <span class="info-value">{"Kyllä" if order.get('winter_tires') else "Ei"}</span>
                         </div>
                         <div class="info-item">
                             <span class="info-label">Reitti:</span>
