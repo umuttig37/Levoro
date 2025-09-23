@@ -363,6 +363,36 @@ def get_status_description(status):
         'CANCELLED': 'Tilaus on peruutettu'
     }
     return descriptions.get(status, 'Tuntematon tila')
+
+def format_helsinki_time(dt):
+    """Format datetime to Helsinki timezone string"""
+    if dt is None:
+        return 'Tuntematon'
+
+    # If it's a string, return as-is
+    if isinstance(dt, str):
+        return dt
+
+    # If it's not a datetime object, return as string
+    if not hasattr(dt, 'strftime'):
+        return str(dt)
+
+    try:
+        helsinki_tz = ZoneInfo("Europe/Helsinki")
+
+        # If datetime is naive (no timezone info), assume it's UTC and convert
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=datetime.timezone.utc)
+
+        # Convert to Helsinki timezone
+        helsinki_dt = dt.astimezone(helsinki_tz)
+
+        # Format as Finnish time
+        return helsinki_dt.strftime('%d.%m.%Y %H:%M')
+
+    except Exception as e:
+        # Fallback to original formatting if conversion fails
+        return dt.strftime('%d.%m.%Y %H:%M') if hasattr(dt, 'strftime') else str(dt)
 def current_user():
     uid = session.get("uid")
     if not uid:
@@ -991,9 +1021,7 @@ def create_client_image_section(images_dict, image_type):
     image_info = images_dict.get(image_type)
 
     if image_info and image_info.get('file_path'):
-        upload_date = image_info.get('uploaded_at', 'Tuntematon')
-        if hasattr(upload_date, 'strftime'):
-            upload_date = upload_date.strftime('%d.%m.%Y %H:%M')
+        upload_date = format_helsinki_time(image_info.get('uploaded_at'))
 
         return f"""
         <div class="client-image-display">
@@ -1349,7 +1377,7 @@ def admin_users():
   <td>{user['email']}</td>
   <td><span class="pill">{role_badge}</span></td>
   <td><span class="status {'status-confirmed' if user.get('approved', False) else 'status-new'}">{approved_status}</span></td>
-  <td>{user.get('created_at', '').strftime('%d.%m.%Y %H:%M') if user.get('created_at') else '-'}</td>
+  <td>{format_helsinki_time(user.get('created_at')) if user.get('created_at') else '-'}</td>
   <td>{action_buttons}</td>
 </tr>
 """
@@ -1463,9 +1491,7 @@ def admin_order_detail(order_id):
     # Create image upload sections
     pickup_section = ""
     if pickup_image:
-        upload_date = pickup_image.get('uploaded_at', 'Tuntematon')
-        if hasattr(upload_date, 'strftime'):
-            upload_date = upload_date.strftime('%d.%m.%Y %H:%M')
+        upload_date = format_helsinki_time(pickup_image.get('uploaded_at'))
         pickup_section = f"""
         <div class="image-display">
             <img src="{pickup_image['file_path']}" alt="Nouto kuva" class="order-image">
@@ -1489,9 +1515,7 @@ def admin_order_detail(order_id):
 
     delivery_section = ""
     if delivery_image:
-        upload_date = delivery_image.get('uploaded_at', 'Tuntematon')
-        if hasattr(upload_date, 'strftime'):
-            upload_date = upload_date.strftime('%d.%m.%Y %H:%M')
+        upload_date = format_helsinki_time(delivery_image.get('uploaded_at'))
         delivery_section = f"""
         <div class="image-display">
             <img src="{delivery_image['file_path']}" alt="Toimitus kuva" class="order-image">
