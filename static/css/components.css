@@ -928,6 +928,32 @@
     background: rgba(255, 255, 255, 0.95);
 }
 
+/* Clickable admin table rows */
+.admin-table-row {
+    transition: all var(--transition-fast);
+}
+
+.admin-table-row:hover {
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.08) 0%, rgba(99, 102, 241, 0.08) 100%) !important;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.admin-table-row:hover td {
+    background: transparent !important;
+}
+
+.admin-table-row:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* Enhanced clickable row feedback */
+.admin-table-row:hover td:first-child strong {
+    color: var(--color-primary);
+    transition: color var(--transition-fast);
+}
+
 .admin-table tbody tr:last-child td {
     border-bottom: none;
 }

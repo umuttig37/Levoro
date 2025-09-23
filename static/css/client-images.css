@@ -1,0 +1,244 @@
+/* Client Order Images CSS */
+
+/* Order images section */
+.order-images {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 30px;
+    margin-top: 20px;
+}
+
+.image-group {
+    background: white;
+    border-radius: 12px;
+    border: 1px solid #e0e0e0;
+    overflow: hidden;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.image-title {
+    margin: 0;
+    padding: 15px 20px;
+    background: #f8f9fa;
+    border-bottom: 1px solid #e0e0e0;
+    font-size: 1.1em;
+    font-weight: 600;
+    color: #333;
+}
+
+/* Client image display */
+.client-image-display {
+    text-align: center;
+    padding: 20px;
+}
+
+.client-order-image {
+    max-width: 100%;
+    max-height: 250px;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    cursor: pointer;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    margin-bottom: 15px;
+}
+
+.client-order-image:hover {
+    transform: scale(1.02);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.image-info {
+    padding-top: 10px;
+    border-top: 1px solid #f0f0f0;
+}
+
+.image-date {
+    color: #666;
+    font-size: 0.85em;
+}
+
+/* Image placeholder */
+.client-image-placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 20px;
+    background: #f8f9fa;
+    border: 2px dashed #d0d0d0;
+    border-radius: 8px;
+    margin: 20px;
+    min-height: 200px;
+    text-align: center;
+}
+
+.placeholder-icon {
+    font-size: 3em;
+    color: #ccc;
+    margin-bottom: 15px;
+}
+
+.placeholder-text {
+    color: #666;
+}
+
+.placeholder-title {
+    font-size: 1.1em;
+    font-weight: 500;
+    margin: 0 0 5px 0;
+    color: #777;
+}
+
+.placeholder-subtitle {
+    font-size: 0.9em;
+    margin: 0;
+    color: #999;
+}
+
+/* Image Modal */
+.image-modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.9);
+    animation: fadeIn 0.3s ease;
+}
+
+.modal-content {
+    position: relative;
+    margin: auto;
+    padding: 0;
+    width: 90%;
+    max-width: 1200px;
+    height: 90vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-content img {
+    max-width: 100%;
+    max-height: 100%;
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+}
+
+.modal-close {
+    position: absolute;
+    top: 15px;
+    right: 35px;
+    color: white;
+    font-size: 40px;
+    font-weight: bold;
+    cursor: pointer;
+    z-index: 1001;
+    transition: color 0.2s ease;
+}
+
+.modal-close:hover {
+    color: #ccc;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    .order-images {
+        grid-template-columns: 1fr;
+        gap: 20px;
+    }
+
+    .image-group {
+        margin-bottom: 20px;
+    }
+
+    .client-image-placeholder {
+        margin: 15px;
+        padding: 30px 15px;
+        min-height: 160px;
+    }
+
+    .placeholder-icon {
+        font-size: 2.5em;
+        margin-bottom: 12px;
+    }
+
+    .modal-content {
+        width: 95%;
+        height: 85vh;
+    }
+
+    .modal-close {
+        top: 10px;
+        right: 20px;
+        font-size: 30px;
+    }
+}
+
+@media (max-width: 480px) {
+    .image-title {
+        padding: 12px 15px;
+        font-size: 1em;
+    }
+
+    .client-image-display {
+        padding: 15px;
+    }
+
+    .client-order-image {
+        max-height: 200px;
+        margin-bottom: 12px;
+    }
+
+    .client-image-placeholder {
+        padding: 25px 10px;
+        min-height: 140px;
+    }
+
+    .placeholder-icon {
+        font-size: 2em;
+        margin-bottom: 10px;
+    }
+
+    .placeholder-title {
+        font-size: 1em;
+    }
+
+    .placeholder-subtitle {
+        font-size: 0.85em;
+    }
+}
+
+/* Integration with existing order-view styles */
+.detail-section .order-images {
+    margin-top: 0;
+}
+
+.detail-section.full-width .order-images {
+    width: 100%;
+}
+
+/* Status-based styling */
+.image-group.status-pending .image-title {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.image-group.status-completed .image-title {
+    background: #d1ecf1;
+    color: #0c5460;
+}
+
+/* Hover effects for better UX */
+.image-group:hover {
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+    transform: translateY(-2px);
+    transition: all 0.2s ease;
+}

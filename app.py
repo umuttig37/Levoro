@@ -2,9 +2,14 @@ import os
 import secrets
 import datetime
 import requests
+import time
+from pathlib import Path
+from zoneinfo import ZoneInfo
 
-from flask import Flask, request, redirect, url_for, session, abort, jsonify
+from flask import Flask, request, redirect, url_for, session, abort, jsonify, send_file, flash
 from werkzeug.security import generate_password_hash, check_password_hash
+from werkzeug.utils import secure_filename
+from PIL import Image
 import sys
 from pymongo import MongoClient, ReturnDocument
 from dotenv import load_dotenv
@@ -61,6 +66,13 @@ GOOGLE_PLACES_API_KEY = os.getenv("GOOGLE_PLACES_API_KEY", "")
 OSRM_URL = "https://router.project-osrm.org/route/v1/driving/{lon1},{lat1};{lon2},{lat2}?overview=false"
 
 USER_AGENT = "Umut-Autotransport-Portal/1.0 (contact: example@example.com)"
+
+# Image upload configuration
+UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static', 'uploads', 'orders')
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'webp'}
+MAX_FILE_SIZE = 5 * 1024 * 1024  # 5MB
+MAX_IMAGE_WIDTH = 1200
+IMAGE_QUALITY = 80
 
 app = Flask(__name__)
 app.secret_key = os.getenv("SECRET_KEY", secrets.token_hex(16))
@@ -231,6 +243,103 @@ def route_km(pickup_addr: str, dropoff_addr: str):
     return meters / 1000.0
 
 
+# ----------------- IMAGE UTILS -----------------
+
+def allowed_file(filename):
+    return '.' in filename and \
+           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+def process_image(file_path, max_width=MAX_IMAGE_WIDTH, quality=IMAGE_QUALITY):
+    """Process uploaded image: resize and compress"""
+    try:
+        with Image.open(file_path) as img:
+            # Convert to RGB if necessary (for PNG with transparency)
+            if img.mode in ('RGBA', 'LA', 'P'):
+                img = img.convert('RGB')
+
+            # Resize if too wide
+            if img.width > max_width:
+                ratio = max_width / img.width
+                new_height = int(img.height * ratio)
+                img = img.resize((max_width, new_height), Image.Resampling.LANCZOS)
+
+            # Save with compression
+            img.save(file_path, 'JPEG', quality=quality, optimize=True)
+            return True
+    except Exception as e:
+        print(f"Error processing image: {e}")
+        return False
+
+def save_order_image(file, order_id, image_type):
+    """Save and process an uploaded image for an order"""
+    if not file or not allowed_file(file.filename):
+        return None, "Invalid file type"
+
+    # Create order directory
+    order_dir = os.path.join(UPLOAD_FOLDER, str(order_id))
+    os.makedirs(order_dir, exist_ok=True)
+
+    # Generate filename with timestamp
+    timestamp = int(time.time())
+    filename = f"{image_type}_{timestamp}.jpg"
+    file_path = os.path.join(order_dir, filename)
+
+    # Save file temporarily
+    try:
+        file.save(file_path)
+
+        # Check file size
+        if os.path.getsize(file_path) > MAX_FILE_SIZE:
+            os.remove(file_path)
+            return None, "File too large (max 5MB)"
+
+        # Process image
+        if not process_image(file_path):
+            os.remove(file_path)
+            return None, "Error processing image"
+
+        return {
+            "filename": filename,
+            "original_name": file.filename,
+            "file_size": os.path.getsize(file_path),
+            "uploaded_at": datetime.datetime.now(ZoneInfo("Europe/Helsinki")),
+            "file_path": f"/static/uploads/orders/{order_id}/{filename}"
+        }, None
+
+    except Exception as e:
+        if os.path.exists(file_path):
+            os.remove(file_path)
+        return None, f"Upload failed: {str(e)}"
+
+def delete_order_image(order_id, image_type):
+    """Delete an order image and its metadata"""
+    try:
+        order = orders_col().find_one({"id": int(order_id)}, {"images": 1})
+        if not order or "images" not in order:
+            return False, "Order or image not found"
+
+        image_info = order["images"].get(image_type)
+        if not image_info:
+            return False, "Image not found"
+
+        # Delete physical file
+        order_dir = os.path.join(UPLOAD_FOLDER, str(order_id))
+        file_path = os.path.join(order_dir, image_info["filename"])
+        if os.path.exists(file_path):
+            os.remove(file_path)
+
+        # Update database
+        orders_col().update_one(
+            {"id": int(order_id)},
+            {"$unset": {f"images.{image_type}": ""}}
+        )
+
+        return True, "Image deleted successfully"
+
+    except Exception as e:
+        return False, f"Delete failed: {str(e)}"
+
+
 # ----------------- AUTH UTILS -----------------
 
 def translate_status(status):
@@ -356,7 +465,7 @@ def wrap(content: str, user=None):
         auth = f"<span class='pill'>Hei, {user['name']}</span> <a class='nav-link' href='/logout'>Ulos</a>"
 
     # Logo ja admin-linkki
-    from flask import url_for
+    from flask import url_for, get_flashed_messages
     logo_src = url_for('static', filename='LevoroLogo.png')
     admin_link = '<a href="/admin" class="nav-link">Admin</a>' if (user and user.get("role") == "admin") else ""
 
@@ -370,6 +479,15 @@ def wrap(content: str, user=None):
         footer_calculator = '<div class="footer-cta" style="margin-bottom: 1rem;"><a href="/register" class="btn btn-primary">Kirjaudu ja laske hinta</a></div>'
     else:
         footer_calculator = '<div class="footer-cta" style="margin-bottom: 1rem;"><a href="/calculator" class="btn btn-primary">Laske hinta</a></div>'
+
+    # Flash messages
+    flash_html = ""
+    messages = get_flashed_messages(with_categories=True)
+    if messages:
+        flash_html = '<div class="flash-messages container" style="margin-top: 20px;">'
+        for category, message in messages:
+            flash_html += f'<div class="flash-message {category}">{message}</div>'
+        flash_html += '</div>'
 
     # Kootaan head
     head = (
@@ -387,7 +505,7 @@ def wrap(content: str, user=None):
         .replace("__FOOTER_CALCULATOR__", footer_calculator)
     )
 
-    return head + content + foot
+    return head + flash_html + content + foot
 
 
 # ----------------- ROUTES: HOME -----------------
@@ -857,6 +975,34 @@ def dashboard():
 
 
 
+def create_client_image_section(images_dict, image_type):
+    """Create HTML for client-side image display"""
+    image_info = images_dict.get(image_type)
+
+    if image_info and image_info.get('file_path'):
+        upload_date = image_info.get('uploaded_at', 'Tuntematon')
+        if hasattr(upload_date, 'strftime'):
+            upload_date = upload_date.strftime('%d.%m.%Y %H:%M')
+
+        return f"""
+        <div class="client-image-display">
+            <img src="{image_info['file_path']}" alt="{image_type} kuva" class="client-order-image" onclick="openImageModal(this.src)">
+            <div class="image-info">
+                <small class="image-date">Kuvattu: {upload_date}</small>
+            </div>
+        </div>"""
+    else:
+        status_text = "Nouto odottaa" if image_type == "pickup" else "Toimitus odottaa"
+        return f"""
+        <div class="client-image-placeholder">
+            <div class="placeholder-icon">📷</div>
+            <div class="placeholder-text">
+                <p class="placeholder-title">Ei kuvaa vielä</p>
+                <p class="placeholder-subtitle">{status_text}</p>
+            </div>
+        </div>"""
+
+
 @app.get("/order/<int:order_id>")
 def order_view(order_id: int):
     u = current_user()
@@ -875,11 +1021,12 @@ def order_view(order_id: int):
     distance_km = float(r.get("distance_km", 0.0))
     price_gross = float(r.get("price_gross", 0.0))
 
-    step = progress_step(r.get("status", "NEW"))
+    current_status = r.get("status", "NEW")
+    step = progress_step(current_status)
 
     # Progress bar with better styling
     bar = f"""
-<div class="order-progress">
+<div class="order-progress" data-step="{step}" data-status="{current_status}">
   <div class="progress-step {'completed' if step >= 1 else ''}">
     <div class="step-number">1</div>
     <div class="step-label">Noudettu</div>
@@ -900,6 +1047,7 @@ def order_view(order_id: int):
     status_fi = translate_status(r.get('status', 'NEW'))
     body = f"""
 <link rel='stylesheet' href='/static/css/order-view.css'>
+<link rel='stylesheet' href='/static/css/client-images.css'>
 <div class="order-container">
   <div class="order-header">
     <h1 class="order-title">Tilaus #{r['id']}</h1>
@@ -979,12 +1127,53 @@ def order_view(order_id: int):
         <p>{(r.get('additional_info') or 'Ei lisätietoja').replace('<', '&lt;')}</p>
       </div>
     </div>''' if r.get('additional_info') else ''}
+
+    <div class="detail-section full-width">
+      <h3 class="section-title">📷 Kuljetuskuvat</h3>
+      <div class="order-images">
+        <div class="image-group">
+          <h4 class="image-title">Nouto</h4>
+          {create_client_image_section(r.get('images', {}), 'pickup')}
+        </div>
+        <div class="image-group">
+          <h4 class="image-title">Toimitus</h4>
+          {create_client_image_section(r.get('images', {}), 'delivery')}
+        </div>
+      </div>
+    </div>
   </div>
-  
+
   <div class="order-actions">
     <a href="/dashboard" class="btn btn-ghost">← Takaisin tilauksiin</a>
   </div>
 </div>
+
+<!-- Image Modal -->
+<div id="imageModal" class="image-modal" onclick="closeImageModal()">
+  <div class="modal-content">
+    <span class="modal-close" onclick="closeImageModal()">&times;</span>
+    <img id="modalImage" src="" alt="Kuva">
+  </div>
+</div>
+
+<script>
+function openImageModal(imageSrc) {{
+  document.getElementById('imageModal').style.display = 'block';
+  document.getElementById('modalImage').src = imageSrc;
+  document.body.style.overflow = 'hidden';
+}}
+
+function closeImageModal() {{
+  document.getElementById('imageModal').style.display = 'none';
+  document.body.style.overflow = 'auto';
+}}
+
+document.addEventListener('keydown', function(e) {{
+  if (e.key === 'Escape') {{
+    closeImageModal();
+  }}
+}});
+</script>
 """
     return wrap(body, u)
 
@@ -1014,6 +1203,7 @@ def admin_home():
             "id": 1, "status": 1,
             "pickup_address": 1, "dropoff_address": 1,
             "distance_km": 1, "price_gross": 1,
+            "images": 1,
             "user_name": "$user.name",
             "user_email": "$user.email"
         }}
@@ -1025,15 +1215,23 @@ def admin_home():
         distance_km = float(r.get("distance_km", 0.0))
         price_gross = float(r.get("price_gross", 0.0))
         status_fi = translate_status(r['status'])
+
+        # Image indicators
+        images = r.get("images", {})
+        pickup_icon = "📷" if images.get("pickup") else "⭕"
+        delivery_icon = "📷" if images.get("delivery") else "⭕"
+        image_status = f"{pickup_icon} {delivery_icon}"
+
         tr += f"""
-<tr>
-  <td>#{r['id']}</td>
+<tr class="admin-table-row" onclick="window.location.href='/admin/order/{r['id']}'" style="cursor: pointer;">
+  <td><strong>#{r['id']}</strong></td>
   <td><span class="status {r['status']}">{status_fi}</span></td>
   <td>{r.get('user_name','?')} &lt;{r.get('user_email','?')}&gt;</td>
   <td>{r['pickup_address']} → {r['dropoff_address']}</td>
   <td>{distance_km:.1f} km</td>
   <td>{price_gross:.2f} €</td>
-  <td>
+  <td class="image-status">{image_status}</td>
+  <td onclick="event.stopPropagation();">
     <form method="POST" action="/admin/update" class="admin-inline-form">
       <input type="hidden" name="id" value="{r['id']}">
       <select name="status">
@@ -1058,8 +1256,8 @@ def admin_home():
     </div>
   </div>
   <table class="admin-table">
-    <thead><tr><th>ID</th><th>Tila</th><th>Asiakas</th><th>Reitti</th><th>Km</th><th>Hinta</th><th>Päivitä</th></tr></thead>
-    <tbody>{tr or "<tr><td colspan='7' class='muted'>Ei tilauksia</td></tr>"}</tbody>
+    <thead><tr><th>ID</th><th>Tila</th><th>Asiakas</th><th>Reitti</th><th>Km</th><th>Hinta</th><th>Kuvat</th><th>Päivitä</th></tr></thead>
+    <tbody>{tr or "<tr><td colspan='8' class='muted'>Ei tilauksia</td></tr>"}</tbody>
   </table>
 </div>
 """
@@ -1152,6 +1350,310 @@ def admin_deny_user():
     return redirect(url_for("admin_users"))
 
 
+@app.post("/admin/update")
+def admin_update_order():
+    u = current_user()
+    if not u or u.get("role") != "admin":
+        return redirect(url_for("login"))
+
+    order_id = int(request.form.get("id"))
+    new_status = request.form.get("status")
+
+    # Validate status
+    valid_statuses = ["NEW", "CONFIRMED", "IN_TRANSIT", "DELIVERED", "CANCELLED"]
+    if new_status not in valid_statuses:
+        return redirect(url_for("admin_home"))
+
+    # Update order status
+    result = orders_col().update_one(
+        {"id": order_id},
+        {"$set": {"status": new_status}}
+    )
+
+    # Add debug feedback
+    if result.modified_count > 0:
+        flash(f"Tilauksen #{order_id} tila päivitetty: {translate_status(new_status)}", "success")
+    else:
+        flash(f"Virhe: Tilauksen #{order_id} tilaa ei voitu päivittää", "error")
+
+    return redirect(url_for("admin_home"))
+
+
+@app.get("/admin/order/<int:order_id>")
+def admin_order_detail(order_id):
+    u = current_user()
+    if not u or u.get("role") != "admin":
+        return redirect(url_for("login"))
+
+    # Get order with user info
+    pipeline = [
+        {"$match": {"id": int(order_id)}},
+        {"$lookup": {
+            "from": "users",
+            "localField": "user_id",
+            "foreignField": "id",
+            "as": "user"
+        }},
+        {"$unwind": {"path": "$user", "preserveNullAndEmptyArrays": True}},
+        {"$project": {
+            "_id": 0,
+            "id": 1, "status": 1,
+            "pickup_address": 1, "dropoff_address": 1,
+            "distance_km": 1, "price_gross": 1,
+            "vehicle_type": 1, "pickup_date": 1,
+            "extras": 1, "images": 1,
+            "user_name": "$user.name",
+            "user_email": "$user.email"
+        }}
+    ]
+    order_result = list(orders_col().aggregate(pipeline))
+
+    if not order_result:
+        return wrap("<div class='card'><h2>Tilaus ei löytynyt</h2></div>", u)
+
+    order = order_result[0]
+
+    # Get image info
+    images = order.get("images", {})
+    pickup_image = images.get("pickup")
+    delivery_image = images.get("delivery")
+
+    status_fi = translate_status(order.get('status', 'NEW'))
+
+    # Create image upload sections
+    pickup_section = ""
+    if pickup_image:
+        upload_date = pickup_image.get('uploaded_at', 'Tuntematon')
+        if hasattr(upload_date, 'strftime'):
+            upload_date = upload_date.strftime('%d.%m.%Y %H:%M')
+        pickup_section = f"""
+        <div class="image-display">
+            <img src="{pickup_image['file_path']}" alt="Nouto kuva" class="order-image">
+            <div class="image-meta">
+                <p><small>Ladattu: {upload_date}</small></p>
+                <form method="POST" action="/admin/order/{order_id}/image/pickup/delete" class="delete-form">
+                    <button type="submit" class="btn btn-danger btn-sm">Poista</button>
+                </form>
+            </div>
+        </div>"""
+    else:
+        pickup_section = f"""
+        <form method="POST" action="/admin/order/{order_id}/upload" enctype="multipart/form-data" class="upload-form" id="pickup-form-{order_id}">
+            <input type="hidden" name="image_type" value="pickup">
+            <input type="file" name="image" accept=".jpg,.jpeg,.png,.webp" required onchange="submitImageForm(this)">
+            <button type="submit" class="btn btn-primary">Lataa nouto kuva</button>
+            <div class="upload-status" style="display: none;">
+                <span class="uploading">Ladataan...</span>
+            </div>
+        </form>"""
+
+    delivery_section = ""
+    if delivery_image:
+        upload_date = delivery_image.get('uploaded_at', 'Tuntematon')
+        if hasattr(upload_date, 'strftime'):
+            upload_date = upload_date.strftime('%d.%m.%Y %H:%M')
+        delivery_section = f"""
+        <div class="image-display">
+            <img src="{delivery_image['file_path']}" alt="Toimitus kuva" class="order-image">
+            <div class="image-meta">
+                <p><small>Ladattu: {upload_date}</small></p>
+                <form method="POST" action="/admin/order/{order_id}/image/delivery/delete" class="delete-form">
+                    <button type="submit" class="btn btn-danger btn-sm">Poista</button>
+                </form>
+            </div>
+        </div>"""
+    else:
+        delivery_section = f"""
+        <form method="POST" action="/admin/order/{order_id}/upload" enctype="multipart/form-data" class="upload-form" id="delivery-form-{order_id}">
+            <input type="hidden" name="image_type" value="delivery">
+            <input type="file" name="image" accept=".jpg,.jpeg,.png,.webp" required onchange="submitImageForm(this)">
+            <button type="submit" class="btn btn-primary">Lataa toimitus kuva</button>
+            <div class="upload-status" style="display: none;">
+                <span class="uploading">Ladataan...</span>
+            </div>
+        </form>"""
+
+    pickup_date_fi = order.get('pickup_date', 'Ei asetettu')
+    if pickup_date_fi and pickup_date_fi != 'Ei asetettu':
+        try:
+            # Try to format the date if it's a datetime object
+            if hasattr(pickup_date_fi, 'strftime'):
+                pickup_date_fi = pickup_date_fi.strftime('%d.%m.%Y')
+        except:
+            pass
+
+    body = f"""
+    <link rel='stylesheet' href='/static/css/admin-images.css'>
+    <div class="container">
+        <div class="admin-order-detail">
+            <div class="order-header">
+                <h2>Tilaus #{order['id']} - {status_fi}</h2>
+                <a href="/admin" class="btn btn-secondary">Takaisin tilauksiin</a>
+            </div>
+
+            <div class="order-info">
+                <div class="info-section">
+                    <h3>Tilauksen tiedot</h3>
+                    <div class="info-grid">
+                        <div class="info-item">
+                            <span class="info-label">Asiakas:</span>
+                            <span class="info-value">{order.get('user_name', 'Tuntematon')} ({order.get('user_email', 'Tuntematon')})</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Ajoneuvo:</span>
+                            <span class="info-value">{order.get('vehicle_type', 'Tuntematon')}</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Reitti:</span>
+                            <span class="info-value">{order['pickup_address']} → {order['dropoff_address']}</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Matka:</span>
+                            <span class="info-value">{float(order.get('distance_km', 0)):.1f} km</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Hinta:</span>
+                            <span class="info-value">{float(order.get('price_gross', 0)):.2f} €</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Noutopäivä:</span>
+                            <span class="info-value">{pickup_date_fi}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="status-section">
+                    <h3>Päivitä tila</h3>
+                    <form method="POST" action="/admin/update">
+                        <input type="hidden" name="id" value="{order['id']}">
+                        <select name="status" class="status-select">
+                            <option value="NEW" {'selected' if order['status'] == 'NEW' else ''}>UUSI</option>
+                            <option value="CONFIRMED" {'selected' if order['status'] == 'CONFIRMED' else ''}>VAHVISTETTU</option>
+                            <option value="IN_TRANSIT" {'selected' if order['status'] == 'IN_TRANSIT' else ''}>KULJETUKSESSA</option>
+                            <option value="DELIVERED" {'selected' if order['status'] == 'DELIVERED' else ''}>TOIMITETTU</option>
+                            <option value="CANCELLED" {'selected' if order['status'] == 'CANCELLED' else ''}>PERUUTETTU</option>
+                        </select>
+                        <button type="submit" class="btn btn-primary">Päivitä</button>
+                    </form>
+                </div>
+            </div>
+
+            <div class="images-section">
+                <div class="image-section">
+                    <h3>📷 Nouto kuva</h3>
+                    {pickup_section}
+                </div>
+
+                <div class="image-section">
+                    <h3>📷 Toimitus kuva</h3>
+                    {delivery_section}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    function submitImageForm(fileInput) {{
+        if (fileInput.files && fileInput.files.length > 0) {{
+            // Show loading indicator
+            const form = fileInput.closest('form');
+            const uploadStatus = form.querySelector('.upload-status');
+            const submitButton = form.querySelector('button[type="submit"]');
+
+            uploadStatus.style.display = 'block';
+            submitButton.style.display = 'none';
+
+            // Submit the form
+            form.submit();
+        }}
+    }}
+    </script>
+    """
+
+    return wrap(body, u)
+
+
+@app.post("/admin/order/<int:order_id>/upload")
+def admin_upload_image(order_id):
+    u = current_user()
+    if not u or u.get("role") != "admin":
+        return redirect(url_for("login"))
+
+    image_type = request.form.get("image_type")
+    if image_type not in ["pickup", "delivery"]:
+        flash("Virheellinen kuvatyyppi", "error")
+        return redirect(url_for("admin_order_detail", order_id=order_id))
+
+    if 'image' not in request.files:
+        flash("Kuvaa ei valittu", "error")
+        return redirect(url_for("admin_order_detail", order_id=order_id))
+
+    file = request.files['image']
+    if file.filename == '':
+        flash("Kuvaa ei valittu", "error")
+        return redirect(url_for("admin_order_detail", order_id=order_id))
+
+    # Save and process image
+    image_info, error = save_order_image(file, order_id, image_type)
+
+    if error:
+        # Translate common error messages to Finnish
+        finnish_error = error
+        if "File too large" in error:
+            finnish_error = "Tiedosto on liian suuri (max 5MB)"
+        elif "Invalid file type" in error:
+            finnish_error = "Virheellinen tiedostotyyppi"
+        elif "Error processing image" in error:
+            finnish_error = "Virhe kuvan käsittelyssä"
+        elif "Upload failed" in error:
+            finnish_error = "Lataus epäonnistui"
+
+        flash(finnish_error, "error")
+        return redirect(url_for("admin_order_detail", order_id=order_id))
+
+    # Update order with image metadata
+    image_info["uploaded_by"] = u.get("email", "admin")
+
+    orders_col().update_one(
+        {"id": int(order_id)},
+        {"$set": {f"images.{image_type}": image_info}}
+    )
+
+    image_type_fi = "Nouto" if image_type == "pickup" else "Toimitus"
+    flash(f"{image_type_fi} kuva ladattu onnistuneesti", "success")
+    return redirect(url_for("admin_order_detail", order_id=order_id))
+
+
+@app.post("/admin/order/<int:order_id>/image/<image_type>/delete")
+def admin_delete_image(order_id, image_type):
+    u = current_user()
+    if not u or u.get("role") != "admin":
+        return redirect(url_for("login"))
+
+    if image_type not in ["pickup", "delivery"]:
+        flash("Virheellinen kuvatyyppi", "error")
+        return redirect(url_for("admin_order_detail", order_id=order_id))
+
+    success, message = delete_order_image(order_id, image_type)
+
+    image_type_fi = "Nouto" if image_type == "pickup" else "Toimitus"
+
+    if success:
+        flash(f"{image_type_fi} kuva poistettu onnistuneesti", "success")
+    else:
+        # Translate error messages
+        finnish_message = message
+        if "Order or image not found" in message:
+            finnish_message = "Tilausta tai kuvaa ei löytynyt"
+        elif "Image not found" in message:
+            finnish_message = "Kuvaa ei löytynyt"
+        elif "Delete failed" in message:
+            finnish_message = "Poisto epäonnistui"
+
+        flash(finnish_message, "error")
+
+    return redirect(url_for("admin_order_detail", order_id=order_id))
+
 
 @app.get("/order/new")
 def order_new_redirect():
@@ -1159,16 +1661,16 @@ def order_new_redirect():
 
 
 def progress_step(status: str) -> int:
-    # 3-vaiheinen palkki: 1=Picked up, 2=In transit, 3=Delivered
+    # 3-vaiheinen palkki: 1=Noudettu, 2=Kuljetuksessa, 3=Toimitettu
     status = (status or "").upper()
     mapping = {
-        "NEW": 1,          # oletus: ennen noutoa -> näytetään 1. vaihe
-        "CONFIRMED": 1,    # vahvistettu, odottaa noutoa
-        "IN_TRANSIT": 2,   # kuljetuksessa
-        "DELIVERED": 3,    # toimitettu
-        "CANCELLED": 1     # peruttu -> jätetään alkuun
+        "NEW": 0,          # uusi tilaus, ei vielä noudettu
+        "CONFIRMED": 0,    # vahvistettu, odottaa noutoa
+        "IN_TRANSIT": 2,   # kuljetuksessa (noudettu + kuljetuksessa)
+        "DELIVERED": 3,    # toimitettu (kaikki vaiheet valmiit)
+        "CANCELLED": 0     # peruttu -> ei edistystä
     }
-    return mapping.get(status, 1)
+    return mapping.get(status, 0)
 
 
 def is_active_status(status: str) -> bool:

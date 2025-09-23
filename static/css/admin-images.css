@@ -1,0 +1,384 @@
+/* Admin Images CSS */
+
+/* Order detail page */
+.admin-order-detail {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.order-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+    padding-bottom: 15px;
+    border-bottom: 2px solid #e0e0e0;
+}
+
+.order-header h2 {
+    margin: 0;
+    color: #333;
+    font-size: 1.8em;
+    font-weight: 600;
+}
+
+.order-info {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 30px;
+    margin-bottom: 40px;
+}
+
+.info-section, .status-section {
+    background: white;
+    padding: 25px;
+    border-radius: 12px;
+    border: 1px solid #e0e0e0;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.info-section h3, .status-section h3 {
+    margin-top: 0;
+    margin-bottom: 20px;
+    color: #333;
+    font-size: 1.3em;
+    font-weight: 600;
+    border-bottom: 2px solid #f0f0f0;
+    padding-bottom: 10px;
+}
+
+/* Info grid styling */
+.info-grid {
+    display: grid;
+    gap: 15px;
+}
+
+.info-item {
+    display: grid;
+    grid-template-columns: 120px 1fr;
+    gap: 15px;
+    align-items: start;
+    padding: 12px 0;
+    border-bottom: 1px solid #f5f5f5;
+}
+
+.info-item:last-child {
+    border-bottom: none;
+}
+
+.info-label {
+    font-weight: 600;
+    color: #666;
+    font-size: 0.95em;
+}
+
+.info-value {
+    color: #333;
+    font-size: 0.95em;
+    word-break: break-word;
+}
+
+.status-section form {
+    display: flex;
+    gap: 15px;
+    align-items: center;
+}
+
+.status-select {
+    flex: 1;
+    padding: 12px 15px;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    background: white;
+    font-size: 1em;
+    color: #333;
+    transition: border-color 0.2s ease;
+}
+
+.status-select:focus {
+    outline: none;
+    border-color: #007bff;
+}
+
+/* Images section */
+.images-section {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 30px;
+}
+
+.image-section {
+    background: white;
+    padding: 25px;
+    border-radius: 12px;
+    border: 1px solid #e0e0e0;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.image-section h3 {
+    margin-top: 0;
+    margin-bottom: 20px;
+    color: #333;
+    font-size: 1.3em;
+    font-weight: 600;
+    border-bottom: 2px solid #f0f0f0;
+    padding-bottom: 10px;
+}
+
+/* Image display */
+.image-display {
+    text-align: center;
+}
+
+.order-image {
+    max-width: 100%;
+    max-height: 300px;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    margin-bottom: 15px;
+}
+
+.image-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 10px;
+    border-top: 1px solid var(--border-color);
+}
+
+.image-meta p {
+    margin: 0;
+    font-size: 0.9em;
+    color: var(--muted-color);
+}
+
+/* Upload form */
+.upload-form {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    align-items: center;
+    padding: 30px;
+    border: 2px dashed #d0d0d0;
+    border-radius: 12px;
+    background: #f8f9fa;
+    transition: border-color 0.2s ease, background-color 0.2s ease;
+    position: relative;
+}
+
+.upload-form:hover {
+    border-color: #007bff;
+    background: #f0f4ff;
+}
+
+.upload-form input[type="file"] {
+    padding: 12px 15px;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    background: white;
+    width: 100%;
+    max-width: 280px;
+    font-size: 0.95em;
+    transition: border-color 0.2s ease;
+    cursor: pointer;
+}
+
+.upload-form input[type="file"]:focus {
+    outline: none;
+    border-color: #007bff;
+}
+
+.upload-form input[type="file"]:hover {
+    border-color: #007bff;
+    background: #f8f9ff;
+}
+
+.upload-form button {
+    padding: 12px 24px;
+    font-size: 1em;
+    font-weight: 500;
+}
+
+/* Upload status indicator */
+.upload-status {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: #007bff;
+    font-weight: 500;
+}
+
+.upload-status .uploading::before {
+    content: "";
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    border: 2px solid #f3f3f3;
+    border-top: 2px solid #007bff;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-right: 8px;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Delete form */
+.delete-form {
+    margin: 0;
+}
+
+.delete-form button {
+    padding: 6px 12px;
+    font-size: 0.85em;
+}
+
+/* Admin table image status */
+.image-status {
+    text-align: center;
+    font-size: 1.2em;
+}
+
+.order-link {
+    color: var(--primary-color);
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.order-link:hover {
+    text-decoration: underline;
+}
+
+/* Button styles */
+.btn {
+    display: inline-block;
+    padding: 12px 20px;
+    text-decoration: none;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    font-size: 0.95em;
+    font-weight: 600;
+    transition: all 0.2s ease;
+    text-align: center;
+    min-width: 100px;
+}
+
+.btn-primary {
+    background: #007bff;
+    color: white;
+}
+
+.btn-primary:hover {
+    background: #0056b3;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0, 123, 255, 0.3);
+}
+
+.btn-secondary {
+    background: #6c757d;
+    color: white;
+}
+
+.btn-secondary:hover {
+    background: #545b62;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(108, 117, 125, 0.3);
+}
+
+.btn-danger {
+    background: #dc3545;
+    color: white;
+}
+
+.btn-danger:hover {
+    background: #c82333;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(220, 53, 69, 0.3);
+}
+
+.btn-sm {
+    padding: 8px 16px;
+    font-size: 0.85em;
+    min-width: 80px;
+}
+
+/* Flash messages */
+.flash-messages {
+    margin-bottom: 25px;
+}
+
+.flash-message {
+    padding: 15px 20px;
+    border-radius: 8px;
+    margin-bottom: 15px;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.flash-message.success {
+    background: #d1ecf1;
+    color: #0c5460;
+    border-left: 4px solid #17a2b8;
+}
+
+.flash-message.success::before {
+    content: "✓ ";
+    margin-right: 8px;
+    font-weight: bold;
+}
+
+.flash-message.error {
+    background: #f8d7da;
+    color: #721c24;
+    border-left: 4px solid #dc3545;
+}
+
+.flash-message.error::before {
+    content: "⚠ ";
+    margin-right: 8px;
+    font-weight: bold;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    .order-info {
+        grid-template-columns: 1fr;
+        gap: 20px;
+    }
+
+    .images-section {
+        grid-template-columns: 1fr;
+        gap: 20px;
+    }
+
+    .order-header {
+        flex-direction: column;
+        gap: 15px;
+        text-align: center;
+    }
+
+    .status-section form {
+        flex-direction: column;
+        align-items: stretch;
+    }
+}
+
+@media (max-width: 480px) {
+    .admin-order-detail {
+        padding: 15px;
+    }
+
+    .info-section, .status-section, .image-section {
+        padding: 15px;
+    }
+
+    .upload-form {
+        padding: 15px;
+    }
+}
