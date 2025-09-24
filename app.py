@@ -3,6 +3,7 @@ import secrets
 import datetime
 import requests
 import time
+import uuid
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
@@ -133,6 +134,49 @@ def seed_admin():
             "created_at": datetime.datetime.now(ZoneInfo("Europe/Helsinki")),
         })
 
+def migrate_images_to_array():
+    """Migrate existing single image structure to array-based structure"""
+    print("Starting image structure migration...")
+
+    # Find all orders with the old image structure (single image objects)
+    orders_with_old_images = orders_col().find({
+        "$or": [
+            {"images.pickup": {"$exists": True, "$not": {"$type": "array"}}},
+            {"images.delivery": {"$exists": True, "$not": {"$type": "array"}}}
+        ]
+    })
+
+    migrated_count = 0
+    for order in orders_with_old_images:
+        order_id = order["id"]
+        images = order.get("images", {})
+
+        # Prepare new image structure
+        new_images = {}
+
+        # Migrate pickup image if it exists
+        if "pickup" in images and images["pickup"] and not isinstance(images["pickup"], list):
+            pickup_img = images["pickup"]
+            pickup_img["id"] = str(uuid.uuid4())  # Add unique ID
+            pickup_img["order"] = 1  # Set as first image
+            new_images["pickup"] = [pickup_img]  # Convert to array
+
+        # Migrate delivery image if it exists
+        if "delivery" in images and images["delivery"] and not isinstance(images["delivery"], list):
+            delivery_img = images["delivery"]
+            delivery_img["id"] = str(uuid.uuid4())  # Add unique ID
+            delivery_img["order"] = 1  # Set as first image
+            new_images["delivery"] = [delivery_img]  # Convert to array
+
+        # Update the order with new structure
+        if new_images:
+            orders_col().update_one(
+                {"id": order_id},
+                {"$set": {"images": {**images, **new_images}}}
+            )
+            migrated_count += 1
+
+    print(f"Migration completed. {migrated_count} orders migrated to new image structure.")
 
 
 # ----------------- BUSINESS LOGIC -----------------
@@ -314,11 +358,13 @@ def save_order_image(file, order_id, image_type):
             return None, "Error processing image"
 
         return {
+            "id": str(uuid.uuid4()),  # Unique identifier for this image
             "filename": filename,
             "original_name": file.filename,
             "file_size": os.path.getsize(file_path),
             "uploaded_at": datetime.datetime.now(ZoneInfo("Europe/Helsinki")),
-            "file_path": f"/static/uploads/orders/{order_id}/{filename}"
+            "file_path": f"/static/uploads/orders/{order_id}/{filename}",
+            "order": 1  # Will be updated when added to array
         }, None
 
     except Exception as e:
@@ -347,6 +393,51 @@ def delete_order_image(order_id, image_type):
         orders_col().update_one(
             {"id": int(order_id)},
             {"$unset": {f"images.{image_type}": ""}}
+        )
+
+        return True, "Image deleted successfully"
+
+    except Exception as e:
+        return False, f"Delete failed: {str(e)}"
+
+def delete_order_image_by_id(order_id, image_type, image_id):
+    """Delete a specific image by ID from an order's image array"""
+    try:
+        order = orders_col().find_one({"id": int(order_id)}, {"images": 1})
+        if not order or "images" not in order:
+            return False, "Order or image not found"
+
+        images = order["images"].get(image_type, [])
+        if not isinstance(images, list):
+            images = [images] if images else []
+
+        # Find the image with the matching ID
+        image_to_delete = None
+        updated_images = []
+
+        for img in images:
+            if img.get("id") == image_id:
+                image_to_delete = img
+            else:
+                updated_images.append(img)
+
+        if not image_to_delete:
+            return False, "Image not found"
+
+        # Delete physical file
+        order_dir = os.path.join(UPLOAD_FOLDER, str(order_id))
+        file_path = os.path.join(order_dir, image_to_delete["filename"])
+        if os.path.exists(file_path):
+            os.remove(file_path)
+
+        # Re-order the remaining images
+        for i, img in enumerate(updated_images):
+            img["order"] = i + 1
+
+        # Update database with the filtered array
+        orders_col().update_one(
+            {"id": int(order_id)},
+            {"$set": {f"images.{image_type}": updated_images}}
         )
 
         return True, "Image deleted successfully"
@@ -1052,20 +1143,20 @@ def dashboard():
 
 
 def create_client_image_section(images_dict, image_type):
-    """Create HTML for client-side image display"""
-    image_info = images_dict.get(image_type)
+    """Create HTML for client-side image display with grid layout"""
+    image_data = images_dict.get(image_type)
 
-    if image_info and image_info.get('file_path'):
-        upload_date = format_helsinki_time(image_info.get('uploaded_at'))
-
-        return f"""
-        <div class="client-image-display">
-            <img src="{image_info['file_path']}" alt="{image_type} kuva" class="client-order-image" onclick="openImageModal(this.src)">
-            <div class="image-info">
-                <small class="image-date">Kuvattu: {upload_date}</small>
-            </div>
-        </div>"""
+    # Handle both old single image format and new array format
+    if isinstance(image_data, list):
+        images = image_data
     else:
+        # Old single image format - convert to list
+        images = [image_data] if image_data else []
+
+    image_type_fi = "Nouto" if image_type == "pickup" else "Toimitus"
+    images_count = len(images)
+
+    if images_count == 0:
         status_text = "Nouto odottaa" if image_type == "pickup" else "Toimitus odottaa"
         return f"""
         <div class="client-image-placeholder">
@@ -1075,6 +1166,32 @@ def create_client_image_section(images_dict, image_type):
                 <p class="placeholder-subtitle">{status_text}</p>
             </div>
         </div>"""
+
+    # Sort images by order
+    images.sort(key=lambda x: x.get('order', 1))
+
+    # Generate grid of images
+    images_html = ""
+    for img in images:
+        upload_date = format_helsinki_time(img.get('uploaded_at'))
+        images_html += f"""
+        <div class="client-image-item">
+            <img src="{img['file_path']}" alt="{image_type_fi} kuva" class="client-image-thumbnail"
+                 onclick="openClientImageModal('{image_type}', '{img['id']}')">
+            <div class="client-image-info">
+                <small class="client-image-date">Kuvattu: {upload_date}</small>
+            </div>
+        </div>"""
+
+    return f"""
+    <div class="client-image-section">
+        <div class="client-image-counter">
+            <span class="client-image-count">{images_count} kuvaa</span>
+        </div>
+        <div class="client-images-grid">
+            {images_html}
+        </div>
+    </div>"""
 
 
 @app.get("/order/<int:order_id>")
@@ -1264,6 +1381,14 @@ function openImageModal(imageSrc) {{
   document.getElementById('imageModal').style.display = 'block';
   document.getElementById('modalImage').src = imageSrc;
   document.body.style.overflow = 'hidden';
+}}
+
+function openClientImageModal(imageType, imageId) {{
+  // Find the image by ID from the current order
+  const imageElement = document.querySelector(`img[onclick*='${{imageId}}']`);
+  if (imageElement) {{
+    openImageModal(imageElement.src);
+  }}
 }}
 
 function closeImageModal() {{
@@ -1481,6 +1606,77 @@ def admin_update_order():
 
     return redirect(url_for("admin_home"))
 
+def create_multi_image_section(images, image_type, order_id):
+    """Create HTML for multi-image grid display"""
+    # Handle both old single image format and new array format
+    if not isinstance(images, list):
+        images = [images] if images else []
+
+    # Sort images by order
+    images.sort(key=lambda x: x.get('order', 1))
+
+    image_type_fi = "Nouto" if image_type == "pickup" else "Toimitus"
+    images_count = len(images)
+
+    if images_count == 0:
+        # No images - show upload form
+        return f"""
+        <div class="image-section">
+            <h3>{image_type_fi} kuvat</h3>
+            <div class="image-counter">
+                <span class="image-counter-text">0/15 kuvaa</span>
+                <span class="image-counter-limit">Maksimi 15 kuvaa</span>
+            </div>
+            <form method="POST" action="/admin/order/{order_id}/upload" enctype="multipart/form-data" class="upload-form" id="{image_type}-form-{order_id}">
+                <input type="hidden" name="image_type" value="{image_type}">
+                <input type="file" name="image" accept=".jpg,.jpeg,.png,.webp" required onchange="submitImageForm(this)">
+                <button type="submit" class="btn btn-primary">Lataa {image_type_fi.lower()} kuva</button>
+                <div class="upload-status" style="display: none;">
+                    <span class="uploading">Ladataan...</span>
+                </div>
+            </form>
+        </div>"""
+
+    # Generate grid of images
+    images_html = ""
+    for img in images:
+        upload_date = format_helsinki_time(img.get('uploaded_at'))
+        images_html += f"""
+        <div class="image-item" data-image-type="{image_type}">
+            <img src="{img['file_path']}" alt="{image_type_fi} kuva" class="image-thumbnail"
+                 data-image-id="{img['id']}" onclick="openImageModal('{image_type}', '{img['id']}')">
+            <div class="image-actions">
+                <button class="image-action-btn delete" onclick="deleteImage('{order_id}', '{image_type}', '{img['id']}')"
+                        title="Poista kuva">×</button>
+            </div>
+        </div>"""
+
+    # Add upload form if under limit
+    upload_form = ""
+    if images_count < 15:
+        upload_form = f"""
+        <form method="POST" action="/admin/order/{order_id}/upload" enctype="multipart/form-data" class="upload-form" id="{image_type}-form-{order_id}">
+            <input type="hidden" name="image_type" value="{image_type}">
+            <input type="file" name="image" accept=".jpg,.jpeg,.png,.webp" required onchange="submitImageForm(this)">
+            <button type="submit" class="btn btn-primary">Lataa lisää kuvia</button>
+            <div class="upload-status" style="display: none;">
+                <span class="uploading">Ladataan...</span>
+            </div>
+        </form>"""
+
+    return f"""
+    <div class="image-section">
+        <h3>{image_type_fi} kuvat</h3>
+        <div class="image-counter">
+            <span class="image-counter-text">{images_count}/15 kuvaa</span>
+            <span class="image-counter-limit">Maksimi 15 kuvaa</span>
+        </div>
+        <div class="images-grid">
+            {images_html}
+        </div>
+        {upload_form}
+    </div>"""
+
 
 @app.get("/admin/order/<int:order_id>")
 def admin_order_detail(order_id):
@@ -1523,54 +1719,9 @@ def admin_order_detail(order_id):
 
     status_fi = translate_status(order.get('status', 'NEW'))
 
-    # Create image upload sections
-    pickup_section = ""
-    if pickup_image:
-        upload_date = format_helsinki_time(pickup_image.get('uploaded_at'))
-        pickup_section = f"""
-        <div class="image-display">
-            <img src="{pickup_image['file_path']}" alt="Nouto kuva" class="order-image">
-            <div class="image-meta">
-                <p><small>Ladattu: {upload_date}</small></p>
-                <form method="POST" action="/admin/order/{order_id}/image/pickup/delete" class="delete-form">
-                    <button type="submit" class="btn btn-danger btn-sm">Poista</button>
-                </form>
-            </div>
-        </div>"""
-    else:
-        pickup_section = f"""
-        <form method="POST" action="/admin/order/{order_id}/upload" enctype="multipart/form-data" class="upload-form" id="pickup-form-{order_id}">
-            <input type="hidden" name="image_type" value="pickup">
-            <input type="file" name="image" accept=".jpg,.jpeg,.png,.webp" required onchange="submitImageForm(this)">
-            <button type="submit" class="btn btn-primary">Lataa nouto kuva</button>
-            <div class="upload-status" style="display: none;">
-                <span class="uploading">Ladataan...</span>
-            </div>
-        </form>"""
-
-    delivery_section = ""
-    if delivery_image:
-        upload_date = format_helsinki_time(delivery_image.get('uploaded_at'))
-        delivery_section = f"""
-        <div class="image-display">
-            <img src="{delivery_image['file_path']}" alt="Toimitus kuva" class="order-image">
-            <div class="image-meta">
-                <p><small>Ladattu: {upload_date}</small></p>
-                <form method="POST" action="/admin/order/{order_id}/image/delivery/delete" class="delete-form">
-                    <button type="submit" class="btn btn-danger btn-sm">Poista</button>
-                </form>
-            </div>
-        </div>"""
-    else:
-        delivery_section = f"""
-        <form method="POST" action="/admin/order/{order_id}/upload" enctype="multipart/form-data" class="upload-form" id="delivery-form-{order_id}">
-            <input type="hidden" name="image_type" value="delivery">
-            <input type="file" name="image" accept=".jpg,.jpeg,.png,.webp" required onchange="submitImageForm(this)">
-            <button type="submit" class="btn btn-primary">Lataa toimitus kuva</button>
-            <div class="upload-status" style="display: none;">
-                <span class="uploading">Ladataan...</span>
-            </div>
-        </form>"""
+    # Create multi-image sections
+    pickup_section = create_multi_image_section(images.get("pickup", []), "pickup", order_id)
+    delivery_section = create_multi_image_section(images.get("delivery", []), "delivery", order_id)
 
     pickup_date_fi = order.get('pickup_date', 'Ei asetettu')
     if pickup_date_fi and pickup_date_fi != 'Ei asetettu':
@@ -1642,20 +1793,134 @@ def admin_order_detail(order_id):
             </div>
 
             <div class="images-section">
-                <div class="image-section">
-                    <h3>📷 Nouto kuva</h3>
-                    {pickup_section}
-                </div>
+                {pickup_section}
+                {delivery_section}
+            </div>
+        </div>
+    </div>
 
-                <div class="image-section">
-                    <h3>📷 Toimitus kuva</h3>
-                    {delivery_section}
+    <!-- Image Modal -->
+    <div id="imageModal" class="image-modal">
+        <div class="image-modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title" id="modalTitle">Kuva</h3>
+                <button class="modal-close" onclick="closeImageModal()">&times;</button>
+            </div>
+            <div class="modal-image-container">
+                <button class="modal-nav prev" onclick="prevImage()">&lsaquo;</button>
+                <img id="modalImage" class="modal-image" src="" alt="">
+                <button class="modal-nav next" onclick="nextImage()">&rsaquo;</button>
+            </div>
+            <div class="modal-footer">
+                <div class="modal-image-info" id="modalImageInfo">Kuva 1/1</div>
+                <div class="modal-actions">
+                    <button class="btn btn-danger btn-sm" onclick="deleteCurrentImage()">Poista kuva</button>
                 </div>
             </div>
         </div>
     </div>
 
     <script>
+    let currentImages = {{}};
+    let currentImageType = '';
+    let currentImageIndex = 0;
+    let currentOrderId = {order_id};
+
+    // Collect image data for modal
+    function initImageModal() {{
+        currentImages = {{}};
+
+        // Collect pickup images
+        currentImages.pickup = [];
+        document.querySelectorAll('[data-image-type="pickup"] .image-thumbnail').forEach((img, index) => {{
+            const imageId = img.getAttribute('data-image-id');
+            const imageSrc = img.src;
+            currentImages.pickup.push({{id: imageId, src: imageSrc, index: index}});
+        }});
+
+        // Collect delivery images
+        currentImages.delivery = [];
+        document.querySelectorAll('[data-image-type="delivery"] .image-thumbnail').forEach((img, index) => {{
+            const imageId = img.getAttribute('data-image-id');
+            const imageSrc = img.src;
+            currentImages.delivery.push({{id: imageId, src: imageSrc, index: index}});
+        }});
+    }}
+
+    function openImageModal(imageType, imageId) {{
+        initImageModal();
+
+        currentImageType = imageType;
+        const images = currentImages[imageType];
+        const imageIndex = images.findIndex(img => img.id === imageId);
+
+        if (imageIndex !== -1) {{
+            currentImageIndex = imageIndex;
+            showCurrentImage();
+            document.getElementById('imageModal').style.display = 'block';
+        }}
+    }}
+
+    function closeImageModal() {{
+        document.getElementById('imageModal').style.display = 'none';
+    }}
+
+    function showCurrentImage() {{
+        const images = currentImages[currentImageType];
+        if (images && images.length > 0) {{
+            const currentImage = images[currentImageIndex];
+            const modalImage = document.getElementById('modalImage');
+            const modalTitle = document.getElementById('modalTitle');
+            const modalInfo = document.getElementById('modalImageInfo');
+
+            modalImage.src = currentImage.src;
+            modalTitle.textContent = currentImageType === 'pickup' ? 'Nouto kuva' : 'Toimitus kuva';
+            modalInfo.textContent = `Kuva ${{currentImageIndex + 1}}/${{images.length}}`;
+
+            // Show/hide navigation arrows
+            const prevBtn = document.querySelector('.modal-nav.prev');
+            const nextBtn = document.querySelector('.modal-nav.next');
+
+            prevBtn.style.display = images.length > 1 && currentImageIndex > 0 ? 'flex' : 'none';
+            nextBtn.style.display = images.length > 1 && currentImageIndex < images.length - 1 ? 'flex' : 'none';
+        }}
+    }}
+
+    function prevImage() {{
+        const images = currentImages[currentImageType];
+        if (currentImageIndex > 0) {{
+            currentImageIndex--;
+            showCurrentImage();
+        }}
+    }}
+
+    function nextImage() {{
+        const images = currentImages[currentImageType];
+        if (currentImageIndex < images.length - 1) {{
+            currentImageIndex++;
+            showCurrentImage();
+        }}
+    }}
+
+    function deleteCurrentImage() {{
+        const images = currentImages[currentImageType];
+        if (images && images.length > 0) {{
+            const currentImage = images[currentImageIndex];
+            deleteImage(currentOrderId, currentImageType, currentImage.id);
+        }}
+    }}
+
+    function deleteImage(orderId, imageType, imageId) {{
+        if (confirm('Oletko varma, että haluat poistaa tämän kuvan?')) {{
+            // Create and submit delete form
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = `/admin/order/${{orderId}}/image/${{imageType}}/${{imageId}}/delete`;
+            document.body.appendChild(form);
+            form.submit();
+        }}
+    }}
+
     function submitImageForm(fileInput) {{
         if (fileInput.files && fileInput.files.length > 0) {{
             // Show loading indicator
@@ -1670,6 +1935,28 @@ def admin_order_detail(order_id):
             form.submit();
         }}
     }}
+
+    // Close modal when clicking outside
+    window.onclick = function(event) {{
+        const modal = document.getElementById('imageModal');
+        if (event.target === modal) {{
+            closeImageModal();
+        }}
+    }}
+
+    // Keyboard navigation
+    document.addEventListener('keydown', function(e) {{
+        const modal = document.getElementById('imageModal');
+        if (modal.style.display === 'block') {{
+            if (e.key === 'Escape') {{
+                closeImageModal();
+            }} else if (e.key === 'ArrowLeft') {{
+                prevImage();
+            }} else if (e.key === 'ArrowRight') {{
+                nextImage();
+            }}
+        }}
+    }});
     </script>
     """
 
@@ -1717,9 +2004,31 @@ def admin_upload_image(order_id):
     # Update order with image metadata
     image_info["uploaded_by"] = u.get("email", "admin")
 
+    # Get current order to check existing images
+    order = orders_col().find_one({"id": int(order_id)}, {"images": 1})
+    images = order.get("images", {}) if order else {}
+    current_images = images.get(image_type, [])
+
+    # Ensure current_images is a list (handle migration from old format)
+    if not isinstance(current_images, list):
+        current_images = [current_images] if current_images else []
+
+    # Check 15-image limit
+    if len(current_images) >= 15:
+        image_type_fi = "nouto" if image_type == "pickup" else "toimitus"
+        flash(f"Maksimimäärä (15) {image_type_fi} kuvia saavutettu", "error")
+        return redirect(url_for("admin_order_detail", order_id=order_id))
+
+    # Set the order number for the new image
+    image_info["order"] = len(current_images) + 1
+
+    # Add new image to the array
+    current_images.append(image_info)
+
+    # Update the database with the new images array
     orders_col().update_one(
         {"id": int(order_id)},
-        {"$set": {f"images.{image_type}": image_info}}
+        {"$set": {f"images.{image_type}": current_images}}
     )
 
     image_type_fi = "Nouto" if image_type == "pickup" else "Toimitus"
@@ -1738,6 +2047,37 @@ def admin_delete_image(order_id, image_type):
         return redirect(url_for("admin_order_detail", order_id=order_id))
 
     success, message = delete_order_image(order_id, image_type)
+
+    image_type_fi = "Nouto" if image_type == "pickup" else "Toimitus"
+
+    if success:
+        flash(f"{image_type_fi} kuva poistettu onnistuneesti", "success")
+    else:
+        # Translate error messages
+        finnish_message = message
+        if "Order or image not found" in message:
+            finnish_message = "Tilausta tai kuvaa ei löytynyt"
+        elif "Image not found" in message:
+            finnish_message = "Kuvaa ei löytynyt"
+        elif "Delete failed" in message:
+            finnish_message = "Poisto epäonnistui"
+
+        flash(finnish_message, "error")
+
+    return redirect(url_for("admin_order_detail", order_id=order_id))
+
+
+@app.post("/admin/order/<int:order_id>/image/<image_type>/<image_id>/delete")
+def admin_delete_image_by_id(order_id, image_type, image_id):
+    u = current_user()
+    if not u or u.get("role") != "admin":
+        return redirect(url_for("login"))
+
+    if image_type not in ["pickup", "delivery"]:
+        flash("Virheellinen kuvatyyppi", "error")
+        return redirect(url_for("admin_order_detail", order_id=order_id))
+
+    success, message = delete_order_image_by_id(order_id, image_type, image_id)
 
     image_type_fi = "Nouto" if image_type == "pickup" else "Toimitus"
 
@@ -1820,5 +2160,6 @@ import marketing
 if __name__ == "__main__":
     init_db()
     seed_admin()
+    migrate_images_to_array()  # Migrate existing single images to array format
     port = int(os.getenv("PORT", "8000"))
     app.run(host="0.0.0.0", port=port, debug=True)
