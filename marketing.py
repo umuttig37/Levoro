@@ -117,6 +117,9 @@ class GooglePlacesAutocomplete {
     this.items = [];
     this.cache = new Map();
     this.CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+    this.lastRequestTime = 0;
+    this.MIN_REQUEST_INTERVAL = 500; // 500ms minimum between actual API requests
+    this.isRequestInProgress = false;
 
     input.setAttribute('autocomplete','off');
     input.setAttribute('autocorrect','off');
@@ -142,8 +145,19 @@ class GooglePlacesAutocomplete {
       return;
     }
 
-    this.showLoading();
-    this.timer = setTimeout(()=> this.fetch(q), 200);
+    // Don't start loading immediately - wait for debounce
+    const now = Date.now();
+    const timeSinceLastRequest = now - this.lastRequestTime;
+    const debounceDelay = Math.max(400, this.MIN_REQUEST_INTERVAL - timeSinceLastRequest);
+
+    this.timer = setTimeout(()=> {
+      // Double-check we're not already making a request
+      if (this.isRequestInProgress) {
+        return;
+      }
+      this.showLoading();
+      this.fetch(q);
+    }, debounceDelay);
   }
 
   showLoading() {
@@ -174,6 +188,14 @@ class GooglePlacesAutocomplete {
   }
 
   async fetch(q){
+    // Prevent overlapping requests
+    if (this.isRequestInProgress) {
+      return;
+    }
+
+    this.isRequestInProgress = true;
+    this.lastRequestTime = Date.now();
+
     // Use server endpoint for consistent address suggestions
     try {
       const response = await fetch('/api/places_autocomplete', {
@@ -210,9 +232,11 @@ class GooglePlacesAutocomplete {
       // Only show error after a longer delay to avoid premature error messages
       setTimeout(() => {
         if (this.list.style.display === 'block') {
-          this.list.innerHTML = '<div class="ac-error" style="padding: 0.5rem; color: #ef4444;">Virhe osoitteiden haussa</div>';
+          this.list.innerHTML = '<div class="ac-error" style="padding: 0.5rem; color: #ef4444;">Osoitetta ei löytynyt, yritä uudestaan</div>';
         }
       }, 500);
+    } finally {
+      this.isRequestInProgress = false;
     }
   }
 
@@ -358,6 +382,9 @@ function initQuoteUI(cfg){
 
 
 let map, routeLayer, fromMarker, toMarker;
+let isCalculating = false;
+let lastCalculationTime = 0;
+const RATE_LIMIT_MS = 2000; // 2 second cooldown between calculations
 
 function initMap(){
   if(map) return;
@@ -372,58 +399,91 @@ function euro(n){ return (Number(n).toFixed(2)+' €').replace('.',','); }
 function kmfmt(n){ return Number(n).toFixed(1).replace('.',',')+' km'; }
 
 async function calc(){
-  initMap();
-  const f=document.getElementById('from').value.trim(), t=document.getElementById('to').value.trim();
-  const errEl=document.getElementById('err'), rec=document.getElementById('receipt'), cont=document.getElementById('continueBtn');
-  const noResults = document.getElementById('no-results');
-  
-  errEl.classList.add('hidden');
-  rec.classList.add('hidden'); 
-  cont.classList.add('link-disabled');
-  if(noResults) noResults.style.display = 'block';
+  // Rate limiting check
+  const now = Date.now();
+  const timeSinceLastCalc = now - lastCalculationTime;
 
-  if(!f||!t){ 
-    errEl.textContent='Syötä molemmat osoitteet.'; 
-    errEl.classList.remove('hidden'); 
-    return; 
+  if (isCalculating) {
+    return; // Prevent multiple simultaneous requests
   }
 
-  // 1) Hinta
-  try{
-    const r=await fetch('/api/quote_for_addresses',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pickup:f,dropoff:t})});
-    const j=await r.json();
-    if(!r.ok) throw new Error(j.error||'Tuntematon virhe');
-    document.getElementById('r_km').textContent = kmfmt(j.km);
-    document.getElementById('r_gross').textContent = euro(j.gross);
-    rec.classList.remove('hidden');
-    if(noResults) noResults.style.display = 'none';
-    cont.classList.remove('link-disabled');
-  }catch(e){ 
-    errEl.textContent='Hinnan laskenta epäonnistui: '+e.message; 
-    errEl.classList.remove('hidden'); 
-    return; 
+  if (timeSinceLastCalc < RATE_LIMIT_MS) {
+    const remainingTime = Math.ceil((RATE_LIMIT_MS - timeSinceLastCalc) / 1000);
+    const errEl = document.getElementById('err');
+    errEl.textContent = `Odota ${remainingTime} sekuntia ennen uutta laskentaa.`;
+    errEl.classList.remove('hidden');
+    return;
   }
 
-  // 2) Reittigeometria kartalle
-  try{
-    const r=await fetch('/api/route_geo',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pickup:f,dropoff:t})});
-    const j=await r.json();
-    if(!r.ok) throw new Error(j.error||'Route error');
+  // Set loading state
+  isCalculating = true;
+  lastCalculationTime = now;
+  const calcBtn = document.querySelector('button[onclick="calc()"]');
+  const originalText = calcBtn.textContent;
+  calcBtn.disabled = true;
+  calcBtn.textContent = 'Lasketaan...';
+  calcBtn.classList.add('btn-loading');
 
-    if(routeLayer){ routeLayer.remove(); }
-    if(fromMarker){ fromMarker.remove(); }
-    if(toMarker){ toMarker.remove(); }
+  try {
+    initMap();
+    const f=document.getElementById('from').value.trim(), t=document.getElementById('to').value.trim();
+    const errEl=document.getElementById('err'), rec=document.getElementById('receipt'), cont=document.getElementById('continueBtn');
+    const noResults = document.getElementById('no-results');
 
-    routeLayer = L.polyline(j.latlngs).addTo(map);
-    fromMarker = L.marker([j.start[0], j.start[1]]).addTo(map);
-    toMarker = L.marker([j.end[0], j.end[1]]).addTo(map);
-    map.fitBounds(routeLayer.getBounds(), {padding:[20,20]});
-  }catch(e){ /* Route error - silently handle */ }
+    errEl.classList.add('hidden');
+    rec.classList.add('hidden');
+    cont.classList.add('link-disabled');
+    if(noResults) noResults.style.display = 'block';
 
-  // 3) Jatka tilaukseen
-  const url = '/order/new/step1?pickup='+encodeURIComponent(f)+'&dropoff='+encodeURIComponent(t);
-  cont.href = url;
-  cont.style.pointerEvents='auto'; cont.style.opacity='1';
+    if(!f||!t){
+      errEl.textContent='Syötä molemmat osoitteet.';
+      errEl.classList.remove('hidden');
+      return;
+    }
+
+    // 1) Hinta
+    try{
+      const r=await fetch('/api/quote_for_addresses',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pickup:f,dropoff:t})});
+      const j=await r.json();
+      if(!r.ok) throw new Error(j.error||'Tuntematon virhe');
+      document.getElementById('r_km').textContent = kmfmt(j.km);
+      document.getElementById('r_gross').textContent = euro(j.gross);
+      rec.classList.remove('hidden');
+      if(noResults) noResults.style.display = 'none';
+      cont.classList.remove('link-disabled');
+    }catch(e){
+      errEl.textContent='Hinnan laskenta epäonnistui: '+e.message;
+      errEl.classList.remove('hidden');
+      return;
+    }
+
+    // 2) Reittigeometria kartalle
+    try{
+      const r=await fetch('/api/route_geo',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pickup:f,dropoff:t})});
+      const j=await r.json();
+      if(!r.ok) throw new Error(j.error||'Route error');
+
+      if(routeLayer){ routeLayer.remove(); }
+      if(fromMarker){ fromMarker.remove(); }
+      if(toMarker){ toMarker.remove(); }
+
+      routeLayer = L.polyline(j.latlngs).addTo(map);
+      fromMarker = L.marker([j.start[0], j.start[1]]).addTo(map);
+      toMarker = L.marker([j.end[0], j.end[1]]).addTo(map);
+      map.fitBounds(routeLayer.getBounds(), {padding:[20,20]});
+    }catch(e){ /* Route error - silently handle */ }
+
+    // 3) Jatka tilaukseen
+    const url = '/order/new/step1?pickup='+encodeURIComponent(f)+'&dropoff='+encodeURIComponent(t);
+    cont.href = url;
+    cont.style.pointerEvents='auto'; cont.style.opacity='1';
+  } finally {
+    // Reset loading state
+    isCalculating = false;
+    calcBtn.disabled = false;
+    calcBtn.textContent = originalText;
+    calcBtn.classList.remove('btn-loading');
+  }
 }
 
 function demo(){

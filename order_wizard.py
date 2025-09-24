@@ -126,6 +126,9 @@ class WizardGooglePlacesAutocomplete {
     this.CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
     this.autocompleteService = null;
     this.googleMapsLoaded = false;
+    this.lastRequestTime = 0;
+    this.MIN_REQUEST_INTERVAL = 500; // 500ms minimum between actual API requests
+    this.isRequestInProgress = false;
 
     input.setAttribute('autocomplete','off');
     input.setAttribute('autocorrect','off');
@@ -175,8 +178,19 @@ class WizardGooglePlacesAutocomplete {
       return;
     }
 
-    this.showLoading();
-    this.timer = setTimeout(()=> this.fetch(q), 200);
+    // Don't start loading immediately - wait for debounce
+    const now = Date.now();
+    const timeSinceLastRequest = now - this.lastRequestTime;
+    const debounceDelay = Math.max(400, this.MIN_REQUEST_INTERVAL - timeSinceLastRequest);
+
+    this.timer = setTimeout(()=> {
+      // Double-check we're not already making a request
+      if (this.isRequestInProgress) {
+        return;
+      }
+      this.showLoading();
+      this.fetch(q);
+    }, debounceDelay);
   }
 
   showLoading() {
@@ -207,6 +221,14 @@ class WizardGooglePlacesAutocomplete {
   }
 
   async fetch(q){
+    // Prevent overlapping requests
+    if (this.isRequestInProgress) {
+      return;
+    }
+
+    this.isRequestInProgress = true;
+    this.lastRequestTime = Date.now();
+
     // Use server-side endpoint for address suggestions
     try {
       const response = await fetch('/api/places_autocomplete', {
@@ -243,9 +265,11 @@ class WizardGooglePlacesAutocomplete {
       // Only show error after a longer delay to avoid premature error messages
       setTimeout(() => {
         if (this.list.style.display === 'block') {
-          this.list.innerHTML = '<div class="ac-error" style="padding: 0.5rem; color: #ef4444;">Virhe osoitteiden haussa</div>';
+          this.list.innerHTML = '<div class="ac-error" style="padding: 0.5rem; color: #ef4444;">Osoitetta ei löytynyt, yritä uudestaan</div>';
         }
       }, 500);
+    } finally {
+      this.isRequestInProgress = false;
     }
   }
 
@@ -364,6 +388,9 @@ class WizardGooglePlacesAutocomplete {
     this.items = [];
     this.cache = new Map();
     this.CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+    this.lastRequestTime = 0;
+    this.MIN_REQUEST_INTERVAL = 500; // 500ms minimum between actual API requests
+    this.isRequestInProgress = false;
 
     input.setAttribute('autocomplete','off');
     input.setAttribute('autocorrect','off');
@@ -389,8 +416,19 @@ class WizardGooglePlacesAutocomplete {
       return;
     }
 
-    this.showLoading();
-    this.timer = setTimeout(()=> this.fetch(q), 200);
+    // Don't start loading immediately - wait for debounce
+    const now = Date.now();
+    const timeSinceLastRequest = now - this.lastRequestTime;
+    const debounceDelay = Math.max(400, this.MIN_REQUEST_INTERVAL - timeSinceLastRequest);
+
+    this.timer = setTimeout(()=> {
+      // Double-check we're not already making a request
+      if (this.isRequestInProgress) {
+        return;
+      }
+      this.showLoading();
+      this.fetch(q);
+    }, debounceDelay);
   }
 
   showLoading() {
@@ -448,7 +486,7 @@ class WizardGooglePlacesAutocomplete {
       // Only show error after a longer delay to avoid premature error messages
       setTimeout(() => {
         if (this.list.style.display === 'block') {
-          this.list.innerHTML = '<div class="ac-error" style="padding: 0.5rem; color: #ef4444;">Virhe osoitteiden haussa</div>';
+          this.list.innerHTML = '<div class="ac-error" style="padding: 0.5rem; color: #ef4444;">Osoitetta ei löytynyt, yritä uudestaan</div>';
         }
       }, 500);
     }

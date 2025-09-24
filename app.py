@@ -230,17 +230,32 @@ def geocode(addr: str):
 
 
 def route_km(pickup_addr: str, dropoff_addr: str):
-    """Compute driving distance in km with OSRM. Falls back to 0.0 on error."""
+    """Compute driving distance in km with OSRM. Raises exception on error - no fallback pricing."""
     lat1, lon1 = geocode(pickup_addr)
     lat2, lon2 = geocode(dropoff_addr)
     url = OSRM_URL.format(lon1=lon1, lat1=lat1, lon2=lon2, lat2=lat2)
-    r = requests.get(url, headers={"User-Agent": USER_AGENT}, timeout=12)
-    r.raise_for_status()
-    j = r.json()
-    if not j.get("routes"):
-        raise ValueError("Route not found")
-    meters = j["routes"][0]["distance"]
-    return meters / 1000.0
+
+    try:
+        # Reduced timeout to fail faster when service is slow
+        r = requests.get(url, headers={"User-Agent": USER_AGENT}, timeout=8)
+        r.raise_for_status()
+        j = r.json()
+
+        if not j.get("routes"):
+            raise ValueError("Route not found by OSRM")
+
+        meters = j["routes"][0]["distance"]
+        return meters / 1000.0
+
+    except requests.exceptions.Timeout:
+        raise ValueError("Palvelussamme on ruuhkaa, odota hetken kuluttua uudestaan")
+    except requests.exceptions.ConnectionError:
+        raise ValueError("Reittihaku ei ole saatavilla juuri nyt, yritä hetken kuluttua uudestaan")
+    except requests.exceptions.HTTPError:
+        raise ValueError("Reittihaku on tilapäisesti pois käytöstä, yritä hetken kuluttua uudestaan")
+    except Exception as e:
+        print(f"OSRM error: {str(e)}")  # Log for debugging
+        raise ValueError("Reittihaku ei ole saatavilla juuri nyt, yritä hetken kuluttua uudestaan")
 
 
 # ----------------- IMAGE UTILS -----------------
@@ -855,29 +870,49 @@ def api_route_geo():
     pickup = (data.get("pickup") or "").strip()
     dropoff = (data.get("dropoff") or "").strip()
     if not pickup or not dropoff:
-        return jsonify({"error": "pickup and dropoff required"}), 400
+        return jsonify({"error": "Lähtö- ja kohdeosoite vaaditaan"}), 400
 
-    # geocode -> lat/lon
-    lat1, lon1 = geocode(pickup)
-    lat2, lon2 = geocode(dropoff)
+    try:
+        # geocode -> lat/lon
+        lat1, lon1 = geocode(pickup)
+        lat2, lon2 = geocode(dropoff)
 
-    # OSRM with full geometry for map
-    url = (
-        "https://router.project-osrm.org/route/v1/driving/"
-        f"{lon1},{lat1};{lon2},{lat2}"
-        "?overview=full&geometries=geojson"
-    )
-    r = requests.get(url, headers={"User-Agent": USER_AGENT}, timeout=15)
-    r.raise_for_status()
-    j = r.json()
-    if not j.get("routes"):
-        return jsonify({"error": "no route"}), 404
-    route = j["routes"][0]
-    km = route["distance"] / 1000.0
-    coords = route["geometry"]["coordinates"]  # [ [lon,lat], ... ]
-    # muunna [lon,lat] -> [lat,lon] Leafletille:
-    latlngs = [[c[1], c[0]] for c in coords]
-    return jsonify({"km": round(km, 2), "latlngs": latlngs, "start": [lat1, lon1], "end": [lat2, lon2]})
+        # OSRM with full geometry for map
+        url = (
+            "https://router.project-osrm.org/route/v1/driving/"
+            f"{lon1},{lat1};{lon2},{lat2}"
+            "?overview=full&geometries=geojson"
+        )
+
+        r = requests.get(url, headers={"User-Agent": USER_AGENT}, timeout=8)
+        r.raise_for_status()
+        j = r.json()
+
+        if not j.get("routes"):
+            return jsonify({"error": "Reittiä ei löytynyt annetuille osoitteille"}), 404
+
+        route = j["routes"][0]
+        km = route["distance"] / 1000.0
+        coords = route["geometry"]["coordinates"]  # [ [lon,lat], ... ]
+        # muunna [lon,lat] -> [lat,lon] Leafletille:
+        latlngs = [[c[1], c[0]] for c in coords]
+        return jsonify({"km": round(km, 2), "latlngs": latlngs, "start": [lat1, lon1], "end": [lat2, lon2]})
+
+    except requests.exceptions.Timeout:
+        return jsonify({"error": "Karttapalvelussa on ruuhkaa, odota hetken kuluttua uudestaan"}), 503
+    except requests.exceptions.ConnectionError:
+        return jsonify({"error": "Karttapalvelu ei ole saatavilla juuri nyt, yritä hetken kuluttua uudestaan"}), 503
+    except requests.exceptions.HTTPError:
+        return jsonify({"error": "Karttapalvelu on tilapäisesti pois käytöstä, yritä hetken kuluttua uudestaan"}), 503
+    except ValueError as e:
+        # Geocoding errors or other validation issues
+        if "Address not found" in str(e):
+            return jsonify({"error": "Osoitetta ei löytynyt. Tarkista osoitteiden oikeinkirjoitus."}), 400
+        return jsonify({"error": str(e)}), 400
+    except Exception as e:
+        # Log unexpected errors but don't expose them to user
+        print(f"Unexpected error in route_geo: {str(e)}")
+        return jsonify({"error": "Karttapalvelu ei ole saatavilla juust nyt, yritä hetken kuluttua uudestaan"}), 500
 
 
 @app.route("/login", methods=["GET", "POST"])
@@ -1753,13 +1788,19 @@ def api_quote_for_addresses():
     dropoff = payload.get("dropoff", "").strip()
     return_leg = bool(payload.get("return_leg", False))  # optional flag
     if not pickup or not dropoff:
-        return jsonify({"error": "pickup and dropoff required"}), 400
+        return jsonify({"error": "Lähtö- ja kohdeosoite vaaditaan"}), 400
+
     try:
         km = route_km(pickup, dropoff)
         net, vat, gross, details = price_from_km(km, pickup, dropoff, return_leg=return_leg)
         return jsonify({"km": round(km, 2), "net": net, "vat": vat, "gross": gross, "details": details})
+    except ValueError as e:
+        # These are user-friendly messages from route_km() when OSRM is unavailable
+        return jsonify({"error": str(e)}), 503
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        # Unexpected errors - log but don't expose details
+        print(f"Unexpected error in quote_for_addresses: {str(e)}")
+        return jsonify({"error": "Hintalaskenta ei ole saatavilla juuri nyt, yritä hetken kuluttua uudestaan"}), 500
 
 
 @app.get("/api/quote")
