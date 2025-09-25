@@ -24,7 +24,7 @@ class EmailService:
         app.config['MAIL_USE_TLS'] = os.getenv('ZOHO_USE_TLS', 'false').lower() == 'true'
         app.config['MAIL_USERNAME'] = os.getenv('ZOHO_EMAIL', '')
         app.config['MAIL_PASSWORD'] = os.getenv('ZOHO_PASSWORD', '')
-        app.config['MAIL_DEFAULT_SENDER'] = os.getenv('ZOHO_EMAIL', '')
+        app.config['MAIL_DEFAULT_SENDER'] = os.getenv('ZOHO_EMAIL', 'support@levoro.fi')
 
         # Initialize Flask-Mail
         if self.mail is None:
