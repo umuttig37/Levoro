@@ -49,6 +49,16 @@ class AuthService:
             return False, None, "Tarkista tiedot"
 
         user, error = self.user_model.create_user(email, password, name)
+
+        # Send registration email if user was created successfully
+        if user is not None and error is None:
+            try:
+                from services.email_service import email_service
+                email_service.send_registration_email(user["email"], user["name"])
+            except Exception as e:
+                # Log error but don't fail registration
+                print(f"Failed to send registration email: {e}")
+
         return user is not None, user, error
 
     def get_current_user(self) -> Optional[Dict]:
@@ -104,8 +114,21 @@ class AuthService:
 
     def approve_user(self, user_id: int) -> Tuple[bool, Optional[str]]:
         """Approve a pending user (admin only)"""
+        # Get user details before approval for email
+        user = self.user_model.find_by_id(user_id)
+        if not user:
+            return False, "Käyttäjää ei löytynyt"
+
         success = self.user_model.approve_user(user_id)
         if success:
+            # Send approval email
+            try:
+                from services.email_service import email_service
+                email_service.send_account_approved_email(user["email"], user["name"])
+            except Exception as e:
+                # Log error but don't fail approval
+                print(f"Failed to send account approved email: {e}")
+
             return True, None
         return False, "Käyttäjän hyväksyminen epäonnistui"
 

@@ -54,6 +54,21 @@ class OrderService:
                     )
 
             order, error = self.order_model.create_order(user_id, order_data)
+
+            # Send order created email if successful
+            if order is not None and error is None:
+                try:
+                    from services.email_service import email_service
+                    from models.user import user_model
+
+                    # Get user details for email
+                    user = user_model.find_by_id(user_id)
+                    if user:
+                        email_service.send_order_created_email(user["email"], user["name"], order)
+                except Exception as e:
+                    # Log error but don't fail order creation
+                    print(f"Failed to send order created email: {e}")
+
             return order is not None, order, error
 
         except Exception as e:
@@ -69,7 +84,31 @@ class OrderService:
 
     def update_order_status(self, order_id: int, new_status: str) -> Tuple[bool, Optional[str]]:
         """Update order status (admin only)"""
-        return self.order_model.update_status(order_id, new_status)
+        # Get order and user details before update for email
+        order = self.order_model.find_by_id(order_id)
+        if not order:
+            return False, "Tilausta ei löytynyt"
+
+        success, error = self.order_model.update_status(order_id, new_status)
+
+        if success:
+            # Send status update email
+            try:
+                from services.email_service import email_service
+                from models.user import user_model
+
+                # Get user details for email
+                user = user_model.find_by_id(order.get("user_id"))
+                if user:
+                    status_description = self.get_status_description(new_status)
+                    email_service.send_status_update_email(
+                        user["email"], user["name"], order, new_status, status_description
+                    )
+            except Exception as e:
+                # Log error but don't fail status update
+                print(f"Failed to send status update email: {e}")
+
+        return success, error
 
     def get_all_orders(self, limit: int = 300) -> List[Dict]:
         """Get all orders with user information (admin only)"""

@@ -16,6 +16,7 @@ load_dotenv()
 from services.auth_service import auth_service
 from services.order_service import order_service
 from services.image_service import image_service
+from services.email_service import email_service
 from utils.formatters import format_helsinki_time
 
 MONGODB_URI = os.getenv("MONGODB_URI", "").strip()
@@ -79,6 +80,9 @@ IMAGE_QUALITY = 80
 
 app = Flask(__name__)
 app.secret_key = os.getenv("SECRET_KEY", secrets.token_hex(16))
+
+# Configure email service
+mail = email_service.configure_mail(app)
 # --- Compat: pudota tuntematon 'partitioned' kwarg vanhasta Werkzeugista ---
 try:
     from flask import Response as _FlaskResponse
@@ -1119,12 +1123,28 @@ def admin_users():
 
     user_rows = ""
     for user in users:
-        approved_status = "✅ Hyväksytty" if user.get("approved", False) else "⏳ Odottaa"
+        # Use new status field instead of deprecated approved field
+        user_status = user.get("status", "pending")
+
+        # Status display logic
+        if user_status == "active":
+            status_text = "✅ Aktiivinen"
+            status_class = "status-confirmed"
+            is_active = True
+        elif user_status == "pending":
+            status_text = "⏳ Odottaa hyväksyntää"
+            status_class = "status-new"
+            is_active = False
+        else:
+            status_text = f"❓ {user_status}"
+            status_class = "status-new"
+            is_active = False
+
         role_badge = "Admin" if user.get("role") == "admin" else "Asiakas"
 
         action_buttons = ""
         if user.get("role") != "admin":  # Don't allow modifying admin accounts
-            if user.get("approved", False):
+            if is_active:
                 action_buttons = f"""
                 <form method="POST" action="/admin/users/deny" class="admin-inline-form">
                   <input type="hidden" name="user_id" value="{user['id']}">
@@ -1151,7 +1171,7 @@ def admin_users():
   <td>{user['name']}</td>
   <td>{user['email']}</td>
   <td><span class="pill">{role_badge}</span></td>
-  <td><span class="status {'status-confirmed' if user.get('approved', False) else 'status-new'}">{approved_status}</span></td>
+  <td><span class="status {status_class}">{status_text}</span></td>
   <td>{format_helsinki_time(user.get('created_at')) if user.get('created_at') else '-'}</td>
   <td>{action_buttons}</td>
 </tr>
@@ -1181,7 +1201,15 @@ def admin_users():
 def admin_approve_user():
     admin_required()
     user_id = int(request.form.get("user_id"))
-    users_col().update_one({"id": user_id}, {"$set": {"approved": True}})
+
+    # Use the service layer method instead of direct database call
+    success, error = auth_service.approve_user(user_id)
+
+    if success:
+        flash("Käyttäjä hyväksytty onnistuneesti", "success")
+    else:
+        flash(f"Virhe: {error}", "error")
+
     return redirect(url_for("admin_users"))
 
 
@@ -1189,7 +1217,15 @@ def admin_approve_user():
 def admin_deny_user():
     admin_required()
     user_id = int(request.form.get("user_id"))
-    users_col().update_one({"id": user_id}, {"$set": {"approved": False}})
+
+    # Use the service layer method instead of direct database call
+    success, error = auth_service.deny_user(user_id)
+
+    if success:
+        flash("Käyttäjä hylätty onnistuneesti", "success")
+    else:
+        flash(f"Virhe: {error}", "error")
+
     return redirect(url_for("admin_users"))
 
 
@@ -1207,17 +1243,14 @@ def admin_update_order():
     if new_status not in valid_statuses:
         return redirect(url_for("admin_home"))
 
-    # Update order status
-    result = orders_col().update_one(
-        {"id": order_id},
-        {"$set": {"status": new_status}}
-    )
+    # Use service layer to update order status (includes automatic email sending)
+    success, error = order_service.update_order_status(order_id, new_status)
 
     # Add debug feedback
-    if result.modified_count > 0:
+    if success:
         flash(f"Tilauksen #{order_id} tila päivitetty: {translate_status(new_status)}", "success")
     else:
-        flash(f"Virhe: Tilauksen #{order_id} tilaa ei voitu päivittää", "error")
+        flash(f"Virhe: {error or f'Tilauksen #{order_id} tilaa ei voitu päivittää'}", "error")
 
     return redirect(url_for("admin_home"))
 

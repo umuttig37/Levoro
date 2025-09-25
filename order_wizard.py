@@ -747,13 +747,8 @@ def order_confirm():
     )
 
     if request.method == "POST":
-        oid = db_manager.get_next_sequence("orders")
-
-        doc = {
-            "id": oid,
-            "user_id": int(u["id"]),
-            "created_at": datetime.datetime.utcnow(),
-
+        # Prepare order data for service layer (excludes id, user_id, created_at, status - handled by service)
+        order_data = {
             "pickup_address": d.get("pickup"),
             "dropoff_address": d.get("dropoff"),
             "reg_number": d.get("reg_number"),
@@ -770,20 +765,32 @@ def order_confirm():
             "price_vat": float(vat),
             "price_gross": float(gross),
 
-            "status": "NEW",
             "winter_tires": bool(d.get("winter_tires")) if "winter_tires" in d else False
         }
 
-        db_manager.db.orders.insert_one(doc)
-        # tyhjennä luonnos ja siirry tilausnäkymään
-        session.pop("order_draft", None)
-        return redirect(f"/order/{oid}")
+        # Use service layer to create order (includes automatic email sending)
+        success, order, error = order_service.create_order(int(u["id"]), order_data)
+
+        if success and order:
+            # Clear session and redirect to order view
+            session.pop("order_draft", None)
+            return redirect(f"/order/{order['id']}")
+        else:
+            # Handle error case
+            session["error_message"] = f"Tilauksen luominen epäonnistui: {error or 'Tuntematon virhe'}"
+            # Stay on confirmation page to show error
+            pass
 
     price_block = f"<div class='card'><strong>Arvioitu hinta:</strong> {km:.1f} km → {gross:.2f} €</div>"
     if err: price_block = f"<div class='card'><span class='muted'>{err}</span><br>{price_block}</div>"
 
+    # Check for error message in session
+    error_msg = session.pop("error_message", None)
+    error_html = f"<div class='alert alert-error' style='margin-bottom: 1rem; padding: 1rem; background: #fee; border: 1px solid #fcc; border-radius: 4px; color: #c00;'>{error_msg}</div>" if error_msg else ""
+
     inner = f"""
 <h2 class='card-title'>Vahvista tilaus</h2>
+{error_html}
 <div class='confirmation-layout'>
   <div class='confirmation-grid'>
     <div class='confirmation-card'><h3 class='confirmation-title'>Nouto</h3><p class='confirmation-text'>{d.get('pickup')}</p><p class='confirmation-meta'>{d.get('pickup_date') or 'Heti'}</p></div>

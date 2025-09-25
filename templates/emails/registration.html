@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="fi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tervetuloa Levoroon</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f9f9f9;
+        }
+        .email-container {
+            background-color: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        .header {
+            background-color: #1a365d;
+            color: #ffffff;
+            padding: 30px 20px;
+            text-align: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 28px;
+            font-weight: bold;
+        }
+        .content {
+            padding: 30px 20px;
+        }
+        .content h2 {
+            color: #1a365d;
+            margin-top: 0;
+            font-size: 22px;
+        }
+        .highlight-box {
+            background-color: #edf2f7;
+            border-left: 4px solid #4299e1;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+        .cta-button {
+            display: inline-block;
+            background-color: #4299e1;
+            color: #ffffff;
+            text-decoration: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            font-weight: bold;
+            margin: 20px 0;
+        }
+        .footer {
+            background-color: #edf2f7;
+            padding: 20px;
+            text-align: center;
+            font-size: 14px;
+            color: #666;
+        }
+        .footer a {
+            color: #4299e1;
+            text-decoration: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="email-container">
+        <div class="header">
+            <h1>🚗 Levoro</h1>
+            <p>Autotransporttipalvelut</p>
+        </div>
+
+        <div class="content">
+            <h2>Tervetuloa Levoroon, {{ user_name }}!</h2>
+
+            <p>Kiitos rekisteröitymisestä Levoro-palveluun. Olemme vastaanottaneet rekisteröintisi ja tilisi on nyt tarkistettavana.</p>
+
+            <div class="highlight-box">
+                <strong>Mitä tapahtuu seuraavaksi?</strong>
+                <ul>
+                    <li>Tarkistamme rekisteröintitietosi</li>
+                    <li>Hyväksymme tilisi 1-2 työpäivän sisällä</li>
+                    <li>Saat sähköpostivahvistuksen kun tilisi on käyttövalmis</li>
+                </ul>
+            </div>
+
+            <p>Kun tilisi on hyväksytty, voit:</p>
+            <ul>
+                <li>✓ Tilata autotransporttipalveluja</li>
+                <li>✓ Seurata tilausten tilaa reaaliajassa</li>
+                <li>✓ Hallita profiilitietojasi</li>
+                <li>✓ Nähdä kuljetushistoriasi</li>
+            </ul>
+
+            <p>Jos sinulla on kysyttävää rekisteröinnistä tai palveluistamme, älä epäröi ottaa meihin yhteyttä.</p>
+
+            <p>Ystävällisin terveisin,<br>
+            <strong>Levoro-tiimi</strong></p>
+        </div>
+
+        <div class="footer">
+            <p>
+                <strong>Levoro Oy</strong><br>
+                Autotransporttipalvelut<br>
+                Sähköposti: <a href="mailto:info@levoro.fi">info@levoro.fi</a><br>
+                Verkkosivu: <a href="https://www.levoro.fi">www.levoro.fi</a>
+            </p>
+            <p style="margin-top: 15px; font-size: 12px; color: #999;">
+                Sait tämän viestin koska rekisteröidyit Levoro-palveluun.
+            </p>
+        </div>
+    </div>
+</body>
+</html>

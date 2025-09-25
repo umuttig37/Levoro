@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="fi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tilauksen päivitys - Levoro</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f9f9f9;
+        }
+        .email-container {
+            background-color: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        .header {
+            padding: 30px 20px;
+            text-align: center;
+        }
+        .header.new { background-color: #2d3748; }
+        .header.confirmed { background-color: #1a365d; }
+        .header.in_transit { background-color: #b7791f; }
+        .header.delivered { background-color: #22543d; }
+        .header.cancelled { background-color: #822727; }
+
+        .header {
+            color: #ffffff;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 28px;
+            font-weight: bold;
+        }
+        .status-badge {
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            display: inline-block;
+            font-size: 14px;
+            font-weight: bold;
+            margin-top: 10px;
+            background-color: rgba(255,255,255,0.2);
+        }
+        .content {
+            padding: 30px 20px;
+        }
+        .content h2 {
+            color: #1a365d;
+            margin-top: 0;
+            font-size: 22px;
+        }
+        .status-icon {
+            font-size: 48px;
+            text-align: center;
+            margin: 20px 0;
+        }
+        .status-description {
+            background-color: #edf2f7;
+            border-radius: 6px;
+            padding: 20px;
+            margin: 20px 0;
+            text-align: center;
+        }
+        .status-description h3 {
+            margin-top: 0;
+            color: #1a365d;
+        }
+        .order-details {
+            background-color: #f8fafc;
+            border-radius: 6px;
+            padding: 15px;
+            margin: 20px 0;
+            border: 1px solid #e2e8f0;
+        }
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            padding: 5px 0;
+        }
+        .detail-row:not(:last-child) {
+            border-bottom: 1px solid #e2e8f0;
+        }
+        .detail-label {
+            font-weight: bold;
+            color: #4a5568;
+        }
+        .detail-value {
+            color: #2d3748;
+        }
+        .progress-steps {
+            background-color: #f7fafc;
+            padding: 20px;
+            border-radius: 6px;
+            margin: 20px 0;
+        }
+        .step {
+            display: flex;
+            align-items: center;
+            margin: 10px 0;
+        }
+        .step-number {
+            width: 25px;
+            height: 25px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 15px;
+            font-weight: bold;
+            font-size: 12px;
+        }
+        .step.completed .step-number {
+            background-color: #38a169;
+            color: white;
+        }
+        .step.current .step-number {
+            background-color: #4299e1;
+            color: white;
+        }
+        .step.pending .step-number {
+            background-color: #e2e8f0;
+            color: #a0aec0;
+        }
+        .footer {
+            background-color: #edf2f7;
+            padding: 20px;
+            text-align: center;
+            font-size: 14px;
+            color: #666;
+        }
+        .footer a {
+            color: #4299e1;
+            text-decoration: none;
+        }
+        .action-needed {
+            background-color: #fef5e7;
+            border-left: 4px solid #f56500;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+        @media (max-width: 600px) {
+            .detail-row {
+                flex-direction: column;
+            }
+            .detail-value {
+                margin-top: 5px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="email-container">
+        <div class="header {{ new_status.lower() }}">
+            <h1>📦 Tilauksen päivitys</h1>
+            <div class="status-badge">{{ order.status }}</div>
+        </div>
+
+        <div class="content">
+            <h2>Hei {{ user_name }}!</h2>
+
+            <p>Tilauksesi tila on päivittynyt:</p>
+
+            <div class="status-icon">
+                {% if new_status == 'NEW' %}🆕
+                {% elif new_status == 'CONFIRMED' %}✅
+                {% elif new_status == 'IN_TRANSIT' %}🚛
+                {% elif new_status == 'DELIVERED' %}✨
+                {% elif new_status == 'CANCELLED' %}❌
+                {% endif %}
+            </div>
+
+            <div class="status-description">
+                <h3>{{ order.status }}</h3>
+                <p>{{ order.status_description }}</p>
+            </div>
+
+            <div class="order-details">
+                <h4 style="margin-top: 0; color: #1a365d;">Tilauksen tiedot</h4>
+
+                <div class="detail-row">
+                    <div class="detail-label">Tilausnumero:</div>
+                    <div class="detail-value">#{{ order.order_id }}</div>
+                </div>
+
+                <div class="detail-row">
+                    <div class="detail-label">Nouto:</div>
+                    <div class="detail-value">{{ order.pickup_address }}</div>
+                </div>
+
+                <div class="detail-row">
+                    <div class="detail-label">Toimitus:</div>
+                    <div class="detail-value">{{ order.dropoff_address }}</div>
+                </div>
+
+                {% if order.vehicle_make and order.vehicle_model %}
+                <div class="detail-row">
+                    <div class="detail-label">Ajoneuvo:</div>
+                    <div class="detail-value">{{ order.vehicle_make }} {{ order.vehicle_model }}</div>
+                </div>
+                {% endif %}
+            </div>
+
+            <div class="progress-steps">
+                <h4 style="margin-top: 0; color: #1a365d;">Kuljetuksen vaiheet</h4>
+
+                <div class="step {% if new_status in ['NEW', 'CONFIRMED', 'IN_TRANSIT', 'DELIVERED'] %}completed{% else %}pending{% endif %}">
+                    <div class="step-number">1</div>
+                    <div>Tilaus vastaanotettu</div>
+                </div>
+
+                <div class="step {% if new_status in ['CONFIRMED', 'IN_TRANSIT', 'DELIVERED'] %}completed{% elif new_status == 'NEW' %}current{% else %}pending{% endif %}">
+                    <div class="step-number">2</div>
+                    <div>Tilaus vahvistettu</div>
+                </div>
+
+                <div class="step {% if new_status in ['IN_TRANSIT', 'DELIVERED'] %}completed{% elif new_status == 'CONFIRMED' %}current{% else %}pending{% endif %}">
+                    <div class="step-number">3</div>
+                    <div>Kuljetus aloitettu</div>
+                </div>
+
+                <div class="step {% if new_status == 'DELIVERED' %}completed{% elif new_status == 'IN_TRANSIT' %}current{% else %}pending{% endif %}">
+                    <div class="step-number">4</div>
+                    <div>Ajoneuvo toimitettu</div>
+                </div>
+            </div>
+
+            {% if new_status == 'CONFIRMED' %}
+            <div class="action-needed">
+                <strong>💡 Tärkeää:</strong> Kuljettaja ottaa sinuun yhteyttä ennen noutoa sovitakseen tarkemman aikataulun. Varmista että puhelinnumerosi on ajan tasalla.
+            </div>
+            {% elif new_status == 'IN_TRANSIT' %}
+            <div class="action-needed">
+                <strong>🚛 Kuljetus käynnissä:</strong> Autosi on nyt matkalla määränpäähän. Kuljettaja on yhteydessä kun saapuu toimituspaikkaan.
+            </div>
+            {% elif new_status == 'DELIVERED' %}
+            <div style="background-color: #f0fff4; border-left: 4px solid #38a169; padding: 15px; margin: 20px 0; border-radius: 4px;">
+                <strong>🎉 Toimitus valmis!</strong> Kiitos että valitsit Levoro-palvelun. Toivomme että olit tyytyväinen kuljetukseen!
+            </div>
+            {% endif %}
+
+            <p><strong>Voit seurata tilauksen etenemistä:</strong><br>
+            Kirjaudu sisään <a href="https://www.levoro.fi/login">www.levoro.fi</a> -sivustolla nähdäksesi ajantasaisen tilan.</p>
+
+            <p>Jos sinulla on kysyttävää tilauksestasi, viittaa tilausnumeroon <strong>#{{ order.order_id }}</strong>.</p>
+
+            <p>Ystävällisin terveisin,<br>
+            <strong>Levoro-tiimi</strong></p>
+        </div>
+
+        <div class="footer">
+            <p>
+                <strong>Levoro Oy</strong><br>
+                Autotransporttipalvelut<br>
+                Sähköposti: <a href="mailto:info@levoro.fi">info@levoro.fi</a><br>
+                Verkkosivu: <a href="https://www.levoro.fi">www.levoro.fi</a><br>
+                Asiakaspalvelu: <a href="tel:+358401234567">+358 40 123 4567</a>
+            </p>
+            <p style="margin-top: 15px; font-size: 12px; color: #999;">
+                Sait tämän viestin koska tilauksesi tila päivittyi. Tilausnumero: #{{ order.order_id }}
+            </p>
+        </div>
+    </div>
+</body>
+</html>
