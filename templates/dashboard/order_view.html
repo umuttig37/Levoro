@@ -1,0 +1,177 @@
+{% extends "base/layout.html" %}
+
+{% block title %}Tilaus #{{ order.id }} – Levoro{% endblock %}
+
+{% block extra_css %}
+<link rel='stylesheet' href='/static/css/order-view.css'>
+<link rel='stylesheet' href='/static/css/client-images.css'>
+{% endblock %}
+
+{% block content %}
+<div class="order-container">
+  <!-- Hero Section with Key Information -->
+  <div class="order-hero status-{{ order.status.lower() }}">
+    <div class="hero-content">
+      <div class="hero-header">
+        <h1 class="order-title">Tilaus #{{ order.id }}</h1>
+        <div class="order-status-main">
+          <span class="status-badge status-{{ order.status.lower() }}">{{ status_fi }}</span>
+          <p class="status-description">{{ status_description }}</p>
+        </div>
+      </div>
+
+      <!-- Route Display - Most Important Information -->
+      <div class="hero-route">
+        <div class="route-card">
+          <div class="route-point pickup">
+            <div class="point-icon">📍</div>
+            <div class="point-details">
+              <span class="point-label">Nouto</span>
+              <span class="point-address">{{ order.pickup_address or '?' }}</span>
+            </div>
+          </div>
+          <div class="route-connector">
+            <div class="route-line"></div>
+            <div class="route-arrow">→</div>
+          </div>
+          <div class="route-point delivery">
+            <div class="point-icon">📍</div>
+            <div class="point-details">
+              <span class="point-label">Toimitus</span>
+              <span class="point-address">{{ order.dropoff_address or '?' }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Key Metrics -->
+        <div class="hero-metrics">
+          <div class="metric-card">
+            <span class="metric-value">{{ "%.1f"|format(distance_km) }} km</span>
+            <span class="metric-label">Matka</span>
+          </div>
+          <div class="metric-card price-card">
+            <span class="metric-value">{{ "%.2f"|format(price_gross) }} €</span>
+            <span class="metric-label">Hinta</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Progress Section -->
+  <div class="progress-section">
+    {{ progress_bar|safe }}
+  </div>
+
+  <!-- Secondary Information -->
+  <div class="order-details">
+    <div class="details-grid">
+      {% if show_vehicle_section or order.status == 'NEW' %}
+      <div class="detail-card">
+        <h3 class="card-title">🚗 Ajoneuvo</h3>
+        <div class="card-content">
+          {% if has_reg_number %}
+          <div class="detail-row">
+            <span class="detail-label">Rekisterinumero</span>
+            <span class="detail-value">{{ order.reg_number or '' }}</span>
+          </div>
+          {% endif %}
+          {% if has_winter_tires %}
+          <div class="detail-row">
+            <span class="detail-label">Talvirenkaat</span>
+            <span class="detail-value">{{ 'Kyllä' if order.winter_tires else 'Ei' }}</span>
+          </div>
+          {% endif %}
+          {% if not show_vehicle_section %}
+          <div class="detail-row empty-state">
+            <span class="detail-label">📝</span>
+            <span class="detail-value">Ajoneuvotiedot täydennetään noudettaessa</span>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+      {% endif %}
+
+      {% if has_customer_info or order.status == 'NEW' %}
+      <div class="detail-card">
+        <h3 class="card-title">👤 Yhteystiedot</h3>
+        <div class="card-content">
+          {% if order.customer_name and order.customer_name.strip() %}
+          <div class="detail-row">
+            <span class="detail-label">Nimi</span>
+            <span class="detail-value">{{ order.customer_name }}</span>
+          </div>
+          {% endif %}
+          {% if order.email and order.email.strip() %}
+          <div class="detail-row">
+            <span class="detail-label">Sähköposti</span>
+            <span class="detail-value">{{ order.email }}</span>
+          </div>
+          {% endif %}
+          {% if order.phone and order.phone.strip() %}
+          <div class="detail-row">
+            <span class="detail-label">Puhelin</span>
+            <span class="detail-value">{{ order.phone }}</span>
+          </div>
+          {% endif %}
+          {% if not has_customer_info %}
+          <div class="detail-row empty-state">
+            <span class="detail-label">📞</span>
+            <span class="detail-value">Yhteystiedot päivitetään tilauksen käsittelyn yhteydessä</span>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+      {% endif %}
+    </div>
+
+    {% if order.additional_info %}
+    <div class="detail-card full-width">
+      <h3 class="card-title">📝 Lisätiedot</h3>
+      <div class="card-content">
+        <p class="additional-info-text">{{ order.additional_info or 'Ei lisätietoja' }}</p>
+      </div>
+    </div>
+    {% endif %}
+
+    {% if has_images or order.status in ['NEW', 'CONFIRMED', 'IN_TRANSIT'] %}
+    <div class="detail-card full-width">
+      <h3 class="card-title">📷 Kuljetuskuvat</h3>
+      <div class="card-content">
+        <div class="images-grid">
+          <div class="image-section">
+            <h4 class="image-section-title">Nouto</h4>
+            {% include 'components/client_image_section.html' with context %}
+            {% set image_type = 'pickup' %}
+            {% set images_data = order.images.pickup if order.images else [] %}
+          </div>
+          <div class="image-section">
+            <h4 class="image-section-title">Toimitus</h4>
+            {% set image_type = 'delivery' %}
+            {% set images_data = order.images.delivery if order.images else [] %}
+            {% include 'components/client_image_section.html' with context %}
+          </div>
+        </div>
+        {% if not has_images and order.status in ['NEW', 'CONFIRMED'] %}
+        <div class="images-status">
+          <p class="status-info">📸 Kuljetuskuvat lisätään kuljetuksen aikana</p>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="order-actions">
+    <a href="/dashboard" class="btn btn-ghost">← Takaisin tilauksiin</a>
+  </div>
+</div>
+
+<!-- Include Image Modal Component -->
+{% include 'components/image_modal.html' %}
+{% endblock %}
+
+{% block extra_js %}
+<!-- Client Image Modal -->
+<script src="{{ url_for('static', filename='js/components/image-modal.js') }}"></script>
+{% endblock %}

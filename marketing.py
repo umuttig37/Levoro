@@ -1,11 +1,21 @@
 # marketing.py
 from flask import redirect, url_for
-from app import app, wrap, current_user
+from services.auth_service import auth_service
 
+# Import wrap function and app from app - will be available after app initialization
+def get_wrap():
+    from app import wrap
+    return wrap
+
+def get_app():
+    from app import app
+    return app
+
+app = get_app()
 
 @app.get("/calculator")
 def calculator():
-    u = current_user()
+    u = auth_service.get_current_user()
     if not u:
         return redirect(url_for("login", next="/calculator"))
     body = """
@@ -503,4 +513,4 @@ const toAutocomplete = new GooglePlacesAutocomplete(
 );
 </script>
 """
-    return wrap(body, u)
+    return get_wrap()(body, u)

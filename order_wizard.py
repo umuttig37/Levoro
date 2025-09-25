@@ -1,7 +1,20 @@
 # order_wizard.py
 import datetime
 from flask import request, redirect, url_for, session
-from app import app, wrap, price_from_km, route_km, current_user, next_id, orders_col
+from services.auth_service import auth_service
+from services.order_service import order_service
+from models.database import db_manager
+
+# Import app and wrap function - available after app initialization
+def get_app():
+    from app import app
+    return app
+
+def get_wrap():
+    from app import wrap
+    return wrap
+
+app = get_app()
 
 def get_accessible_steps(session_data):
     """Determine which steps user can navigate to based on completed data"""
@@ -61,7 +74,7 @@ def wizard_shell(active: int, inner_html: str, session_data: dict = None) -> str
 # order_wizard.py -> order_step1()
 @app.route("/order/new/step1", methods=["GET","POST"])
 def order_step1():
-    u = current_user()
+    u = auth_service.get_current_user()
     if not u:
         return redirect(url_for("login", next="/order/new/step1"))
 
@@ -327,7 +340,7 @@ const step1Autocomplete = new WizardGooglePlacesAutocomplete(
 </script>
 """
         inner = inner.replace("__PICKUP_VAL__", pickup_val)
-        return wrap(wizard_shell(1, inner, session.get("order_draft", {})), u)
+        return get_wrap()(wizard_shell(1, inner, session.get("order_draft", {})), u)
 
     # POST → talteen ja seuraavaan steppiin
     d = session.get("order_draft", {})
@@ -341,7 +354,7 @@ const step1Autocomplete = new WizardGooglePlacesAutocomplete(
 # STEP 2: Delivery
 @app.route("/order/new/step2", methods=["GET","POST"])
 def order_step2():
-    u = current_user()
+    u = auth_service.get_current_user()
     if not u:
         return redirect(url_for("login", next="/order/new/step2"))
 
@@ -546,14 +559,14 @@ const step2Autocomplete = new WizardGooglePlacesAutocomplete(
 </script>
 """
     inner = inner.replace("__DROP_VAL__", drop_val).replace("__PICK_VAL__", pick_val)
-    return wrap(wizard_shell(2, inner, session.get("order_draft", {})), u)
+    return get_wrap()(wizard_shell(2, inner, session.get("order_draft", {})), u)
 
 
 
 # STEP 3: Vehicle
 @app.route("/order/new/step3", methods=["GET","POST"])
 def order_step3():
-    u = current_user()
+    u = auth_service.get_current_user()
     if not u: return redirect(url_for("login", next="/order/new/step3"))
 
     # Validate step access
@@ -596,12 +609,12 @@ def order_step3():
     <button type='submit' class='btn btn-primary'>Jatka →</button>
   </div>
 </form>"""
-    return wrap(wizard_shell(3, inner, session.get("order_draft", {})), u)
+    return get_wrap()(wizard_shell(3, inner, session.get("order_draft", {})), u)
 
 # STEP 4: Contact
 @app.route("/order/new/step4", methods=["GET","POST"])
 def order_step4():
-    u = current_user()
+    u = auth_service.get_current_user()
     if not u: return redirect(url_for("login", next="/order/new/step4"))
 
     # Validate step access
@@ -646,12 +659,12 @@ def order_step4():
     <button type='submit' class='btn btn-primary'>Jatka →</button>
   </div>
 </form>"""
-    return wrap(wizard_shell(4, inner, session.get("order_draft", {})), u)
+    return get_wrap()(wizard_shell(4, inner, session.get("order_draft", {})), u)
 
 # STEP 5: Notes
 @app.route("/order/new/step5", methods=["GET","POST"])
 def order_step5():
-    u = current_user()
+    u = auth_service.get_current_user()
     if not u: return redirect(url_for("login", next="/order/new/step5"))
 
     # Validate step access
@@ -674,12 +687,12 @@ def order_step5():
     <button type='submit' class='btn btn-primary'>Jatka →</button>
   </div>
 </form>"""
-    return wrap(wizard_shell(5, inner, session.get("order_draft", {})), u)
+    return get_wrap()(wizard_shell(5, inner, session.get("order_draft", {})), u)
 
 # STEP 6: Confirm
 @app.route("/order/new/confirm", methods=["GET","POST"])
 def order_confirm():
-    u = current_user()
+    u = auth_service.get_current_user()
     if not u: return redirect(url_for("login", next="/order/new/confirm"))
 
     # Validate step access
@@ -719,14 +732,14 @@ def order_confirm():
     km = 0.0
     err = None
     try:
-        km = route_km(d["pickup"], d["dropoff"])
+        km = order_service.route_km(d["pickup"], d["dropoff"])
     except Exception as e:
         err = f"Hinnanlaskenta epäonnistui: {e}"
-    u = current_user()
+    u = auth_service.get_current_user()
     # esim. otetaan joustava nouto jos käyttäjä EI antanut noutopäivää:
     time_window = "flex" if not d.get("pickup_date") else "exact"
     return_leg = False  # if you later add a checkbox for round-trip, set True accordingly
-    net, vat, gross, _ = price_from_km(
+    net, vat, gross, _ = order_service.price_from_km(
         km,
         pickup_addr=d.get("pickup"),
         dropoff_addr=d.get("dropoff"),
@@ -734,7 +747,7 @@ def order_confirm():
     )
 
     if request.method == "POST":
-        oid = next_id("orders")
+        oid = db_manager.get_next_sequence("orders")
 
         doc = {
             "id": oid,
@@ -761,7 +774,7 @@ def order_confirm():
             "winter_tires": bool(d.get("winter_tires")) if "winter_tires" in d else False
         }
 
-        orders_col().insert_one(doc)
+        db_manager.db.orders.insert_one(doc)
         # tyhjennä luonnos ja siirry tilausnäkymään
         session.pop("order_draft", None)
         return redirect(f"/order/{oid}")
@@ -910,4 +923,4 @@ document.addEventListener('DOMContentLoaded', function() {{
 }});
 </script>
 """
-    return wrap(wizard_shell(6, inner, session.get("order_draft", {})), u)
+    return get_wrap()(wizard_shell(6, inner, session.get("order_draft", {})), u)

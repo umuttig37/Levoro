@@ -1,0 +1,18 @@
+<!-- Advanced Admin Image Modal Component -->
+<div id="imageModal" class="image-modal">
+    <div class="image-modal-content">
+        <div class="modal-header">
+            <h3 class="modal-title" id="modalTitle">Kuva</h3>
+            <button class="modal-close" onclick="closeImageModal()">&times;</button>
+        </div>
+        <div class="modal-image-container">
+            <button class="modal-nav prev" onclick="prevImage()">&lsaquo;</button>
+            <img id="modalImage" class="modal-image" src="" alt="">
+            <button class="modal-nav next" onclick="nextImage()">&rsaquo;</button>
+        </div>
+        <div class="modal-footer">
+            <div class="modal-image-info" id="modalImageInfo"></div>
+            <button class="modal-delete" onclick="deleteCurrentImage()">🗑️ Poista kuva</button>
+        </div>
+    </div>
+</div>

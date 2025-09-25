@@ -1,0 +1,92 @@
+{% extends "base/layout.html" %}
+
+{% block title %}Admin - Tilaus #{{ order.id }} – Levoro{% endblock %}
+
+{% block extra_css %}
+<link rel='stylesheet' href='/static/css/admin-images.css'>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="admin-order-detail">
+        <div class="order-header">
+            <h2>Tilaus #{{ order.id }} - {{ status_fi }}</h2>
+            <a href="/admin" class="btn btn-secondary">Takaisin tilauksiin</a>
+        </div>
+
+        <div class="order-info">
+            <div class="info-section">
+                <h3>Tilauksen tiedot</h3>
+                <div class="info-grid">
+                    <div class="info-item">
+                        <span class="info-label">Asiakas:</span>
+                        <span class="info-value">{{ order.user_name or 'Tuntematon' }} ({{ order.user_email or 'Tuntematon' }})</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Rekisterinumero:</span>
+                        <span class="info-value">{{ order.reg_number or 'Ei tiedossa' }}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Talvirenkaat:</span>
+                        <span class="info-value">{{ 'Kyllä' if order.winter_tires else 'Ei' }}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Reitti:</span>
+                        <span class="info-value">{{ order.pickup_address }} → {{ order.dropoff_address }}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Matka:</span>
+                        <span class="info-value">{{ "%.1f"|format(order.distance_km or 0) }} km</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Hinta:</span>
+                        <span class="info-value">{{ "%.2f"|format(order.price_gross or 0) }} €</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Noutopäivä:</span>
+                        <span class="info-value">{{ pickup_date_fi }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="status-section">
+                <h3>Päivitä tila</h3>
+                <form method="POST" action="/admin/update">
+                    <input type="hidden" name="id" value="{{ order.id }}">
+                    <select name="status" class="status-select">
+                        <option value="NEW" {% if order.status == 'NEW' %}selected{% endif %}>UUSI</option>
+                        <option value="CONFIRMED" {% if order.status == 'CONFIRMED' %}selected{% endif %}>VAHVISTETTU</option>
+                        <option value="IN_TRANSIT" {% if order.status == 'IN_TRANSIT' %}selected{% endif %}>KULJETUKSESSA</option>
+                        <option value="DELIVERED" {% if order.status == 'DELIVERED' %}selected{% endif %}>TOIMITETTU</option>
+                        <option value="CANCELLED" {% if order.status == 'CANCELLED' %}selected{% endif %}>PERUUTETTU</option>
+                    </select>
+                    <button type="submit" class="btn btn-primary">Päivitä</button>
+                </form>
+            </div>
+        </div>
+
+        <div class="images-section">
+            {% include 'components/admin_image_section.html' with context %}
+            {% set image_type = 'pickup' %}
+            {% set images_data = order.images.pickup if order.images else [] %}
+
+            {% include 'components/admin_image_section.html' with context %}
+            {% set image_type = 'delivery' %}
+            {% set images_data = order.images.delivery if order.images else [] %}
+        </div>
+    </div>
+</div>
+
+<!-- Include Admin Image Modal Component -->
+{% include 'components/admin_image_modal.html' %}
+{% endblock %}
+
+{% block extra_js %}
+<!-- Admin Image Modal -->
+<script src="{{ url_for('static', filename='js/components/admin-image-modal.js') }}"></script>
+
+<script>
+// Set global order ID for image modal
+window.currentOrderId = {{ order.id }};
+</script>
+{% endblock %}

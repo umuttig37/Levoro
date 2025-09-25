@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="fi">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <title>{% block title %}Autonkuljetus – Portaali{% endblock %}</title>
+
+    <!-- Leaflet CSS -->
+    <link
+        rel="stylesheet"
+        href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+        crossorigin=""
+    />
+
+    <!-- Leaflet JavaScript -->
+    <script
+        src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+        crossorigin=""
+    ></script>
+
+    <!-- Google Maps API -->
+    {% if google_places_api_key %}
+    <script src="https://maps.googleapis.com/maps/api/js?key={{ google_places_api_key }}&libraries=places&loading=async" async defer></script>
+    {% endif %}
+
+    <!-- Main CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+
+    <!-- Page-specific CSS -->
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="container">
+            <div class="header-inner">
+                <!-- Brand Logo -->
+                <div class="brand">
+                    <a href="/" class="brand-link" aria-label="Etusivu">
+                        <img src="{{ url_for('static', filename='LevoroLogo.png') }}" alt="" class="brand-logo">
+                    </a>
+                </div>
+
+                <!-- Mobile Menu Toggle -->
+                <button class="mobile-menu-toggle" aria-label="Avaa menu" onclick="toggleMobileMenu()">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </button>
+
+                <!-- Navigation -->
+                <nav class="nav" id="nav-menu">
+                    <a href="/" class="nav-link">Etusivu</a>
+                    <a href="/order/new/step1" class="nav-link">Uusi tilaus</a>
+                    <a href="/dashboard" class="nav-link">Oma sivu</a>
+
+                    <!-- Admin Link -->
+                    {% if current_user and current_user.role == 'admin' %}
+                    <a href="/admin" class="nav-link">Admin</a>
+                    {% endif %}
+
+                    <!-- Auth Links -->
+                    {% if current_user %}
+                    <span class="pill">Hei, {{ current_user.name }}</span>
+                    <a class="nav-link" href="/logout">Ulos</a>
+                    {% else %}
+                    <a href="/login" class="nav-link">Kirjaudu</a>
+                    <a href="/register" class="nav-link">Luo tili</a>
+                    {% endif %}
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    <!-- Flash Messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        <div class="flash-messages container" style="margin-top: 20px;">
+            {% for category, message in messages %}
+            <div class="flash-message {{ category }}">{{ message }}</div>
+            {% endfor %}
+        </div>
+        {% endif %}
+    {% endwith %}
+
+    <!-- Main Content -->
+    <main>
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-inner">
+                <div class="text-center">
+                    <!-- Footer CTA -->
+                    <div class="footer-cta" style="margin-bottom: 1rem;">
+                        {% if current_user %}
+                        <a href="/calculator" class="btn btn-primary">Laske hinta</a>
+                        {% else %}
+                        <a href="/register" class="btn btn-primary">Kirjaudu ja laske hinta</a>
+                        {% endif %}
+                    </div>
+                    <p style="margin: 0; opacity: 0.8;">© 2025 Levoro – Luotettava autonkuljetus</p>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Core JavaScript -->
+    <script src="{{ url_for('static', filename='js/core/app.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/core/navigation.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/utils/validation.js') }}"></script>
+
+    <!-- Component JavaScript -->
+    <script src="{{ url_for('static', filename='js/components/file-upload.js') }}"></script>
+
+    <!-- Page-specific JavaScript -->
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

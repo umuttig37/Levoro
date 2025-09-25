@@ -1,0 +1,28 @@
+<!-- Client Image Section Component -->
+{% if images_data and images_data|length > 0 %}
+<div class="client-image-section">
+    <div class="client-image-counter">
+        <span class="client-image-count">{{ images_data|length }} kuvaa</span>
+    </div>
+    <div class="client-images-grid">
+        {% for img in images_data %}
+        <div class="client-image-item">
+            <img src="{{ img.file_path }}" alt="{{ 'Nouto kuva' if image_type == 'pickup' else 'Toimitus kuva' }}"
+                 class="client-image-thumbnail"
+                 onclick="openClientImageModal('{{ image_type }}', '{{ img.id }}')">
+            <div class="client-image-info">
+                <small class="client-image-date">Kuvattu: {{ img.uploaded_at.strftime('%d.%m.%Y %H:%M') if img.uploaded_at else 'N/A' }}</small>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% else %}
+<div class="client-image-placeholder">
+    <div class="placeholder-icon">📷</div>
+    <div class="placeholder-text">
+        <p class="placeholder-title">Ei kuvaa vielä</p>
+        <p class="placeholder-subtitle">{{ 'Nouto odottaa' if image_type == 'pickup' else 'Toimitus odottaa' }}</p>
+    </div>
+</div>
+{% endif %}
