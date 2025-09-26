@@ -66,13 +66,13 @@
         </div>
 
         <div class="images-section">
-            {% include 'components/admin_image_section.html' with context %}
             {% set image_type = 'pickup' %}
             {% set images_data = order.images.pickup if order.images else [] %}
-
             {% include 'components/admin_image_section.html' with context %}
+
             {% set image_type = 'delivery' %}
             {% set images_data = order.images.delivery if order.images else [] %}
+            {% include 'components/admin_image_section.html' with context %}
         </div>
     </div>
 </div>

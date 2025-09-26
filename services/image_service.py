@@ -63,14 +63,17 @@ class ImageService:
             processed_path = self._process_image(file_path)
             if not processed_path:
                 self._cleanup_file(file_path)
-                return None, "Kuvan käsittely epäonnistui"
+                return None, "Kuvan käsittely epäonnistui - tarkista että kuva ei ole vioittunut"
+
+            # Update filename if processing changed the extension
+            final_filename = os.path.basename(processed_path)
 
             # Create image info
             image_info = {
                 "id": str(uuid.uuid4()),
-                "filename": unique_filename,
+                "filename": final_filename,
                 "original_filename": secure_filename(file.filename),
-                "file_path": f"/static/uploads/orders/{unique_filename}",
+                "file_path": f"/static/uploads/orders/{final_filename}",
                 "file_size": os.path.getsize(processed_path),
                 "image_type": image_type,
                 "uploaded_at": datetime.utcnow(),
@@ -226,7 +229,7 @@ class ImageService:
 
         # Check file extension
         if not self._allowed_file(file.filename):
-            return "Virheellinen tiedostotyyppi. Sallitut: JPG, PNG, WebP"
+            return "Virheellinen tiedostotyyppi. Sallitut: JPG, JPEG, PNG, WebP"
 
         # Check file size
         file.seek(0, os.SEEK_END)
@@ -238,6 +241,24 @@ class ImageService:
 
         if file_size == 0:
             return "Tiedosto on tyhjä"
+
+        # Validate that PIL can read the image
+        try:
+            # Create a copy of file content for PIL validation
+            file_content = file.read()
+            file.seek(0)  # Reset file pointer for later use
+
+            from io import BytesIO
+            with Image.open(BytesIO(file_content)) as img:
+                # Basic validation - ensure it's a valid image
+                img.verify()  # This will raise an exception if the image is corrupted
+
+                # Check if it's actually an image format we can process
+                if img.format not in ['JPEG', 'PNG', 'WEBP']:
+                    return f"Kuvaformaatti {img.format or 'tuntematon'} ei ole tuettu"
+
+        except Exception as e:
+            return f"Kuvatiedosto on vioittunut tai ei kelvollinen: {str(e)}"
 
         return None
 
@@ -257,8 +278,14 @@ class ImageService:
     def _process_image(self, file_path: str) -> Optional[str]:
         """Process and optimize image"""
         try:
+            # First validate that PIL can open the image
             with Image.open(file_path) as img:
-                # Convert RGBA to RGB if necessary
+                # Validate image format
+                if img.format not in ['JPEG', 'PNG', 'WEBP']:
+                    print(f"Image processing error: Unsupported image format {img.format}")
+                    return None
+
+                # Convert RGBA to RGB if necessary for JPEG compatibility
                 if img.mode in ('RGBA', 'LA', 'P'):
                     # Create white background
                     background = Image.new('RGB', img.size, (255, 255, 255))
@@ -273,13 +300,30 @@ class ImageService:
                     new_height = int((MAX_IMAGE_WIDTH / img.width) * img.height)
                     img = img.resize((MAX_IMAGE_WIDTH, new_height), Image.Resampling.LANCZOS)
 
-                # Save optimized image
-                img.save(file_path, 'JPEG', quality=IMAGE_QUALITY, optimize=True)
+                # Determine output format and extension
+                output_path = file_path
+                if not file_path.lower().endswith('.jpg'):
+                    # Change extension to .jpg since we're saving as JPEG
+                    base_path = file_path.rsplit('.', 1)[0]
+                    output_path = f"{base_path}.jpg"
 
-            return file_path
+                # Save optimized image as JPEG
+                img.save(output_path, 'JPEG', quality=IMAGE_QUALITY, optimize=True)
+
+                # Remove original file if we changed the extension
+                if output_path != file_path:
+                    self._cleanup_file(file_path)
+
+            return output_path
 
         except Exception as e:
-            print(f"Image processing error: {e}")
+            print(f"Image processing error for {file_path}: {str(e)}")
+            # Log more specific error details
+            try:
+                with Image.open(file_path) as test_img:
+                    print(f"Image details - Format: {test_img.format}, Mode: {test_img.mode}, Size: {test_img.size}")
+            except Exception as inner_e:
+                print(f"Cannot read image file: {str(inner_e)}")
             return None
 
     def _cleanup_file(self, file_path: str) -> bool:
