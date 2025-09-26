@@ -209,33 +209,10 @@
                 {% endif %}
             </div>
 
-            <div class="progress-steps">
-                <h4 style="margin-top: 0; color: #1a365d;">Kuljetuksen vaiheet</h4>
-
-                <div class="step {% if new_status in ['NEW', 'CONFIRMED', 'IN_TRANSIT', 'DELIVERED'] %}completed{% else %}pending{% endif %}">
-                    <div class="step-number">1</div>
-                    <div>Tilaus vastaanotettu</div>
-                </div>
-
-                <div class="step {% if new_status in ['CONFIRMED', 'IN_TRANSIT', 'DELIVERED'] %}completed{% elif new_status == 'NEW' %}current{% else %}pending{% endif %}">
-                    <div class="step-number">2</div>
-                    <div>Tilaus vahvistettu</div>
-                </div>
-
-                <div class="step {% if new_status in ['IN_TRANSIT', 'DELIVERED'] %}completed{% elif new_status == 'CONFIRMED' %}current{% else %}pending{% endif %}">
-                    <div class="step-number">3</div>
-                    <div>Kuljetus aloitettu</div>
-                </div>
-
-                <div class="step {% if new_status == 'DELIVERED' %}completed{% elif new_status == 'IN_TRANSIT' %}current{% else %}pending{% endif %}">
-                    <div class="step-number">4</div>
-                    <div>Ajoneuvo toimitettu</div>
-                </div>
-            </div>
 
             {% if new_status == 'CONFIRMED' %}
             <div class="action-needed">
-                <strong>💡 Tärkeää:</strong> Kuljettaja ottaa sinuun yhteyttä ennen noutoa sovitakseen tarkemman aikataulun. Varmista että yhteystietosi ovat ajan tasalla.
+                <strong>✅ Vahvistettu:</strong> Tilauksesi on vahvistettu ylläpidon toimesta ja odottaa noutopäivää.
             </div>
             {% elif new_status == 'IN_TRANSIT' %}
             <div class="action-needed">
