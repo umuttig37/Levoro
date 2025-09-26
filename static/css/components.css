@@ -422,75 +422,6 @@ input[type="file"]::file-selector-button {
     border-radius: 0 0 var(--radius-lg) 0;
 }
 
-/* Enhanced table for dashboard */
-.dashboard-table {
-    width: 100%;
-    border-collapse: collapse;
-    margin: var(--space-4) 0;
-    background: var(--color-white);
-    border-radius: var(--radius-xl);
-    overflow: hidden;
-    box-shadow: var(--shadow-lg);
-    border: 1px solid var(--border-light);
-}
-
-.dashboard-table th {
-    background: linear-gradient(135deg, var(--color-primary-600) 0%, var(--color-primary-700) 100%);
-    color: var(--color-white);
-    font-weight: var(--font-weight-bold);
-    padding: var(--space-4);
-    font-size: var(--font-size-sm);
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-}
-
-.dashboard-table td {
-    padding: var(--space-4);
-    border-bottom: 1px solid var(--color-gray-200);
-    vertical-align: middle;
-    color: var(--color-gray-900);
-    background: var(--color-white);
-    font-weight: var(--font-weight-medium);
-    font-size: var(--font-size-base);
-}
-
-.dashboard-table tr:hover td {
-    background: var(--color-gray-50);
-    color: var(--color-gray-900);
-}
-
-.dashboard-table tr:last-child td {
-    border-bottom: none;
-}
-
-.dashboard-table .status {
-    font-weight: var(--font-weight-bold);
-    padding: var(--space-2) var(--space-3);
-    border-radius: var(--radius-md);
-    font-size: var(--font-size-xs);
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    min-width: 90px;
-    text-align: center;
-    display: inline-block;
-    border: 1px solid transparent;
-}
-
-.dashboard-table .btn {
-    padding: var(--space-2) var(--space-4);
-    font-size: var(--font-size-sm);
-    font-weight: var(--font-weight-semibold);
-    color: var(--color-gray-900);
-    background: var(--color-gray-100);
-    border: 1px solid var(--color-gray-300);
-    border-radius: var(--radius-md);
-}
-
-.dashboard-table .btn:hover {
-    background: var(--color-gray-200);
-    color: var(--color-gray-900);
-    border-color: var(--color-gray-400);
-}
 
 /* Dashboard tabs styling - remove border radius for active tabs */
 .tabs .btn {
@@ -1213,19 +1144,6 @@ input[type="file"]::file-selector-button {
         font-size: var(--font-size-sm);
     }
 
-    /* Dashboard table mobile - EXACT same approach as admin table */
-    .dashboard-table {
-        font-size: var(--font-size-sm);
-        overflow-x: auto !important;
-        white-space: nowrap;
-        min-width: 600px;
-    }
-
-    .dashboard-table th,
-    .dashboard-table td {
-        padding: var(--space-2);
-        min-width: 80px;
-    }
 
     /* Mobile-specific navigation auth buttons */
     .nav .btn-ghost {
@@ -1234,15 +1152,6 @@ input[type="file"]::file-selector-button {
         margin: var(--space-1) 0;
     }
 
-    /* Mobile dashboard improvements */
-    .dashboard-table {
-        font-size: var(--font-size-xs);
-    }
-
-    .dashboard-table th,
-    .dashboard-table td {
-        padding: var(--space-2);
-    }
 
     /* Mobile admin table improvements */
     .admin-table {
@@ -1310,14 +1219,6 @@ input[type="file"]::file-selector-button {
         font-size: var(--font-size-sm);
     }
 
-    /* Dashboard table for small screens - EXACT same as admin table */
-    .dashboard-table {
-        display: block;
-        overflow-x: auto !important;
-        white-space: nowrap;
-        -webkit-overflow-scrolling: touch;
-        min-width: 500px;
-    }
 
     /* Very small screen table handling */
     .table,

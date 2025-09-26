@@ -852,17 +852,32 @@ def dashboard():
 
     rows = ""
     for r in orders:
-        status_fi = translate_status(r['status'])
-        rows += f"""
+        try:
+            status_fi = translate_status(r['status'])
+
+            # Map status to CSS class
+            status_class_map = {
+                'NEW': 'pending',
+                'CONFIRMED': 'confirmed',
+                'IN_TRANSIT': 'in-progress',
+                'COMPLETED': 'completed',
+                'CANCELLED': 'cancelled'
+            }
+            status_class = status_class_map.get(r['status'], 'pending')
+
+            rows += f"""
 <tr>
-  <td>#{r['id']}</td>
-  <td><span class="status {r['status']}">{status_fi}</span></td>
-  <td>{r['pickup_address']} → {r['dropoff_address']}</td>
-  <td>{float(r['distance_km']):.1f} km</td>
-  <td>{float(r['price_gross']):.2f} €</td>
-  <td><a class="btn btn-ghost btn-sm" href="/order/{r['id']}">Avaa</a></td>
+  <td class="user-orders-id">#{r['id']}</td>
+  <td class="user-orders-status"><span class="user-status-badge {status_class}">{status_fi}</span></td>
+  <td class="user-orders-route">{r['pickup_address']} → {r['dropoff_address']}</td>
+  <td class="user-orders-vehicle">{float(r['distance_km']):.1f} km</td>
+  <td class="user-orders-price">{float(r['price_gross']):.2f} €</td>
+  <td class="user-orders-actions"><a class="user-action-btn" href="/order/{r['id']}">Avaa</a></td>
 </tr>
 """
+        except Exception as e:
+            print(f"Error rendering order {r.get('id', 'unknown')}: {e}")
+            continue
 
     tabs_html = f"""
 <div class="tabs mb-4">
@@ -880,21 +895,35 @@ def dashboard():
     </div>
   </div>
 
-  <div class="calculator-grid" style="grid-template-columns: 1fr; max-width: 1200px; margin: 0 auto;">
-    <div class="card calculator-form">
-      <div class="card-header">
-        <h2 class="card-title">Tilaushistoria</h2>
-        <p class="card-subtitle">Näet kaikki tilauksesi ja niiden tilan alla</p>
+  <div style="max-width: 1200px; margin: 0 auto;">
+    <div class="user-orders-section">
+      <div class="user-orders-header">
+        <h2 class="user-orders-title">
+          Tilaushistoria
+          <span class="user-orders-count">{len(orders)} tilausta</span>
+        </h2>
       </div>
-      
-      <div class="card-body">
+
+      <div style="padding: var(--space-6);">
         {tabs_html}
         <div class="calculator-actions mb-4">
           <a class="btn btn-primary" href="/order/new/step1">+ Uusi tilaus</a>
         </div>
-        <table class="dashboard-table">
-          <thead><tr><th>ID</th><th>Tila</th><th>Reitti</th><th>Km</th><th>Hinta</th><th></th></tr></thead>
-          <tbody>{rows or "<tr><td colspan='6' style='text-align: center; color: var(--text-muted); font-style: italic;'>Ei tilauksia</td></tr>"}</tbody>
+      </div>
+
+      <div class="user-orders-wrapper">
+        <table class="user-orders-table">
+          <thead>
+            <tr>
+              <th class="user-orders-id">ID</th>
+              <th class="user-orders-status">Tila</th>
+              <th class="user-orders-route">Reitti</th>
+              <th class="user-orders-vehicle">Matka</th>
+              <th class="user-orders-price">Hinta</th>
+              <th class="user-orders-actions">Toiminnot</th>
+            </tr>
+          </thead>
+          <tbody>{rows or "<tr><td colspan='6' style='text-align: center; padding: var(--space-16);'><div style='color: var(--text-muted);'><div style='font-size: 3rem; margin-bottom: var(--space-4);'>📦</div><div style='font-weight: var(--font-weight-medium); margin-bottom: var(--space-2);'>Ei tilauksia</div><div style='font-size: var(--font-size-sm);'>Luo ensimmäinen tilauksesi yllä olevalla napilla</div></div></td></tr>"}</tbody>
         </table>
       </div>
     </div>
