@@ -167,7 +167,7 @@ class DriverService:
         if not order or order.get("driver_id") != driver_id:
             return False
 
-        return order.get("status") == order_model.STATUS_DRIVER_ARRIVED
+        return order.get("status") in [order_model.STATUS_DRIVER_ARRIVED, order_model.STATUS_PICKUP_IMAGES_ADDED]
 
     def can_add_delivery_images(self, order_id: int, driver_id: int) -> bool:
         """Check if driver can add delivery images"""
@@ -175,7 +175,7 @@ class DriverService:
         if not order or order.get("driver_id") != driver_id:
             return False
 
-        return order.get("status") == order_model.STATUS_DELIVERY_ARRIVED
+        return order.get("status") in [order_model.STATUS_DELIVERY_ARRIVED, order_model.STATUS_DELIVERY_IMAGES_ADDED]
 
     def update_pickup_images_status(self, order_id: int, driver_id: int) -> Tuple[bool, Optional[str]]:
         """Update status after pickup images are added"""

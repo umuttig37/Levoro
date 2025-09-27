@@ -897,7 +897,7 @@ def dashboard():
     all_orders = list(orders_col().find({"user_id": int(u["id"])}).sort("id", -1))
 
     def is_active_status(s: str) -> bool:
-        return s in {"NEW", "CONFIRMED", "IN_TRANSIT"}
+        return s in {"NEW", "CONFIRMED", "ASSIGNED_TO_DRIVER", "DRIVER_ARRIVED", "PICKUP_IMAGES_ADDED", "IN_TRANSIT", "DELIVERY_ARRIVED", "DELIVERY_IMAGES_ADDED"}
 
     if tab == "completed":
         orders = [r for r in all_orders if not is_active_status(r.get("status","NEW"))]

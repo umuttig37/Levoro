@@ -56,8 +56,16 @@
                 <!-- Navigation -->
                 <nav class="nav" id="nav-menu">
                     <a href="/" class="nav-link">Etusivu</a>
+
+                    <!-- Role-based navigation -->
+                    {% if current_user and current_user.role == 'driver' %}
+                    <a href="/driver/dashboard" class="nav-link">Kuljettajan sivu</a>
+                    {% elif current_user %}
                     <a href="/order/new/step1" class="nav-link">Uusi tilaus</a>
                     <a href="/dashboard" class="nav-link">Oma sivu</a>
+                    {% else %}
+                    <a href="/order/new/step1" class="nav-link">Uusi tilaus</a>
+                    {% endif %}
 
                     <!-- Admin Link -->
                     {% if current_user and current_user.role == 'admin' %}

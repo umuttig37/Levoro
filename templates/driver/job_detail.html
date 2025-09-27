@@ -147,54 +147,20 @@
           <div class="grid cols-2 gap-6">
             <!-- Pickup Images -->
             <div>
-              <h3 class="font-medium mb-3">Noutokuvat</h3>
               {% set pickup_images = order.images.pickup if order.images and order.images.pickup else [] %}
-              {% if pickup_images %}
-                <div class="grid cols-2 gap-2 mb-3">
-                  {% for image in pickup_images %}
-                  <img src="{{ image.file_path }}" alt="Noutokuva" class="w-full h-20 object-cover rounded border">
-                  {% endfor %}
-                </div>
-                <p class="text-sm text-secondary">{{ pickup_images|length }} kuvaa lisätty</p>
-              {% else %}
-                <p class="text-muted text-sm mb-3">Ei kuvia vielä lisätty</p>
-              {% endif %}
-
-              {% if order.status == 'DRIVER_ARRIVED' %}
-              <form method="POST" action="{{ url_for('driver.upload_image', order_id=order.id) }}" enctype="multipart/form-data">
-                <input type="hidden" name="image_type" value="pickup">
-                <div class="space-y-2">
-                  <input type="file" name="image" accept=".jpg,.jpeg,.png,.webp" required class="form-input">
-                  <button type="submit" class="btn btn-primary btn-sm w-full">Lisää noutokuva</button>
-                </div>
-              </form>
-              {% endif %}
+              {% set image_type = 'pickup' %}
+              {% set images_data = pickup_images %}
+              {% set can_upload = (order.status in ['DRIVER_ARRIVED', 'PICKUP_IMAGES_ADDED']) %}
+              {% include 'components/driver_image_section.html' %}
             </div>
 
             <!-- Delivery Images -->
             <div>
-              <h3 class="font-medium mb-3">Toimituskuvat</h3>
               {% set delivery_images = order.images.delivery if order.images and order.images.delivery else [] %}
-              {% if delivery_images %}
-                <div class="grid cols-2 gap-2 mb-3">
-                  {% for image in delivery_images %}
-                  <img src="{{ image.file_path }}" alt="Toimituskuva" class="w-full h-20 object-cover rounded border">
-                  {% endfor %}
-                </div>
-                <p class="text-sm text-secondary">{{ delivery_images|length }} kuvaa lisätty</p>
-              {% else %}
-                <p class="text-muted text-sm mb-3">Ei kuvia vielä lisätty</p>
-              {% endif %}
-
-              {% if order.status == 'DELIVERY_ARRIVED' %}
-              <form method="POST" action="{{ url_for('driver.upload_image', order_id=order.id) }}" enctype="multipart/form-data">
-                <input type="hidden" name="image_type" value="delivery">
-                <div class="space-y-2">
-                  <input type="file" name="image" accept=".jpg,.jpeg,.png,.webp" required class="form-input">
-                  <button type="submit" class="btn btn-primary btn-sm w-full">Lisää toimituskuva</button>
-                </div>
-              </form>
-              {% endif %}
+              {% set image_type = 'delivery' %}
+              {% set images_data = delivery_images %}
+              {% set can_upload = (order.status in ['DELIVERY_ARRIVED', 'DELIVERY_IMAGES_ADDED']) %}
+              {% include 'components/driver_image_section.html' %}
             </div>
           </div>
         </div>

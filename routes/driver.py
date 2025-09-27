@@ -215,15 +215,19 @@ def upload_image(order_id):
     from models.order import order_model
     order = order_model.find_by_id(order_id)
     current_images = order.get('images', {}).get(image_type, [])
+    current_status = order.get('status')
 
-    # If this is the first image, update status
+    # If this is the first image and status hasn't been updated yet, update status
     if len(current_images) == 1:
-        if image_type == 'pickup':
+        if image_type == 'pickup' and current_status == order_model.STATUS_DRIVER_ARRIVED:
             driver_service.update_pickup_images_status(order_id, driver['id'])
             flash('Noutokuva lisätty! Voit nyt aloittaa kuljetuksen.', 'success')
-        else:
+        elif image_type == 'delivery' and current_status == order_model.STATUS_DELIVERY_ARRIVED:
             driver_service.update_delivery_images_status(order_id, driver['id'])
-            flash('Toimituskulva lisätty! Voit nyt päättää toimituksen.', 'success')
+            flash('Toimituskuva lisätty! Voit nyt päättää toimituksen.', 'success')
+        else:
+            image_type_fi = 'Nouto' if image_type == 'pickup' else 'Toimitus'
+            flash(f'{image_type_fi}kuva lisätty onnistuneesti', 'success')
     else:
         image_type_fi = 'Nouto' if image_type == 'pickup' else 'Toimitus'
         flash(f'{image_type_fi}kuva lisätty onnistuneesti', 'success')
