@@ -13,7 +13,7 @@ class UserModel(BaseModel):
 
     collection_name = "users"
 
-    def create_user(self, email, password, name, role="user"):
+    def create_user(self, email, password, name, role="user", phone=None):
         """Create a new user"""
         # Check if user already exists
         if self.find_by_email(email):
@@ -29,6 +29,7 @@ class UserModel(BaseModel):
             "password_hash": generate_password_hash(password),
             "name": name.strip(),
             "role": role,
+            "phone": phone.strip() if phone else None,
             "status": "pending" if role == "user" else "active",
             "created_at": datetime.now(timezone.utc),
             "updated_at": datetime.now(timezone.utc)
@@ -69,6 +70,16 @@ class UserModel(BaseModel):
         return self.update_one(
             {"id": int(user_id)},
             {"$set": {"last_login": datetime.now(timezone.utc)}}
+        )
+
+    def update_phone(self, user_id, phone):
+        """Update user's phone number"""
+        return self.update_one(
+            {"id": int(user_id)},
+            {"$set": {
+                "phone": phone.strip() if phone else None,
+                "updated_at": datetime.now(timezone.utc)
+            }}
         )
 
     def approve_user(self, user_id):

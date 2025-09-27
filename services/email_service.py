@@ -193,15 +193,15 @@ class EmailService:
         }
 
         status_descriptions = {
-            'NEW': 'Tilaus odottaa vahvistusta',
-            'CONFIRMED': 'Tehtävä vahvistettu, odottaa kuljettajaa',
+            'NEW': 'Tilaus vastaanotettu ja odottaa vahvistusta',
+            'CONFIRMED': 'Tilaus vahvistettu! Kuljettaja määritetään pian',
             'ASSIGNED_TO_DRIVER': 'Kuljettaja määritetty ja matkalla noutopaikalle',
-            'DRIVER_ARRIVED': 'Kuljettaja saapunut noutopaikalle',
-            'PICKUP_IMAGES_ADDED': 'Noutokuvat lisätty, valmis kuljetukseen',
-            'IN_TRANSIT': 'Ajoneuvo on kuljetuksessa',
-            'DELIVERY_ARRIVED': 'Kuljetus saapunut toimituspaikalle',
-            'DELIVERY_IMAGES_ADDED': 'Toimituskuvat lisätty, valmis luovutukseen',
-            'DELIVERED': 'Kuljetus suoritettu onnistuneesti',
+            'DRIVER_ARRIVED': 'Kuljettaja saapunut noutopaikalle ja aloittaa ajoneuvon tarkastuksen',
+            'PICKUP_IMAGES_ADDED': 'Ajoneuvon tila dokumentoitu - kuljetus alkaa pian',
+            'IN_TRANSIT': 'Ajoneuvonne on nyt matkalla määränpäähän',
+            'DELIVERY_ARRIVED': 'Ajoneuvonne on saapunut toimituspaikalle',
+            'DELIVERY_IMAGES_ADDED': 'Toimitus dokumentoitu - ajoneuvonne on valmis luovutettavaksi',
+            'DELIVERED': 'Kuljetus suoritettu onnistuneesti! Kiitos Levoro-palvelun käytöstä',
             'CANCELLED': 'Tilaus on peruutettu'
         }
 
@@ -328,6 +328,236 @@ class EmailService:
         except Exception as e:
             current_app.logger.error(f"Failed to send admin user notification: {str(e)}")
             print(f"   ❌ Failed to send admin user notification: {str(e)}")
+            return False
+
+    def send_driver_application_confirmation(self, email: str, name: str) -> bool:
+        """Send confirmation email to driver applicant"""
+        try:
+            print(f"📧 Sending driver application confirmation to {email}")
+
+            html_body = f"""
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+                <div style="background: linear-gradient(135deg, #3b82f6, #2563eb); color: white; padding: 30px; border-radius: 12px; margin-bottom: 30px; text-align: center;">
+                    <h1 style="margin: 0; font-size: 28px;">🚗 Kiitos hakemuksestasi!</h1>
+                </div>
+
+                <div style="padding: 0 20px;">
+                    <p style="font-size: 16px; color: #374151;">Hei {name},</p>
+
+                    <p style="font-size: 16px; color: #374151; line-height: 1.6;">
+                        Kiitos kuljettajahakemuksestasi Levorolle! Olemme vastaanottaneet hakemuksesi ja käsittelemme sen mahdollisimman pian.
+                    </p>
+
+                    <div style="background: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                        <h3 style="margin-top: 0; color: #1f2937;">📋 Seuraavat vaiheet:</h3>
+                        <ul style="color: #374151; line-height: 1.6;">
+                            <li>Käymme hakemuksesi läpi huolellisesti</li>
+                            <li>Otamme sinuun yhteyttä 1-3 arkipäivän sisällä</li>
+                            <li>Jos hakemus hyväksytään, lähetämme kirjautumistiedot</li>
+                        </ul>
+                    </div>
+
+                    <p style="font-size: 16px; color: #374151; line-height: 1.6;">
+                        Jos sinulla on kysyttävää, vastaa tähän sähköpostiin tai ota yhteyttä asiakaspalveluumme.
+                    </p>
+
+                    <p style="font-size: 16px; color: #374151;">
+                        Ystävällisin terveisin,<br>
+                        <strong>Levoro tiimi</strong>
+                    </p>
+                </div>
+
+                <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb;">
+                    <p style="font-size: 14px; color: #6b7280;">
+                        Levoro - Luotettavaa autokuljetusta<br>
+                        <a href="https://levoro.fi" style="color: #3b82f6;">levoro.fi</a>
+                    </p>
+                </div>
+            </div>
+            """
+
+            return self.send_email(
+                subject="🚗 Kuljettajahakemus vastaanotettu - Levoro",
+                recipients=[email],
+                html_body=html_body
+            )
+        except Exception as e:
+            current_app.logger.error(f"Failed to send driver application confirmation: {str(e)}")
+            print(f"   ❌ Failed to send driver application confirmation: {str(e)}")
+            return False
+
+    def send_admin_driver_application_notification(self, application: Dict) -> bool:
+        """Send notification to admin about new driver application"""
+        try:
+            admin_email = os.getenv("ADMIN_EMAIL", "admin@levoro.fi")
+            print(f"📧 Sending driver application notification to admin: {admin_email}")
+
+            applicant_name = application.get("name") or " ".join(
+                filter(None, [application.get("first_name"), application.get("last_name")])
+            ).strip()
+
+            html_body = f"""
+            <div style="font-family: Arial, sans-serif; max-width: 700px; margin: 0 auto; padding: 20px;">
+                <div style="background: #dc2626; color: white; padding: 25px; border-radius: 12px; margin-bottom: 30px; text-align: center;">
+                    <h1 style="margin: 0; font-size: 24px;">🚗 Uusi kuljettajahakemus</h1>
+                    <p style="margin: 10px 0 0 0; opacity: 0.9;">Hakemus #{application['id']} odottaa käsittelyä</p>
+                </div>
+
+                <div style="padding: 0 20px;">
+                    <!-- Personal Information -->
+                    <div style="background: #f9fafb; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+                        <h3 style="margin-top: 0; color: #1f2937;">👤 Hakijan tiedot</h3>
+                        <table style="width: 100%; border-collapse: collapse;">
+                            <tr><td style="padding: 8px 0; font-weight: bold; width: 30%;">Nimi:</td><td style="padding: 8px 0;">{applicant_name}</td></tr>
+                            <tr><td style="padding: 8px 0; font-weight: bold;">Sähköposti:</td><td style="padding: 8px 0;">{application['email']}</td></tr>
+                            <tr><td style="padding: 8px 0; font-weight: bold;">Puhelin:</td><td style="padding: 8px 0;">{application['phone']}</td></tr>
+                            <tr><td style="padding: 8px 0; font-weight: bold;">Salasana:</td><td style="padding: 8px 0;">Asetettu (käyttäjä loi oman)</td></tr>
+                        </table>
+                    </div>
+
+                    <div style="background: #f0fdf4; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+                        <h3 style="margin-top: 0; color: #1f2937;">ℹ️ Huomio</h3>
+                        <p style="margin: 0; color: #065f46;">
+                            Hakija on luonut oman salasanan rekisteröityessään. Hyväksymisen yhteydessä käyttäjätili luodaan automaattisesti.
+                        </p>
+                    </div>
+
+                    <div style="text-align: center; margin-top: 30px;">
+                        <a href="http://levoro.fi/admin/driver-applications/{application['id']}"
+                           style="background: #3b82f6; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600;">
+                            Käsittele hakemus
+                        </a>
+                    </div>
+                </div>
+            </div>
+            """
+
+            return self.send_email(
+                subject=f"🚗 Uusi kuljettajahakemus: {applicant_name}",
+                recipients=[admin_email],
+                html_body=html_body
+            )
+        except Exception as e:
+            current_app.logger.error(f"Failed to send admin driver application notification: {str(e)}")
+            print(f"   ❌ Failed to send admin driver application notification: {str(e)}")
+            return False
+
+    def send_driver_application_approved(self, email: str, name: str) -> bool:
+        """Send approval email to driver"""
+        try:
+            print(f"📧 Sending driver application approval to {email}")
+
+            html_body = f"""
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+                <div style="background: linear-gradient(135deg, #10b981, #059669); color: white; padding: 30px; border-radius: 12px; margin-bottom: 30px; text-align: center;">
+                    <h1 style="margin: 0; font-size: 28px;">🎉 Hakemus hyväksytty!</h1>
+                    <p style="margin: 10px 0 0 0; font-size: 18px; opacity: 0.9;">Tervetuloa Levoro-tiimiin</p>
+                </div>
+
+                <div style="padding: 0 20px;">
+                    <p style="font-size: 16px; color: #374151;">Hei {name},</p>
+
+                    <p style="font-size: 16px; color: #374151; line-height: 1.6;">
+                        Onneksi olkoon! Kuljettajahakemuksesi on hyväksytty ja kuljettajatilisi on aktivoitu Levoro-järjestelmään.
+                    </p>
+
+                    <div style="background: #f0fdf4; border: 2px solid #10b981; padding: 20px; border-radius: 8px; margin: 25px 0;">
+                        <h3 style="margin-top: 0; color: #047857;">🔑 Kirjautuminen</h3>
+                        <p style="margin: 10px 0; font-size: 14px; color: #065f46;">
+                            Voit nyt kirjautua sisään käyttämällä sähköpostiosoitettasi <strong>{email}</strong> ja rekisteröityessäsi luomaasi salasanaa.
+                        </p>
+                    </div>
+
+                    <div style="background: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                        <h3 style="margin-top: 0; color: #1f2937;">📋 Seuraavat vaiheet:</h3>
+                        <ol style="color: #374151; line-height: 1.6; margin: 0; padding-left: 20px;">
+                            <li>Kirjaudu sisään osoitteessa <a href="https://levoro.fi" style="color: #3b82f6;">levoro.fi</a></li>
+                            <li>Tutustu kuljettajan työkaluihin</li>
+                            <li>Aloita tehtävien vastaanottaminen</li>
+                        </ol>
+                    </div>
+
+                    <p style="font-size: 16px; color: #374151; line-height: 1.6;">
+                        Olemme innoissamme saadessemme sinut mukaan tiimiimme! Jos sinulla on kysyttävää, ota rohkeasti yhteyttä.
+                    </p>
+
+                    <p style="font-size: 16px; color: #374151;">
+                        Tervetuloa mukaan!<br>
+                        <strong>Levoro tiimi</strong>
+                    </p>
+                </div>
+
+                <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb;">
+                    <p style="font-size: 14px; color: #6b7280;">
+                        Levoro - Luotettavaa autokuljetusta<br>
+                        <a href="https://levoro.fi" style="color: #3b82f6;">levoro.fi</a>
+                    </p>
+                </div>
+            </div>
+            """
+
+            return self.send_email(
+                subject="🎉 Kuljettajahakemus hyväksytty - Tervetuloa Levorolle!",
+                recipients=[email],
+                html_body=html_body
+            )
+        except Exception as e:
+            current_app.logger.error(f"Failed to send driver application approval: {str(e)}")
+            print(f"   ❌ Failed to send driver application approval: {str(e)}")
+            return False
+
+    def send_driver_application_denied(self, email: str, name: str) -> bool:
+        """Send denial email to driver applicant"""
+        try:
+            print(f"📧 Sending driver application denial to {email}")
+
+            html_body = f"""
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+                <div style="background: #ef4444; color: white; padding: 30px; border-radius: 12px; margin-bottom: 30px; text-align: center;">
+                    <h1 style="margin: 0; font-size: 28px;">Kiitos hakemuksestasi</h1>
+                </div>
+
+                <div style="padding: 0 20px;">
+                    <p style="font-size: 16px; color: #374151;">Hei {name},</p>
+
+                    <p style="font-size: 16px; color: #374151; line-height: 1.6;">
+                        Kiitos mielenkiinnostasi Levoro kuljettajatehtäviä kohtaan. Valitettavasti emme voi tällä hetkellä hyväksyä hakemustasi.
+                    </p>
+
+                    <div style="background: #fef2f2; border: 1px solid #fca5a5; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                        <p style="margin: 0; color: #7f1d1d; line-height: 1.6;">
+                            Hakemusten arviointi on tiukkaa ja tilanne voi muuttua tulevaisuudessa.
+                            Kannustamme sinua hakemaan uudelleen myöhemmin.
+                        </p>
+                    </div>
+
+                    <p style="font-size: 16px; color: #374151; line-height: 1.6;">
+                        Kiitos ymmärryksestäsi ja toivomme sinulle menestystä tulevaisuudessa.
+                    </p>
+
+                    <p style="font-size: 16px; color: #374151;">
+                        Ystävällisin terveisin,<br>
+                        <strong>Levoro tiimi</strong>
+                    </p>
+                </div>
+
+                <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb;">
+                    <p style="font-size: 14px; color: #6b7280;">
+                        Levoro - Luotettavaa autokuljetusta<br>
+                        <a href="https://levoro.fi" style="color: #3b82f6;">levoro.fi</a>
+                    </p>
+                </div>
+            </div>
+            """
+
+            return self.send_email(
+                subject="Kuljettajahakemus - Levoro",
+                recipients=[email],
+                html_body=html_body
+            )
+        except Exception as e:
+            current_app.logger.error(f"Failed to send driver application denial: {str(e)}")
+            print(f"   ❌ Failed to send driver application denial: {str(e)}")
             return False
 
     def _html_to_text(self, html_content: str) -> str:

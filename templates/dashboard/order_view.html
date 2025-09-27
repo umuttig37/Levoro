@@ -58,6 +58,9 @@
             <span class="metric-value">
               {% if order.driver_name %}
                 {{ order.driver_name }}
+                {% if order.driver_phone %}
+                  <br><a href="tel:{{ order.driver_phone }}" class="driver-phone-link">📞 {{ order.driver_phone }}</a>
+                {% endif %}
               {% else %}
                 Määritetään...
               {% endif %}

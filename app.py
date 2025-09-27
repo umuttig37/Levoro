@@ -473,13 +473,17 @@ def render_with_context(template_name, **kwargs):
 @app.get("/")
 def home():
     u = current_user()
-    body = """
+
+    # Build driver application button conditionally
+    driver_button = '' if u else '<a class="btn btn-outline btn-lg" href="/hae-kuljettajaksi">🚗 Hae kuljettajaksi</a>'
+
+    body = f"""
 <!-- HERO -->
 <div class="container">
   <div class="hero">
     <div class="hero-content">
       <div class="hero-badge">
-        <span aria-hidden="true">🚗</span> 
+        <span aria-hidden="true">🚗</span>
         Saman päivän auton kuljetukset
       </div>
       <h1 class="hero-title">Samana päivänä, ja halvin.<br/>Levorolla mahdollista.</h1>
@@ -487,6 +491,7 @@ def home():
       <div class="hero-actions">
         <a class="btn btn-primary btn-lg" href="/calculator">Laske halvin hinta nyt</a>
         <a class="btn btn-secondary btn-lg" href="#how">Miten se toimii</a>
+        {driver_button}
       </div>
       <div class="hero-features">
         <div class="hero-feature">Toimitus samana päivänä</div>
@@ -1086,7 +1091,8 @@ def order_view(order_id: int):
             "pickup_started": 1, "delivery_completed": 1,
             "created_at": 1, "updated_at": 1,
             "driver_name": "$driver.name",
-            "driver_email": "$driver.email"
+            "driver_email": "$driver.email",
+            "driver_phone": "$driver.phone"
         }}
     ]
 
@@ -1102,25 +1108,54 @@ def order_view(order_id: int):
     current_status = r.get("status", "NEW")
     step = progress_step(current_status)
 
-    # Progress bar with better styling
-    progress_bar = f"""
-<div class="order-progress" data-step="{step}" data-status="{current_status}">
-  <div class="progress-step {'completed' if step >= 1 else ''}">
-    <div class="step-number">1</div>
-    <div class="step-label">Noudettu</div>
-  </div>
-  <div class="progress-line {'completed' if step >= 2 else ''}"></div>
-  <div class="progress-step {'completed' if step >= 2 else ''}">
-    <div class="step-number">2</div>
-    <div class="step-label">Kuljetuksessa</div>
-  </div>
-  <div class="progress-line {'completed' if step >= 3 else ''}"></div>
-  <div class="progress-step {'completed' if step >= 3 else ''}">
-    <div class="step-number">3</div>
-    <div class="step-label">Toimitettu</div>
-  </div>
-</div>
-"""
+    # Enhanced progress bar with detailed status tracking
+    def get_detailed_progress_html(status, step):
+        # Simplified progress with only 4 key steps
+        statuses = [
+            {"key": "NEW", "label": "Vahvistettu", "group": ["NEW", "CONFIRMED"]},
+            {"key": "ASSIGNED_TO_DRIVER", "label": "Kuljettaja määritetty", "group": ["ASSIGNED_TO_DRIVER", "DRIVER_ARRIVED", "PICKUP_IMAGES_ADDED"]},
+            {"key": "IN_TRANSIT", "label": "Kuljetuksessa", "group": ["IN_TRANSIT", "DELIVERY_ARRIVED", "DELIVERY_IMAGES_ADDED"]},
+            {"key": "DELIVERED", "label": "Toimitettu", "group": ["DELIVERED"]}
+        ]
+
+        # Find current step based on status
+        current_step = 0
+        for i, step_info in enumerate(statuses):
+            if status in step_info["group"]:
+                current_step = i
+                break
+
+        html_parts = ['<div class="simple-progress">']
+
+        for i, step_info in enumerate(statuses):
+            is_completed = i < current_step
+            is_current = i == current_step
+
+            step_classes = ["progress-step"]
+            if is_completed:
+                step_classes.append("completed")
+            elif is_current:
+                step_classes.append("current")
+
+            html_parts.append(f'<div class="{" ".join(step_classes)}">')
+            html_parts.append(f'<div class="step-circle">{i + 1}</div>')
+            html_parts.append(f'<div class="step-title">{step_info["label"]}</div>')
+            html_parts.append('</div>')
+
+            # Add connector line (except for last item)
+            if i < len(statuses) - 1:
+                line_class = "progress-connector completed" if is_completed else "progress-connector"
+                html_parts.append(f'<div class="{line_class}"></div>')
+
+        html_parts.append('</div>')
+
+        # Add current status description
+        status_description = get_status_description(status)
+        html_parts.append(f'<div class="current-status-description">{status_description}</div>')
+
+        return "".join(html_parts)
+
+    progress_bar = get_detailed_progress_html(current_status, step)
 
     status_fi = translate_status(r.get('status', 'NEW'))
     status_description = get_status_description(r.get('status', 'NEW'))
@@ -1219,6 +1254,7 @@ def admin_home():
     <div class="admin-actions">
       <a class="btn btn-ghost" href="/admin/users">Käyttäjät</a>
       <a class="btn btn-ghost" href="/admin/drivers">Kuljettajat</a>
+      <a class="btn btn-ghost" href="/admin/driver-applications">Kuljettajahakemukset</a>
       <a class="btn btn-secondary" href="/logout">Kirjaudu ulos</a>
     </div>
   </div>
@@ -1381,7 +1417,6 @@ def admin_drivers():
   <td>{driver['total_jobs']}</td>
   <td>{driver['completed_jobs']}</td>
   <td>{driver['active_jobs']}</td>
-  <td>{driver['completion_rate']:.1f}%</td>
   <td>{format_helsinki_time(driver.get('created_at')) if driver.get('created_at') else '-'}</td>
 </tr>
 """
@@ -1424,8 +1459,8 @@ def admin_drivers():
   <div class="mb-6">
     <h3>Kuljettajat</h3>
     <table class="admin-table admin-users-table">
-      <thead><tr><th>ID</th><th>Nimi</th><th>Sähköposti</th><th>Tila</th><th>Yhteensä</th><th>Suoritettu</th><th>Aktiivisia</th><th>Onnistumis-%</th><th>Luotu</th></tr></thead>
-      <tbody>{driver_rows or "<tr><td colspan='9' class='muted'>Ei kuljettajia</td></tr>"}</tbody>
+      <thead><tr><th>ID</th><th>Nimi</th><th>Sähköposti</th><th>Tila</th><th>Yhteensä</th><th>Suoritettu</th><th>Aktiivisia</th><th>Luotu</th></tr></thead>
+      <tbody>{driver_rows or "<tr><td colspan='8' class='muted'>Ei kuljettajia</td></tr>"}</tbody>
     </table>
   </div>
 
@@ -1458,6 +1493,290 @@ def admin_assign_driver():
         flash(f"Virhe: {error}", "error")
 
     return redirect(url_for("admin_drivers"))
+
+
+@app.get("/admin/driver-applications")
+def admin_driver_applications():
+    """Admin interface for managing driver applications"""
+    u = current_user()
+    if not u or u.get("role") != "admin":
+        return wrap("<div class='card'><h2>Adminalue</h2><p class='muted'>Kirjaudu admin-käyttäjänä.</p></div>", u)
+
+    from models.driver_application import driver_application_model
+
+    # Get all applications
+    applications = list(driver_application_model.get_all_applications(limit=100))
+    stats = driver_application_model.get_application_statistics()
+
+    # Build application rows
+    app_rows = ""
+    for app in applications:
+        status_class = {
+            "pending": "status-new",
+            "approved": "status-confirmed",
+            "denied": "status-cancelled"
+        }.get(app["status"], "status-new")
+
+        status_text = {
+            "pending": "⏳ Odottaa",
+            "approved": "✅ Hyväksytty",
+            "denied": "❌ Hylätty"
+        }.get(app["status"], "Tuntematon")
+
+        created_date = app.get("created_at", "").strftime("%d.%m.%Y") if app.get("created_at") else ""
+
+        # Action buttons based on status
+        actions = ""
+        if app["status"] == "pending":
+            actions = f"""
+            <form method="POST" action="/admin/driver-applications/approve" class="admin-inline-form">
+                <input type="hidden" name="application_id" value="{app['id']}">
+                <button type="submit" class="btn btn-sm btn-success" onclick="return confirm('Hyväksy hakemus?')">Hyväksy</button>
+            </form>
+            <form method="POST" action="/admin/driver-applications/deny" class="admin-inline-form">
+                <input type="hidden" name="application_id" value="{app['id']}">
+                <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Hylkää hakemus?')">Hylkää</button>
+            </form>
+            """
+        else:
+            actions = f"<span class='muted'>Käsitelty</span>"
+
+        app_rows += f"""
+        <tr class="admin-table-row" onclick="window.location.href='/admin/driver-applications/{app['id']}'" style="cursor: pointer;">
+            <td>#{app['id']}</td>
+            <td><strong>{app['name']}</strong></td>
+            <td>{app['email']}</td>
+            <td>{app['phone']}</td>
+            <td><span class="status {status_class}">{status_text}</span></td>
+            <td>{created_date}</td>
+            <td onclick="event.stopPropagation();">{actions}</td>
+        </tr>
+        """
+
+    body = f"""
+<div class="admin-container">
+    <div class="admin-header">
+        <h2>Kuljettajahakemukset</h2>
+        <div class="admin-actions">
+            <a class="btn btn-ghost" href="/admin">Tilaukset</a>
+            <a class="btn btn-ghost" href="/admin/users">Käyttäjät</a>
+            <a class="btn btn-ghost" href="/admin/drivers">Kuljettajat</a>
+            <a class="btn btn-secondary" href="/logout">Kirjaudu ulos</a>
+        </div>
+    </div>
+
+    <!-- Statistics -->
+    <div class="admin-stats" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px;">
+        <div class="stat-card">
+            <div class="stat-number">{stats['total']}</div>
+            <div class="stat-label">Yhteensä</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number">{stats['pending']}</div>
+            <div class="stat-label">Odottaa</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number">{stats['approved']}</div>
+            <div class="stat-label">Hyväksytty</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number">{stats['denied']}</div>
+            <div class="stat-label">Hylätty</div>
+        </div>
+    </div>
+
+    <table class="admin-table">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Nimi</th>
+                <th>Sähköposti</th>
+                <th>Puhelin</th>
+                <th>Tila</th>
+                <th>Lähetetty</th>
+                <th>Toiminnot</th>
+            </tr>
+        </thead>
+        <tbody>
+            {app_rows or "<tr><td colspan='7' class='muted'>Ei hakemuksia</td></tr>"}
+        </tbody>
+    </table>
+</div>
+"""
+    return wrap(body, u)
+
+
+@app.get("/admin/driver-applications/<int:application_id>")
+def admin_driver_application_detail(application_id):
+    """View detailed driver application"""
+    u = current_user()
+    if not u or u.get("role") != "admin":
+        return wrap("<div class='card'><h2>Adminalue</h2><p class='muted'>Kirjaudu admin-käyttäjänä.</p></div>", u)
+
+    from models.driver_application import driver_application_model
+
+    app = driver_application_model.find_by_id(application_id)
+    if not app:
+        return wrap("<div class='card'><h2>Hakemusta ei löytynyt</h2></div>", u)
+
+    status_class = {
+        "pending": "status-new",
+        "approved": "status-confirmed",
+        "denied": "status-cancelled"
+    }.get(app["status"], "status-new")
+
+    status_text = {
+        "pending": "⏳ Odottaa käsittelyä",
+        "approved": "✅ Hyväksytty",
+        "denied": "❌ Hylätty"
+    }.get(app["status"], "Tuntematon")
+
+    # Action buttons
+    actions = ""
+    if app["status"] == "pending":
+        actions = f"""
+        <div class="application-actions" style="text-align: center; margin-top: 30px;">
+            <form method="POST" action="/admin/driver-applications/approve" style="display: inline; margin: 0 10px;">
+                <input type="hidden" name="application_id" value="{app['id']}">
+                <button type="submit" class="btn btn-success" onclick="return confirm('Hyväksy hakemus ja luo kuljettajatili?')">✅ Hyväksy hakemus</button>
+            </form>
+            <form method="POST" action="/admin/driver-applications/deny" style="display: inline; margin: 0 10px;">
+                <input type="hidden" name="application_id" value="{app['id']}">
+                <button type="submit" class="btn btn-danger" onclick="return confirm('Hylkää hakemus?')">❌ Hylkää hakemus</button>
+            </form>
+        </div>
+        """
+
+    created_date = app.get("created_at", "").strftime("%d.%m.%Y %H:%M") if app.get("created_at") else ""
+    processed_date = app.get("processed_at", "").strftime("%d.%m.%Y %H:%M") if app.get("processed_at") else ""
+
+    body = f"""
+<div class="admin-container">
+    <div class="admin-header">
+        <h2>Kuljettajahakemus #{app['id']}</h2>
+        <div class="admin-actions">
+            <a class="btn btn-ghost" href="/admin/driver-applications">← Takaisin hakemuksiin</a>
+            <a class="btn btn-secondary" href="/logout">Kirjaudu ulos</a>
+        </div>
+    </div>
+
+    <div class="application-detail" style="max-width: 800px; margin: 0 auto;">
+        <!-- Status -->
+        <div class="status-card" style="text-align: center; margin-bottom: 30px; padding: 20px; background: white; border-radius: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+            <span class="status {status_class}" style="font-size: 1.2rem; padding: 8px 16px;">{status_text}</span>
+            <div style="margin-top: 10px; color: #666;">
+                <small>Lähetetty: {created_date}</small>
+                {f"<br><small>Käsitelty: {processed_date}</small>" if processed_date else ""}
+            </div>
+        </div>
+
+        <!-- Personal Information -->
+        <div class="detail-section" style="background: white; padding: 24px; margin-bottom: 20px; border-radius: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+            <h3 style="margin-bottom: 16px; color: #333;">👤 Hakijan tiedot</h3>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                <div><strong>Nimi:</strong> {app['name']}</div>
+                <div><strong>Sähköposti:</strong> {app['email']}</div>
+                <div><strong>Puhelin:</strong> {app['phone']}</div>
+                <div><strong>Salasana:</strong> Asetettu (salattu)</div>
+            </div>
+        </div>
+
+        {actions}
+    </div>
+</div>
+"""
+    return wrap(body, u)
+
+
+@app.post("/admin/driver-applications/approve")
+def admin_approve_driver_application():
+    """Approve driver application and create driver account"""
+    u = current_user()
+    if not u or u.get("role") != "admin":
+        flash("Ei oikeuksia", "error")
+        return redirect("/login")
+
+    application_id = int(request.form.get("application_id"))
+
+    from models.driver_application import driver_application_model
+    from models.user import user_model
+    from services.email_service import email_service
+    from models.database import DatabaseManager, counter_manager
+    from datetime import datetime, timezone
+
+    # Get application
+    app = driver_application_model.find_by_id(application_id)
+    if not app or app["status"] != "pending":
+        flash("Hakemusta ei löytynyt tai se on jo käsitelty", "error")
+        return redirect("/admin/driver-applications")
+
+    # Create driver user account using the application's password hash
+    try:
+        # Create user document manually with the existing password hash
+        user_id = counter_manager.get_next_id("users")
+
+        user_data = {
+            "id": user_id,
+            "email": app["email"],
+            "password_hash": app["password_hash"],  # Use the existing hash from application
+            "name": app["name"],
+            "role": "driver",
+            "phone": app["phone"],
+            "status": "active",  # Directly activate since admin approved
+            "created_at": datetime.now(timezone.utc),
+            "updated_at": datetime.now(timezone.utc)
+        }
+
+        users_col = DatabaseManager().get_collection("users")
+        users_col.insert_one(user_data)
+
+    except Exception as e:
+        flash(f"Virhe kuljettajatilin luomisessa: {str(e)}", "error")
+        return redirect(f"/admin/driver-applications/{application_id}")
+
+    # Mark application as approved
+    driver_application_model.approve_application(application_id, u["id"])
+
+    # Send approval email
+    try:
+        email_service.send_driver_application_approved(app["email"], app["name"])
+    except Exception as e:
+        print(f"Failed to send approval email: {e}")
+
+    flash(f"Hakemus hyväksytty! Kuljettajatili luotu käyttäjälle {app['name']}", "success")
+    return redirect("/admin/driver-applications")
+
+
+@app.post("/admin/driver-applications/deny")
+def admin_deny_driver_application():
+    """Deny driver application"""
+    u = current_user()
+    if not u or u.get("role") != "admin":
+        flash("Ei oikeuksia", "error")
+        return redirect("/login")
+
+    application_id = int(request.form.get("application_id"))
+
+    from models.driver_application import driver_application_model
+    from services.email_service import email_service
+
+    # Get application
+    app = driver_application_model.find_by_id(application_id)
+    if not app or app["status"] != "pending":
+        flash("Hakemusta ei löytynyt tai se on jo käsitelty", "error")
+        return redirect("/admin/driver-applications")
+
+    # Mark application as denied
+    driver_application_model.deny_application(application_id, u["id"])
+
+    # Send denial email
+    try:
+        email_service.send_driver_application_denied(app["email"], app["name"])
+    except Exception as e:
+        print(f"Failed to send denial email: {e}")
+
+    flash(f"Hakemus hylätty: {app['name']}", "warning")
+    return redirect("/admin/driver-applications")
 
 
 @app.post("/admin/update")
@@ -1772,6 +2091,105 @@ def api_quote():
         return jsonify({"error": "bad km"}), 400
     net, vat, gross, _ = order_service.price_from_km(km)
     return jsonify({"net": net, "vat": vat, "gross": gross})
+
+
+# ----------------- DRIVER APPLICATION ROUTES -----------------
+
+@app.get("/hae-kuljettajaksi")
+def driver_application_form():
+    """Display driver application form"""
+    return render_template('driver_application.html')
+
+
+@app.post("/hae-kuljettajaksi")
+def submit_driver_application():
+    """Process driver application submission"""
+    from models.driver_application import driver_application_model
+    from services.email_service import email_service
+
+    # Get form data
+    application_data = {
+        "first_name": (request.form.get("first_name") or "").strip(),
+        "last_name": (request.form.get("last_name") or "").strip(),
+        "email": (request.form.get("email") or "").strip(),
+        "phone": (request.form.get("phone") or "").strip(),
+        "password": (request.form.get("password") or "").strip(),
+        "password_confirm": (request.form.get("password_confirm") or "").strip()
+    }
+    application_data["name"] = " ".join(
+        part for part in [application_data["first_name"], application_data["last_name"]]
+        if part
+    ).strip()
+
+    # Validate required fields
+    required_fields = ["first_name", "last_name", "email", "phone", "password", "password_confirm"]
+    field_labels = {
+        "first_name": "Etunimi",
+        "last_name": "Sukunimi",
+        "email": "Sähköposti",
+        "phone": "Puhelinnumero",
+        "password": "Salasana",
+        "password_confirm": "Salasanan vahvistus"
+    }
+
+    for field in required_fields:
+        if not application_data.get(field):
+            label = field_labels.get(field, field)
+            flash(f"Virhe: {label} on pakollinen kenttä", "error")
+            return render_template('driver_application.html')
+
+    if not application_data["name"]:
+        flash("Virhe: Lisää etu- ja sukunimi", "error")
+        return render_template('driver_application.html')
+
+    # Validate password confirmation
+    if application_data["password"] != application_data["password_confirm"]:
+        flash("Salasanat eivät täsmää", "error")
+        return render_template('driver_application.html')
+
+    # Validate password length
+    if len(application_data["password"]) < 6:
+        flash("Salasana tulee olla vähintään 6 merkkiä pitkä", "error")
+        return render_template('driver_application.html')
+
+    # Check if application already exists
+    existing = driver_application_model.find_by_email(application_data["email"])
+    if existing:
+        flash("Sähköpostiosoitteella on jo lähetetty hakemus", "error")
+        return render_template('driver_application.html')
+
+    # Check if user already exists in the system
+    from models.user import user_model
+    existing_user = user_model.find_by_email(application_data["email"])
+    if existing_user:
+        flash("Sähköpostiosoite on jo käytössä järjestelmässä", "error")
+        return render_template('driver_application.html')
+
+    # Create application
+    application, error = driver_application_model.create_application(application_data)
+    if error:
+        flash(f"Virhe hakemuksen lähettämisessä: {error}", "error")
+        return render_template('driver_application.html')
+
+    # Send confirmation email to applicant
+    try:
+        email_service.send_driver_application_confirmation(application_data["email"], application_data["name"])
+    except Exception as e:
+        print(f"Failed to send confirmation email: {e}")
+
+    # Send notification email to admin
+    try:
+        email_service.send_admin_driver_application_notification(application)
+    except Exception as e:
+        print(f"Failed to send admin notification: {e}")
+
+    applicant_name = application_data["first_name"] or application_data["name"]
+
+    return render_template(
+        'driver_application_success.html',
+        applicant_name=applicant_name,
+        application_id=application["id"]
+    )
 
 
 # Register blueprints

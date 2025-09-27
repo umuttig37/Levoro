@@ -68,26 +68,8 @@
             <div class="text-3xl font-bold text-purple-600 mb-2">{{ stats.active_jobs }}</div>
             <div class="text-sm text-gray-600">Aktiivisia</div>
           </div>
-          <div class="text-center">
-            <div class="text-3xl font-bold text-orange-600 mb-2">{{ "%.1f"|format(stats.completion_rate) }}%</div>
-            <div class="text-sm text-gray-600">Onnistumisprosentti</div>
-          </div>
         </div>
 
-        {% if stats.total_jobs > 0 %}
-        <div class="mt-6 pt-4 border-t">
-          <h3 class="font-semibold mb-3">Suorituskyky</h3>
-          <div class="space-y-2">
-            <div class="flex justify-between text-sm">
-              <span>Suoritetut työt:</span>
-              <span>{{ stats.completed_jobs }} / {{ stats.total_jobs }}</span>
-            </div>
-            <div class="w-full bg-gray-200 rounded-full h-2">
-              <div class="bg-green-600 h-2 rounded-full" style="width: {{ stats.completion_rate }}%"></div>
-            </div>
-          </div>
-        </div>
-        {% endif %}
       </div>
     </div>
   </div>

@@ -94,22 +94,21 @@ class DriverService:
         if not success:
             return False, error
 
-        # Send email notification to customer (skip for image-only statuses)
-        if new_status not in order_model.NO_EMAIL_STATUSES:
-            try:
-                customer = user_model.find_by_id(order["user_id"])
-                driver = user_model.find_by_id(driver_id)
+        # Send email notification to customer for all status changes
+        try:
+            customer = user_model.find_by_id(order["user_id"])
+            driver = user_model.find_by_id(driver_id)
 
-                if customer and driver:
-                    email_service.send_status_update_email(
-                        customer["email"],
-                        customer["name"],
-                        order_id,
-                        new_status,
-                        driver_name=driver["name"]
-                    )
-            except Exception as e:
-                print(f"Email notification failed: {e}")
+            if customer and driver:
+                email_service.send_status_update_email(
+                    customer["email"],
+                    customer["name"],
+                    order_id,
+                    new_status,
+                    driver_name=driver["name"]
+                )
+        except Exception as e:
+            print(f"Email notification failed: {e}")
 
         return True, None
 
@@ -202,8 +201,7 @@ class DriverService:
         return {
             "total_jobs": total_jobs,
             "completed_jobs": completed_jobs,
-            "active_jobs": active_jobs,
-            "completion_rate": (completed_jobs / total_jobs * 100) if total_jobs > 0 else 0
+            "active_jobs": active_jobs
         }
 
     def get_all_drivers(self) -> List[Dict]:

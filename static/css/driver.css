@@ -60,9 +60,6 @@
     color: var(--color-success);
 }
 
-.driver-metric-value.percentage {
-    color: #8b5cf6;
-}
 
 .driver-metric-label {
     color: var(--text-secondary);

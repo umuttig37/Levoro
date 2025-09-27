@@ -31,8 +31,8 @@ class OrderModel(BaseModel):
         STATUS_DELIVERY_IMAGES_ADDED, STATUS_DELIVERED, STATUS_CANCELLED
     ]
 
-    # Statuses that should not trigger email notifications
-    NO_EMAIL_STATUSES = [STATUS_PICKUP_IMAGES_ADDED, STATUS_DELIVERY_IMAGES_ADDED]
+    # All statuses now trigger email notifications for better user experience
+    NO_EMAIL_STATUSES = []
 
     def create_order(self, user_id: int, order_data: Dict) -> Tuple[Optional[Dict], Optional[str]]:
         """Create a new order"""
@@ -376,7 +376,8 @@ class OrderModel(BaseModel):
                 "customer_name": "$customer.name",
                 "customer_email": "$customer.email",
                 "driver_name": "$driver.name",
-                "driver_email": "$driver.email"
+                "driver_email": "$driver.email",
+                "driver_phone": "$driver.phone"
             }}
         ]
         return self.aggregate(pipeline)
