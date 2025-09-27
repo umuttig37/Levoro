@@ -144,9 +144,9 @@
           <h2 class="card-title">Kuvat</h2>
         </div>
         <div class="card-body">
-          <div class="grid cols-2 gap-6">
+          <div class="driver-images-grid">
             <!-- Pickup Images -->
-            <div>
+            <div class="driver-images-section">
               {% set pickup_images = order.images.pickup if order.images and order.images.pickup else [] %}
               {% set image_type = 'pickup' %}
               {% set images_data = pickup_images %}
@@ -155,7 +155,7 @@
             </div>
 
             <!-- Delivery Images -->
-            <div>
+            <div class="driver-images-section">
               {% set delivery_images = order.images.delivery if order.images and order.images.delivery else [] %}
               {% set image_type = 'delivery' %}
               {% set images_data = delivery_images %}
@@ -169,7 +169,7 @@
     </div>
 
     <!-- Actions Panel -->
-    <div>
+    <div class="driver-actions-panel">
       <div class="card">
         <div class="card-header">
           <h2 class="card-title">Toiminnot</h2>

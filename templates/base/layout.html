@@ -28,6 +28,11 @@
     <!-- Main CSS -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
 
+    <!-- Driver-specific CSS -->
+    {% if current_user and current_user.role == 'driver' and request.endpoint and 'driver.' in request.endpoint %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/driver-images.css') }}">
+    {% endif %}
+
     <!-- Dashboard Table CSS -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard-table.css') }}">
 

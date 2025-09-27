@@ -1,6 +1,6 @@
 <!-- Driver Image Section Component -->
 <div class="image-section">
-    <h3>{{ 'Nouto' if image_type == 'pickup' else 'Toimitus' }} kuvat</h3>
+    <h3>{{ 'Nouto' if image_type == 'pickup' else 'Toimitus' }}kuvat</h3>
     <div class="image-counter">
         <span class="image-counter-text">{{ images_data|length if images_data else 0 }}/15 kuvaa</span>
         <span class="image-counter-limit">Maksimi 15 kuvaa</span>
@@ -10,16 +10,17 @@
     <!-- Images Grid -->
     <div class="images-grid">
         {% for img in images_data|sort(attribute='order') %}
-        <div class="image-item" data-image-type="{{ image_type }}">
+        <div class="image-item" data-image-type="{{ image_type }}" data-image-id="{{ img.id }}">
             <img src="{{ img.file_path }}"
                  alt="{{ 'Nouto kuva' if image_type == 'pickup' else 'Toimitus kuva' }}"
                  class="image-thumbnail"
-                 data-image-id="{{ img.id }}"
-                 onclick="openImageModal('{{ image_type }}', '{{ img.id }}')">
+                 loading="lazy"
+                 onclick="openDriverImageModal('{{ image_type }}', '{{ img.id }}', '{{ img.file_path }}')">
             <div class="image-actions">
                 <button class="image-action-btn delete"
                         onclick="deleteDriverImage('{{ order.id }}', '{{ image_type }}', '{{ img.id }}')"
-                        title="Poista kuva">×</button>
+                        title="Poista kuva"
+                        aria-label="Poista {{ 'nouto' if image_type == 'pickup' else 'toimitus' }}kuva">×</button>
             </div>
         </div>
         {% endfor %}
@@ -30,15 +31,20 @@
     {% if can_upload and (not images_data or images_data|length < 15) %}
     <form method="POST" action="{{ url_for('driver.upload_image', order_id=order.id) }}"
           enctype="multipart/form-data"
-          class="upload-form driver-upload-form"
+          class="upload-form"
           id="driver-{{ image_type }}-form-{{ order.id }}">
         <input type="hidden" name="image_type" value="{{ image_type }}">
-        <input type="file" name="image" accept=".jpg,.jpeg,.png,.webp" required onchange="submitDriverImageForm(this)">
+        <input type="file"
+               name="image"
+               accept=".jpg,.jpeg,.png,.webp"
+               required
+               onchange="submitDriverImageForm(this)"
+               aria-label="Valitse {{ 'nouto' if image_type == 'pickup' else 'toimitus' }}kuva">
 
         {% if images_data and images_data|length > 0 %}
         <button type="submit" class="btn btn-primary">Lataa lisää kuvia</button>
         {% else %}
-        <button type="submit" class="btn btn-primary">Lataa {{ 'nouto' if image_type == 'pickup' else 'toimitus' }} kuva</button>
+        <button type="submit" class="btn btn-primary">Lataa {{ 'nouto' if image_type == 'pickup' else 'toimitus' }}kuva</button>
         {% endif %}
 
         <div class="upload-status" style="display: none;">
@@ -46,16 +52,29 @@
         </div>
     </form>
     {% elif not can_upload %}
-    <p class="text-muted text-sm">
+    <div class="text-muted">
         {% if image_type == 'pickup' %}
-        Kuvien lataus mahdollista kun olet saapunut noutopaikalle
+        📍 Kuvien lataus mahdollista kun olet saapunut noutopaikalle
         {% else %}
-        Kuvien lataus mahdollista kun olet saapunut toimituspaikalle
+        📍 Kuvien lataus mahdollista kun olet saapunut toimituspaikalle
         {% endif %}
-    </p>
+    </div>
     {% else %}
-    <p class="text-muted text-sm">Maksimi kuvia (15) ladattu</p>
+    <div class="text-muted">✅ Maksimi kuvia (15) ladattu</div>
     {% endif %}
+</div>
+
+<!-- Driver Image Modal -->
+<div id="driver-image-modal" class="driver-image-modal" onclick="closeDriverImageModal(event)">
+    <div class="driver-image-modal-content" onclick="event.stopPropagation()">
+        <div class="driver-modal-header">
+            <h3 class="driver-modal-title" id="driver-modal-title">Kuvan katselu</h3>
+            <button class="driver-modal-close" onclick="closeDriverImageModal()" aria-label="Sulje">&times;</button>
+        </div>
+        <div class="driver-modal-image-container">
+            <img id="driver-modal-image" class="driver-modal-image" src="" alt="Kuva">
+        </div>
+    </div>
 </div>
 
 <script>
@@ -66,30 +85,94 @@ function submitDriverImageForm(input) {
 
     status.style.display = 'block';
     button.disabled = true;
+    button.textContent = 'Ladataan...';
 
     form.submit();
 }
 
 function deleteDriverImage(orderId, imageType, imageId) {
     if (confirm('Haluatko varmasti poistaa tämän kuvan?')) {
+        // Disable the delete button during request
+        const deleteBtn = event.target;
+        deleteBtn.disabled = true;
+        deleteBtn.textContent = '...';
+
         fetch(`/driver/order/${orderId}/image/${imageType}/${imageId}`, {
             method: 'DELETE',
             headers: {
                 'Content-Type': 'application/json',
             }
         })
-        .then(response => response.json())
+        .then(response => {
+            if (response.ok) {
+                return response.json();
+            }
+            throw new Error('Network response was not ok');
+        })
         .then(data => {
             if (data.success) {
                 location.reload();
             } else {
                 alert('Kuvan poistaminen epäonnistui: ' + (data.error || 'Tuntematon virhe'));
+                deleteBtn.disabled = false;
+                deleteBtn.textContent = '×';
             }
         })
         .catch(error => {
             console.error('Error:', error);
             alert('Kuvan poistaminen epäonnistui');
+            deleteBtn.disabled = false;
+            deleteBtn.textContent = '×';
         });
     }
 }
+
+function openDriverImageModal(imageType, imageId, imagePath) {
+    const modal = document.getElementById('driver-image-modal');
+    const modalImage = document.getElementById('driver-modal-image');
+    const modalTitle = document.getElementById('driver-modal-title');
+
+    modalImage.src = imagePath;
+    modalTitle.textContent = `${imageType === 'pickup' ? 'Nouto' : 'Toimitus'}kuva`;
+    modal.style.display = 'block';
+
+    // Prevent body scrolling when modal is open
+    document.body.style.overflow = 'hidden';
+}
+
+function closeDriverImageModal(event) {
+    const modal = document.getElementById('driver-image-modal');
+
+    // Only close if clicking outside the modal content or on the close button
+    if (!event || event.target === modal || event.target.classList.contains('driver-modal-close')) {
+        modal.style.display = 'none';
+        document.body.style.overflow = 'auto';
+    }
+}
+
+// Close modal with Escape key
+document.addEventListener('keydown', function(event) {
+    if (event.key === 'Escape') {
+        closeDriverImageModal();
+    }
+});
+
+// Handle mobile touch gestures
+let touchStartY = 0;
+document.addEventListener('touchstart', function(e) {
+    touchStartY = e.touches[0].clientY;
+});
+
+document.addEventListener('touchmove', function(e) {
+    const modal = document.getElementById('driver-image-modal');
+    if (modal.style.display === 'block') {
+        const touchY = e.touches[0].clientY;
+        const deltaY = touchY - touchStartY;
+
+        // Close modal on swipe down gesture (> 100px)
+        if (deltaY > 100) {
+            closeDriverImageModal();
+        }
+    }
+});
 </script>
