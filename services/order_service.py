@@ -21,7 +21,11 @@ MID_KM = 170.0
 MID_GROSS = float(os.getenv("MID_GROSS", "81"))
 LONG_KM = 600.0
 LONG_GROSS = float(os.getenv("LONG_GROSS", "207"))
+# NOTE: Return leg discount is not currently used in the application UI
+# This feature is preserved for potential future use
 ROUNDTRIP_DISCOUNT = 0.30
+# Minimum order price - all orders must be at least this amount
+MINIMUM_ORDER_PRICE = 20.0
 
 # External API configuration
 GOOGLE_PLACES_API_KEY = os.getenv("GOOGLE_PLACES_API_KEY", "")
@@ -145,11 +149,14 @@ class OrderService:
             rate_per_km = LONG_GROSS / LONG_KM
             base_price = distance_km * rate_per_km
 
-        # Apply return trip discount
+        # Apply return trip discount (NOTE: This feature is not currently used in the UI)
         if return_leg:
             base_price *= (1 - ROUNDTRIP_DISCOUNT)
 
-        return round(base_price, 2)
+        # Enforce minimum order price
+        final_price = max(base_price, MINIMUM_ORDER_PRICE)
+
+        return round(final_price, 2)
 
     def calculate_route_distance(self, pickup_addr: str, dropoff_addr: str) -> float:
         """Calculate route distance using OSRM API"""

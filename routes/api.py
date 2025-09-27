@@ -17,6 +17,7 @@ def quote_for_addresses():
 
     pickup = payload.get("pickup", "").strip()
     dropoff = payload.get("dropoff", "").strip()
+    # NOTE: return_leg parameter exists but is not used in the current UI
     return_leg = bool(payload.get("return_leg", False))
 
     if not pickup or not dropoff:

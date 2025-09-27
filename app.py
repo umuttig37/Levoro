@@ -1746,6 +1746,7 @@ def api_quote_for_addresses():
     payload = request.get_json(force=True, silent=True) or {}
     pickup = payload.get("pickup", "").strip()
     dropoff = payload.get("dropoff", "").strip()
+    # NOTE: return_leg parameter exists but is not used in the current UI
     return_leg = bool(payload.get("return_leg", False))  # optional flag
     if not pickup or not dropoff:
         return jsonify({"error": "Lähtö- ja kohdeosoite vaaditaan"}), 400
