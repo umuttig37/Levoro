@@ -153,9 +153,9 @@
         <div class="images-grid">
           <div class="image-section">
             <h4 class="image-section-title">Nouto</h4>
-            {% include 'components/client_image_section.html' with context %}
             {% set image_type = 'pickup' %}
             {% set images_data = order.images.pickup if order.images else [] %}
+            {% include 'components/client_image_section.html' with context %}
           </div>
           <div class="image-section">
             <h4 class="image-section-title">Toimitus</h4>
