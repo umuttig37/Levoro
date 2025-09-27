@@ -159,8 +159,7 @@
 
 .image-item:hover {
     border-color: #007bff;
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 123, 255, 0.2);
+    box-shadow: 0 2px 8px rgba(0, 123, 255, 0.15);
 }
 
 .image-thumbnail {
@@ -172,7 +171,7 @@
 }
 
 .image-item:hover .image-thumbnail {
-    transform: scale(1.05);
+    opacity: 0.95;
 }
 
 .image-actions {
@@ -206,7 +205,7 @@
 
 .image-action-btn:hover {
     background: rgba(255, 255, 255, 1);
-    transform: scale(1.1);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .image-action-btn.delete {
@@ -279,6 +278,27 @@
     font-size: 0.95em;
     transition: border-color 0.2s ease;
     cursor: pointer;
+    color: #333 !important;
+}
+
+.upload-form input[type="file"]::-webkit-file-upload-button {
+    background: #007bff;
+    color: white;
+    border: none;
+    padding: 8px 12px;
+    border-radius: 6px;
+    margin-right: 12px;
+    cursor: pointer;
+}
+
+.upload-form input[type="file"]::file-selector-button {
+    background: #007bff;
+    color: white;
+    border: none;
+    padding: 8px 12px;
+    border-radius: 6px;
+    margin-right: 12px;
+    cursor: pointer;
 }
 
 .upload-form input[type="file"]:focus {
@@ -327,7 +347,7 @@
 .image-modal {
     display: none;
     position: fixed;
-    z-index: 1000;
+    z-index: var(--z-modal, 1050);
     left: 0;
     top: 0;
     width: 100%;
@@ -422,7 +442,7 @@
 
 .modal-nav:hover {
     background: rgba(255, 255, 255, 1);
-    transform: translateY(-50%) scale(1.1);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
 
 .modal-nav.prev {
@@ -452,6 +472,36 @@
     gap: 10px;
 }
 
+.modal-actions button {
+    color: #333 !important;
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-size: 0.9em;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.modal-actions button:hover {
+    background: #e9ecef;
+    border-color: #adb5bd;
+    color: #212529 !important;
+}
+
+.modal-actions button.btn-danger {
+    background: #dc3545 !important;
+    color: white !important;
+    border-color: #dc3545;
+}
+
+.modal-actions button.btn-danger:hover {
+    background: #c82333 !important;
+    border-color: #bd2130;
+    color: white !important;
+}
+
 /* Delete form */
 .delete-form {
     margin: 0;
@@ -460,6 +510,8 @@
 .delete-form button {
     padding: 6px 12px;
     font-size: 0.85em;
+    color: white !important;
+    background: #dc3545 !important;
 }
 
 /* Admin table image status */
@@ -500,8 +552,7 @@
 
 .btn-primary:hover {
     background: #0056b3;
-    transform: translateY(-1px);
-    box-shadow: 0 4px 8px rgba(0, 123, 255, 0.3);
+    box-shadow: 0 2px 6px rgba(0, 123, 255, 0.25);
 }
 
 .btn-secondary {
@@ -511,8 +562,7 @@
 
 .btn-secondary:hover {
     background: #545b62;
-    transform: translateY(-1px);
-    box-shadow: 0 4px 8px rgba(108, 117, 125, 0.3);
+    box-shadow: 0 2px 6px rgba(108, 117, 125, 0.25);
 }
 
 .btn-danger {
@@ -522,8 +572,7 @@
 
 .btn-danger:hover {
     background: #c82333;
-    transform: translateY(-1px);
-    box-shadow: 0 4px 8px rgba(220, 53, 69, 0.3);
+    box-shadow: 0 2px 6px rgba(220, 53, 69, 0.25);
 }
 
 .btn-sm {

@@ -852,17 +852,42 @@ def dashboard():
 
     rows = ""
     for r in orders:
-        status_fi = translate_status(r['status'])
-        rows += f"""
-<tr>
-  <td>#{r['id']}</td>
-  <td><span class="status {r['status']}">{status_fi}</span></td>
-  <td>{r['pickup_address']} → {r['dropoff_address']}</td>
-  <td>{float(r['distance_km']):.1f} km</td>
-  <td>{float(r['price_gross']):.2f} €</td>
-  <td><a class="btn btn-ghost btn-sm" href="/order/{r['id']}">Avaa</a></td>
+        try:
+            status_fi = translate_status(r['status'])
+
+            # Map status to CSS class
+            status_class_map = {
+                'NEW': 'pending',
+                'CONFIRMED': 'confirmed',
+                'IN_TRANSIT': 'in-progress',
+                'COMPLETED': 'completed',
+                'CANCELLED': 'cancelled'
+            }
+            status_class = status_class_map.get(r['status'], 'pending')
+
+            # Define status badge colors
+            status_colors = {
+                'pending': 'background: #fef3c7; color: #92400e; border: 1px solid #fde68a;',
+                'confirmed': 'background: #dbeafe; color: #1e40af; border: 1px solid #bfdbfe;',
+                'in-progress': 'background: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd;',
+                'completed': 'background: #dcfce7; color: #166534; border: 1px solid #bbf7d0;',
+                'cancelled': 'background: #fee2e2; color: #991b1b; border: 1px solid #fecaca;'
+            }
+            status_style = status_colors.get(status_class, status_colors['pending'])
+
+            rows += f"""
+<tr style="transition: background-color 0.15s ease-in-out;" onmouseover="this.style.backgroundColor='#f9fafb'" onmouseout="this.style.backgroundColor='transparent'">
+  <td style="padding: 1rem; border-bottom: 1px solid #e5e7eb; color: #2563eb; font-size: 0.875rem; font-weight: 500; background: rgba(255, 255, 255, 0.9); vertical-align: middle;">#{r['id']}</td>
+  <td style="padding: 1rem; border-bottom: 1px solid #e5e7eb; color: #111827; font-size: 0.875rem; font-weight: 500; background: rgba(255, 255, 255, 0.9); vertical-align: middle; text-align: center;"><span style="display: inline-flex; align-items: center; padding: 0.25rem 0.75rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 500; text-transform: uppercase; letter-spacing: 0.025em; white-space: nowrap; {status_style}">{status_fi}</span></td>
+  <td style="padding: 1rem; border-bottom: 1px solid #e5e7eb; color: #111827; font-size: 0.875rem; font-weight: 500; background: rgba(255, 255, 255, 0.9); vertical-align: middle;">{r['pickup_address']} → {r['dropoff_address']}</td>
+  <td style="padding: 1rem; border-bottom: 1px solid #e5e7eb; color: #6b7280; font-size: 0.875rem; font-weight: 500; background: rgba(255, 255, 255, 0.9); vertical-align: middle;">{float(r['distance_km']):.1f} km</td>
+  <td style="padding: 1rem; border-bottom: 1px solid #e5e7eb; color: #111827; font-size: 0.875rem; font-weight: 600; background: rgba(255, 255, 255, 0.9); vertical-align: middle; text-align: right;">{float(r['price_gross']):.2f} €</td>
+  <td style="padding: 1rem; border-bottom: 1px solid #e5e7eb; color: #111827; font-size: 0.875rem; font-weight: 500; background: rgba(255, 255, 255, 0.9); vertical-align: middle; text-align: center;"><a style="display: inline-flex; align-items: center; padding: 0.5rem 0.75rem; background: #3b82f6; color: #ffffff; text-decoration: none; border-radius: 0.5rem; font-size: 0.75rem; font-weight: 500; transition: all 0.15s ease-in-out; border: none; cursor: pointer; white-space: nowrap;" href="/order/{r['id']}" onmouseover="this.style.backgroundColor='#2563eb'; this.style.transform='translateY(-1px)'" onmouseout="this.style.backgroundColor='#3b82f6'; this.style.transform='translateY(0)'">Avaa</a></td>
 </tr>
 """
+        except Exception as e:
+            print(f"Error rendering order {r.get('id', 'unknown')}: {e}")
+            continue
 
     tabs_html = f"""
 <div class="tabs mb-4">
@@ -880,21 +905,35 @@ def dashboard():
     </div>
   </div>
 
-  <div class="calculator-grid" style="grid-template-columns: 1fr; max-width: 1200px; margin: 0 auto;">
-    <div class="card calculator-form">
-      <div class="card-header">
-        <h2 class="card-title">Tilaushistoria</h2>
-        <p class="card-subtitle">Näet kaikki tilauksesi ja niiden tilan alla</p>
+  <div style="max-width: 1200px; margin: 0 auto;">
+    <div class="user-orders-section">
+      <div class="user-orders-header">
+        <h2 class="user-orders-title">
+          Tilaushistoria
+          <span class="user-orders-count">{len(orders)} tilausta</span>
+        </h2>
       </div>
-      
-      <div class="card-body">
+
+      <div style="padding: var(--space-6);">
         {tabs_html}
         <div class="calculator-actions mb-4">
           <a class="btn btn-primary" href="/order/new/step1">+ Uusi tilaus</a>
         </div>
-        <table class="dashboard-table">
-          <thead><tr><th>ID</th><th>Tila</th><th>Reitti</th><th>Km</th><th>Hinta</th><th></th></tr></thead>
-          <tbody>{rows or "<tr><td colspan='6' style='text-align: center; color: var(--text-muted); font-style: italic;'>Ei tilauksia</td></tr>"}</tbody>
+      </div>
+
+      <div class="user-orders-wrapper" style="width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch;">
+        <table class="user-orders-table" style="width: 100%; border-collapse: collapse; min-width: 800px; background: #ffffff;">
+          <thead>
+            <tr>
+              <th style="background: #f9fafb; color: #1f2937; font-weight: 600; font-size: 0.875rem; text-align: left; padding: 1rem; border-bottom: 2px solid #e5e7eb; white-space: nowrap;">ID</th>
+              <th style="background: #f9fafb; color: #1f2937; font-weight: 600; font-size: 0.875rem; text-align: left; padding: 1rem; border-bottom: 2px solid #e5e7eb; white-space: nowrap;">Tila</th>
+              <th style="background: #f9fafb; color: #1f2937; font-weight: 600; font-size: 0.875rem; text-align: left; padding: 1rem; border-bottom: 2px solid #e5e7eb; white-space: nowrap;">Reitti</th>
+              <th style="background: #f9fafb; color: #1f2937; font-weight: 600; font-size: 0.875rem; text-align: left; padding: 1rem; border-bottom: 2px solid #e5e7eb; white-space: nowrap;">Matka</th>
+              <th style="background: #f9fafb; color: #1f2937; font-weight: 600; font-size: 0.875rem; text-align: left; padding: 1rem; border-bottom: 2px solid #e5e7eb; white-space: nowrap;">Hinta</th>
+              <th style="background: #f9fafb; color: #1f2937; font-weight: 600; font-size: 0.875rem; text-align: left; padding: 1rem; border-bottom: 2px solid #e5e7eb; white-space: nowrap;">Toiminnot</th>
+            </tr>
+          </thead>
+          <tbody>{rows or "<tr><td colspan='6' style='text-align: center; padding: 4rem;'><div style='color: #9ca3af;'><div style='font-size: 3rem; margin-bottom: 1rem;'>📦</div><div style='font-weight: 500; margin-bottom: 0.5rem;'>Ei tilauksia</div><div style='font-size: 0.875rem;'>Luo ensimmäinen tilauksesi yllä olevalla napilla</div></div></td></tr>"}</tbody>
         </table>
       </div>
     </div>

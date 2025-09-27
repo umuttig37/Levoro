@@ -1,0 +1,357 @@
+/* Dashboard Orders Table CSS */
+
+/* Main container for user orders section */
+.user-orders-section {
+    background: #ffffff;
+    border-radius: 0.75rem;
+    border: 1px solid #e5e7eb;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+    margin-bottom: 1.5rem;
+}
+
+/* Header section */
+.user-orders-header {
+    padding: 1.5rem 1.5rem 1rem;
+    background: #f9fafb;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.user-orders-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #1f2937;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.user-orders-count {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #6b7280;
+    background: #ffffff;
+    padding: 0.25rem 0.75rem;
+    border-radius: 9999px;
+    border: 1px solid #e5e7eb;
+}
+
+/* Table wrapper for horizontal scrolling */
+.user-orders-section .user-orders-wrapper {
+    width: 100% !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    /* Smooth scrolling on iOS */
+    display: block !important;
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+/* Table styling - High specificity to override other table styles */
+.user-orders-section .user-orders-table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+    min-width: 800px;
+    /* Ensures horizontal scroll on mobile */
+    background: #ffffff !important;
+    border-spacing: 0 !important;
+}
+
+.user-orders-section .user-orders-table th {
+    background: #f9fafb !important;
+    color: #1f2937 !important;
+    font-weight: 600 !important;
+    font-size: 0.875rem !important;
+    text-align: left !important;
+    padding: 1rem 1rem !important;
+    border-bottom: 2px solid #e5e7eb !important;
+    white-space: nowrap !important;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.user-orders-section .user-orders-table td {
+    padding: 1rem 1rem !important;
+    border-bottom: 1px solid #e5e7eb !important;
+    color: #111827 !important;
+    font-size: 0.875rem !important;
+    line-height: 1.5 !important;
+    vertical-align: middle !important;
+    background: rgba(255, 255, 255, 0.9) !important;
+    font-weight: 500 !important;
+}
+
+.user-orders-section .user-orders-table tr:hover {
+    background: #f9fafb !important;
+    transition: all 0.15s ease-in-out !important;
+}
+
+.user-orders-section .user-orders-table tr:hover td {
+    background: #f9fafb !important;
+    color: #111827 !important;
+}
+
+/* Column specific styling */
+.user-orders-id {
+    font-weight: 500;
+    color: #2563eb;
+    min-width: 80px;
+}
+
+.user-orders-route {
+    min-width: 200px;
+    font-weight: 500;
+}
+
+.user-orders-vehicle {
+    min-width: 120px;
+    color: #6b7280;
+}
+
+.user-orders-date {
+    min-width: 100px;
+    color: #6b7280;
+    font-size: 0.75rem;
+}
+
+.user-orders-price {
+    min-width: 80px;
+    font-weight: 600;
+    text-align: right;
+}
+
+.user-orders-status {
+    min-width: 120px;
+    text-align: center;
+}
+
+.user-orders-actions {
+    min-width: 100px;
+    text-align: center;
+}
+
+/* Status badges */
+.user-orders-section .user-status-badge {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 0.25rem !important;
+    padding: 0.25rem 0.75rem !important;
+    border-radius: 9999px !important;
+    font-size: 0.75rem !important;
+    font-weight: 500 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.025em !important;
+    white-space: nowrap !important;
+}
+
+.user-status-badge.pending {
+    background: #fef3c7;
+    color: #92400e;
+    border: 1px solid #fde68a;
+}
+
+.user-status-badge.confirmed {
+    background: #dbeafe;
+    color: #1e40af;
+    border: 1px solid #bfdbfe;
+}
+
+.user-status-badge.in-progress {
+    background: #e0f2fe;
+    color: #0369a1;
+    border: 1px solid #bae6fd;
+}
+
+.user-status-badge.completed {
+    background: #dcfce7;
+    color: #166534;
+    border: 1px solid #bbf7d0;
+}
+
+.user-status-badge.cancelled {
+    background: #fee2e2;
+    color: #991b1b;
+    border: 1px solid #fecaca;
+}
+
+/* Action buttons */
+.user-orders-section .user-action-btn {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 0.25rem !important;
+    padding: 0.5rem 0.75rem !important;
+    background: #3b82f6 !important;
+    color: #ffffff !important;
+    text-decoration: none !important;
+    border-radius: 0.5rem !important;
+    font-size: 0.75rem !important;
+    font-weight: 500 !important;
+    transition: all 0.15s ease-in-out !important;
+    border: none !important;
+    cursor: pointer !important;
+    white-space: nowrap !important;
+}
+
+.user-orders-section .user-action-btn:hover {
+    background: #2563eb !important;
+    transform: translateY(-1px) !important;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1) !important;
+}
+
+.user-action-btn:active {
+    transform: translateY(0);
+}
+
+/* Empty state */
+.user-orders-empty {
+    text-align: center;
+    padding: 4rem 1.5rem;
+    color: #9ca3af;
+}
+
+.user-orders-empty-icon {
+    font-size: 3rem;
+    color: #d1d5db;
+    margin-bottom: 1rem;
+}
+
+.user-orders-empty-title {
+    font-size: 1.125rem;
+    font-weight: 500;
+    color: #6b7280;
+    margin: 0 0 0.5rem;
+}
+
+.user-orders-empty-text {
+    font-size: 0.875rem;
+    margin: 0;
+}
+
+/* Loading state */
+.user-orders-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 3rem;
+    gap: 0.75rem;
+    color: #6b7280;
+}
+
+.user-orders-spinner {
+    width: 20px;
+    height: 20px;
+    border: 2px solid #d1d5db;
+    border-top: 2px solid #3b82f6;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+    .user-orders-header {
+        padding: 1rem;
+    }
+
+    .user-orders-title {
+        font-size: 1.125rem;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.5rem;
+    }
+
+    .user-orders-count {
+        align-self: flex-start;
+    }
+
+    /* Ensure proper horizontal scrolling */
+    .user-orders-wrapper {
+        margin: 0;
+        border-radius: 0;
+    }
+
+    .user-orders-table {
+        min-width: 900px;
+        /* Wider on mobile to ensure scroll */
+    }
+
+    .user-orders-table th,
+    .user-orders-table td {
+        padding: 0.75rem;
+    }
+
+    .user-orders-table th {
+        font-size: 0.75rem;
+    }
+
+    .user-orders-table td {
+        font-size: 0.75rem;
+    }
+
+    /* Adjust column widths for mobile */
+    .user-orders-route {
+        min-width: 250px;
+    }
+
+    .user-orders-vehicle {
+        min-width: 140px;
+    }
+
+    .user-orders-status {
+        min-width: 140px;
+    }
+
+    .user-orders-actions {
+        min-width: 120px;
+    }
+}
+
+@media (max-width: 480px) {
+    .user-orders-section {
+        border-radius: 0;
+        border-left: none;
+        border-right: none;
+        margin-left: -1rem;
+        margin-right: -1rem;
+    }
+
+    .user-orders-header {
+        padding: 0.75rem;
+    }
+
+    .user-orders-title {
+        font-size: 1rem;
+    }
+
+    .user-orders-table {
+        min-width: 1000px;
+        /* Even wider on small screens */
+    }
+
+    .user-orders-table th,
+    .user-orders-table td {
+        padding: 0.5rem 0.75rem;
+    }
+
+    .user-action-btn {
+        padding: 0.25rem 0.5rem;
+        font-size: 10px;
+    }
+
+    .user-status-badge {
+        font-size: 10px;
+        padding: 0.25rem 0.5rem;
+        color: black;
+    }
+}
