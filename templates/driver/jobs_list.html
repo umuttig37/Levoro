@@ -1,0 +1,109 @@
+{% extends "base/layout.html" %}
+
+{% block title %}Saatavilla olevat työt{% endblock %}
+
+{% block content %}
+<div class="container">
+  <div class="section-padding">
+    <div class="text-center mb-8">
+      <h1 class="calculator-title">Saatavilla olevat työt</h1>
+      <p class="calculator-subtitle">Valitse työ jonka haluat ottaa vastaan</p>
+    </div>
+  </div>
+
+  <div class="mb-4">
+    <a href="{{ url_for('driver.dashboard') }}" class="btn btn-ghost">← Takaisin työpöydälle</a>
+  </div>
+
+  {% if available_jobs %}
+  <div class="grid gap-6">
+    {% for job in available_jobs %}
+    <div class="card">
+      <div class="card-header">
+        <div class="flex justify-between items-start">
+          <div>
+            <h3 class="card-title">Tilaus #{{ job.id }}</h3>
+            <p class="card-subtitle">Luotu: {{ job.created_at.strftime('%d.%m.%Y %H:%M') if job.created_at else 'Tuntematon' }}</p>
+          </div>
+          <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+            Saatavilla
+          </span>
+        </div>
+      </div>
+
+      <div class="card-body">
+        <div class="grid md:grid-cols-2 gap-6">
+          <div>
+            <h4 class="font-semibold mb-2">Reittitiedot</h4>
+            <div class="space-y-2 text-sm">
+              <div>
+                <span class="font-medium">Nouto:</span>
+                <span class="text-gray-600">{{ job.pickup_address }}</span>
+              </div>
+              <div>
+                <span class="font-medium">Toimitus:</span>
+                <span class="text-gray-600">{{ job.dropoff_address }}</span>
+              </div>
+              <div>
+                <span class="font-medium">Matka:</span>
+                <span class="text-gray-600">{{ job.distance_km|round(1) }} km</span>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <h4 class="font-semibold mb-2">Tilaustiedot</h4>
+            <div class="space-y-2 text-sm">
+              <div>
+                <span class="font-medium">Hinta:</span>
+                <span class="text-gray-600">{{ job.price_gross|round(2) }} €</span>
+              </div>
+              {% if job.reg_number %}
+              <div>
+                <span class="font-medium">Rekisterinumero:</span>
+                <span class="text-gray-600">{{ job.reg_number }}</span>
+              </div>
+              {% endif %}
+              {% if job.pickup_date %}
+              <div>
+                <span class="font-medium">Noutopäivä:</span>
+                <span class="text-gray-600">{{ job.pickup_date }}</span>
+              </div>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+
+        {% if job.extras %}
+        <div class="mt-4">
+          <h4 class="font-semibold mb-2">Lisätiedot</h4>
+          <p class="text-sm text-gray-600">{{ job.extras }}</p>
+        </div>
+        {% endif %}
+
+        <div class="mt-6 flex gap-3">
+          <a href="{{ url_for('driver.job_detail', order_id=job.id) }}"
+             class="btn btn-primary">Katso yksityiskohdat</a>
+          <form method="POST" action="{{ url_for('driver.accept_job', order_id=job.id) }}" style="display: inline;">
+            <button type="submit" class="btn btn-secondary"
+                    onclick="return confirm('Haluatko varmasti ottaa tämän työn vastaan?')">
+              Ota työ vastaan
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="text-center py-12">
+    <div style="font-size: 4rem; margin-bottom: 1rem;">📦</div>
+    <h3 style="margin-bottom: 0.5rem;">Ei saatavilla olevia töitä</h3>
+    <p style="color: #6b7280;">Kaikki työt on jo otettu vastaan tai tilauksia ei ole saatavilla</p>
+    <div class="mt-6">
+      <a href="{{ url_for('driver.dashboard') }}" class="btn btn-primary">Takaisin työpöydälle</a>
+    </div>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

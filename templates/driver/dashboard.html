@@ -1,0 +1,142 @@
+{% extends "base/layout.html" %}
+
+{% block title %}Kuljettajan työpöytä{% endblock %}
+
+{% block content %}
+<div class="container">
+  <div class="section-padding">
+    <div class="text-center mb-8">
+      <h1 class="calculator-title">Tervetuloa, {{ driver.name }}!</h1>
+      <p class="calculator-subtitle">Kuljettajan työpöytä</p>
+    </div>
+  </div>
+
+  <!-- Driver Statistics -->
+  <div class="driver-stats-grid">
+    <div class="driver-stats-card">
+      <div class="driver-stats-header">
+        <h3 class="driver-stats-title">Aktiiviset työt</h3>
+      </div>
+      <div class="driver-stats-body">
+        <div class="driver-metric-value active">{{ stats.active_jobs }}</div>
+        <p class="driver-metric-label">Käynnissä olevia töitä</p>
+      </div>
+    </div>
+
+    <div class="driver-stats-card">
+      <div class="driver-stats-header">
+        <h3 class="driver-stats-title">Suoritetut työt</h3>
+      </div>
+      <div class="driver-stats-body">
+        <div class="driver-metric-value completed">{{ stats.completed_jobs }}</div>
+        <p class="driver-metric-label">Valmistuneita töitä</p>
+      </div>
+    </div>
+
+    <div class="driver-stats-card">
+      <div class="driver-stats-header">
+        <h3 class="driver-stats-title">Onnistumisprosentti</h3>
+      </div>
+      <div class="driver-stats-body">
+        <div class="driver-metric-value percentage">{{ "%.1f"|format(stats.completion_rate) }}%</div>
+        <p class="driver-metric-label">Suoritetut / Yhteensä</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Active Jobs Section -->
+  {% if active_jobs %}
+  <div class="driver-section">
+    <div class="driver-section-header">
+      <h2 class="driver-section-title">Aktiiviset työt</h2>
+      <p class="driver-section-subtitle">Käynnissä olevat tai odottavat työt</p>
+    </div>
+    <div class="driver-section-body">
+      <div class="driver-job-list">
+        {% for job in active_jobs %}
+        <div class="driver-job-card">
+          <div class="driver-job-header">
+            <div class="driver-job-content">
+              <h3 class="driver-job-title">Tilaus #{{ job.id }}</h3>
+              <p class="driver-job-route">{{ job.pickup_address }} → {{ job.dropoff_address }}</p>
+              <div class="driver-job-meta">
+                <span>{{ job.distance_km|round(1) }} km</span>
+                <span>{{ job.price_gross|round(2) }} €</span>
+              </div>
+            </div>
+            <div class="driver-job-actions">
+              <span class="driver-job-status {% if job.status == 'ASSIGNED_TO_DRIVER' %}assigned{% elif job.status == 'DRIVER_ARRIVED' %}arrived{% elif job.status == 'PICKUP_IMAGES_ADDED' %}pickup-images{% elif job.status == 'IN_TRANSIT' %}in-transit{% elif job.status == 'DELIVERY_ARRIVED' %}delivery-arrived{% elif job.status == 'DELIVERY_IMAGES_ADDED' %}delivery-images{% else %}available{% endif %}">
+                {% if job.status == 'ASSIGNED_TO_DRIVER' %}Määritetty
+                {% elif job.status == 'DRIVER_ARRIVED' %}Saapunut
+                {% elif job.status == 'PICKUP_IMAGES_ADDED' %}Noutokuvat lisätty
+                {% elif job.status == 'IN_TRANSIT' %}Kuljetuksessa
+                {% elif job.status == 'DELIVERY_ARRIVED' %}Kuljetus saapunut
+                {% elif job.status == 'DELIVERY_IMAGES_ADDED' %}Toimituskuvat lisätty
+                {% else %}{{ job.status }}{% endif %}
+              </span>
+              <div class="mt-2">
+                <a href="{{ url_for('driver.job_detail', order_id=job.id) }}" class="btn btn-primary btn-sm">Avaa työ</a>
+              </div>
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Available Jobs Section -->
+  {% if available_jobs %}
+  <div class="driver-section">
+    <div class="driver-section-header">
+      <h2 class="driver-section-title">Saatavilla olevat työt</h2>
+      <p class="driver-section-subtitle">Uusia töitä joita voit ottaa vastaan</p>
+    </div>
+    <div class="driver-section-body">
+      <div class="driver-job-list">
+        {% for job in available_jobs %}
+        <div class="driver-job-card">
+          <div class="driver-job-header">
+            <div class="driver-job-content">
+              <h3 class="driver-job-title">Tilaus #{{ job.id }}</h3>
+              <p class="driver-job-route">{{ job.pickup_address }} → {{ job.dropoff_address }}</p>
+              <div class="driver-job-meta">
+                <span>{{ job.distance_km|round(1) }} km</span>
+                <span>{{ job.price_gross|round(2) }} €</span>
+                <span>Luotu: {{ job.created_at.strftime('%d.%m.%Y %H:%M') if job.created_at else 'Tuntematon' }}</span>
+              </div>
+            </div>
+            <div class="driver-job-actions">
+              <span class="driver-job-status available">Saatavilla</span>
+              <div class="mt-2">
+                <a href="{{ url_for('driver.job_detail', order_id=job.id) }}" class="btn btn-primary btn-sm">Katso työ</a>
+              </div>
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      <div class="mt-4 text-center">
+        <a href="{{ url_for('driver.jobs') }}" class="btn btn-ghost">Näytä kaikki saatavilla olevat työt</a>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Quick Actions -->
+  <div class="driver-actions-grid">
+    <a href="{{ url_for('driver.jobs') }}" class="btn btn-primary">Selaa töitä</a>
+    <a href="{{ url_for('driver.my_jobs') }}" class="btn btn-secondary">Omat työt</a>
+    <a href="{{ url_for('driver.profile') }}" class="btn btn-ghost">Profiili</a>
+  </div>
+
+  {% if not active_jobs and not available_jobs %}
+  <div class="driver-empty-state">
+    <div class="driver-empty-icon">🚗</div>
+    <h3 class="driver-empty-title">Ei töitä saatavilla</h3>
+    <p class="driver-empty-message">Tarkista myöhemmin uusien töiden varalta</p>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

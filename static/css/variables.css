@@ -183,7 +183,8 @@
     --breakpoint-2xl: 1536px;
 }
 
-/* Dark mode variables (for future implementation) */
+/* Dark mode variables (disabled until proper dark mode implementation) */
+/*
 @media (prefers-color-scheme: dark) {
     :root {
         --bg-primary: var(--color-gray-900);
@@ -199,3 +200,4 @@
         --border-dark: var(--color-gray-500);
     }
 }
+*/

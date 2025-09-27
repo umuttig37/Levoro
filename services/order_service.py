@@ -64,10 +64,14 @@ class OrderService:
                     # Get user details for email
                     user = user_model.find_by_id(user_id)
                     if user:
+                        # Send email to customer
                         email_service.send_order_created_email(user["email"], user["name"], order)
+
+                        # Send admin notification
+                        email_service.send_admin_new_order_notification(order, user)
                 except Exception as e:
                     # Log error but don't fail order creation
-                    print(f"Failed to send order created email: {e}")
+                    print(f"Failed to send order emails: {e}")
 
             return order is not None, order, error
 
@@ -100,9 +104,8 @@ class OrderService:
                 # Get user details for email
                 user = user_model.find_by_id(order.get("user_id"))
                 if user:
-                    status_description = self.get_status_description(new_status)
                     email_service.send_status_update_email(
-                        user["email"], user["name"], order, new_status, status_description
+                        user["email"], user["name"], order_id, new_status
                     )
             except Exception as e:
                 # Log error but don't fail status update
@@ -227,11 +230,16 @@ class OrderService:
     def translate_status(self, status: str) -> str:
         """Translate order status to Finnish"""
         translations = {
-            "NEW": "Uusi",
-            "CONFIRMED": "Vahvistettu",
-            "IN_TRANSIT": "Kuljetuksessa",
-            "DELIVERED": "Toimitettu",
-            "CANCELLED": "Peruutettu"
+            "NEW": "UUSI",
+            "CONFIRMED": "TEHTÄVÄ_VAHVISTETTU",
+            "ASSIGNED_TO_DRIVER": "MÄÄRITETTY_KULJETTAJALLE",
+            "DRIVER_ARRIVED": "KULJETTAJA_SAAPUNUT",
+            "PICKUP_IMAGES_ADDED": "NOUTOKUVAT_LISÄTTY",
+            "IN_TRANSIT": "TOIMITUKSESSA",
+            "DELIVERY_ARRIVED": "KULJETUS_SAAPUNUT",
+            "DELIVERY_IMAGES_ADDED": "TOIMITUSKUVAT_LISÄTTY",
+            "DELIVERED": "TOIMITETTU",
+            "CANCELLED": "PERUUTETTU"
         }
         return translations.get(status, status)
 
@@ -239,8 +247,13 @@ class OrderService:
         """Get user-friendly status description"""
         descriptions = {
             "NEW": "Tilaus on vastaanotettu ja odottaa käsittelyä",
-            "CONFIRMED": "Tilaus on vahvistettu ja noutoa odotetaan",
+            "CONFIRMED": "Tehtävä on vahvistettu ja odottaa kuljettajaa",
+            "ASSIGNED_TO_DRIVER": "Kuljettaja määritetty, matkalla noutopaikalle",
+            "DRIVER_ARRIVED": "Kuljettaja saapunut noutopaikalle",
+            "PICKUP_IMAGES_ADDED": "Noutokuvat lisätty, valmis kuljetukseen",
             "IN_TRANSIT": "Auto on kuljetuksessa määränpäähän",
+            "DELIVERY_ARRIVED": "Kuljetus saapunut toimituspaikalle",
+            "DELIVERY_IMAGES_ADDED": "Toimituskuvat lisätty, valmis luovutukseen",
             "DELIVERED": "Auto on toimitettu onnistuneesti",
             "CANCELLED": "Tilaus on peruutettu"
         }

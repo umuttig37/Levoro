@@ -1,0 +1,91 @@
+{% extends "base/layout.html" %}
+
+{% block title %}Omat työt{% endblock %}
+
+{% block content %}
+<div class="container">
+  <div class="section-padding">
+    <div class="text-center mb-8">
+      <h1 class="calculator-title">Omat työt</h1>
+      <p class="calculator-subtitle">Kaikki sinulle määritetyt työt</p>
+    </div>
+  </div>
+
+  <div class="mb-4">
+    <a href="{{ url_for('driver.dashboard') }}" class="btn btn-ghost">← Takaisin työpöydälle</a>
+  </div>
+
+  {% if jobs %}
+  <div class="grid gap-6">
+    {% for job in jobs %}
+    <div class="card">
+      <div class="card-header">
+        <div class="flex justify-between items-start">
+          <div>
+            <h3 class="card-title">Tilaus #{{ job.id }}</h3>
+            <p class="card-subtitle">{{ job.created_at.strftime('%d.%m.%Y %H:%M') if job.created_at else 'Tuntematon' }}</p>
+          </div>
+          <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium
+            {% if job.status == 'ASSIGNED_TO_DRIVER' %}bg-blue-100 text-blue-800
+            {% elif job.status == 'DRIVER_ARRIVED' %}bg-yellow-100 text-yellow-800
+            {% elif job.status == 'PICKUP_IMAGES_ADDED' %}bg-orange-100 text-orange-800
+            {% elif job.status == 'IN_TRANSIT' %}bg-purple-100 text-purple-800
+            {% elif job.status == 'DELIVERY_ARRIVED' %}bg-indigo-100 text-indigo-800
+            {% elif job.status == 'DELIVERY_IMAGES_ADDED' %}bg-pink-100 text-pink-800
+            {% elif job.status == 'DELIVERED' %}bg-green-100 text-green-800
+            {% else %}bg-gray-100 text-gray-800{% endif %}">
+            {% if job.status == 'ASSIGNED_TO_DRIVER' %}Määritetty
+            {% elif job.status == 'DRIVER_ARRIVED' %}Saapunut
+            {% elif job.status == 'PICKUP_IMAGES_ADDED' %}Noutokuvat lisätty
+            {% elif job.status == 'IN_TRANSIT' %}Kuljetuksessa
+            {% elif job.status == 'DELIVERY_ARRIVED' %}Kuljetus saapunut
+            {% elif job.status == 'DELIVERY_IMAGES_ADDED' %}Toimituskuvat lisätty
+            {% elif job.status == 'DELIVERED' %}Toimitettu
+            {% else %}{{ job.status }}{% endif %}
+          </span>
+        </div>
+      </div>
+
+      <div class="card-body">
+        <div class="grid md:grid-cols-3 gap-4">
+          <div>
+            <h4 class="font-semibold mb-2">Reittitiedot</h4>
+            <div class="space-y-1 text-sm">
+              <div class="text-gray-600">{{ job.pickup_address }}</div>
+              <div class="text-gray-400">→</div>
+              <div class="text-gray-600">{{ job.dropoff_address }}</div>
+            </div>
+          </div>
+
+          <div>
+            <h4 class="font-semibold mb-2">Tiedot</h4>
+            <div class="space-y-1 text-sm text-gray-600">
+              <div>{{ job.distance_km|round(1) }} km</div>
+              <div>{{ job.price_gross|round(2) }} €</div>
+              {% if job.reg_number %}
+              <div>{{ job.reg_number }}</div>
+              {% endif %}
+            </div>
+          </div>
+
+          <div class="text-right">
+            <a href="{{ url_for('driver.job_detail', order_id=job.id) }}"
+               class="btn btn-primary">Avaa työ</a>
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="text-center py-12">
+    <div style="font-size: 4rem; margin-bottom: 1rem;">📦</div>
+    <h3 style="margin-bottom: 0.5rem;">Ei töitä vielä</h3>
+    <p style="color: #6b7280;">Kun sinulle määritetään töitä, ne näkyvät täällä</p>
+    <div class="mt-6">
+      <a href="{{ url_for('driver.jobs') }}" class="btn btn-primary">Selaa saatavilla olevia töitä</a>
+    </div>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

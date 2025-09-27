@@ -147,18 +147,52 @@ class UserModel(BaseModel):
         user = self.find_by_id(user_id)
         return user and user.get("role") == "admin"
 
+    def is_driver(self, user_id):
+        """Check if user is driver"""
+        user = self.find_by_id(user_id)
+        return user and user.get("role") == "driver"
+
+    def create_driver(self, email, password, name):
+        """Create a new driver user"""
+        return self.create_user(email, password, name, role="driver")
+
+    def get_all_drivers(self, limit=100):
+        """Get all active drivers"""
+        return self.find(
+            {"role": "driver", "status": "active"},
+            projection={"password_hash": 0},
+            sort=[("name", 1)],
+            limit=limit
+        )
+
+    def get_driver_stats(self):
+        """Get driver statistics"""
+        total_drivers = self.count_documents({"role": "driver"})
+        active_drivers = self.count_documents({"role": "driver", "status": "active"})
+        pending_drivers = self.count_documents({"role": "driver", "status": "pending"})
+
+        return {
+            "total": total_drivers,
+            "active": active_drivers,
+            "pending": pending_drivers
+        }
+
     def get_user_stats(self):
         """Get user statistics"""
         total_users = self.count_documents()
         pending_users = self.count_documents({"status": "pending"})
         active_users = self.count_documents({"status": "active"})
         admin_users = self.count_documents({"role": "admin"})
+        driver_users = self.count_documents({"role": "driver"})
+        customer_users = self.count_documents({"role": {"$in": ["user", "customer"]}})
 
         return {
             "total": total_users,
             "pending": pending_users,
             "active": active_users,
-            "admins": admin_users
+            "admins": admin_users,
+            "drivers": driver_users,
+            "customers": customer_users
         }
 
 

@@ -175,47 +175,77 @@ class EmailService:
             print(f"   ❌ {error_msg}")
             return False
 
-    def send_status_update_email(self, user_email: str, user_name: str, order_data: Dict,
-                               new_status: str, status_description: str) -> bool:
+    def send_status_update_email(self, user_email: str, user_name: str, order_id: int,
+                               new_status: str, driver_name: str = None) -> bool:
         """Send email when order status changes"""
         # Status translations for email subject
         status_translations = {
             'NEW': 'Uusi tilaus',
-            'CONFIRMED': 'Tilaus vahvistettu',
+            'CONFIRMED': 'Tehtävä vahvistettu',
+            'ASSIGNED_TO_DRIVER': 'Kuljettaja määritetty',
+            'DRIVER_ARRIVED': 'Kuljettaja saapunut',
+            'PICKUP_IMAGES_ADDED': 'Noutokuvat lisätty',
             'IN_TRANSIT': 'Kuljetus aloitettu',
+            'DELIVERY_ARRIVED': 'Kuljetus saapunut',
+            'DELIVERY_IMAGES_ADDED': 'Toimituskuvat lisätty',
             'DELIVERED': 'Toimitettu',
             'CANCELLED': 'Peruutettu'
         }
 
+        status_descriptions = {
+            'NEW': 'Tilaus odottaa vahvistusta',
+            'CONFIRMED': 'Tehtävä vahvistettu, odottaa kuljettajaa',
+            'ASSIGNED_TO_DRIVER': 'Kuljettaja määritetty ja matkalla noutopaikalle',
+            'DRIVER_ARRIVED': 'Kuljettaja saapunut noutopaikalle',
+            'PICKUP_IMAGES_ADDED': 'Noutokuvat lisätty, valmis kuljetukseen',
+            'IN_TRANSIT': 'Ajoneuvo on kuljetuksessa',
+            'DELIVERY_ARRIVED': 'Kuljetus saapunut toimituspaikalle',
+            'DELIVERY_IMAGES_ADDED': 'Toimituskuvat lisätty, valmis luovutukseen',
+            'DELIVERED': 'Kuljetus suoritettu onnistuneesti',
+            'CANCELLED': 'Tilaus on peruutettu'
+        }
+
         status_finnish = status_translations.get(new_status, new_status)
+        status_description = status_descriptions.get(new_status, new_status)
 
         print(f"📊 ORDER STATUS UPDATE EMAIL:")
         print(f"   Recipient: {user_name} <{user_email}>")
-        print(f"   Order ID: #{order_data.get('id')}")
+        print(f"   Order ID: #{order_id}")
         print(f"   Status Change: {new_status} ({status_finnish})")
         print(f"   Description: {status_description}")
-        print(f"   Route: {order_data.get('pickup_address')} → {order_data.get('dropoff_address')}")
+        if driver_name:
+            print(f"   Driver: {driver_name}")
 
         try:
+            # Get order data from database
+            from models.order import order_model
+            order_data = order_model.find_by_id(order_id)
+
+            if not order_data:
+                print(f"   ❌ Order {order_id} not found")
+                return False
+
             order_info = {
-                'order_id': order_data.get('id'),
+                'order_id': order_id,
                 'pickup_address': order_data.get('pickup_address', ''),
                 'dropoff_address': order_data.get('dropoff_address', ''),
-                'vehicle_make': order_data.get('vehicle_make', ''),
-                'vehicle_model': order_data.get('vehicle_model', ''),
+                'distance_km': order_data.get('distance_km', 0),
+                'price_gross': order_data.get('price_gross', 0),
                 'status': status_finnish,
-                'status_description': status_description
+                'status_description': status_description,
+                'driver_name': driver_name
             }
 
             print(f"   📝 Rendering status update template...")
             html_body = render_template('emails/status_update.html',
                                       user_name=user_name,
                                       order=order_info,
-                                      new_status=new_status)
+                                      new_status=new_status,
+                                      driver_name=driver_name)
 
             print(f"   📧 Sending status update email...")
             return self.send_email(
-                subject=f"Tilaus #{order_data.get('id')} - {status_finnish}",
+                subject=f"Tilaus #{order_id} - {status_finnish}",
                 recipients=[user_email],
                 html_body=html_body
             )
@@ -223,6 +253,81 @@ class EmailService:
             error_msg = f"Failed to send status update email: {str(e)}"
             current_app.logger.error(error_msg)
             print(f"   ❌ {error_msg}")
+            return False
+
+    def send_admin_new_order_notification(self, order_data: Dict, customer_data: Dict = None) -> bool:
+        """Send notification to admin when new order is created"""
+        admin_email = "support@levoro.fi"
+
+        print(f"📧 ADMIN ORDER NOTIFICATION:")
+        print(f"   To: {admin_email}")
+        print(f"   Order ID: #{order_data.get('id')}")
+        print(f"   Status: {order_data.get('status')}")
+        print(f"   Customer: {customer_data.get('name') if customer_data else 'Unknown'}")
+
+        try:
+            # Create admin URLs (assuming local development)
+            base_url = "http://localhost:8000"  # Should be configurable in production
+            admin_url = f"{base_url}/admin"
+            order_detail_url = f"{base_url}/admin/order/{order_data.get('id')}"
+
+            html_body = render_template('emails/admin_new_order.html',
+                                      order=order_data,
+                                      customer=customer_data,
+                                      admin_url=admin_url,
+                                      order_detail_url=order_detail_url)
+
+            return self.send_email(
+                subject=f"🆕 Uusi tilaus #{order_data.get('id')} - Vahvistus tarvitaan",
+                recipients=[admin_email],
+                html_body=html_body
+            )
+        except Exception as e:
+            current_app.logger.error(f"Failed to send admin order notification: {str(e)}")
+            print(f"   ❌ Failed to send admin order notification: {str(e)}")
+            return False
+
+    def send_admin_new_user_notification(self, user_data: Dict, stats: Dict = None) -> bool:
+        """Send notification to admin when new user registers"""
+        admin_email = "support@levoro.fi"
+
+        print(f"📧 ADMIN USER NOTIFICATION:")
+        print(f"   To: {admin_email}")
+        print(f"   User ID: #{user_data.get('id')}")
+        print(f"   Name: {user_data.get('name')}")
+        print(f"   Email: {user_data.get('email')}")
+        print(f"   Role: {user_data.get('role', 'customer')}")
+
+        try:
+            # Create admin URLs (assuming local development)
+            base_url = "http://localhost:8000"  # Should be configurable in production
+            admin_users_url = f"{base_url}/admin/users"
+            user_detail_url = f"{base_url}/admin/user/{user_data.get('id')}"
+
+            # Default stats if not provided
+            if not stats:
+                stats = {
+                    'total_users': 'N/A',
+                    'customer_count': 'N/A',
+                    'driver_count': 'N/A'
+                }
+
+            html_body = render_template('emails/admin_new_user.html',
+                                      user=user_data,
+                                      admin_users_url=admin_users_url,
+                                      user_detail_url=user_detail_url,
+                                      total_users=stats.get('total_users'),
+                                      customer_count=stats.get('customer_count'),
+                                      driver_count=stats.get('driver_count'))
+
+            return self.send_email(
+                subject=f"👤 Uusi käyttäjä rekisteröitynyt: {user_data.get('name')}",
+                recipients=[admin_email],
+                html_body=html_body
+            )
+        except Exception as e:
+            current_app.logger.error(f"Failed to send admin user notification: {str(e)}")
+            print(f"   ❌ Failed to send admin user notification: {str(e)}")
             return False
 
     def _html_to_text(self, html_content: str) -> str:

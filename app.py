@@ -138,9 +138,41 @@ def seed_admin():
             "email": SEED_ADMIN_EMAIL,
             "password_hash": generate_password_hash(SEED_ADMIN_PASS),
             "role": "admin",
-            "approved": True,  # Admin is always approved
+            "status": "active",  # Admin is always active
             "created_at": datetime.datetime.now(ZoneInfo("Europe/Helsinki")),
+            "updated_at": datetime.datetime.now(ZoneInfo("Europe/Helsinki")),
         })
+
+def seed_test_driver():
+    """Seed test driver users for development"""
+    test_drivers = [
+        {
+            "email": "kuljettaja@levoro.fi",
+            "name": "Testi Kuljettaja",
+            "password": "kuljettaja123"
+        },
+        {
+            "email": "kuljettaja2@levoro.fi",
+            "name": "Matti Virtanen",
+            "password": "kuljettaja123"
+        }
+    ]
+
+    for driver_data in test_drivers:
+        if not users_col().find_one({"email": driver_data["email"]}):
+            users_col().insert_one({
+                "id": next_id("users"),
+                "name": driver_data["name"],
+                "email": driver_data["email"],
+                "password_hash": generate_password_hash(driver_data["password"]),
+                "role": "driver",
+                "status": "active",  # Driver is active by default for testing
+                "created_at": datetime.datetime.now(ZoneInfo("Europe/Helsinki")),
+                "updated_at": datetime.datetime.now(ZoneInfo("Europe/Helsinki")),
+            })
+            print(f"✅ Test driver created: {driver_data['email']} / {driver_data['password']}")
+        else:
+            print(f"ℹ️  Test driver already exists: {driver_data['email']}")
 
 def migrate_images_to_array():
     """Migrate existing single image structure to array-based structure"""
@@ -204,8 +236,13 @@ def translate_status(status):
     """Translate English status to Finnish"""
     translations = {
         'NEW': 'UUSI',
-        'CONFIRMED': 'VAHVISTETTU',
-        'IN_TRANSIT': 'KULJETUKSESSA',
+        'CONFIRMED': 'TEHTÄVÄ_VAHVISTETTU',
+        'ASSIGNED_TO_DRIVER': 'MÄÄRITETTY_KULJETTAJALLE',
+        'DRIVER_ARRIVED': 'KULJETTAJA_SAAPUNUT',
+        'PICKUP_IMAGES_ADDED': 'NOUTOKUVAT_LISÄTTY',
+        'IN_TRANSIT': 'TOIMITUKSESSA',
+        'DELIVERY_ARRIVED': 'KULJETUS_SAAPUNUT',
+        'DELIVERY_IMAGES_ADDED': 'TOIMITUSKUVAT_LISÄTTY',
         'DELIVERED': 'TOIMITETTU',
         'CANCELLED': 'PERUUTETTU'
     }
@@ -215,8 +252,13 @@ def get_status_description(status):
     """Get user-friendly status description"""
     descriptions = {
         'NEW': 'Tilaus odottaa vahvistusta',
-        'CONFIRMED': 'Tilaus vahvistettu, odottaa noutoa',
+        'CONFIRMED': 'Tehtävä vahvistettu, odottaa kuljettajaa',
+        'ASSIGNED_TO_DRIVER': 'Kuljettaja määritetty, matkalla noutopaikalle',
+        'DRIVER_ARRIVED': 'Kuljettaja saapunut noutopaikalle',
+        'PICKUP_IMAGES_ADDED': 'Noutokuvat lisätty, valmis kuljetukseen',
         'IN_TRANSIT': 'Ajoneuvo on kuljetuksessa',
+        'DELIVERY_ARRIVED': 'Kuljetus saapunut toimituspaikalle',
+        'DELIVERY_IMAGES_ADDED': 'Toimituskuvat lisätty, valmis luovutukseen',
         'DELIVERED': 'Kuljetus suoritettu onnistuneesti',
         'CANCELLED': 'Tilaus on peruutettu'
     }
@@ -360,10 +402,15 @@ def wrap(content: str, user=None):
     else:
         auth = f"<span class='pill'>Hei, {user['name']}</span> <a class='nav-link' href='/logout'>Ulos</a>"
 
-    # Logo ja admin-linkki
+    # Logo ja role-based navigation
     from flask import url_for, get_flashed_messages
     logo_src = url_for('static', filename='LevoroLogo.png')
-    admin_link = '<a href="/admin" class="nav-link">Admin</a>' if (user and user.get("role") == "admin") else ""
+    admin_link = ""
+    if user:
+        if user.get("role") == "admin":
+            admin_link = '<a href="/admin" class="nav-link">Admin</a>'
+        elif user.get("role") == "driver":
+            admin_link = '<a href="/driver/dashboard" class="nav-link">Kuljettaja</a>'
 
     # Google Maps script if API key is available
     google_script = ""
@@ -603,8 +650,9 @@ def register():
         "email": email,
         "password_hash": generate_password_hash(password),
         "role": "customer",
-        "approved": False,  # Require admin approval
+        "status": "pending",  # Require admin approval
         "created_at": datetime.datetime.now(ZoneInfo("Europe/Helsinki")),
+        "updated_at": datetime.datetime.now(ZoneInfo("Europe/Helsinki")),
     })
 
     # Don't log in immediately - require admin approval first
@@ -823,12 +871,18 @@ def login():
     nxt = request.form.get("next") or ""
 
     # Use auth service for login
-    success, _, error = auth_service.login(email, password)
+    success, user, error = auth_service.login(email, password)
 
     if not success:
         return wrap(f"<div class='card'><h3>{error}</h3></div>", current_user())
 
-    return redirect(nxt or "/dashboard")
+    # Redirect based on user role
+    if user and user.get("role") == "driver":
+        return redirect(nxt or "/driver/dashboard")
+    elif user and user.get("role") == "admin":
+        return redirect(nxt or "/admin")
+    else:
+        return redirect(nxt or "/dashboard")
 
 
 
@@ -1002,11 +1056,35 @@ def order_view(order_id: int):
     if not u:
         return redirect(url_for("login", next=f"/order/{order_id}"))
 
-    # Hae tilaus Mongosta samalla ehdolla kuin ennen MySQL:ssä
-    r = orders_col().find_one(
-        {"id": int(order_id), "user_id": int(u["id"])},
-        {"_id": 0}
-    )
+    # Get order with driver information
+    from models.order import order_model
+    pipeline = [
+        {"$match": {"id": int(order_id), "user_id": int(u["id"])}},
+        {"$lookup": {
+            "from": "users",
+            "localField": "driver_id",
+            "foreignField": "id",
+            "as": "driver"
+        }},
+        {"$unwind": {"path": "$driver", "preserveNullAndEmptyArrays": True}},
+        {"$project": {
+            "_id": 0,
+            "id": 1, "status": 1, "user_id": 1,
+            "pickup_address": 1, "dropoff_address": 1,
+            "distance_km": 1, "price_gross": 1,
+            "reg_number": 1, "winter_tires": 1, "pickup_date": 1,
+            "extras": 1, "images": 1, "customer_name": 1,
+            "email": 1, "phone": 1,
+            "assigned_at": 1, "arrival_time": 1,
+            "pickup_started": 1, "delivery_completed": 1,
+            "created_at": 1, "updated_at": 1,
+            "driver_name": "$driver.name",
+            "driver_email": "$driver.email"
+        }}
+    ]
+
+    order_result = list(orders_col().aggregate(pipeline))
+    r = order_result[0] if order_result else None
     if not r:
         return wrap("<div class='card'><h2>Ei oikeuksia tähän tilaukseen</h2></div>", u)
 
@@ -1074,27 +1152,9 @@ def admin_home():
     if not u or u.get("role") != "admin":
         return wrap("<div class='card'><h2>Adminalue</h2><p class='muted'>Kirjaudu admin-käyttäjänä.</p></div>", u)
 
-    pipeline = [
-        {"$sort": {"id": -1}},
-        {"$limit": 300},
-        {"$lookup": {
-            "from": "users",
-            "localField": "user_id",
-            "foreignField": "id",
-            "as": "user"
-        }},
-        {"$unwind": {"path": "$user", "preserveNullAndEmptyArrays": True}},
-        {"$project": {
-            "_id": 0,
-            "id": 1, "status": 1,
-            "pickup_address": 1, "dropoff_address": 1,
-            "distance_km": 1, "price_gross": 1,
-            "images": 1,
-            "user_name": "$user.name",
-            "user_email": "$user.email"
-        }}
-    ]
-    rows = list(orders_col().aggregate(pipeline))
+    # Use the new orders_with_driver_info method
+    from models.order import order_model
+    rows = order_model.get_orders_with_driver_info(300)
 
     tr = ""
     for r in rows:
@@ -1108,11 +1168,19 @@ def admin_home():
         delivery_icon = "📷" if images.get("delivery") else "⭕"
         image_status = f"{pickup_icon} {delivery_icon}"
 
+        # Driver info
+        driver_info = "Ei kuljettajaa"
+        if r.get('driver_name'):
+            driver_info = r.get('driver_name', '?')
+        elif r.get('status') in ['NEW', 'CONFIRMED']:
+            driver_info = "Odottaa"
+
         tr += f"""
 <tr class="admin-table-row" onclick="window.location.href='/admin/order/{r['id']}'" style="cursor: pointer;">
   <td><strong>#{r['id']}</strong></td>
   <td><span class="status {r['status']}">{status_fi}</span></td>
-  <td>{r.get('user_name','?')} &lt;{r.get('user_email','?')}&gt;</td>
+  <td>{r.get('customer_name','?')} &lt;{r.get('customer_email','?')}&gt;</td>
+  <td>{driver_info}</td>
   <td>{r['pickup_address']} → {r['dropoff_address']}</td>
   <td>{distance_km:.1f} km</td>
   <td>{price_gross:.2f} €</td>
@@ -1122,8 +1190,13 @@ def admin_home():
       <input type="hidden" name="id" value="{r['id']}">
       <select name="status">
         <option value="NEW" {'selected' if r['status'] == 'NEW' else ''}>UUSI</option>
-        <option value="CONFIRMED" {'selected' if r['status'] == 'CONFIRMED' else ''}>VAHVISTETTU</option>
-        <option value="IN_TRANSIT" {'selected' if r['status'] == 'IN_TRANSIT' else ''}>KULJETUKSESSA</option>
+        <option value="CONFIRMED" {'selected' if r['status'] == 'CONFIRMED' else ''}>TEHTÄVÄ_VAHVISTETTU</option>
+        <option value="ASSIGNED_TO_DRIVER" {'selected' if r['status'] == 'ASSIGNED_TO_DRIVER' else ''}>MÄÄRITETTY_KULJETTAJALLE</option>
+        <option value="DRIVER_ARRIVED" {'selected' if r['status'] == 'DRIVER_ARRIVED' else ''}>KULJETTAJA_SAAPUNUT</option>
+        <option value="PICKUP_IMAGES_ADDED" {'selected' if r['status'] == 'PICKUP_IMAGES_ADDED' else ''}>NOUTOKUVAT_LISÄTTY</option>
+        <option value="IN_TRANSIT" {'selected' if r['status'] == 'IN_TRANSIT' else ''}>TOIMITUKSESSA</option>
+        <option value="DELIVERY_ARRIVED" {'selected' if r['status'] == 'DELIVERY_ARRIVED' else ''}>KULJETUS_SAAPUNUT</option>
+        <option value="DELIVERY_IMAGES_ADDED" {'selected' if r['status'] == 'DELIVERY_IMAGES_ADDED' else ''}>TOIMITUSKUVAT_LISÄTTY</option>
         <option value="DELIVERED" {'selected' if r['status'] == 'DELIVERED' else ''}>TOIMITETTU</option>
         <option value="CANCELLED" {'selected' if r['status'] == 'CANCELLED' else ''}>PERUUTETTU</option>
       </select>
@@ -1138,12 +1211,13 @@ def admin_home():
     <h2>Admin – Tilaukset</h2>
     <div class="admin-actions">
       <a class="btn btn-ghost" href="/admin/users">Käyttäjät</a>
+      <a class="btn btn-ghost" href="/admin/drivers">Kuljettajat</a>
       <a class="btn btn-secondary" href="/logout">Kirjaudu ulos</a>
     </div>
   </div>
   <table class="admin-table">
-    <thead><tr><th>ID</th><th>Tila</th><th>Asiakas</th><th>Reitti</th><th>Km</th><th>Hinta</th><th>Kuvat</th><th>Päivitä</th></tr></thead>
-    <tbody>{tr or "<tr><td colspan='8' class='muted'>Ei tilauksia</td></tr>"}</tbody>
+    <thead><tr><th>ID</th><th>Tila</th><th>Asiakas</th><th>Kuljettaja</th><th>Reitti</th><th>Km</th><th>Hinta</th><th>Kuvat</th><th>Päivitä</th></tr></thead>
+    <tbody>{tr or "<tr><td colspan='9' class='muted'>Ei tilauksia</td></tr>"}</tbody>
   </table>
 </div>
 """
@@ -1187,7 +1261,8 @@ def admin_users():
                 action_buttons = f"""
                 <form method="POST" action="/admin/users/deny" class="admin-inline-form">
                   <input type="hidden" name="user_id" value="{user['id']}">
-                  <button type="submit" class="btn btn-sm" style="background: #dc2626; color: white;">Hylkää</button>
+                  <button type="submit" class="btn btn-sm" style="background: #dc2626; color: white;"
+                          onclick="return confirm('Haluatko varmasti poistaa käyttäjän {user['name']} ({user['email']})? Tätä toimintoa ei voi peruuttaa.')">Poista käyttäjä</button>
                 </form>
                 """
             else:
@@ -1199,7 +1274,8 @@ def admin_users():
                   </form>
                   <form method="POST" action="/admin/users/deny" class="admin-inline-form">
                     <input type="hidden" name="user_id" value="{user['id']}">
-                    <button type="submit" class="btn btn-sm" style="background: #dc2626; color: white;">Hylkää</button>
+                    <button type="submit" class="btn btn-sm" style="background: #dc2626; color: white;"
+                            onclick="return confirm('Haluatko varmasti hylätä käyttäjän {user['name']} ({user['email']})? Käyttäjä poistetaan pysyvästi.')">Hylkää</button>
                   </form>
                 </div>
                 """
@@ -1268,6 +1344,115 @@ def admin_deny_user():
     return redirect(url_for("admin_users"))
 
 
+@app.get("/admin/drivers")
+def admin_drivers():
+    u = current_user()
+    if not u or u.get("role") != "admin":
+        return wrap("<div class='card'><h2>Adminalue</h2><p class='muted'>Kirjaudu admin-käyttäjänä.</p></div>", u)
+
+    # Get all drivers with their performance data
+    from services.driver_service import driver_service
+    from models.user import user_model
+
+    drivers_performance = driver_service.get_driver_performance_data()
+
+    # Get available orders that can be assigned
+    from models.order import order_model
+    available_orders = order_model.get_available_orders(limit=20)
+
+    driver_rows = ""
+    for driver in drivers_performance:
+        status_class = "status-confirmed" if driver.get("status") == "active" else "status-new"
+        status_text = "✅ Aktiivinen" if driver.get("status") == "active" else "⏳ Odottaa"
+
+        driver_rows += f"""
+<tr>
+  <td>#{driver['id']}</td>
+  <td>{driver['name']}</td>
+  <td>{driver['email']}</td>
+  <td><span class="status {status_class}">{status_text}</span></td>
+  <td>{driver['total_jobs']}</td>
+  <td>{driver['completed_jobs']}</td>
+  <td>{driver['active_jobs']}</td>
+  <td>{driver['completion_rate']:.1f}%</td>
+  <td>{format_helsinki_time(driver.get('created_at')) if driver.get('created_at') else '-'}</td>
+</tr>
+"""
+
+    # Available orders for assignment
+    available_orders_html = ""
+    if available_orders:
+        for order in available_orders:
+            available_orders_html += f"""
+<tr>
+  <td>#{order['id']}</td>
+  <td>{order['pickup_address']} → {order['dropoff_address']}</td>
+  <td>{order['distance_km']:.1f} km</td>
+  <td>{order['price_gross']:.2f} €</td>
+  <td>
+    <form method="POST" action="/admin/assign_driver" style="display: inline;">
+      <input type="hidden" name="order_id" value="{order['id']}">
+      <select name="driver_id" required>
+        <option value="">Valitse kuljettaja</option>
+        {' '.join([f'<option value="{d["id"]}">{d["name"]}</option>' for d in drivers_performance if d.get("status") == "active"])}
+      </select>
+      <button type="submit" class="btn btn-sm">Määritä</button>
+    </form>
+  </td>
+</tr>
+"""
+
+    body = f"""
+<div class="admin-container">
+  <div class="admin-header">
+    <h2>Kuljettajien hallinta</h2>
+    <div class="admin-actions">
+      <a class="btn btn-ghost" href="/admin">Takaisin tilauksiin</a>
+      <a class="btn btn-ghost" href="/admin/users">Käyttäjät</a>
+      <a class="btn btn-secondary" href="/logout">Kirjaudu ulos</a>
+    </div>
+  </div>
+
+  <!-- Driver Statistics -->
+  <div class="mb-6">
+    <h3>Kuljettajat</h3>
+    <table class="admin-table admin-users-table">
+      <thead><tr><th>ID</th><th>Nimi</th><th>Sähköposti</th><th>Tila</th><th>Yhteensä</th><th>Suoritettu</th><th>Aktiivisia</th><th>Onnistumis-%</th><th>Luotu</th></tr></thead>
+      <tbody>{driver_rows or "<tr><td colspan='9' class='muted'>Ei kuljettajia</td></tr>"}</tbody>
+    </table>
+  </div>
+
+  <!-- Available Orders for Assignment -->
+  <div>
+    <h3>Saatavilla olevat tilaukset</h3>
+    <p class="text-muted">Määritä kuljettaja saataville oleviin tilauksiin</p>
+    <table class="admin-table">
+      <thead><tr><th>ID</th><th>Reitti</th><th>Matka</th><th>Hinta</th><th>Toiminnot</th></tr></thead>
+      <tbody>{available_orders_html or "<tr><td colspan='5' class='muted'>Ei saatavilla olevia tilauksia</td></tr>"}</tbody>
+    </table>
+  </div>
+</div>
+"""
+    return wrap(body, u)
+
+
+@app.post("/admin/assign_driver")
+def admin_assign_driver():
+    admin_required()
+    order_id = int(request.form.get("order_id"))
+    driver_id = int(request.form.get("driver_id"))
+
+    from services.driver_service import driver_service
+    success, error = driver_service.accept_job(order_id, driver_id)
+
+    if success:
+        flash(f"Tilaus #{order_id} määritetty kuljettajalle", "success")
+    else:
+        flash(f"Virhe: {error}", "error")
+
+    return redirect(url_for("admin_drivers"))
+
+
 @app.post("/admin/update")
 def admin_update_order():
     u = current_user()
@@ -1278,8 +1463,8 @@ def admin_update_order():
     new_status = request.form.get("status")
 
     # Validate status
-    valid_statuses = ["NEW", "CONFIRMED", "IN_TRANSIT", "DELIVERED", "CANCELLED"]
-    if new_status not in valid_statuses:
+    from models.order import order_model
+    if new_status not in order_model.VALID_STATUSES:
         return redirect(url_for("admin_home"))
 
     # Use service layer to update order status (includes automatic email sending)
@@ -1527,17 +1712,25 @@ def progress_step(status: str) -> int:
     # 3-vaiheinen palkki: 1=Noudettu, 2=Kuljetuksessa, 3=Toimitettu
     status = (status or "").upper()
     mapping = {
-        "NEW": 0,          # uusi tilaus, ei vielä noudettu
-        "CONFIRMED": 0,    # vahvistettu, odottaa noutoa
-        "IN_TRANSIT": 2,   # kuljetuksessa (noudettu + kuljetuksessa)
-        "DELIVERED": 3,    # toimitettu (kaikki vaiheet valmiit)
-        "CANCELLED": 0     # peruttu -> ei edistystä
+        "NEW": 0,                      # uusi tilaus, ei vielä noudettu
+        "CONFIRMED": 0,                # vahvistettu, odottaa kuljettajaa
+        "ASSIGNED_TO_DRIVER": 0,       # kuljettaja määritetty, matkalla
+        "DRIVER_ARRIVED": 1,           # kuljettaja saapunut
+        "PICKUP_IMAGES_ADDED": 1,      # noudettu
+        "IN_TRANSIT": 2,               # kuljetuksessa
+        "DELIVERY_ARRIVED": 2,         # saapunut kohteeseen
+        "DELIVERY_IMAGES_ADDED": 2,    # valmis luovutukseen
+        "DELIVERED": 3,                # toimitettu
+        "CANCELLED": 0                 # peruttu -> ei edistystä
     }
     return mapping.get(status, 0)
 
 
 def is_active_status(status: str) -> bool:
-    return (status or "").upper() in ("NEW", "CONFIRMED", "IN_TRANSIT")
+    return (status or "").upper() in (
+        "NEW", "CONFIRMED", "ASSIGNED_TO_DRIVER", "DRIVER_ARRIVED",
+        "PICKUP_IMAGES_ADDED", "IN_TRANSIT", "DELIVERY_ARRIVED", "DELIVERY_IMAGES_ADDED"
+    )
 
 
 # ----------------- API -----------------
@@ -1573,6 +1766,10 @@ def api_quote():
     return jsonify({"net": net, "vat": vat, "gross": gross})
 
 
+# Register blueprints
+from routes.driver import driver_bp
+app.register_blueprint(driver_bp)
+
 # Import feature modules
 import order_wizard
 import marketing
@@ -1581,6 +1778,7 @@ import marketing
 if __name__ == "__main__":
     init_db()
     seed_admin()
+    seed_test_driver()  # Seed test driver for development
     migrate_images_to_array()  # Migrate existing single images to array format
     port = int(os.getenv("PORT", "8000"))
     app.run(host="0.0.0.0", port=port, debug=True)

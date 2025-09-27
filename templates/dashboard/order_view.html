@@ -53,6 +53,18 @@
             <span class="metric-value">{{ "%.2f"|format(price_gross) }} €</span>
             <span class="metric-label">Hinta</span>
           </div>
+          {% if order.status in ['ASSIGNED_TO_DRIVER', 'DRIVER_ARRIVED', 'PICKUP_IMAGES_ADDED', 'IN_TRANSIT', 'DELIVERY_ARRIVED', 'DELIVERY_IMAGES_ADDED', 'DELIVERED'] %}
+          <div class="metric-card driver-card">
+            <span class="metric-value">
+              {% if order.driver_name %}
+                {{ order.driver_name }}
+              {% else %}
+                Määritetään...
+              {% endif %}
+            </span>
+            <span class="metric-label">Kuljettaja</span>
+          </div>
+          {% endif %}
         </div>
       </div>
     </div>
