@@ -3,7 +3,7 @@ User Model
 Handles user data operations and business logic
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 from werkzeug.security import generate_password_hash, check_password_hash
 from .database import BaseModel, counter_manager
 
@@ -30,8 +30,8 @@ class UserModel(BaseModel):
             "name": name.strip(),
             "role": role,
             "status": "pending" if role == "user" else "active",
-            "created_at": datetime.utcnow(),
-            "updated_at": datetime.utcnow()
+            "created_at": datetime.now(timezone.utc),
+            "updated_at": datetime.now(timezone.utc)
         }
 
         try:
@@ -68,7 +68,7 @@ class UserModel(BaseModel):
         """Update user's last login timestamp"""
         return self.update_one(
             {"id": int(user_id)},
-            {"$set": {"last_login": datetime.utcnow()}}
+            {"$set": {"last_login": datetime.now(timezone.utc)}}
         )
 
     def approve_user(self, user_id):
@@ -77,7 +77,7 @@ class UserModel(BaseModel):
             {"id": int(user_id)},
             {"$set": {
                 "status": "active",
-                "updated_at": datetime.utcnow()
+                "updated_at": datetime.now(timezone.utc)
             }}
         )
 
@@ -102,7 +102,7 @@ class UserModel(BaseModel):
 
     def update_user_profile(self, user_id, name=None, email=None):
         """Update user profile information"""
-        update_data = {"updated_at": datetime.utcnow()}
+        update_data = {"updated_at": datetime.now(timezone.utc)}
 
         if name:
             update_data["name"] = name.strip()
@@ -136,7 +136,7 @@ class UserModel(BaseModel):
             {"id": int(user_id)},
             {"$set": {
                 "password_hash": generate_password_hash(new_password),
-                "updated_at": datetime.utcnow()
+                "updated_at": datetime.now(timezone.utc)
             }}
         )
 

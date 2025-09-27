@@ -3,7 +3,7 @@ Order Model
 Handles order data operations and business logic
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List, Dict, Optional, Tuple
 from .database import BaseModel, counter_manager
 
@@ -45,8 +45,8 @@ class OrderModel(BaseModel):
                 "id": order_id,
                 "user_id": int(user_id),
                 "status": self.STATUS_NEW,
-                "created_at": datetime.utcnow(),
-                "updated_at": datetime.utcnow(),
+                "created_at": datetime.now(timezone.utc),
+                "updated_at": datetime.now(timezone.utc),
                 **order_data
             }
 
@@ -111,7 +111,7 @@ class OrderModel(BaseModel):
                 {"id": int(order_id)},
                 {"$set": {
                     "status": new_status,
-                    "updated_at": datetime.utcnow()
+                    "updated_at": datetime.now(timezone.utc)
                 }}
             )
             return success, None
@@ -126,7 +126,7 @@ class OrderModel(BaseModel):
                 filter_dict["user_id"] = int(user_id)
 
             # Add updated timestamp
-            update_data["updated_at"] = datetime.utcnow()
+            update_data["updated_at"] = datetime.now(timezone.utc)
 
             success = self.update_one(filter_dict, {"$set": update_data})
             return success, None
@@ -158,7 +158,7 @@ class OrderModel(BaseModel):
 
             # Set order number for new image
             image_data["order"] = len(current_images) + 1
-            image_data["uploaded_at"] = datetime.utcnow()
+            image_data["uploaded_at"] = datetime.now(timezone.utc)
 
             # Add new image
             current_images.append(image_data)
@@ -168,7 +168,7 @@ class OrderModel(BaseModel):
                 {"id": int(order_id)},
                 {"$set": {
                     f"images.{image_type}": current_images,
-                    "updated_at": datetime.utcnow()
+                    "updated_at": datetime.now(timezone.utc)
                 }}
             )
 
@@ -211,7 +211,7 @@ class OrderModel(BaseModel):
                 {"id": int(order_id)},
                 {"$set": {
                     f"images.{image_type}": updated_images,
-                    "updated_at": datetime.utcnow()
+                    "updated_at": datetime.now(timezone.utc)
                 }}
             )
 
@@ -282,8 +282,8 @@ class OrderModel(BaseModel):
                 {"$set": {
                     "driver_id": int(driver_id),
                     "status": self.STATUS_ASSIGNED_TO_DRIVER,
-                    "assigned_at": datetime.utcnow(),
-                    "updated_at": datetime.utcnow()
+                    "assigned_at": datetime.now(timezone.utc),
+                    "updated_at": datetime.now(timezone.utc)
                 }}
             )
             return success, None
@@ -298,12 +298,12 @@ class OrderModel(BaseModel):
         try:
             update_data = {
                 "status": new_status,
-                "updated_at": datetime.utcnow()
+                "updated_at": datetime.now(timezone.utc)
             }
 
             # Add timestamp for specific actions
             if timestamp_field:
-                update_data[timestamp_field] = datetime.utcnow()
+                update_data[timestamp_field] = datetime.now(timezone.utc)
 
             success = self.update_one(
                 {"id": int(order_id)},

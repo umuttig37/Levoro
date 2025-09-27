@@ -23,7 +23,7 @@
         <div class="flex justify-between items-start">
           <div>
             <h3 class="card-title">Tilaus #{{ job.id }}</h3>
-            <p class="card-subtitle">{{ job.created_at.strftime('%d.%m.%Y %H:%M') if job.created_at else 'Tuntematon' }}</p>
+            <p class="card-subtitle">{{ job.created_at|helsinki_time if job.created_at else 'Tuntematon' }}</p>
           </div>
           <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium
             {% if job.status == 'ASSIGNED_TO_DRIVER' %}bg-blue-100 text-blue-800

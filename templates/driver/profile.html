@@ -42,7 +42,7 @@
           {% if driver.last_login %}
           <div>
             <label class="form-label">Viimeksi kirjautunut</label>
-            <p class="text-gray-900">{{ driver.last_login.strftime('%d.%m.%Y %H:%M') }}</p>
+            <p class="text-gray-900">{{ driver.last_login|helsinki_time }}</p>
           </div>
           {% endif %}
         </div>

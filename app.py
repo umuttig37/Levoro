@@ -293,6 +293,13 @@ def format_helsinki_time(dt):
     except Exception as e:
         # Fallback to original formatting if conversion fails
         return dt.strftime('%d.%m.%Y %H:%M') if hasattr(dt, 'strftime') else str(dt)
+
+# Register template filter for timezone conversion
+@app.template_filter('helsinki_time')
+def helsinki_time_filter(dt):
+    """Template filter to convert datetime to Helsinki timezone"""
+    return format_helsinki_time(dt)
+
 def current_user():
     """Get current user - using auth service"""
     return auth_service.get_current_user()

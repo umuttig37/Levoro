@@ -104,7 +104,7 @@
               <div class="driver-job-meta">
                 <span>{{ job.distance_km|round(1) }} km</span>
                 <span>{{ job.price_gross|round(2) }} €</span>
-                <span>Luotu: {{ job.created_at.strftime('%d.%m.%Y %H:%M') if job.created_at else 'Tuntematon' }}</span>
+                <span>Luotu: {{ job.created_at|helsinki_time if job.created_at else 'Tuntematon' }}</span>
               </div>
             </div>
             <div class="driver-job-actions">

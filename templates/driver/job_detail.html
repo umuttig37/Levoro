@@ -48,7 +48,7 @@
         </span>
         {% if order.updated_at %}
         <span class="text-sm text-muted">
-          Päivitetty: {{ order.updated_at.strftime('%d.%m.%Y %H:%M') if order.updated_at else 'Tuntematon' }}
+          Päivitetty: {{ order.updated_at|helsinki_time }}
         </span>
         {% endif %}
       </div>
@@ -244,16 +244,16 @@
             <h3 class="font-medium mb-3 text-sm">Aikataulutiedot</h3>
             <div class="space-y-2 text-xs text-secondary">
               {% if order.assigned_at %}
-              <div>Otettu vastaan: {{ order.assigned_at.strftime('%d.%m.%Y %H:%M') }}</div>
+              <div>Otettu vastaan: {{ order.assigned_at|helsinki_time }}</div>
               {% endif %}
               {% if order.arrival_time %}
-              <div>Saapunut: {{ order.arrival_time.strftime('%d.%m.%Y %H:%M') }}</div>
+              <div>Saapunut: {{ order.arrival_time|helsinki_time }}</div>
               {% endif %}
               {% if order.pickup_started %}
-              <div>Kuljetus aloitettu: {{ order.pickup_started.strftime('%d.%m.%Y %H:%M') }}</div>
+              <div>Kuljetus aloitettu: {{ order.pickup_started|helsinki_time }}</div>
               {% endif %}
               {% if order.delivery_completed %}
-              <div>Toimitettu: {{ order.delivery_completed.strftime('%d.%m.%Y %H:%M') }}</div>
+              <div>Toimitettu: {{ order.delivery_completed|helsinki_time }}</div>
               {% endif %}
             </div>
           </div>
