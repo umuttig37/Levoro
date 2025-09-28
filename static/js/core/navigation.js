@@ -71,10 +71,8 @@ class NavigationManager {
     }
 }
 
-// Initialize navigation when DOM is loaded
-document.addEventListener('DOMContentLoaded', () => {
-    window.navigationManager = new NavigationManager();
-});
+// Initialize navigation immediately (script is at bottom of body)
+window.navigationManager = new NavigationManager();
 
 // Legacy function for backward compatibility
 function toggleMobileMenu() {

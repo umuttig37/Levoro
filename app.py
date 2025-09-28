@@ -170,9 +170,9 @@ def seed_test_driver():
                 "created_at": datetime.datetime.now(ZoneInfo("Europe/Helsinki")),
                 "updated_at": datetime.datetime.now(ZoneInfo("Europe/Helsinki")),
             })
-            print(f"✅ Test driver created: {driver_data['email']} / {driver_data['password']}")
+            print(f"Test driver created: {driver_data['email']} / {driver_data['password']}")
         else:
-            print(f"ℹ️  Test driver already exists: {driver_data['email']}")
+            print(f"Test driver already exists: {driver_data['email']}")
 
 def migrate_images_to_array():
     """Migrate existing single image structure to array-based structure"""
@@ -304,6 +304,11 @@ def current_user():
     """Get current user - using auth service"""
     return auth_service.get_current_user()
 
+@app.template_global('current_user')
+def get_current_user_for_template():
+    """Get current user for templates - returns user object or None"""
+    return auth_service.get_current_user()
+
 
 
 def admin_required():
@@ -346,8 +351,7 @@ __GOOGLE_MAPS_SCRIPT__
       </button>
       <nav class="nav" id="nav-menu">
         <a href="/" class="nav-link">Etusivu</a>
-        <a href="/order/new/step1" class="nav-link">Uusi tilaus</a>
-        <a href="/dashboard" class="nav-link">Oma sivu</a>
+        __USER_LINKS__
         __ADMIN__
         __AUTH__
       </nav>
@@ -369,34 +373,25 @@ PAGE_FOOT = """
     </div>
   </div>
 </footer>
+<script src="/static/js/core/navigation.js"></script>
 <script>
-function toggleMobileMenu() {
-  const nav = document.getElementById('nav-menu');
-  const toggle = document.querySelector('.mobile-menu-toggle');
-  nav.classList.toggle('mobile-open');
-  toggle.classList.toggle('active');
+// Ensure NavigationManager is initialized and toggle works
+if (typeof window.navigationManager === 'undefined') {
+    window.navigationManager = new NavigationManager();
 }
-
-// Close mobile menu when clicking on a link
-document.querySelectorAll('.nav-link').forEach(link => {
-  link.addEventListener('click', () => {
-    const nav = document.getElementById('nav-menu');
-    const toggle = document.querySelector('.mobile-menu-toggle');
-    nav.classList.remove('mobile-open');
-    toggle.classList.remove('active');
-  });
-});
-
-// Close mobile menu when clicking outside
-document.addEventListener('click', (e) => {
-  const nav = document.getElementById('nav-menu');
-  const toggle = document.querySelector('.mobile-menu-toggle');
-  if (!nav.contains(e.target) && !toggle.contains(e.target)) {
-    nav.classList.remove('mobile-open');
-    toggle.classList.remove('active');
-  }
-});
-
+function toggleMobileMenu() {
+    if (window.navigationManager) {
+        window.navigationManager.toggleMobileMenu();
+    } else {
+        // Fallback inline toggle
+        const nav = document.getElementById('nav-menu');
+        const toggle = document.querySelector('.mobile-menu-toggle');
+        if (nav && toggle) {
+            nav.classList.toggle('mobile-open');
+            toggle.classList.toggle('active');
+        }
+    }
+}
 </script>
 </body></html>
 """
@@ -412,12 +407,23 @@ def wrap(content: str, user=None):
     # Logo ja role-based navigation
     from flask import url_for, get_flashed_messages
     logo_src = url_for('static', filename='LevoroLogo.png')
+
+    # Build role-based navigation links
+    user_links = ""
     admin_link = ""
+
     if user:
-        if user.get("role") == "admin":
+        if user.get("role") == "driver":
+            user_links = '<a href="/driver/dashboard" class="nav-link">Kuljettajan sivu</a>'
+        elif user.get("role") == "admin":
+            # Admin users don't need Oma sivu link
             admin_link = '<a href="/admin" class="nav-link">Admin</a>'
-        elif user.get("role") == "driver":
-            admin_link = '<a href="/driver/dashboard" class="nav-link">Kuljettaja</a>'
+        else:
+            # Regular users get Uusi tilaus and Oma sivu links
+            user_links = '<a href="/order/new/step1" class="nav-link">Uusi tilaus</a><a href="/dashboard" class="nav-link">Oma sivu</a>'
+    else:
+        # Non-authenticated users can see Uusi tilaus
+        user_links = '<a href="/order/new/step1" class="nav-link">Uusi tilaus</a>'
 
     # Google Maps script if API key is available
     google_script = ""
@@ -442,11 +448,12 @@ def wrap(content: str, user=None):
     # Kootaan head
     head = (
         PAGE_HEAD
-        .replace("__LOGO__", logo_src)
-        .replace("__ADMIN__", admin_link)
-        .replace("__AUTH__", auth)
-        .replace("__CSS_MAIN__", url_for('static', filename='css/main.css'))
-        .replace("__GOOGLE_MAPS_SCRIPT__", google_script)
+        .replace('__LOGO__', logo_src)
+        .replace('__USER_LINKS__', user_links)
+        .replace('__ADMIN__', admin_link)
+        .replace('__AUTH__', auth)
+        .replace('__CSS_MAIN__', url_for('static', filename='css/main.css'))
+        .replace('__GOOGLE_MAPS_SCRIPT__', google_script)
     )
 
     # Kootaan footer
@@ -470,8 +477,9 @@ def render_with_context(template_name, **kwargs):
 
 
 # ----------------- ROUTES: HOME -----------------
-@app.get("/")
-def home():
+# Legacy home route removed - now handled by blueprint
+# @app.get("/")
+# def home():
     u = current_user()
 
     # Build driver application button conditionally
@@ -899,8 +907,9 @@ def login():
 
 
 # ----------------- DASHBOARD -----------------
-@app.get("/dashboard")
-def dashboard():
+# Legacy dashboard route commented out - now handled by blueprint
+# @app.get("/dashboard")
+# def dashboard():
     u = current_user()
     if not u:
         return redirect(url_for("login", next="/dashboard"))
@@ -1188,8 +1197,9 @@ def order_view(order_id: int):
 
 
 # ----------------- ADMIN -----------------
-@app.get("/admin")
-def admin_home():
+# Legacy admin route commented out - now handled by blueprint
+# @app.get("/admin")
+# def admin_home():
     u = current_user()
     if not u or u.get("role") != "admin":
         return wrap("<div class='card'><h2>Adminalue</h2><p class='muted'>Kirjaudu admin-käyttäjänä.</p></div>", u)
@@ -1280,7 +1290,7 @@ def admin_users():
     user_rows = ""
     for user in users:
         # Use new status field instead of deprecated approved field
-        user_status = user.get("status", "pending")
+        user_status = user.get("status", "active")
 
         # Status display logic
         if user_status == "active":
@@ -1451,6 +1461,7 @@ def admin_drivers():
     <div class="admin-actions">
       <a class="btn btn-ghost" href="/admin">Takaisin tilauksiin</a>
       <a class="btn btn-ghost" href="/admin/users">Käyttäjät</a>
+      <a class="btn btn-ghost" href="/admin/driver-applications">Kuljettajahakemukset</a>
       <a class="btn btn-secondary" href="/logout">Kirjaudu ulos</a>
     </div>
   </div>
@@ -1743,8 +1754,19 @@ def admin_approve_driver_application():
     except Exception as e:
         print(f"Failed to send approval email: {e}")
 
-    flash(f"Hakemus hyväksytty! Kuljettajatili luotu käyttäjälle {app['name']}", "success")
-    return redirect("/admin/driver-applications")
+    # Send notification email to admin
+    try:
+        email_service.send_admin_driver_application_notification(application)
+    except Exception as e:
+        print(f"Failed to send admin notification: {e}")
+
+    applicant_name = app["name"]
+
+    return render_template(
+        'driver_application_success.html',
+        applicant_name=applicant_name,
+        application_id=application["id"]
+    )
 
 
 @app.post("/admin/driver-applications/deny")
@@ -2193,7 +2215,9 @@ def submit_driver_application():
 
 
 # Register blueprints
+from routes.main import main_bp
 from routes.driver import driver_bp
+app.register_blueprint(main_bp)
 app.register_blueprint(driver_bp)
 
 # Import feature modules

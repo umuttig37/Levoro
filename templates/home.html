@@ -1,0 +1,119 @@
+{% extends "base/layout.html" %}
+
+{% block title %}Autonkuljetus – Samana päivänä ja halvin{% endblock %}
+
+{% block content %}
+<!-- HERO -->
+<div class="container">
+  <div class="hero">
+    <div class="hero-content">
+      <div class="hero-badge">
+        <span aria-hidden="true">🚗</span>
+        Saman päivän auton kuljetukset
+      </div>
+      <h1 class="hero-title">Samana päivänä, ja halvin.<br/>Levorolla mahdollista.</h1>
+      <p class="hero-subtitle">Suomen nopein, edullisin ja luotettavin tapa siirtää autoja. Läpinäkyvä hinnoittelu, reaaliaikainen seuranta ja helppo tilausportaali.</p>
+      <div class="hero-actions">
+        <a class="btn btn-primary btn-lg" href="/calculator">Laske halvin hinta nyt</a>
+        <a class="btn btn-secondary btn-lg" href="#how">Miten se toimii</a>
+        {% if not current_user %}
+        <a class="btn btn-outline btn-lg" href="/hae-kuljettajaksi">🚗 Hae kuljettajaksi</a>
+        {% endif %}
+      </div>
+      <div class="hero-features">
+        <div class="hero-feature">Toimitus samana päivänä</div>
+        <div class="hero-feature">PK-seudulla kuljetukset 27€</div>
+        <div class="hero-feature">Kokeilualennus yritysasiakkaille</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MIKSI MEIDÄT -->
+<div class="container">
+  <section class="section-padding">
+    <div class="section-header">
+      <h2 class="section-title">Miksi valita meidät</h2>
+    </div>
+    <div class="grid grid-cols-3">
+      <div class="feature-card">
+        <div class="feature-icon">⚡</div>
+        <h3 class="feature-title">Nopeus</h3>
+        <p class="feature-description">Optimointi, eurooppalaiset vakioreitit ja oma verkosto. Useimmat toimitukset 3–5 päivässä.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">💶</div>
+        <h3 class="feature-title">Hinta</h3>
+        <p class="feature-description">Reilu ja läpinäkyvä. Ei piilokuluja – näet hinnan ennen tilausta.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🛡️</div>
+        <h3 class="feature-title">Luotettavuus</h3>
+        <p class="feature-description">Vakuutus koko matkan, CMR-dokumentointi ja seuranta portaalissa.</p>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- MITEN SE TOIMII -->
+<div id="how" class="container">
+  <section class="section-padding">
+    <h2 class="section-title">Miten se toimii</h2>
+    <div class="grid grid-cols-3">
+      <div class="feature-card">
+        <h3 class="feature-title">
+          <span class="step-number">1</span>
+          Lähetä reitti
+        </h3>
+        <p class="feature-description">Valitse nouto ja kohde portaalissa. Saat hinnan heti.</p>
+      </div>
+      <div class="feature-card">
+        <h3 class="feature-title">
+          <span class="step-number">2</span>
+          Vahvista tilaus
+        </h3>
+        <p class="feature-description">Valitse sopiva aika ja lisää tiedot (avaimet, yhteyshenkilöt).</p>
+      </div>
+      <div class="feature-card">
+        <h3 class="feature-title">
+          <span class="step-number">3</span>
+          Seuraa toimitusta
+        </h3>
+        <p class="feature-description">Näet etenemisen ja saat ilmoitukset – kuittaukset tallentuvat portaaliin.</p>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- VAKUUTUSBANNERI -->
+<div class="container">
+  <section class="section-padding">
+    <div class="trust-banner">
+      <div class="trust-content">
+        <div class="trust-icon">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M12 3l7 3v5c0 5-3.5 9-7 10-3.5-1-7-5-7-10V6l7-3z" fill="none" stroke-width="2" stroke-linejoin="round"></path>
+            <path d="M8 12l3 3 5-5" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+          </svg>
+        </div>
+        <div class="trust-text">
+          <h3>Kaikki ajamamme autot suojattu täysin vastuuvakuutuksella</h3>
+          <p>Vakuutusturva koko kuljetuksen ajan – ilman lisämaksuja.</p>
+        </div>
+      </div>
+      <a class="btn btn-primary btn-lg" href="/calculator">Laske hinta →</a>
+    </div>
+  </section>
+</div>
+
+<!-- FOOTER-CTA -->
+<div class="container">
+  <section class="section-padding text-center">
+    <p class="text-muted">Onko sinulla jo tili?</p>
+    <div class="flex justify-center gap-4 mt-4 footer-cta">
+      <a class="btn btn-ghost" href="/login">Kirjaudu sisään</a>
+      <a class="btn btn-ghost" href="/register">Luo yritystili</a>
+    </div>
+  </section>
+</div>
+{% endblock %}

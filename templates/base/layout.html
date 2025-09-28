@@ -63,8 +63,10 @@
                     <a href="/" class="nav-link">Etusivu</a>
 
                     <!-- Role-based navigation -->
-                    {% if current_user and current_user.role == 'driver' %}
+                    {% if current_user and current_user.get('role') == 'driver' %}
                     <a href="/driver/dashboard" class="nav-link">Kuljettajan sivu</a>
+                    {% elif current_user and current_user.get('role') == 'admin' %}
+                    <!-- Admin users don't need Oma sivu link -->
                     {% elif current_user %}
                     <a href="/order/new/step1" class="nav-link">Uusi tilaus</a>
                     <a href="/dashboard" class="nav-link">Oma sivu</a>
@@ -73,13 +75,13 @@
                     {% endif %}
 
                     <!-- Admin Link -->
-                    {% if current_user and current_user.role == 'admin' %}
+                    {% if current_user and current_user.get('role') == 'admin' %}
                     <a href="/admin" class="nav-link">Admin</a>
                     {% endif %}
 
                     <!-- Auth Links -->
                     {% if current_user %}
-                    <span class="pill">Hei, {{ current_user.name }}</span>
+                    <span class="pill">Hei, {{ current_user.get('name', 'Käyttäjä') }}</span>
                     <a class="nav-link" href="/logout">Ulos</a>
                     {% else %}
                     <a href="/hae-kuljettajaksi" class="nav-link">Hae kuljettajaksi</a>

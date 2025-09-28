@@ -1,0 +1,131 @@
+{% extends "base/layout.html" %}
+
+{% block title %}Omat tilaukset – Autonkuljetus{% endblock %}
+
+{% block content %}
+<div class="container">
+  <div class="section-padding">
+    <div class="text-center mb-8">
+      <h1 class="calculator-title">Omat tilaukset</h1>
+      <p class="calculator-subtitle">Hallinnoi kuljetustilauksiasi ja seuraa niiden etenemistä</p>
+    </div>
+  </div>
+
+  <div style="max-width: 1200px; margin: 0 auto;">
+    <div class="user-orders-section">
+      <div class="user-orders-header">
+        <h2 class="user-orders-title">
+          Tilaushistoria
+          <span class="user-orders-count">{{ orders|length }} tilausta</span>
+        </h2>
+      </div>
+
+      <div style="padding: var(--space-6);">
+        {% set current_tab = request.args.get('tab', 'active') %}
+        <div class="tabs mb-4">
+          <a href="/dashboard?tab=active" class="btn {% if current_tab == 'active' %}btn-primary{% else %}btn-ghost{% endif %} mr-2">Aktiiviset</a>
+          <a href="/dashboard?tab=completed" class="btn {% if current_tab == 'completed' %}btn-primary{% else %}btn-ghost{% endif %}">Valmistuneet</a>
+        </div>
+
+        <div class="calculator-actions mb-4">
+          <a class="btn btn-primary" href="/order/new/step1">+ Uusi tilaus</a>
+        </div>
+      </div>
+
+      <div class="user-orders-wrapper" style="width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch;">
+        <table class="user-orders-table" style="width: 100%; border-collapse: collapse; min-width: 800px; background: #ffffff;">
+          <thead>
+            <tr>
+              <th style="background: #f9fafb; color: #1f2937; font-weight: 600; font-size: 0.875rem; text-align: left; padding: 1rem; border-bottom: 2px solid #e5e7eb; white-space: nowrap;">ID</th>
+              <th style="background: #f9fafb; color: #1f2937; font-weight: 600; font-size: 0.875rem; text-align: left; padding: 1rem; border-bottom: 2px solid #e5e7eb; white-space: nowrap;">Tila</th>
+              <th style="background: #f9fafb; color: #1f2937; font-weight: 600; font-size: 0.875rem; text-align: left; padding: 1rem; border-bottom: 2px solid #e5e7eb; white-space: nowrap;">Reitti</th>
+              <th style="background: #f9fafb; color: #1f2937; font-weight: 600; font-size: 0.875rem; text-align: left; padding: 1rem; border-bottom: 2px solid #e5e7eb; white-space: nowrap;">Matka</th>
+              <th style="background: #f9fafb; color: #1f2937; font-weight: 600; font-size: 0.875rem; text-align: left; padding: 1rem; border-bottom: 2px solid #e5e7eb; white-space: nowrap;">Hinta</th>
+              <th style="background: #f9fafb; color: #1f2937; font-weight: 600; font-size: 0.875rem; text-align: left; padding: 1rem; border-bottom: 2px solid #e5e7eb; white-space: nowrap;">Toiminnot</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% if orders %}
+              {% for order in orders %}
+                {% set status_fi = {
+                  'NEW': 'Uusi',
+                  'CONFIRMED': 'Vahvistettu',
+                  'ASSIGNED_TO_DRIVER': 'Kuljettaja osoitettu',
+                  'DRIVER_ARRIVED': 'Kuljettaja paikalla',
+                  'PICKUP_IMAGES_ADDED': 'Noutokuva lisätty',
+                  'IN_TRANSIT': 'Kuljetuksessa',
+                  'DELIVERY_ARRIVED': 'Toimitus paikalla',
+                  'DELIVERY_IMAGES_ADDED': 'Toimituskuva lisätty',
+                  'COMPLETED': 'Valmis',
+                  'CANCELLED': 'Peruutettu'
+                }.get(order.status, order.status) %}
+
+                {% set status_class = {
+                  'NEW': 'pending',
+                  'CONFIRMED': 'confirmed',
+                  'ASSIGNED_TO_DRIVER': 'confirmed',
+                  'DRIVER_ARRIVED': 'in-progress',
+                  'PICKUP_IMAGES_ADDED': 'in-progress',
+                  'IN_TRANSIT': 'in-progress',
+                  'DELIVERY_ARRIVED': 'in-progress',
+                  'DELIVERY_IMAGES_ADDED': 'in-progress',
+                  'COMPLETED': 'completed',
+                  'CANCELLED': 'cancelled'
+                }.get(order.status, 'pending') %}
+
+                {% set status_colors = {
+                  'pending': 'background: #fef3c7; color: #92400e; border: 1px solid #fde68a;',
+                  'confirmed': 'background: #dbeafe; color: #1e40af; border: 1px solid #bfdbfe;',
+                  'in-progress': 'background: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd;',
+                  'completed': 'background: #dcfce7; color: #166534; border: 1px solid #bbf7d0;',
+                  'cancelled': 'background: #fee2e2; color: #991b1b; border: 1px solid #fecaca;'
+                } %}
+
+                <tr style="transition: background-color 0.15s ease-in-out;"
+                    onmouseover="this.style.backgroundColor='#f9fafb'"
+                    onmouseout="this.style.backgroundColor='transparent'">
+                  <td style="padding: 1rem; border-bottom: 1px solid #e5e7eb; color: #2563eb; font-size: 0.875rem; font-weight: 500; background: rgba(255, 255, 255, 0.9); vertical-align: middle;">
+                    #{{ order.id }}
+                  </td>
+                  <td style="padding: 1rem; border-bottom: 1px solid #e5e7eb; color: #111827; font-size: 0.875rem; font-weight: 500; background: rgba(255, 255, 255, 0.9); vertical-align: middle; text-align: center;">
+                    <span style="display: inline-flex; align-items: center; padding: 0.25rem 0.75rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 500; text-transform: uppercase; letter-spacing: 0.025em; white-space: nowrap; {{ status_colors[status_class] }}">
+                      {{ status_fi }}
+                    </span>
+                  </td>
+                  <td style="padding: 1rem; border-bottom: 1px solid #e5e7eb; color: #111827; font-size: 0.875rem; font-weight: 500; background: rgba(255, 255, 255, 0.9); vertical-align: middle;">
+                    {{ order.pickup_address }} → {{ order.dropoff_address }}
+                  </td>
+                  <td style="padding: 1rem; border-bottom: 1px solid #e5e7eb; color: #6b7280; font-size: 0.875rem; font-weight: 500; background: rgba(255, 255, 255, 0.9); vertical-align: middle;">
+                    {{ "%.1f"|format(order.distance_km|float) }} km
+                  </td>
+                  <td style="padding: 1rem; border-bottom: 1px solid #e5e7eb; color: #111827; font-size: 0.875rem; font-weight: 600; background: rgba(255, 255, 255, 0.9); vertical-align: middle; text-align: right;">
+                    {{ "%.2f"|format(order.price_gross|float) }} €
+                  </td>
+                  <td style="padding: 1rem; border-bottom: 1px solid #e5e7eb; color: #111827; font-size: 0.875rem; font-weight: 500; background: rgba(255, 255, 255, 0.9); vertical-align: middle; text-align: center;">
+                    <a style="display: inline-flex; align-items: center; padding: 0.5rem 0.75rem; background: #3b82f6; color: #ffffff; text-decoration: none; border-radius: 0.5rem; font-size: 0.75rem; font-weight: 500; transition: all 0.15s ease-in-out; border: none; cursor: pointer; white-space: nowrap;"
+                       href="/order/{{ order.id }}"
+                       onmouseover="this.style.backgroundColor='#2563eb'; this.style.transform='translateY(-1px)'"
+                       onmouseout="this.style.backgroundColor='#3b82f6'; this.style.transform='translateY(0)'">
+                      Avaa
+                    </a>
+                  </td>
+                </tr>
+              {% endfor %}
+            {% else %}
+              <tr>
+                <td colspan="6" style="text-align: center; padding: 4rem;">
+                  <div style="color: #9ca3af;">
+                    <div style="font-size: 3rem; margin-bottom: 1rem;">📦</div>
+                    <div style="font-weight: 500; margin-bottom: 0.5rem;">Ei tilauksia</div>
+                    <div style="font-size: 0.875rem;">Luo ensimmäinen tilauksesi yllä olevalla napilla</div>
+                  </div>
+                </td>
+              </tr>
+            {% endif %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
