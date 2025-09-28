@@ -4,7 +4,6 @@ Authentication Routes
 
 from flask import Blueprint, request, redirect, url_for, flash, render_template
 from services.auth_service import auth_service
-from utils.helpers import wrap
 
 auth_bp = Blueprint('auth', __name__)
 
@@ -24,13 +23,15 @@ def login():
     nxt = request.form.get("next", "")
 
     if not email or not password:
-        return wrap("<div class='card'><h3>Sähköposti ja salasana vaaditaan</h3></div>", auth_service.get_current_user())
+        flash("Sähköposti ja salasana vaaditaan", "error")
+        return redirect(url_for("auth.login"))
 
     # Use auth service for login
     success, _, error = auth_service.login(email, password)
 
     if not success:
-        return wrap(f"<div class='card'><h3>{error}</h3></div>", auth_service.get_current_user())
+        flash(error, "error")
+        return redirect(url_for("auth.login"))
 
     return redirect(nxt or "/dashboard")
 
