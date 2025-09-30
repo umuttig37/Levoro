@@ -1,0 +1,266 @@
+{% extends "base/layout.html" %}
+
+{% block title %}Työ #{{ order.id }}{% endblock %}
+
+{% block content %}
+<div class="container">
+  <div class="section-padding">
+    <div class="text-center mb-8">
+      <h1 class="calculator-title">Työ #{{ order.id }}</h1>
+      <p class="calculator-subtitle">
+        {% if order.status == 'CONFIRMED' and not order.driver_id %}Saatavilla oleva työ
+        {% elif order.driver_id == driver.id %}Sinulle määritetty työ
+        {% else %}Työn yksityiskohdat{% endif %}
+      </p>
+    </div>
+  </div>
+
+  <div class="mb-4">
+    <a href="{{ url_for('driver.dashboard') }}" class="btn btn-ghost">← Takaisin työpöydälle</a>
+  </div>
+
+  <!-- Job Status -->
+  <div class="card mb-6">
+    <div class="card-header">
+      <h2 class="card-title">Työn tila</h2>
+    </div>
+    <div class="card-body">
+      <div class="flex items-center justify-between">
+        <span class="inline-flex items-center px-4 py-2 rounded-full text-sm font-medium
+          {% if order.status == 'CONFIRMED' %}bg-green-100 text-green-800
+          {% elif order.status == 'ASSIGNED_TO_DRIVER' %}bg-blue-100 text-blue-800
+          {% elif order.status == 'DRIVER_ARRIVED' %}bg-yellow-100 text-yellow-800
+          {% elif order.status == 'PICKUP_IMAGES_ADDED' %}bg-orange-100 text-orange-800
+          {% elif order.status == 'IN_TRANSIT' %}bg-purple-100 text-purple-800
+          {% elif order.status == 'DELIVERY_ARRIVED' %}bg-indigo-100 text-indigo-800
+          {% elif order.status == 'DELIVERY_IMAGES_ADDED' %}bg-pink-100 text-pink-800
+          {% elif order.status == 'DELIVERED' %}bg-emerald-100 text-emerald-800
+          {% else %}bg-gray-100 text-gray-800{% endif %}">
+          {% if order.status == 'CONFIRMED' %}Saatavilla
+          {% elif order.status == 'ASSIGNED_TO_DRIVER' %}Määritetty sinulle
+          {% elif order.status == 'DRIVER_ARRIVED' %}Saapunut noutopaikalle
+          {% elif order.status == 'PICKUP_IMAGES_ADDED' %}Noutokuvat lisätty
+          {% elif order.status == 'IN_TRANSIT' %}Kuljetuksessa
+          {% elif order.status == 'DELIVERY_ARRIVED' %}Kuljetus saapunut
+          {% elif order.status == 'DELIVERY_IMAGES_ADDED' %}Toimituskuvat lisätty
+          {% elif order.status == 'DELIVERED' %}Toimitettu
+          {% else %}{{ order.status }}{% endif %}
+        </span>
+        {% if order.updated_at %}
+        <span class="text-sm text-muted">
+          Päivitetty: {{ order.updated_at|helsinki_time }}
+        </span>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Job Details -->
+  <div class="driver-grid">
+    <div>
+      <!-- Route Information -->
+      <div class="card mb-6">
+        <div class="card-header">
+          <h2 class="card-title">Reittitiedot</h2>
+        </div>
+        <div class="card-body">
+          <div class="space-y-4">
+            <div>
+              <label class="form-label">Noutopaikka</label>
+              <p class="text-primary">{{ order.pickup_address }}</p>
+            </div>
+            <div>
+              <label class="form-label">Toimituspaikka</label>
+              <p class="text-primary">{{ order.dropoff_address }}</p>
+            </div>
+            <div class="grid cols-2 gap-4">
+              <div>
+                <label class="form-label">Matka</label>
+                <p class="text-primary">{{ order.distance_km|round(1) }} km</p>
+              </div>
+              <div>
+                <label class="form-label">Hinta</label>
+                <p class="text-primary">{{ order.price_gross|round(2) }} €</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Vehicle Information -->
+      {% if order.reg_number or order.winter_tires is not none %}
+      <div class="card mb-6">
+        <div class="card-header">
+          <h2 class="card-title">Ajoneuvotiedot</h2>
+        </div>
+        <div class="card-body">
+          <div class="space-y-3">
+            {% if order.reg_number %}
+            <div>
+              <label class="form-label">Rekisterinumero</label>
+              <p class="text-primary">{{ order.reg_number }}</p>
+            </div>
+            {% endif %}
+            {% if order.winter_tires is not none %}
+            <div>
+              <label class="form-label">Talvirenkaat</label>
+              <p class="text-primary">{{ "Kyllä" if order.winter_tires else "Ei" }}</p>
+            </div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- Additional Information -->
+      {% if order.extras or order.pickup_date %}
+      <div class="card mb-6">
+        <div class="card-header">
+          <h2 class="card-title">Lisätiedot</h2>
+        </div>
+        <div class="card-body">
+          <div class="space-y-3">
+            {% if order.pickup_date %}
+            <div>
+              <label class="form-label">Toivottu noutopäivä</label>
+              <p class="text-primary">{{ order.pickup_date }}</p>
+            </div>
+            {% endif %}
+            {% if order.extras %}
+            <div>
+              <label class="form-label">Lisätiedot</label>
+              <p class="text-primary">{{ order.extras }}</p>
+            </div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- Images Section -->
+      {% if order.driver_id == driver.id %}
+      <div class="card mb-6">
+        <div class="card-header">
+          <h2 class="card-title">Kuvat</h2>
+        </div>
+        <div class="card-body">
+          <div class="driver-images-grid">
+            <!-- Pickup Images -->
+            <div class="driver-images-section">
+              {% set pickup_images = order.images.pickup if order.images and order.images.pickup else [] %}
+              {% set image_type = 'pickup' %}
+              {% set images_data = pickup_images %}
+              {% set can_upload = (order.status in ['DRIVER_ARRIVED', 'PICKUP_IMAGES_ADDED']) %}
+              {% include 'components/driver_image_section.html' %}
+            </div>
+
+            <!-- Delivery Images -->
+            <div class="driver-images-section">
+              {% set delivery_images = order.images.delivery if order.images and order.images.delivery else [] %}
+              {% set image_type = 'delivery' %}
+              {% set images_data = delivery_images %}
+              {% set can_upload = (order.status in ['DELIVERY_ARRIVED', 'DELIVERY_IMAGES_ADDED']) %}
+              {% include 'components/driver_image_section.html' %}
+            </div>
+          </div>
+        </div>
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- Actions Panel -->
+    <div class="driver-actions-panel">
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">Toiminnot</h2>
+        </div>
+        <div class="card-body">
+          <div class="space-y-3">
+            {% if order.status == 'CONFIRMED' and not order.driver_id %}
+            <!-- Job is available for assignment -->
+            <form method="POST" action="{{ url_for('driver.accept_job', order_id=order.id) }}">
+              <button type="submit" class="btn btn-primary w-full"
+                      onclick="return confirm('Haluatko varmasti ottaa tämän työn vastaan?')">
+                Ota työ vastaan
+              </button>
+            </form>
+
+            {% elif order.driver_id == driver.id %}
+            <!-- Job belongs to this driver -->
+            {% if order.status == 'ASSIGNED_TO_DRIVER' %}
+            <form method="POST" action="{{ url_for('driver.mark_arrival', order_id=order.id) }}">
+              <button type="submit" class="btn btn-primary w-full">
+                📍 Saavuin noutopaikalle
+              </button>
+            </form>
+
+            {% elif order.status == 'DRIVER_ARRIVED' %}
+            <p class="text-sm text-secondary mb-3">Lisää noutokuvat ennen kuljetuksen aloittamista</p>
+
+            {% elif order.status == 'PICKUP_IMAGES_ADDED' %}
+            <form method="POST" action="{{ url_for('driver.start_transport', order_id=order.id) }}">
+              <button type="submit" class="btn btn-primary w-full">
+                🚗 Aloita kuljetus
+              </button>
+            </form>
+
+            {% elif order.status == 'IN_TRANSIT' %}
+            <form method="POST" action="{{ url_for('driver.arrive_delivery', order_id=order.id) }}">
+              <button type="submit" class="btn btn-primary w-full">
+                📍 Saavuin toimituspaikalle
+              </button>
+            </form>
+
+            {% elif order.status == 'DELIVERY_ARRIVED' %}
+            <p class="text-sm text-secondary mb-3">Lisää toimituskuvat ennen toimituksen päättämistä</p>
+
+            {% elif order.status == 'DELIVERY_IMAGES_ADDED' %}
+            <form method="POST" action="{{ url_for('driver.complete_delivery', order_id=order.id) }}">
+              <button type="submit" class="btn btn-primary w-full"
+                      onclick="return confirm('Haluatko varmasti merkitä toimituksen valmiiksi?')">
+                ✅ Päätä toimitus
+              </button>
+            </form>
+
+            {% elif order.status == 'DELIVERED' %}
+            <div class="text-center">
+              <div class="text-4xl mb-2">✅</div>
+              <p class="font-semibold text-green-600">Toimitus suoritettu!</p>
+            </div>
+            {% endif %}
+
+            {% else %}
+            <!-- Job belongs to another driver -->
+            <div class="text-center">
+              <div class="text-4xl mb-2">👤</div>
+              <p class="text-sm text-secondary">Tämä työ on määritetty toiselle kuljettajalle</p>
+            </div>
+            {% endif %}
+          </div>
+
+          <!-- Timestamps -->
+          {% if order.driver_id == driver.id %}
+          <div class="mt-6 pt-4 border-t">
+            <h3 class="font-medium mb-3 text-sm">Aikataulutiedot</h3>
+            <div class="space-y-2 text-xs text-secondary">
+              {% if order.assigned_at %}
+              <div>Otettu vastaan: {{ order.assigned_at|helsinki_time }}</div>
+              {% endif %}
+              {% if order.arrival_time %}
+              <div>Saapunut: {{ order.arrival_time|helsinki_time }}</div>
+              {% endif %}
+              {% if order.pickup_started %}
+              <div>Kuljetus aloitettu: {{ order.pickup_started|helsinki_time }}</div>
+              {% endif %}
+              {% if order.delivery_completed %}
+              <div>Toimitettu: {{ order.delivery_completed|helsinki_time }}</div>
+              {% endif %}
+            </div>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

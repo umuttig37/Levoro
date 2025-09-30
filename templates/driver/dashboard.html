@@ -1,0 +1,208 @@
+{% extends "base/layout.html" %}
+
+{% block title %}Kuljettajan työpöytä{% endblock %}
+
+{% block content %}
+<div class="container">
+  <div class="section-padding">
+    <div class="text-center mb-8">
+      <h1 class="calculator-title">Tervetuloa, {{ driver.name }}!</h1>
+      <p class="calculator-subtitle">Kuljettajan työpöytä</p>
+    </div>
+  </div>
+
+  <!-- Driver Statistics -->
+  <div class="driver-stats-grid">
+    <div class="driver-stats-card">
+      <div class="driver-stats-header">
+        <h3 class="driver-stats-title">Aktiiviset työt</h3>
+      </div>
+      <div class="driver-stats-body">
+        <div class="driver-metric-value active">{{ stats.active_jobs }}</div>
+        <p class="driver-metric-label">Käynnissä olevia töitä</p>
+      </div>
+    </div>
+
+    <div class="driver-stats-card">
+      <div class="driver-stats-header">
+        <h3 class="driver-stats-title">Suoritetut työt</h3>
+      </div>
+      <div class="driver-stats-body">
+        <div class="driver-metric-value completed">{{ stats.completed_jobs }}</div>
+        <p class="driver-metric-label">Valmistuneita töitä</p>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Tab Navigation -->
+  <div class="driver-tabs">
+    <div class="driver-tabs-header">
+      <button class="driver-tab-button active" data-tab="active">
+        Aktiiviset työt
+        {% if active_jobs|length > 0 %}
+        <span class="driver-tab-badge">{{ active_jobs|length }}</span>
+        {% endif %}
+      </button>
+      <button class="driver-tab-button" data-tab="available">
+        Saatavilla
+        {% if available_jobs|length > 0 %}
+        <span class="driver-tab-badge">{{ available_jobs|length }}</span>
+        {% endif %}
+      </button>
+      <button class="driver-tab-button" data-tab="history">
+        Historia
+        {% if all_jobs|selectattr('status', 'equalto', 'DELIVERED')|list|length > 0 %}
+        <span class="driver-tab-badge">{{ all_jobs|selectattr('status', 'equalto', 'DELIVERED')|list|length }}</span>
+        {% endif %}
+      </button>
+    </div>
+
+    <!-- Active Jobs Tab Content -->
+    <div class="driver-tab-content active" id="tab-active">
+      {% if active_jobs %}
+      <div class="driver-section-body">
+        <div class="driver-job-list">
+          {% for job in active_jobs %}
+          <div class="driver-job-card">
+            <div class="driver-job-header">
+              <div class="driver-job-content">
+                <h3 class="driver-job-title">Tilaus #{{ job.id }}</h3>
+                <p class="driver-job-route">{{ job.pickup_address }} → {{ job.dropoff_address }}</p>
+                <div class="driver-job-meta">
+                  <span>{{ job.distance_km|round(1) }} km</span>
+                  <span>{{ job.price_gross|round(2) }} €</span>
+                </div>
+              </div>
+              <div class="driver-job-actions">
+                <span class="driver-job-status {% if job.status == 'ASSIGNED_TO_DRIVER' %}assigned{% elif job.status == 'DRIVER_ARRIVED' %}arrived{% elif job.status == 'PICKUP_IMAGES_ADDED' %}pickup-images{% elif job.status == 'IN_TRANSIT' %}in-transit{% elif job.status == 'DELIVERY_ARRIVED' %}delivery-arrived{% elif job.status == 'DELIVERY_IMAGES_ADDED' %}delivery-images{% else %}available{% endif %}">
+                  {% if job.status == 'ASSIGNED_TO_DRIVER' %}Määritetty
+                  {% elif job.status == 'DRIVER_ARRIVED' %}Saapunut
+                  {% elif job.status == 'PICKUP_IMAGES_ADDED' %}Noutokuvat lisätty
+                  {% elif job.status == 'IN_TRANSIT' %}Kuljetuksessa
+                  {% elif job.status == 'DELIVERY_ARRIVED' %}Kuljetus saapunut
+                  {% elif job.status == 'DELIVERY_IMAGES_ADDED' %}Toimituskuvat lisätty
+                  {% else %}{{ job.status }}{% endif %}
+                </span>
+                <div class="mt-2">
+                  <a href="{{ url_for('driver.job_detail', order_id=job.id) }}" class="btn btn-primary btn-sm">Avaa työ</a>
+                </div>
+              </div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+      {% else %}
+      <div class="driver-empty-state">
+        <div class="driver-empty-icon">✅</div>
+        <h3 class="driver-empty-title">Ei aktiivisia töitä</h3>
+        <p class="driver-empty-message">Kaikki työsi on suoritettu. Hienoa työtä!</p>
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- Available Jobs Tab Content -->
+    <div class="driver-tab-content" id="tab-available">
+      {% if available_jobs %}
+      <div class="driver-section-body">
+        <div class="driver-job-list">
+          {% for job in available_jobs %}
+          <div class="driver-job-card">
+            <div class="driver-job-header">
+              <div class="driver-job-content">
+                <h3 class="driver-job-title">Tilaus #{{ job.id }}</h3>
+                <p class="driver-job-route">{{ job.pickup_address|extract_city }} → {{ job.dropoff_address|extract_city }}</p>
+                <div class="driver-job-meta">
+                  <span>{{ job.distance_km|round(1) }} km</span>
+                  <span>{{ job.price_gross|round(2) }} €</span>
+                  <span>Luotu: {{ job.created_at|helsinki_time if job.created_at else 'Tuntematon' }}</span>
+                </div>
+              </div>
+              <div class="driver-job-actions">
+                <span class="driver-job-status available">Saatavilla</span>
+                <div class="mt-2">
+                  <a href="{{ url_for('driver.job_detail', order_id=job.id) }}" class="btn btn-primary btn-sm">Katso työ</a>
+                </div>
+              </div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+      {% else %}
+      <div class="driver-empty-state">
+        <div class="driver-empty-icon">📦</div>
+        <h3 class="driver-empty-title">Ei saatavilla olevia töitä</h3>
+        <p class="driver-empty-message">Tarkista myöhemmin uusien töiden varalta</p>
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- History Tab Content -->
+    <div class="driver-tab-content" id="tab-history">
+      {% set completed_jobs = all_jobs|selectattr('status', 'equalto', 'DELIVERED')|list %}
+      {% if completed_jobs %}
+      <div class="driver-section-body">
+        <div class="driver-job-list">
+          {% for job in completed_jobs %}
+          <div class="driver-job-card">
+            <div class="driver-job-header">
+              <div class="driver-job-content">
+                <h3 class="driver-job-title">Tilaus #{{ job.id }}</h3>
+                <p class="driver-job-route">{{ job.pickup_address }} → {{ job.dropoff_address }}</p>
+                <div class="driver-job-meta">
+                  <span>{{ job.distance_km|round(1) }} km</span>
+                  <span>{{ job.price_gross|round(2) }} €</span>
+                  {% if job.delivery_completed %}
+                  <span>Valmistunut: {{ job.delivery_completed|helsinki_time if job.delivery_completed else '-' }}</span>
+                  {% endif %}
+                </div>
+              </div>
+              <div class="driver-job-actions">
+                <span class="driver-job-status delivered">✅ Toimitettu</span>
+                <div class="mt-2">
+                  <a href="{{ url_for('driver.job_detail', order_id=job.id) }}" class="btn btn-ghost btn-sm">Katso tiedot</a>
+                </div>
+              </div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+      {% else %}
+      <div class="driver-empty-state">
+        <div class="driver-empty-icon">📋</div>
+        <h3 class="driver-empty-title">Ei vielä suoritettuja töitä</h3>
+        <p class="driver-empty-message">Suoritetut työt näkyvät täällä</p>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <script>
+    // Tab switching functionality
+    document.addEventListener('DOMContentLoaded', function() {
+      const tabButtons = document.querySelectorAll('.driver-tab-button');
+      const tabContents = document.querySelectorAll('.driver-tab-content');
+
+      tabButtons.forEach(button => {
+        button.addEventListener('click', function() {
+          const targetTab = this.getAttribute('data-tab');
+
+          // Remove active class from all buttons and contents
+          tabButtons.forEach(btn => btn.classList.remove('active'));
+          tabContents.forEach(content => content.classList.remove('active'));
+
+          // Add active class to clicked button and corresponding content
+          this.classList.add('active');
+          const targetContent = document.getElementById('tab-' + targetTab);
+          if (targetContent) {
+            targetContent.classList.add('active');
+          }
+        });
+      });
+    });
+  </script>
+</div>
+{% endblock %}

@@ -1,0 +1,76 @@
+{% extends "base/layout.html" %}
+
+{% block title %}Kuljettajahakemukset – Admin{% endblock %}
+
+{% block content %}
+<div class="admin-container">
+  <div class="admin-header">
+    <h2>Kuljettajahakemukset</h2>
+    <div class="admin-actions">
+      <a class="btn btn-ghost" href="{{ url_for('main.admin_dashboard') }}">Tilaukset</a>
+      <a class="btn btn-ghost" href="{{ url_for('admin.users') }}">Käyttäjät</a>
+      <a class="btn btn-ghost" href="{{ url_for('admin.drivers') }}">Kuljettajat</a>
+      <a class="btn btn-secondary" href="{{ url_for('auth.logout') }}">Kirjaudu ulos</a>
+    </div>
+  </div>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      {% for category, message in messages %}
+        <div class="alert alert-{% if category == 'error' %}danger{% else %}{{ category }}{% endif %} mb-4">
+          {{ message }}
+        </div>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
+
+  <table class="admin-table">
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Nimi</th>
+        <th>Sähköposti</th>
+        <th>Puhelin</th>
+        <th>Tila</th>
+        <th>Lähetetty</th>
+        <th>Toiminnot</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% if applications %}
+        {% for app in applications %}
+          {% if app.status == 'pending' %}
+            {% set status_class = 'status-new' %}
+            {% set status_text = '⏳ Odottaa' %}
+          {% elif app.status == 'approved' %}
+            {% set status_class = 'status-confirmed' %}
+            {% set status_text = '✅ Hyväksytty' %}
+          {% elif app.status == 'denied' %}
+            {% set status_class = 'status-cancelled' %}
+            {% set status_text = '❌ Hylätty' %}
+          {% else %}
+            {% set status_class = 'status-new' %}
+            {% set status_text = 'Tuntematon' %}
+          {% endif %}
+
+          <tr class="admin-table-row" style="cursor: pointer;" onclick="window.location='{{ url_for('admin.driver_application_detail', application_id=app.id) }}';">
+            <td>#{{ app.id }}</td>
+            <td><strong>{{ app.name }}</strong></td>
+            <td>{{ app.email }}</td>
+            <td>{{ app.phone }}</td>
+            <td><span class="status {{ status_class }}">{{ status_text }}</span></td>
+            <td>{{ app.created_at.strftime('%d.%m.%Y') if app.created_at else '-' }}</td>
+            <td onclick="event.stopPropagation();">
+              <a href="{{ url_for('admin.driver_application_detail', application_id=app.id) }}" class="btn btn-sm btn-ghost">Katso</a>
+            </td>
+          </tr>
+        {% endfor %}
+      {% else %}
+        <tr>
+          <td colspan="7" class="muted">Ei hakemuksia</td>
+        </tr>
+      {% endif %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

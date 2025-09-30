@@ -1,0 +1,550 @@
+/* ==========================================================================
+   Driver Interface Styles - Car Transport Portal
+   ========================================================================== */
+
+/* Driver Dashboard Statistics */
+.driver-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: var(--space-6);
+    margin-bottom: var(--space-8);
+}
+
+.driver-stats-card {
+    background: rgba(255, 255, 255, 0.9);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: var(--radius-xl);
+    padding: var(--space-6);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+    transition: all var(--transition-fast);
+}
+
+.driver-stats-card:hover {
+    background: rgba(255, 255, 255, 0.95);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.08);
+}
+
+.driver-stats-header {
+    display: flex;
+    align-items: center;
+    padding-bottom: var(--space-4);
+    border-bottom: 1px solid var(--border-light);
+    margin-bottom: var(--space-4);
+}
+
+.driver-stats-title {
+    font-size: var(--font-size-lg);
+    font-weight: var(--font-weight-semibold);
+    color: var(--text-primary);
+    margin: 0;
+}
+
+.driver-stats-body {
+    text-align: center;
+    padding: 0;
+}
+
+.driver-metric-value {
+    font-size: var(--font-size-4xl);
+    font-weight: var(--font-weight-bold);
+    line-height: 1;
+    margin-bottom: var(--space-2);
+}
+
+.driver-metric-value.active {
+    color: var(--color-primary);
+}
+
+.driver-metric-value.completed {
+    color: var(--color-success);
+}
+
+
+.driver-metric-label {
+    color: var(--text-secondary);
+    font-size: var(--font-size-sm);
+    margin: 0;
+}
+
+/* Driver Job Cards */
+.driver-job-card {
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-lg);
+    padding: var(--space-4);
+    background: var(--color-white);
+    transition: all var(--transition-fast);
+    margin-bottom: var(--space-4);
+}
+
+.driver-job-card:hover {
+    background: var(--color-gray-50);
+    border-color: var(--color-primary-300);
+    box-shadow: var(--shadow-sm);
+}
+
+.driver-job-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: var(--space-3);
+}
+
+.driver-job-content {
+    flex: 1;
+}
+
+.driver-job-title {
+    font-size: var(--font-size-lg);
+    font-weight: var(--font-weight-semibold);
+    color: var(--text-primary);
+    margin-bottom: var(--space-2);
+}
+
+.driver-job-route {
+    color: var(--text-secondary);
+    margin-bottom: var(--space-3);
+}
+
+.driver-job-meta {
+    display: flex;
+    gap: var(--space-4);
+    font-size: var(--font-size-sm);
+    color: var(--text-muted);
+}
+
+.driver-job-actions {
+    text-align: right;
+}
+
+.driver-job-status {
+    display: inline-flex;
+    align-items: center;
+    padding: var(--space-1) var(--space-3);
+    border-radius: var(--radius-full);
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-medium);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: var(--space-2);
+}
+
+/* Driver Status Badges */
+.driver-job-status.assigned {
+    background: rgba(59, 130, 246, 0.1);
+    color: var(--color-primary);
+}
+
+.driver-job-status.arrived {
+    background: rgba(245, 158, 11, 0.1);
+    color: #d97706;
+}
+
+.driver-job-status.pickup-images {
+    background: rgba(249, 115, 22, 0.1);
+    color: #ea580c;
+}
+
+.driver-job-status.in-transit {
+    background: rgba(168, 85, 247, 0.1);
+    color: #9333ea;
+}
+
+.driver-job-status.delivery-arrived {
+    background: rgba(99, 102, 241, 0.1);
+    color: #6366f1;
+}
+
+.driver-job-status.delivery-images {
+    background: rgba(236, 72, 153, 0.1);
+    color: #db2777;
+}
+
+.driver-job-status.available {
+    background: rgba(34, 197, 94, 0.1);
+    color: var(--color-success);
+}
+
+.driver-job-status.delivered {
+    background: rgba(16, 185, 129, 0.1);
+    color: var(--color-success);
+}
+
+/* Driver Section Containers */
+.driver-section {
+    background: rgba(255, 255, 255, 0.9);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: var(--radius-xl);
+    padding: var(--space-6);
+    margin-bottom: var(--space-8);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+}
+
+.driver-section-header {
+    padding-bottom: var(--space-4);
+    border-bottom: 1px solid var(--border-light);
+    margin-bottom: var(--space-6);
+}
+
+.driver-section-title {
+    font-size: var(--font-size-2xl);
+    font-weight: var(--font-weight-semibold);
+    color: var(--text-primary);
+    margin: 0;
+}
+
+.driver-section-subtitle {
+    color: var(--text-secondary);
+    font-size: var(--font-size-sm);
+    margin-top: var(--space-2);
+    margin-bottom: 0;
+}
+
+.driver-section-body {
+    padding: 0;
+}
+
+/* Driver Quick Actions */
+.driver-actions-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: var(--space-4);
+    margin-top: var(--space-6);
+}
+
+/* Driver Empty State */
+.driver-empty-state {
+    text-align: center;
+    padding: var(--space-12) var(--space-6);
+}
+
+.driver-empty-icon {
+    font-size: 4rem;
+    margin-bottom: var(--space-4);
+}
+
+.driver-empty-title {
+    font-size: var(--font-size-xl);
+    font-weight: var(--font-weight-semibold);
+    color: var(--text-primary);
+    margin-bottom: var(--space-2);
+}
+
+.driver-empty-message {
+    color: var(--text-secondary);
+    margin: 0;
+}
+
+/* Driver Job List Specific Styles */
+.driver-jobs-container {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+}
+
+.driver-job-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+}
+
+/* Responsive Design for Driver Interface */
+@media (max-width: 768px) {
+    .driver-stats-grid {
+        grid-template-columns: 1fr;
+        gap: var(--space-4);
+    }
+
+    .driver-job-header {
+        flex-direction: column;
+        gap: var(--space-3);
+        align-items: stretch;
+    }
+
+    .driver-job-actions {
+        text-align: left;
+    }
+
+    .driver-job-actions .btn {
+        width: 100%;
+        min-height: 44px;
+        padding: var(--space-3) var(--space-4);
+    }
+
+    .driver-job-meta {
+        flex-direction: column;
+        gap: var(--space-1);
+    }
+
+    .driver-actions-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .driver-actions-grid .btn {
+        width: 100%;
+        min-height: 48px;
+        padding: var(--space-3) var(--space-5);
+        font-size: var(--font-size-base);
+    }
+
+    .driver-section {
+        padding: var(--space-4);
+        margin-bottom: var(--space-6);
+    }
+
+    .driver-section-title {
+        font-size: var(--font-size-xl);
+    }
+
+    .driver-section-subtitle {
+        font-size: var(--font-size-xs);
+    }
+
+    /* Tab navigation mobile styles */
+    .driver-tab-button {
+        padding: var(--space-3) var(--space-4);
+        font-size: var(--font-size-sm);
+    }
+
+    .driver-tab-content {
+        padding: var(--space-4);
+    }
+
+    .driver-tabs-header::-webkit-scrollbar {
+        display: none; /* Hide scrollbar for cleaner mobile look */
+    }
+
+}
+
+@media (max-width: 480px) {
+    .driver-stats-card {
+        padding: var(--space-4);
+    }
+
+    .driver-metric-value {
+        font-size: var(--font-size-3xl);
+    }
+
+    .driver-job-card {
+        padding: var(--space-3);
+    }
+
+    .driver-job-title {
+        font-size: var(--font-size-base);
+    }
+
+    .driver-job-status {
+        font-size: 0.7rem;
+        padding: 6px 10px;
+    }
+
+    .driver-empty-state {
+        padding: var(--space-8) var(--space-4);
+    }
+
+    .driver-empty-icon {
+        font-size: 3rem;
+    }
+
+    .driver-section-title {
+        font-size: var(--font-size-lg);
+    }
+}
+
+/* Driver Tab Navigation */
+.driver-tabs {
+    background: var(--color-white);
+    border-radius: var(--radius-xl);
+    overflow: hidden;
+    box-shadow: var(--shadow-sm);
+    margin-bottom: var(--space-6);
+}
+
+.driver-tabs-header {
+    display: flex;
+    border-bottom: 2px solid var(--border-light);
+    background: var(--color-gray-50);
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.driver-tab-button {
+    flex: 1;
+    min-width: max-content;
+    padding: var(--space-4) var(--space-6);
+    background: transparent;
+    border: none;
+    border-bottom: 3px solid transparent;
+    color: var(--text-secondary);
+    font-size: var(--font-size-base);
+    font-weight: var(--font-weight-medium);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2);
+}
+
+.driver-tab-button:hover {
+    color: var(--text-primary);
+    background: rgba(var(--color-primary-rgb), 0.05);
+}
+
+.driver-tab-button.active {
+    color: var(--color-primary);
+    border-bottom-color: var(--color-primary);
+    background: var(--color-white);
+    font-weight: var(--font-weight-semibold);
+}
+
+.driver-tab-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 20px;
+    height: 20px;
+    padding: 0 6px;
+    background: var(--color-primary);
+    color: var(--color-white);
+    border-radius: 10px;
+    font-size: 0.75rem;
+    font-weight: var(--font-weight-bold);
+    line-height: 1;
+}
+
+.driver-tab-button.active .driver-tab-badge {
+    background: var(--color-primary-600);
+}
+
+.driver-tab-content {
+    display: none;
+    padding: var(--space-6);
+    animation: fadeIn 0.3s ease-in-out;
+}
+
+.driver-tab-content.active {
+    display: block;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Driver Layout Grid Override */
+.driver-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: var(--space-8);
+    align-items: start;
+}
+
+@media (max-width: 1024px) {
+    .driver-grid {
+        grid-template-columns: 1fr;
+        gap: var(--space-6);
+    }
+}
+
+/* Driver Navigation and Breadcrumbs */
+.driver-nav-back {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    color: var(--color-primary);
+    text-decoration: none;
+    font-weight: var(--font-weight-medium);
+    margin-bottom: var(--space-4);
+    padding: var(--space-2) var(--space-3);
+    border-radius: var(--radius-md);
+    transition: all var(--transition-fast);
+}
+
+.driver-nav-back:hover {
+    background: var(--color-primary-50);
+    color: var(--color-primary-dark);
+}
+
+/* Driver Utility Classes */
+.driver-space-y-4 > * + * {
+    margin-top: var(--space-4);
+}
+
+.driver-space-y-3 > * + * {
+    margin-top: var(--space-3);
+}
+
+.driver-space-y-2 > * + * {
+    margin-top: var(--space-2);
+}
+
+.driver-w-full {
+    width: 100%;
+}
+
+.driver-text-center {
+    text-align: center;
+}
+
+.driver-border-t {
+    border-top: 1px solid var(--border-light);
+}
+
+.driver-pt-4 {
+    padding-top: var(--space-4);
+}
+
+.driver-mt-6 {
+    margin-top: var(--space-6);
+}
+
+.driver-mb-3 {
+    margin-bottom: var(--space-3);
+}
+
+.driver-gap-2 {
+    gap: var(--space-2);
+}
+
+.driver-gap-4 {
+    gap: var(--space-4);
+}
+
+.driver-gap-6 {
+    gap: var(--space-6);
+}
+
+/* Driver Form Specific Styles */
+.driver-form-section {
+    margin-bottom: var(--space-6);
+}
+
+.driver-form-row {
+    display: flex;
+    gap: var(--space-4);
+    align-items: center;
+    margin-bottom: var(--space-2);
+}
+
+.driver-form-row.vertical {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--space-2);
+}
+
+@media (max-width: 640px) {
+    .driver-form-row {
+        flex-direction: column;
+        align-items: stretch;
+        gap: var(--space-2);
+    }
+}

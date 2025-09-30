@@ -3,7 +3,7 @@ Order Model
 Handles order data operations and business logic
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List, Dict, Optional, Tuple
 from .database import BaseModel, counter_manager
 
@@ -16,11 +16,23 @@ class OrderModel(BaseModel):
     # Order status definitions
     STATUS_NEW = "NEW"
     STATUS_CONFIRMED = "CONFIRMED"
+    STATUS_ASSIGNED_TO_DRIVER = "ASSIGNED_TO_DRIVER"
+    STATUS_DRIVER_ARRIVED = "DRIVER_ARRIVED"
+    STATUS_PICKUP_IMAGES_ADDED = "PICKUP_IMAGES_ADDED"
     STATUS_IN_TRANSIT = "IN_TRANSIT"
+    STATUS_DELIVERY_ARRIVED = "DELIVERY_ARRIVED"
+    STATUS_DELIVERY_IMAGES_ADDED = "DELIVERY_IMAGES_ADDED"
     STATUS_DELIVERED = "DELIVERED"
     STATUS_CANCELLED = "CANCELLED"
 
-    VALID_STATUSES = [STATUS_NEW, STATUS_CONFIRMED, STATUS_IN_TRANSIT, STATUS_DELIVERED, STATUS_CANCELLED]
+    VALID_STATUSES = [
+        STATUS_NEW, STATUS_CONFIRMED, STATUS_ASSIGNED_TO_DRIVER, STATUS_DRIVER_ARRIVED,
+        STATUS_PICKUP_IMAGES_ADDED, STATUS_IN_TRANSIT, STATUS_DELIVERY_ARRIVED,
+        STATUS_DELIVERY_IMAGES_ADDED, STATUS_DELIVERED, STATUS_CANCELLED
+    ]
+
+    # All statuses now trigger email notifications for better user experience
+    NO_EMAIL_STATUSES = []
 
     def create_order(self, user_id: int, order_data: Dict) -> Tuple[Optional[Dict], Optional[str]]:
         """Create a new order"""
@@ -33,8 +45,8 @@ class OrderModel(BaseModel):
                 "id": order_id,
                 "user_id": int(user_id),
                 "status": self.STATUS_NEW,
-                "created_at": datetime.utcnow(),
-                "updated_at": datetime.utcnow(),
+                "created_at": datetime.now(timezone.utc),
+                "updated_at": datetime.now(timezone.utc),
                 **order_data
             }
 
@@ -99,7 +111,7 @@ class OrderModel(BaseModel):
                 {"id": int(order_id)},
                 {"$set": {
                     "status": new_status,
-                    "updated_at": datetime.utcnow()
+                    "updated_at": datetime.now(timezone.utc)
                 }}
             )
             return success, None
@@ -114,7 +126,7 @@ class OrderModel(BaseModel):
                 filter_dict["user_id"] = int(user_id)
 
             # Add updated timestamp
-            update_data["updated_at"] = datetime.utcnow()
+            update_data["updated_at"] = datetime.now(timezone.utc)
 
             success = self.update_one(filter_dict, {"$set": update_data})
             return success, None
@@ -146,7 +158,7 @@ class OrderModel(BaseModel):
 
             # Set order number for new image
             image_data["order"] = len(current_images) + 1
-            image_data["uploaded_at"] = datetime.utcnow()
+            image_data["uploaded_at"] = datetime.now(timezone.utc)
 
             # Add new image
             current_images.append(image_data)
@@ -156,7 +168,7 @@ class OrderModel(BaseModel):
                 {"id": int(order_id)},
                 {"$set": {
                     f"images.{image_type}": current_images,
-                    "updated_at": datetime.utcnow()
+                    "updated_at": datetime.now(timezone.utc)
                 }}
             )
 
@@ -199,7 +211,7 @@ class OrderModel(BaseModel):
                 {"id": int(order_id)},
                 {"$set": {
                     f"images.{image_type}": updated_images,
-                    "updated_at": datetime.utcnow()
+                    "updated_at": datetime.now(timezone.utc)
                 }}
             )
 
@@ -261,6 +273,114 @@ class OrderModel(BaseModel):
             sort=[("created_at", -1)],
             limit=limit
         )
+
+    def assign_driver(self, order_id: int, driver_id: int) -> Tuple[bool, Optional[str]]:
+        """Assign driver to order"""
+        try:
+            success = self.update_one(
+                {"id": int(order_id)},
+                {"$set": {
+                    "driver_id": int(driver_id),
+                    "status": self.STATUS_ASSIGNED_TO_DRIVER,
+                    "assigned_at": datetime.now(timezone.utc),
+                    "updated_at": datetime.now(timezone.utc)
+                }}
+            )
+            return success, None
+        except Exception as e:
+            return False, f"Kuljettajan määritys epäonnistui: {str(e)}"
+
+    def update_driver_status(self, order_id: int, new_status: str, timestamp_field: Optional[str] = None) -> Tuple[bool, Optional[str]]:
+        """Update order status with optional timestamp field"""
+        if new_status not in self.VALID_STATUSES:
+            return False, f"Virheellinen tila: {new_status}"
+
+        try:
+            update_data = {
+                "status": new_status,
+                "updated_at": datetime.now(timezone.utc)
+            }
+
+            # Add timestamp for specific actions
+            if timestamp_field:
+                update_data[timestamp_field] = datetime.now(timezone.utc)
+
+            success = self.update_one(
+                {"id": int(order_id)},
+                {"$set": update_data}
+            )
+            return success, None
+        except Exception as e:
+            return False, f"Tilan päivitys epäonnistui: {str(e)}"
+
+    def get_available_orders(self, limit: int = 50) -> List[Dict]:
+        """Get orders available for driver assignment"""
+        return self.find(
+            {"status": self.STATUS_CONFIRMED, "driver_id": {"$exists": False}},
+            sort=[("created_at", 1)],  # Oldest first
+            limit=limit
+        )
+
+    def get_driver_orders(self, driver_id: int, limit: int = 50) -> List[Dict]:
+        """Get all orders assigned to a specific driver"""
+        return self.find(
+            {"driver_id": int(driver_id)},
+            sort=[("created_at", -1)],
+            limit=limit
+        )
+
+    def get_active_driver_orders(self, driver_id: int) -> List[Dict]:
+        """Get active orders for a driver (not completed/cancelled)"""
+        active_statuses = [
+            self.STATUS_ASSIGNED_TO_DRIVER, self.STATUS_DRIVER_ARRIVED,
+            self.STATUS_PICKUP_IMAGES_ADDED, self.STATUS_IN_TRANSIT,
+            self.STATUS_DELIVERY_ARRIVED, self.STATUS_DELIVERY_IMAGES_ADDED
+        ]
+
+        return self.find(
+            {
+                "driver_id": int(driver_id),
+                "status": {"$in": active_statuses}
+            },
+            sort=[("created_at", -1)]
+        )
+
+    def get_orders_with_driver_info(self, limit: int = 300) -> List[Dict]:
+        """Get all orders with driver information (for admin)"""
+        pipeline = [
+            {"$sort": {"id": -1}},
+            {"$limit": limit},
+            {"$lookup": {
+                "from": "users",
+                "localField": "user_id",
+                "foreignField": "id",
+                "as": "customer"
+            }},
+            {"$lookup": {
+                "from": "users",
+                "localField": "driver_id",
+                "foreignField": "id",
+                "as": "driver"
+            }},
+            {"$unwind": {"path": "$customer", "preserveNullAndEmptyArrays": True}},
+            {"$unwind": {"path": "$driver", "preserveNullAndEmptyArrays": True}},
+            {"$project": {
+                "_id": 0,
+                "id": 1, "status": 1,
+                "pickup_address": 1, "dropoff_address": 1,
+                "distance_km": 1, "price_gross": 1,
+                "created_at": 1, "updated_at": 1,
+                "assigned_at": 1, "arrival_time": 1,
+                "pickup_started": 1, "delivery_completed": 1,
+                "images": 1,
+                "customer_name": "$customer.name",
+                "customer_email": "$customer.email",
+                "driver_name": "$driver.name",
+                "driver_email": "$driver.email",
+                "driver_phone": "$driver.phone"
+            }}
+        ]
+        return self.aggregate(pipeline)
 
 
 # Global instance

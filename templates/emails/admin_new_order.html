@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="fi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Uusi tilaus - Levoro</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+            background-color: #f8fafc;
+            color: #374151;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+            font-weight: 700;
+        }
+        .content {
+            padding: 30px;
+        }
+        .alert {
+            background: #fef3cd;
+            border: 1px solid #fbbf24;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 24px;
+        }
+        .alert-title {
+            font-weight: 600;
+            color: #92400e;
+            margin: 0 0 8px 0;
+        }
+        .order-details {
+            background: #f9fafb;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        .detail-row:last-child {
+            margin-bottom: 0;
+            border-bottom: none;
+        }
+        .detail-label {
+            font-weight: 600;
+            color: #374151;
+        }
+        .detail-value {
+            color: #6b7280;
+            text-align: right;
+        }
+        .route-display {
+            background: #eff6ff;
+            border: 1px solid #bfdbfe;
+            border-radius: 8px;
+            padding: 16px;
+            margin: 16px 0;
+            text-align: center;
+        }
+        .route-display strong {
+            color: #1d4ed8;
+        }
+        .action-section {
+            background: #ecfdf5;
+            border: 1px solid #a7f3d0;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 24px 0;
+            text-align: center;
+        }
+        .action-button {
+            display: inline-block;
+            background: #2563eb;
+            color: white;
+            text-decoration: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            font-weight: 600;
+            margin: 8px;
+            transition: background-color 0.2s;
+        }
+        .action-button:hover {
+            background: #1d4ed8;
+        }
+        .action-button.secondary {
+            background: #10b981;
+        }
+        .action-button.secondary:hover {
+            background: #059669;
+        }
+        .footer {
+            background: #f9fafb;
+            padding: 20px;
+            text-align: center;
+            font-size: 14px;
+            color: #6b7280;
+        }
+        .status-new {
+            display: inline-block;
+            background: #fef3cd;
+            color: #92400e;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🆕 Uusi tilaus saapunut</h1>
+            <p style="margin: 8px 0 0 0; opacity: 0.9;">Tilaus odottaa vahvistusta</p>
+        </div>
+
+        <div class="content">
+            <div class="alert">
+                <div class="alert-title">⚠️ Toimenpide vaaditaan</div>
+                <p style="margin: 0;">Uusi kuljetustilaus on luotu ja odottaa admin-vahvistusta ennen kuljettajan määritystä.</p>
+            </div>
+
+            <div class="order-details">
+                <h3 style="margin-top: 0; color: #1f2937;">Tilauksen tiedot</h3>
+
+                <div class="detail-row">
+                    <span class="detail-label">Tilausnumero:</span>
+                    <span class="detail-value"><strong>#{{ order.id }}</strong></span>
+                </div>
+
+                <div class="detail-row">
+                    <span class="detail-label">Tila:</span>
+                    <span class="detail-value"><span class="status-new">{{ order.status }}</span></span>
+                </div>
+
+                <div class="detail-row">
+                    <span class="detail-label">Asiakas:</span>
+                    <span class="detail-value">{{ customer.name if customer else 'Tuntematon' }}</span>
+                </div>
+
+                <div class="detail-row">
+                    <span class="detail-label">Sähköposti:</span>
+                    <span class="detail-value">{{ customer.email if customer else 'Ei tiedossa' }}</span>
+                </div>
+
+                <div class="detail-row">
+                    <span class="detail-label">Luotu:</span>
+                    <span class="detail-value">{{ order.created_at.strftime('%d.%m.%Y %H:%M') if order.created_at else 'Tuntematon' }}</span>
+                </div>
+            </div>
+
+            <div class="route-display">
+                <strong>📍 Reitti:</strong><br>
+                {{ order.pickup_address or 'Noutopaikka ei määritelty' }}<br>
+                <span style="font-size: 20px; margin: 8px 0; display: block;">↓</span>
+                {{ order.dropoff_address or 'Toimituspaikka ei määritelty' }}
+            </div>
+
+            {% if order.distance_km or order.price_gross %}
+            <div class="order-details">
+                <h4 style="margin-top: 0;">Hinnoittelutiedot</h4>
+                {% if order.distance_km %}
+                <div class="detail-row">
+                    <span class="detail-label">Matka:</span>
+                    <span class="detail-value">{{ "%.1f"|format(order.distance_km) }} km</span>
+                </div>
+                {% endif %}
+                {% if order.price_gross %}
+                <div class="detail-row">
+                    <span class="detail-label">Hinta (brutto):</span>
+                    <span class="detail-value"><strong>{{ "%.2f"|format(order.price_gross) }} €</strong></span>
+                </div>
+                {% endif %}
+            </div>
+            {% endif %}
+
+            {% if order.reg_number or order.winter_tires is not none or order.extras %}
+            <div class="order-details">
+                <h4 style="margin-top: 0;">Lisätiedot</h4>
+                {% if order.reg_number %}
+                <div class="detail-row">
+                    <span class="detail-label">Rekisterinumero:</span>
+                    <span class="detail-value">{{ order.reg_number }}</span>
+                </div>
+                {% endif %}
+                {% if order.winter_tires is not none %}
+                <div class="detail-row">
+                    <span class="detail-label">Talvirenkaat:</span>
+                    <span class="detail-value">{{ 'Kyllä' if order.winter_tires else 'Ei' }}</span>
+                </div>
+                {% endif %}
+                {% if order.extras %}
+                <div class="detail-row">
+                    <span class="detail-label">Lisätiedot:</span>
+                    <span class="detail-value">{{ order.extras }}</span>
+                </div>
+                {% endif %}
+            </div>
+            {% endif %}
+
+            <div class="action-section">
+                <h3 style="margin-top: 0; color: #065f46;">🔧 Seuraavat toimenpiteet</h3>
+                <p>Vahvista tilaus admin-paneelissa, jotta kuljettajat voivat nähdä sen.</p>
+
+                <a href="{{ admin_url }}" class="action-button">
+                    📋 Avaa admin-paneeli
+                </a>
+
+                <a href="{{ order_detail_url }}" class="action-button secondary">
+                    👁️ Näytä tilaus
+                </a>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p><strong>Levoro Admin</strong> | Automaattinen ilmoitus</p>
+            <p>Tämä viesti lähetettiin osoitteeseen support@levoro.fi</p>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,67 @@
+{% extends "base/layout.html" %}
+
+{% block title %}Kirjaudu sisään – Autonkuljetus{% endblock %}
+
+{% block content %}
+<div class="container">
+  <div class="section-padding">
+    <div class="text-center mb-8">
+      <h1 class="calculator-title">Kirjaudu sisään</h1>
+      <p class="calculator-subtitle">Syötä tunnuksesi päästäksesi omalle sivullesi</p>
+    </div>
+  </div>
+
+  <div class="calculator-grid" style="grid-template-columns: 1fr; max-width: 600px; margin: 0 auto;">
+    <div class="card calculator-form">
+      <div class="card-header">
+        <h2 class="card-title">Kirjautumistiedot</h2>
+        <p class="card-subtitle">Syötä sähköpostisi ja salasanasi</p>
+      </div>
+
+      <div class="card-body">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            {% for category, message in messages %}
+              <div class="alert alert-{% if category == 'error' %}danger{% else %}{{ category }}{% endif %} mb-4">
+                {{ message }}
+              </div>
+            {% endfor %}
+          {% endif %}
+        {% endwith %}
+
+        <form method="POST">
+          <div class="form-group">
+            <label class="form-label">Sähköposti</label>
+            <input type="email" name="email" required class="form-input" placeholder="nimi@yritys.fi" value="{{ request.form.get('email', '') }}">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Salasana</label>
+            <input type="password" name="password" required class="form-input" placeholder="Salasanasi">
+          </div>
+
+          {% if next_url %}
+          <input type="hidden" name="next" value="{{ next_url }}">
+          {% endif %}
+
+          <div class="calculator-actions">
+            <button type="submit" class="btn btn-primary btn-lg">Kirjaudu</button>
+            <a href="{{ url_for('auth.register') }}" class="btn btn-ghost">Tarvitsetko tilin? Luo tili</a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- FOOTER-CTA -->
+<div class="container">
+  <section class="section-padding text-center">
+    <p class="text-muted">Uusi käyttäjä?</p>
+    <div class="flex justify-center gap-4 mt-4 footer-cta">
+      <a class="btn btn-ghost" href="{{ url_for('auth.register') }}">Luo yritystili</a>
+      <a class="btn btn-ghost" href="{{ url_for('main.index') }}">Takaisin etusivulle</a>
+    </div>
+  </section>
+</div>
+{% endblock %}

@@ -1,0 +1,16 @@
+{% extends "base/layout.html" %}
+
+{% block title %}Ei käyttöoikeutta – Levoro{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width: 600px; margin-top: 60px; text-align: center;">
+  <div class="card" style="padding: 40px;">
+    <div style="font-size: 64px; margin-bottom: 20px;">🔒</div>
+    <h2>Ei oikeuksia tähän tilaukseen</h2>
+    <p style="margin-top: 20px; color: #666;">Et voi nähdä tätä tilausta. Tarkista että olet kirjautunut oikealla tilillä.</p>
+    <div style="margin-top: 30px;">
+      <a href="/dashboard" class="btn btn-primary">Takaisin omiin tilauksiin</a>
+    </div>
+  </div>
+</div>
+{% endblock %}

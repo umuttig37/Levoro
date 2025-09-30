@@ -1,0 +1,94 @@
+{% extends "base/layout.html" %}
+
+{% block title %}Admin – Tilaukset{% endblock %}
+
+{% block content %}
+<div class="admin-container">
+  <div class="admin-header">
+    <h2>Admin – Tilaukset</h2>
+    <div class="admin-actions">
+      <a class="btn btn-ghost" href="/admin/users">Käyttäjät</a>
+      <a class="btn btn-ghost" href="/admin/drivers">Kuljettajat</a>
+      <a class="btn btn-ghost" href="/admin/driver-applications">Kuljettajahakemukset</a>
+      <a class="btn btn-secondary" href="/logout">Kirjaudu ulos</a>
+    </div>
+  </div>
+
+  <table class="admin-table">
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Tila</th>
+        <th>Asiakas</th>
+        <th>Kuljettaja</th>
+        <th>Reitti</th>
+        <th>Km</th>
+        <th>Hinta</th>
+        <th>Kuvat</th>
+        <th>Päivitä</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% if orders %}
+        {% for order in orders %}
+          {% set status_fi = {
+            'NEW': 'Uusi',
+            'CONFIRMED': 'Vahvistettu',
+            'ASSIGNED_TO_DRIVER': 'Kuljettaja osoitettu',
+            'DRIVER_ARRIVED': 'Kuljettaja paikalla',
+            'PICKUP_IMAGES_ADDED': 'Noutokuva lisätty',
+            'IN_TRANSIT': 'Kuljetuksessa',
+            'DELIVERY_ARRIVED': 'Toimitus paikalla',
+            'DELIVERY_IMAGES_ADDED': 'Toimituskuva lisätty',
+            'DELIVERED': 'Toimitettu',
+            'CANCELLED': 'Peruutettu'
+          }.get(order.status, order.status) %}
+
+          {% set pickup_icon = "📷" if order.get('images', {}).get('pickup') else "⭕" %}
+          {% set delivery_icon = "📷" if order.get('images', {}).get('delivery') else "⭕" %}
+
+          {% set driver_info = "Ei kuljettajaa" %}
+          {% if order.get('driver_name') %}
+            {% set driver_info = order.get('driver_name', '?') %}
+          {% elif order.get('status') in ['NEW', 'CONFIRMED'] %}
+            {% set driver_info = "Odottaa" %}
+          {% endif %}
+
+          <tr class="admin-table-row" onclick="window.location.href='/admin/order/{{ order.id }}'" style="cursor: pointer;">
+            <td><strong>#{{ order.id }}</strong></td>
+            <td><span class="status {{ order.status }}">{{ status_fi }}</span></td>
+            <td>{{ order.get('customer_name', '?') }} &lt;{{ order.get('customer_email', '?') }}&gt;</td>
+            <td>{{ driver_info }}</td>
+            <td>{{ order.pickup_address }} → {{ order.dropoff_address }}</td>
+            <td>{{ "%.1f"|format(order.distance_km|float) }} km</td>
+            <td>{{ "%.2f"|format(order.price_gross|float) }} €</td>
+            <td class="image-status">{{ pickup_icon }} {{ delivery_icon }}</td>
+            <td onclick="event.stopPropagation();">
+              <form method="POST" action="/admin/update" class="admin-inline-form">
+                <input type="hidden" name="id" value="{{ order.id }}">
+                <select name="status">
+                  <option value="NEW" {% if order.status == 'NEW' %}selected{% endif %}>UUSI</option>
+                  <option value="CONFIRMED" {% if order.status == 'CONFIRMED' %}selected{% endif %}>TEHTÄVÄ_VAHVISTETTU</option>
+                  <option value="ASSIGNED_TO_DRIVER" {% if order.status == 'ASSIGNED_TO_DRIVER' %}selected{% endif %}>MÄÄRITETTY_KULJETTAJALLE</option>
+                  <option value="DRIVER_ARRIVED" {% if order.status == 'DRIVER_ARRIVED' %}selected{% endif %}>KULJETTAJA_SAAPUNUT</option>
+                  <option value="PICKUP_IMAGES_ADDED" {% if order.status == 'PICKUP_IMAGES_ADDED' %}selected{% endif %}>NOUTOKUVAT_LISÄTTY</option>
+                  <option value="IN_TRANSIT" {% if order.status == 'IN_TRANSIT' %}selected{% endif %}>TOIMITUKSESSA</option>
+                  <option value="DELIVERY_ARRIVED" {% if order.status == 'DELIVERY_ARRIVED' %}selected{% endif %}>KULJETUS_SAAPUNUT</option>
+                  <option value="DELIVERY_IMAGES_ADDED" {% if order.status == 'DELIVERY_IMAGES_ADDED' %}selected{% endif %}>TOIMITUSKUVAT_LISÄTTY</option>
+                  <option value="DELIVERED" {% if order.status == 'DELIVERED' %}selected{% endif %}>TOIMITETTU</option>
+                  <option value="CANCELLED" {% if order.status == 'CANCELLED' %}selected{% endif %}>PERUUTETTU</option>
+                </select>
+                <button type="submit">Päivitä</button>
+              </form>
+            </td>
+          </tr>
+        {% endfor %}
+      {% else %}
+        <tr>
+          <td colspan="9" class="muted">Ei tilauksia</td>
+        </tr>
+      {% endif %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

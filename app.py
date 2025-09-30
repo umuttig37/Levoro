@@ -138,9 +138,41 @@ def seed_admin():
             "email": SEED_ADMIN_EMAIL,
             "password_hash": generate_password_hash(SEED_ADMIN_PASS),
             "role": "admin",
-            "approved": True,  # Admin is always approved
-            "created_at": datetime.datetime.now(ZoneInfo("Europe/Helsinki")),
+            "status": "active",  # Admin is always active
+            "created_at": datetime.datetime.now(datetime.timezone.utc),
+            "updated_at": datetime.datetime.now(datetime.timezone.utc),
         })
+
+def seed_test_driver():
+    """Seed test driver users for development"""
+    test_drivers = [
+        {
+            "email": "kuljettaja@levoro.fi",
+            "name": "Testi Kuljettaja",
+            "password": "kuljettaja123"
+        },
+        {
+            "email": "kuljettaja2@levoro.fi",
+            "name": "Matti Virtanen",
+            "password": "kuljettaja123"
+        }
+    ]
+
+    for driver_data in test_drivers:
+        if not users_col().find_one({"email": driver_data["email"]}):
+            users_col().insert_one({
+                "id": next_id("users"),
+                "name": driver_data["name"],
+                "email": driver_data["email"],
+                "password_hash": generate_password_hash(driver_data["password"]),
+                "role": "driver",
+                "status": "active",  # Driver is active by default for testing
+                "created_at": datetime.datetime.now(datetime.timezone.utc),
+                "updated_at": datetime.datetime.now(datetime.timezone.utc),
+            })
+            print(f"Test driver created: {driver_data['email']} / {driver_data['password']}")
+        else:
+            print(f"Test driver already exists: {driver_data['email']}")
 
 def migrate_images_to_array():
     """Migrate existing single image structure to array-based structure"""
@@ -202,25 +234,13 @@ def migrate_images_to_array():
 
 def translate_status(status):
     """Translate English status to Finnish"""
-    translations = {
-        'NEW': 'UUSI',
-        'CONFIRMED': 'VAHVISTETTU',
-        'IN_TRANSIT': 'KULJETUKSESSA',
-        'DELIVERED': 'TOIMITETTU',
-        'CANCELLED': 'PERUUTETTU'
-    }
-    return translations.get(status, status)
+    from utils.status_translations import translate_status as translate
+    return translate(status)
 
 def get_status_description(status):
     """Get user-friendly status description"""
-    descriptions = {
-        'NEW': 'Tilaus odottaa vahvistusta',
-        'CONFIRMED': 'Tilaus vahvistettu, odottaa noutoa',
-        'IN_TRANSIT': 'Ajoneuvo on kuljetuksessa',
-        'DELIVERED': 'Kuljetus suoritettu onnistuneesti',
-        'CANCELLED': 'Tilaus on peruutettu'
-    }
-    return descriptions.get(status, 'Tuntematon tila')
+    from utils.status_translations import get_status_description as get_desc
+    return get_desc(status)
 
 def format_helsinki_time(dt):
     """Format datetime to Helsinki timezone string"""
@@ -251,9 +271,45 @@ def format_helsinki_time(dt):
     except Exception as e:
         # Fallback to original formatting if conversion fails
         return dt.strftime('%d.%m.%Y %H:%M') if hasattr(dt, 'strftime') else str(dt)
+
+# Register template filter for timezone conversion
+@app.template_filter('helsinki_time')
+def helsinki_time_filter(dt):
+    """Template filter to convert datetime to Helsinki timezone"""
+    return format_helsinki_time(dt)
+
+@app.template_filter('extract_city')
+def extract_city_filter(address):
+    """Extract city name from full address"""
+    if not address or not isinstance(address, str):
+        return 'Tuntematon kaupunki'
+
+    # Finnish address format: "Street, PostalCode City, Country"
+    # We want to extract the city part
+    parts = address.split(',')
+
+    if len(parts) >= 2:
+        # Get the part with postal code and city (second part usually)
+        city_part = parts[1].strip()
+        # Remove postal code (5 digits at start)
+        import re
+        city_match = re.sub(r'^\d{5}\s*', '', city_part)
+        return city_match.strip() if city_match else 'Tuntematon kaupunki'
+    elif len(parts) == 1:
+        # If no comma, try to extract city from the string
+        # Look for pattern: digits followed by city name
+        import re
+        match = re.search(r'\d{5}\s+([A-Za-zäöåÄÖÅ\s]+)', address)
+        if match:
+            return match.group(1).strip()
+
+    return 'Tuntematon kaupunki'
+
 def current_user():
     """Get current user - using auth service"""
     return auth_service.get_current_user()
+
+# Template global removed - current_user now passed explicitly in blueprint routes
 
 
 
@@ -297,8 +353,7 @@ __GOOGLE_MAPS_SCRIPT__
       </button>
       <nav class="nav" id="nav-menu">
         <a href="/" class="nav-link">Etusivu</a>
-        <a href="/order/new/step1" class="nav-link">Uusi tilaus</a>
-        <a href="/dashboard" class="nav-link">Oma sivu</a>
+        __USER_LINKS__
         __ADMIN__
         __AUTH__
       </nav>
@@ -320,34 +375,25 @@ PAGE_FOOT = """
     </div>
   </div>
 </footer>
+<script src="/static/js/core/navigation.js"></script>
 <script>
-function toggleMobileMenu() {
-  const nav = document.getElementById('nav-menu');
-  const toggle = document.querySelector('.mobile-menu-toggle');
-  nav.classList.toggle('mobile-open');
-  toggle.classList.toggle('active');
+// Ensure NavigationManager is initialized and toggle works
+if (typeof window.navigationManager === 'undefined') {
+    window.navigationManager = new NavigationManager();
 }
-
-// Close mobile menu when clicking on a link
-document.querySelectorAll('.nav-link').forEach(link => {
-  link.addEventListener('click', () => {
-    const nav = document.getElementById('nav-menu');
-    const toggle = document.querySelector('.mobile-menu-toggle');
-    nav.classList.remove('mobile-open');
-    toggle.classList.remove('active');
-  });
-});
-
-// Close mobile menu when clicking outside
-document.addEventListener('click', (e) => {
-  const nav = document.getElementById('nav-menu');
-  const toggle = document.querySelector('.mobile-menu-toggle');
-  if (!nav.contains(e.target) && !toggle.contains(e.target)) {
-    nav.classList.remove('mobile-open');
-    toggle.classList.remove('active');
-  }
-});
-
+function toggleMobileMenu() {
+    if (window.navigationManager) {
+        window.navigationManager.toggleMobileMenu();
+    } else {
+        // Fallback inline toggle
+        const nav = document.getElementById('nav-menu');
+        const toggle = document.querySelector('.mobile-menu-toggle');
+        if (nav && toggle) {
+            nav.classList.toggle('mobile-open');
+            toggle.classList.toggle('active');
+        }
+    }
+}
 </script>
 </body></html>
 """
@@ -360,10 +406,26 @@ def wrap(content: str, user=None):
     else:
         auth = f"<span class='pill'>Hei, {user['name']}</span> <a class='nav-link' href='/logout'>Ulos</a>"
 
-    # Logo ja admin-linkki
+    # Logo ja role-based navigation
     from flask import url_for, get_flashed_messages
     logo_src = url_for('static', filename='LevoroLogo.png')
-    admin_link = '<a href="/admin" class="nav-link">Admin</a>' if (user and user.get("role") == "admin") else ""
+
+    # Build role-based navigation links
+    user_links = ""
+    admin_link = ""
+
+    if user:
+        if user.get("role") == "driver":
+            user_links = '<a href="/driver/dashboard" class="nav-link">Kuljettajan sivu</a>'
+        elif user.get("role") == "admin":
+            # Admin users don't need Oma sivu link
+            admin_link = '<a href="/admin" class="nav-link">Admin</a>'
+        else:
+            # Regular users get Uusi tilaus and Oma sivu links
+            user_links = '<a href="/order/new/step1" class="nav-link">Uusi tilaus</a><a href="/dashboard" class="nav-link">Oma sivu</a>'
+    else:
+        # Non-authenticated users can see Uusi tilaus
+        user_links = '<a href="/order/new/step1" class="nav-link">Uusi tilaus</a>'
 
     # Google Maps script if API key is available
     google_script = ""
@@ -388,11 +450,12 @@ def wrap(content: str, user=None):
     # Kootaan head
     head = (
         PAGE_HEAD
-        .replace("__LOGO__", logo_src)
-        .replace("__ADMIN__", admin_link)
-        .replace("__AUTH__", auth)
-        .replace("__CSS_MAIN__", url_for('static', filename='css/main.css'))
-        .replace("__GOOGLE_MAPS_SCRIPT__", google_script)
+        .replace('__LOGO__', logo_src)
+        .replace('__USER_LINKS__', user_links)
+        .replace('__ADMIN__', admin_link)
+        .replace('__AUTH__', auth)
+        .replace('__CSS_MAIN__', url_for('static', filename='css/main.css'))
+        .replace('__GOOGLE_MAPS_SCRIPT__', google_script)
     )
 
     # Kootaan footer
@@ -416,224 +479,13 @@ def render_with_context(template_name, **kwargs):
 
 
 # ----------------- ROUTES: HOME -----------------
-@app.get("/")
-def home():
-    u = current_user()
-    body = """
-<!-- HERO -->
-<div class="container">
-  <div class="hero">
-    <div class="hero-content">
-      <div class="hero-badge">
-        <span aria-hidden="true">🚗</span> 
-        Saman päivän auton kuljetukset
-      </div>
-      <h1 class="hero-title">Samana päivänä, ja halvin.<br/>Levorolla mahdollista.</h1>
-      <p class="hero-subtitle">Suomen nopein, edullisin ja luotettavin tapa siirtää autoja. Läpinäkyvä hinnoittelu, reaaliaikainen seuranta ja helppo tilausportaali.</p>
-      <div class="hero-actions">
-        <a class="btn btn-primary btn-lg" href="/calculator">Laske halvin hinta nyt</a>
-        <a class="btn btn-secondary btn-lg" href="#how">Miten se toimii</a>
-      </div>
-      <div class="hero-features">
-        <div class="hero-feature">Toimitus samana päivänä</div>
-        <div class="hero-feature">PK-seudulla kuljetukset 27€</div>
-        <div class="hero-feature">Kokeilualennus yritysasiakkaille
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- MIKSI MEIDÄT -->
-<div class="container">
-  <section class="section-padding">
-    <div class="section-header">
-      <h2 class="section-title">Miksi valita meidät</h2>
-    </div>
-    <div class="grid grid-cols-3">
-      <div class="feature-card">
-        <div class="feature-icon">⚡</div>
-        <h3 class="feature-title">Nopeus</h3>
-        <p class="feature-description">Optimointi, eurooppalaiset vakioreitit ja oma verkosto. Useimmat toimitukset 3–5 päivässä.</p>
-      </div>
-      <div class="feature-card">
-        <div class="feature-icon">💶</div>
-        <h3 class="feature-title">Hinta</h3>
-        <p class="feature-description">Reilu ja läpinäkyvä. Ei piilokuluja – näet hinnan ennen tilausta.</p>
-      </div>
-      <div class="feature-card">
-        <div class="feature-icon">🛡️</div>
-        <h3 class="feature-title">Luotettavuus</h3>
-        <p class="feature-description">Vakuutus koko matkan, CMR-dokumentointi ja seuranta portaalissa.</p>
-      </div>
-    </div>
-  </section>
-</div>
-
-<!-- MITEN SE TOIMII -->
-<div id="how" class="container">
-  <section class="section-padding">
-    <h2 class="section-title">Miten se toimii</h2>
-    <div class="grid grid-cols-3">
-      <div class="feature-card">
-        <h3 class="feature-title">
-          <span class="step-number">1</span>
-          Lähetä reitti
-        </h3>
-        <p class="feature-description">Valitse nouto ja kohde portaalissa. Saat hinnan heti.</p>
-      </div>
-      <div class="feature-card">
-        <h3 class="feature-title">
-          <span class="step-number">2</span>
-          Vahvista tilaus
-        </h3>
-        <p class="feature-description">Valitse sopiva aika ja lisää tiedot (avaimet, yhteyshenkilöt).</p>
-      </div>
-      <div class="feature-card">
-        <h3 class="feature-title">
-          <span class="step-number">3</span>
-          Seuraa toimitusta
-        </h3>
-        <p class="feature-description">Näet etenemisen ja saat ilmoitukset – kuittaukset tallentuvat portaaliin.</p>
-      </div>
-    </div>
-  </section>
-</div>
-
-
-<!-- VAKUUTUSBANNERI -->
-<div class="container">
-  <section class="section-padding">
-    <div class="trust-banner">
-      <div class="trust-content">
-        <div class="trust-icon">
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M12 3l7 3v5c0 5-3.5 9-7 10-3.5-1-7-5-7-10V6l7-3z" fill="none" stroke-width="2" stroke-linejoin="round"></path>
-            <path d="M8 12l3 3 5-5" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
-          </svg>
-        </div>
-        <div class="trust-text">
-          <h3>Kaikki ajamamme autot suojattu täysin vastuuvakuutuksella</h3>
-          <p>Vakuutusturva koko kuljetuksen ajan – ilman lisämaksuja.</p>
-        </div>
-      </div>
-      <a class="btn btn-primary btn-lg" href="/calculator">Laske hinta →</a>
-    </div>
-  </section>
-</div>
-
-<!-- FOOTER-CTA -->
-<div class="container">
-  <section class="section-padding text-center">
-    <p class="text-muted">Onko sinulla jo tili?</p>
-    <div class="flex justify-center gap-4 mt-4 footer-cta">
-      <a class="btn btn-ghost" href="/login">Kirjaudu sisään</a>
-      <a class="btn btn-ghost" href="/register">Luo yritystili</a>
-    </div>
-  </section>
-</div>
-"""
-    return wrap(body, u)
+# Legacy home route removed - now handled by main.py blueprint
 
 
 
 
 # ----------------- AUTH -----------------
-@app.route("/register", methods=["GET", "POST"])
-def register():
-    if request.method == "GET":
-        return wrap("""
-<div class="container">
-  <div class="section-padding">
-    <div class="text-center mb-8">
-      <h1 class="calculator-title">Luo yritystili</h1>
-      <p class="calculator-subtitle">Täytä tiedot alla luodaksesi tilin kuljetuspalveluun</p>
-    </div>
-  </div>
-  
-  <div class="calculator-grid" style="grid-template-columns: 1fr; max-width: 600px; margin: 0 auto;">
-    <div class="card calculator-form">
-      <div class="card-header">
-        <h2 class="card-title">Rekisteröintitiedot</h2>
-        <p class="card-subtitle">Kaikki kentät ovat pakollisia</p>
-      </div>
-      
-      <div class="card-body">
-        <form method="POST">
-          <div class="form-group">
-            <label class="form-label">Nimi *</label>
-            <input name="name" required class="form-input" placeholder="Etunimi Sukunimi">
-          </div>
-          
-          <div class="form-group">
-            <label class="form-label">Sähköposti *</label>
-            <input type="email" name="email" required class="form-input" placeholder="nimi@yritys.fi">
-          </div>
-          
-          <div class="form-group">
-            <label class="form-label">Salasana *</label>
-            <input type="password" name="password" minlength="6" required class="form-input" placeholder="Vähintään 6 merkkiä">
-          </div>
-          
-          <div class="calculator-actions">
-            <button type="submit" class="btn btn-primary btn-lg">Rekisteröidy</button>
-            <a href="/login" class="btn btn-ghost">Onko sinulla jo tili? Kirjaudu</a>
-          </div>
-        </form>
-      </div>
-    </div>
-  </div>
-</div>
-""", current_user())
-
-    name = (request.form.get("name") or "").strip()
-    email = (request.form.get("email") or "").strip().lower()
-    password = request.form.get("password") or ""
-
-    if not name or not email or len(password) < 6:
-        return wrap("<div class='card'><h3>Tarkista tiedot</h3></div>", current_user())
-
-    if users_col().find_one({"email": email}):
-        return wrap("<div class='card'><h3>Sähköposti on jo käytössä</h3></div>", current_user())
-
-    uid = next_id("users")
-    users_col().insert_one({
-        "id": uid,
-        "name": name,
-        "email": email,
-        "password_hash": generate_password_hash(password),
-        "role": "customer",
-        "approved": False,  # Require admin approval
-        "created_at": datetime.datetime.now(ZoneInfo("Europe/Helsinki")),
-    })
-
-    # Don't log in immediately - require admin approval first
-    return wrap("""
-<div class="container">
-  <div class="section-padding">
-    <div class="text-center mb-8">
-      <h1 class="calculator-title">Rekisteröinti onnistui!</h1>
-      <p class="calculator-subtitle">Tilisi odottaa ylläpidon hyväksyntää. Saat sähköpostiviestin kun tili on aktivoitu.</p>
-    </div>
-  </div>
-
-  <div class="calculator-grid" style="grid-template-columns: 1fr; max-width: 600px; margin: 0 auto;">
-    <div class="card calculator-form">
-      <div class="card-header">
-        <h2 class="card-title">Mitä tapahtuu seuraavaksi?</h2>
-        <p class="card-subtitle">Ylläpitäjämme tarkistaa tilisi tiedot ja aktivoi sen mahdollisimman pian</p>
-      </div>
-
-      <div class="card-body">
-        <div class="calculator-actions">
-          <a href="/login" class="btn btn-primary btn-lg">Takaisin kirjautumissivulle</a>
-          <a href="/" class="btn btn-ghost">Etusivulle</a>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
-""", current_user())
+# /register route removed - now handled by auth.py blueprint
 
 
 
@@ -685,34 +537,6 @@ def api_places_autocomplete():
         return jsonify({"error": error_msg}), 500
     except Exception as e:
         error_msg = f"Google Places API failed: {str(e)}"
-        return jsonify({"error": error_msg}), 500
-
-@app.get("/api/test_places_api")
-def test_places_api():
-    """Test endpoint to validate Google Places API configuration"""
-    if not GOOGLE_PLACES_API_KEY:
-        return jsonify({"error": "Google Places API key not configured"}), 500
-    
-    try:
-        # Test with a simple geocoding request
-        url = "https://maps.googleapis.com/maps/api/geocode/json"
-        params = {
-            "address": "Helsinki, Finland",
-            "key": GOOGLE_PLACES_API_KEY
-        }
-        
-        response = requests.get(url, params=params, timeout=10)
-        response.raise_for_status()
-        data = response.json()
-        
-        return jsonify({
-            "status": "success",
-            "api_key_valid": data.get("status") == "OK",
-            "google_response": data
-        })
-        
-    except Exception as e:
-        error_msg = f"API test failed: {str(e)}"
         return jsonify({"error": error_msg}), 500
 
 @app.post("/api/route_geo")
@@ -772,243 +596,55 @@ def api_route_geo():
         return jsonify({"error": "Karttapalvelu ei ole saatavilla juust nyt, yritä hetken kuluttua uudestaan"}), 500
 
 
-@app.route("/login", methods=["GET", "POST"])
-def login():
-    if request.method == "GET":
-        nxt = request.args.get("next", "")
-        body = """
-<div class="container">
-  <div class="section-padding">
-    <div class="text-center mb-8">
-      <h1 class="calculator-title">Kirjaudu sisään</h1>
-      <p class="calculator-subtitle">Syötä tunnuksesi päästäksesi omalle sivullesi</p>
-    </div>
-  </div>
-  
-  <div class="calculator-grid" style="grid-template-columns: 1fr; max-width: 600px; margin: 0 auto;">
-    <div class="card calculator-form">
-      <div class="card-header">
-        <h2 class="card-title">Kirjautumistiedot</h2>
-        <p class="card-subtitle">Syötä sähköpostisi ja salasanasi</p>
-      </div>
-      
-      <div class="card-body">
-        <form method="POST">
-          <div class="form-group">
-            <label class="form-label">Sähköposti</label>
-            <input type="email" name="email" required class="form-input" placeholder="nimi@yritys.fi">
-          </div>
-          
-          <div class="form-group">
-            <label class="form-label">Salasana</label>
-            <input type="password" name="password" required class="form-input" placeholder="Salasanasi">
-          </div>
-          
-          <input type="hidden" name="next" value="__NEXT__">
-          
-          <div class="calculator-actions">
-            <button type="submit" class="btn btn-primary btn-lg">Kirjaudu</button>
-            <a href="/register" class="btn btn-ghost">Tarvitsetko tilin? Luo tili</a>
-          </div>
-        </form>
-      </div>
-    </div>
-  </div>
-</div>
-""".replace("__NEXT__", nxt)
-        return wrap(body, current_user())
-
-    email = (request.form.get("email") or "").strip().lower()
-    password = request.form.get("password") or ""
-    nxt = request.form.get("next") or ""
-
-    # Use auth service for login
-    success, _, error = auth_service.login(email, password)
-
-    if not success:
-        return wrap(f"<div class='card'><h3>{error}</h3></div>", current_user())
-
-    return redirect(nxt or "/dashboard")
+# /login route removed - now handled by auth.py blueprint
 
 
 
 # ----------------- DASHBOARD -----------------
-@app.get("/dashboard")
-def dashboard():
-    u = current_user()
-    if not u:
-        return redirect(url_for("login", next="/dashboard"))
-
-    tab = (request.args.get("tab", "active") or "active").lower()
-    all_orders = list(orders_col().find({"user_id": int(u["id"])}).sort("id", -1))
-
-    def is_active_status(s: str) -> bool:
-        return s in {"NEW", "CONFIRMED", "IN_TRANSIT"}
-
-    if tab == "completed":
-        orders = [r for r in all_orders if not is_active_status(r.get("status","NEW"))]
-    else:
-        orders = [r for r in all_orders if is_active_status(r.get("status","NEW"))]
-
-    rows = ""
-    for r in orders:
-        try:
-            status_fi = translate_status(r['status'])
-
-            # Map status to CSS class
-            status_class_map = {
-                'NEW': 'pending',
-                'CONFIRMED': 'confirmed',
-                'IN_TRANSIT': 'in-progress',
-                'COMPLETED': 'completed',
-                'CANCELLED': 'cancelled'
-            }
-            status_class = status_class_map.get(r['status'], 'pending')
-
-            # Define status badge colors
-            status_colors = {
-                'pending': 'background: #fef3c7; color: #92400e; border: 1px solid #fde68a;',
-                'confirmed': 'background: #dbeafe; color: #1e40af; border: 1px solid #bfdbfe;',
-                'in-progress': 'background: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd;',
-                'completed': 'background: #dcfce7; color: #166534; border: 1px solid #bbf7d0;',
-                'cancelled': 'background: #fee2e2; color: #991b1b; border: 1px solid #fecaca;'
-            }
-            status_style = status_colors.get(status_class, status_colors['pending'])
-
-            rows += f"""
-<tr style="transition: background-color 0.15s ease-in-out;" onmouseover="this.style.backgroundColor='#f9fafb'" onmouseout="this.style.backgroundColor='transparent'">
-  <td style="padding: 1rem; border-bottom: 1px solid #e5e7eb; color: #2563eb; font-size: 0.875rem; font-weight: 500; background: rgba(255, 255, 255, 0.9); vertical-align: middle;">#{r['id']}</td>
-  <td style="padding: 1rem; border-bottom: 1px solid #e5e7eb; color: #111827; font-size: 0.875rem; font-weight: 500; background: rgba(255, 255, 255, 0.9); vertical-align: middle; text-align: center;"><span style="display: inline-flex; align-items: center; padding: 0.25rem 0.75rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 500; text-transform: uppercase; letter-spacing: 0.025em; white-space: nowrap; {status_style}">{status_fi}</span></td>
-  <td style="padding: 1rem; border-bottom: 1px solid #e5e7eb; color: #111827; font-size: 0.875rem; font-weight: 500; background: rgba(255, 255, 255, 0.9); vertical-align: middle;">{r['pickup_address']} → {r['dropoff_address']}</td>
-  <td style="padding: 1rem; border-bottom: 1px solid #e5e7eb; color: #6b7280; font-size: 0.875rem; font-weight: 500; background: rgba(255, 255, 255, 0.9); vertical-align: middle;">{float(r['distance_km']):.1f} km</td>
-  <td style="padding: 1rem; border-bottom: 1px solid #e5e7eb; color: #111827; font-size: 0.875rem; font-weight: 600; background: rgba(255, 255, 255, 0.9); vertical-align: middle; text-align: right;">{float(r['price_gross']):.2f} €</td>
-  <td style="padding: 1rem; border-bottom: 1px solid #e5e7eb; color: #111827; font-size: 0.875rem; font-weight: 500; background: rgba(255, 255, 255, 0.9); vertical-align: middle; text-align: center;"><a style="display: inline-flex; align-items: center; padding: 0.5rem 0.75rem; background: #3b82f6; color: #ffffff; text-decoration: none; border-radius: 0.5rem; font-size: 0.75rem; font-weight: 500; transition: all 0.15s ease-in-out; border: none; cursor: pointer; white-space: nowrap;" href="/order/{r['id']}" onmouseover="this.style.backgroundColor='#2563eb'; this.style.transform='translateY(-1px)'" onmouseout="this.style.backgroundColor='#3b82f6'; this.style.transform='translateY(0)'">Avaa</a></td>
-</tr>
-"""
-        except Exception as e:
-            print(f"Error rendering order {r.get('id', 'unknown')}: {e}")
-            continue
-
-    tabs_html = f"""
-<div class="tabs mb-4">
-  <a href="/dashboard?tab=active" class="btn {'btn-primary' if tab=='active' else 'btn-ghost'} mr-2">Aktiiviset</a>
-  <a href="/dashboard?tab=completed" class="btn {'btn-primary' if tab=='completed' else 'btn-ghost'}">Valmistuneet</a>
-</div>
-"""
-
-    body = f"""
-<div class="container">
-  <div class="section-padding">
-    <div class="text-center mb-8">
-      <h1 class="calculator-title">Omat tilaukset</h1>
-      <p class="calculator-subtitle">Hallinnoi kuljetustilauksiasi ja seuraa niiden etenemistä</p>
-    </div>
-  </div>
-
-  <div style="max-width: 1200px; margin: 0 auto;">
-    <div class="user-orders-section">
-      <div class="user-orders-header">
-        <h2 class="user-orders-title">
-          Tilaushistoria
-          <span class="user-orders-count">{len(orders)} tilausta</span>
-        </h2>
-      </div>
-
-      <div style="padding: var(--space-6);">
-        {tabs_html}
-        <div class="calculator-actions mb-4">
-          <a class="btn btn-primary" href="/order/new/step1">+ Uusi tilaus</a>
-        </div>
-      </div>
-
-      <div class="user-orders-wrapper" style="width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch;">
-        <table class="user-orders-table" style="width: 100%; border-collapse: collapse; min-width: 800px; background: #ffffff;">
-          <thead>
-            <tr>
-              <th style="background: #f9fafb; color: #1f2937; font-weight: 600; font-size: 0.875rem; text-align: left; padding: 1rem; border-bottom: 2px solid #e5e7eb; white-space: nowrap;">ID</th>
-              <th style="background: #f9fafb; color: #1f2937; font-weight: 600; font-size: 0.875rem; text-align: left; padding: 1rem; border-bottom: 2px solid #e5e7eb; white-space: nowrap;">Tila</th>
-              <th style="background: #f9fafb; color: #1f2937; font-weight: 600; font-size: 0.875rem; text-align: left; padding: 1rem; border-bottom: 2px solid #e5e7eb; white-space: nowrap;">Reitti</th>
-              <th style="background: #f9fafb; color: #1f2937; font-weight: 600; font-size: 0.875rem; text-align: left; padding: 1rem; border-bottom: 2px solid #e5e7eb; white-space: nowrap;">Matka</th>
-              <th style="background: #f9fafb; color: #1f2937; font-weight: 600; font-size: 0.875rem; text-align: left; padding: 1rem; border-bottom: 2px solid #e5e7eb; white-space: nowrap;">Hinta</th>
-              <th style="background: #f9fafb; color: #1f2937; font-weight: 600; font-size: 0.875rem; text-align: left; padding: 1rem; border-bottom: 2px solid #e5e7eb; white-space: nowrap;">Toiminnot</th>
-            </tr>
-          </thead>
-          <tbody>{rows or "<tr><td colspan='6' style='text-align: center; padding: 4rem;'><div style='color: #9ca3af;'><div style='font-size: 3rem; margin-bottom: 1rem;'>📦</div><div style='font-weight: 500; margin-bottom: 0.5rem;'>Ei tilauksia</div><div style='font-size: 0.875rem;'>Luo ensimmäinen tilauksesi yllä olevalla napilla</div></div></td></tr>"}</tbody>
-        </table>
-      </div>
-    </div>
-  </div>
-</div>
-"""
-    return wrap(body, u)
+# Legacy dashboard route removed - now handled by main.py blueprint
 
 
 
-def create_client_image_section(images_dict, image_type):
-    """Create HTML for client-side image display with grid layout"""
-    image_data = images_dict.get(image_type)
-
-    # Handle both old single image format and new array format
-    if isinstance(image_data, list):
-        images = image_data
-    else:
-        # Old single image format - convert to list
-        images = [image_data] if image_data else []
-
-    image_type_fi = "Nouto" if image_type == "pickup" else "Toimitus"
-    images_count = len(images)
-
-    if images_count == 0:
-        status_text = "Nouto odottaa" if image_type == "pickup" else "Toimitus odottaa"
-        return f"""
-        <div class="client-image-placeholder">
-            <div class="placeholder-icon">📷</div>
-            <div class="placeholder-text">
-                <p class="placeholder-title">Ei kuvaa vielä</p>
-                <p class="placeholder-subtitle">{status_text}</p>
-            </div>
-        </div>"""
-
-    # Sort images by order
-    images.sort(key=lambda x: x.get('order', 1))
-
-    # Generate grid of images
-    images_html = ""
-    for img in images:
-        upload_date = format_helsinki_time(img.get('uploaded_at'))
-        images_html += f"""
-        <div class="client-image-item">
-            <img src="{img['file_path']}" alt="{image_type_fi} kuva" class="client-image-thumbnail"
-                 onclick="openClientImageModal('{image_type}', '{img['id']}')">
-            <div class="client-image-info">
-                <small class="client-image-date">Kuvattu: {upload_date}</small>
-            </div>
-        </div>"""
-
-    return f"""
-    <div class="client-image-section">
-        <div class="client-image-counter">
-            <span class="client-image-count">{images_count} kuvaa</span>
-        </div>
-        <div class="client-images-grid">
-            {images_html}
-        </div>
-    </div>"""
 
 
 @app.get("/order/<int:order_id>")
 def order_view(order_id: int):
     u = current_user()
     if not u:
-        return redirect(url_for("login", next=f"/order/{order_id}"))
+        return redirect(url_for("auth.login", next=f"/order/{order_id}"))
 
-    # Hae tilaus Mongosta samalla ehdolla kuin ennen MySQL:ssä
-    r = orders_col().find_one(
-        {"id": int(order_id), "user_id": int(u["id"])},
-        {"_id": 0}
-    )
+    # Get order with driver information
+    from models.order import order_model
+    pipeline = [
+        {"$match": {"id": int(order_id), "user_id": int(u["id"])}},
+        {"$lookup": {
+            "from": "users",
+            "localField": "driver_id",
+            "foreignField": "id",
+            "as": "driver"
+        }},
+        {"$unwind": {"path": "$driver", "preserveNullAndEmptyArrays": True}},
+        {"$project": {
+            "_id": 0,
+            "id": 1, "status": 1, "user_id": 1,
+            "pickup_address": 1, "dropoff_address": 1,
+            "distance_km": 1, "price_gross": 1,
+            "reg_number": 1, "winter_tires": 1, "pickup_date": 1,
+            "extras": 1, "images": 1, "customer_name": 1,
+            "email": 1, "phone": 1,
+            "assigned_at": 1, "arrival_time": 1,
+            "pickup_started": 1, "delivery_completed": 1,
+            "created_at": 1, "updated_at": 1,
+            "driver_name": "$driver.name",
+            "driver_email": "$driver.email",
+            "driver_phone": "$driver.phone"
+        }}
+    ]
+
+    order_result = list(orders_col().aggregate(pipeline))
+    r = order_result[0] if order_result else None
     if not r:
-        return wrap("<div class='card'><h2>Ei oikeuksia tähän tilaukseen</h2></div>", u)
+        return render_with_context('errors/no_access.html')
 
     # numerot tulostusta varten
     distance_km = float(r.get("distance_km", 0.0))
@@ -1017,25 +653,55 @@ def order_view(order_id: int):
     current_status = r.get("status", "NEW")
     step = progress_step(current_status)
 
-    # Progress bar with better styling
-    progress_bar = f"""
-<div class="order-progress" data-step="{step}" data-status="{current_status}">
-  <div class="progress-step {'completed' if step >= 1 else ''}">
-    <div class="step-number">1</div>
-    <div class="step-label">Noudettu</div>
-  </div>
-  <div class="progress-line {'completed' if step >= 2 else ''}"></div>
-  <div class="progress-step {'completed' if step >= 2 else ''}">
-    <div class="step-number">2</div>
-    <div class="step-label">Kuljetuksessa</div>
-  </div>
-  <div class="progress-line {'completed' if step >= 3 else ''}"></div>
-  <div class="progress-step {'completed' if step >= 3 else ''}">
-    <div class="step-number">3</div>
-    <div class="step-label">Toimitettu</div>
-  </div>
-</div>
-"""
+    # Enhanced progress bar with detailed status tracking
+    def get_detailed_progress_html(status, step):
+        # 5-step progress with correct labels
+        statuses = [
+            {"key": "NEW", "label": "Tilaus luotu", "group": ["NEW"]},
+            {"key": "CONFIRMED", "label": "Vahvistettu", "group": ["CONFIRMED"]},
+            {"key": "ASSIGNED_TO_DRIVER", "label": "Kuljettaja määritetty", "group": ["ASSIGNED_TO_DRIVER", "DRIVER_ARRIVED", "PICKUP_IMAGES_ADDED"]},
+            {"key": "IN_TRANSIT", "label": "Kuljetuksessa", "group": ["IN_TRANSIT", "DELIVERY_ARRIVED", "DELIVERY_IMAGES_ADDED"]},
+            {"key": "DELIVERED", "label": "Toimitettu", "group": ["DELIVERED"]}
+        ]
+
+        # Find current step based on status
+        current_step = 0
+        for i, step_info in enumerate(statuses):
+            if status in step_info["group"]:
+                current_step = i
+                break
+
+        html_parts = ['<div class="simple-progress">']
+
+        for i, step_info in enumerate(statuses):
+            is_completed = i < current_step
+            is_current = i == current_step
+
+            step_classes = ["progress-step"]
+            if is_completed:
+                step_classes.append("completed")
+            elif is_current:
+                step_classes.append("current")
+
+            html_parts.append(f'<div class="{" ".join(step_classes)}">')
+            html_parts.append(f'<div class="step-circle">{i + 1}</div>')
+            html_parts.append(f'<div class="step-title">{step_info["label"]}</div>')
+            html_parts.append('</div>')
+
+            # Add connector line (except for last item)
+            if i < len(statuses) - 1:
+                line_class = "progress-connector completed" if is_completed else "progress-connector"
+                html_parts.append(f'<div class="{line_class}"></div>')
+
+        html_parts.append('</div>')
+
+        # Add current status description
+        status_description = get_status_description(status)
+        html_parts.append(f'<div class="current-status-description">{status_description}</div>')
+
+        return "".join(html_parts)
+
+    progress_bar = get_detailed_progress_html(current_status, step)
 
     status_fi = translate_status(r.get('status', 'NEW'))
     status_description = get_status_description(r.get('status', 'NEW'))
@@ -1068,454 +734,21 @@ def order_view(order_id: int):
 
 
 # ----------------- ADMIN -----------------
-@app.get("/admin")
-def admin_home():
-    u = current_user()
-    if not u or u.get("role") != "admin":
-        return wrap("<div class='card'><h2>Adminalue</h2><p class='muted'>Kirjaudu admin-käyttäjänä.</p></div>", u)
+# Legacy admin route removed - now handled by main.py blueprint
 
-    pipeline = [
-        {"$sort": {"id": -1}},
-        {"$limit": 300},
-        {"$lookup": {
-            "from": "users",
-            "localField": "user_id",
-            "foreignField": "id",
-            "as": "user"
-        }},
-        {"$unwind": {"path": "$user", "preserveNullAndEmptyArrays": True}},
-        {"$project": {
-            "_id": 0,
-            "id": 1, "status": 1,
-            "pickup_address": 1, "dropoff_address": 1,
-            "distance_km": 1, "price_gross": 1,
-            "images": 1,
-            "user_name": "$user.name",
-            "user_email": "$user.email"
-        }}
-    ]
-    rows = list(orders_col().aggregate(pipeline))
 
-    tr = ""
-    for r in rows:
-        distance_km = float(r.get("distance_km", 0.0))
-        price_gross = float(r.get("price_gross", 0.0))
-        status_fi = translate_status(r['status'])
 
-        # Image indicators
-        images = r.get("images", {})
-        pickup_icon = "📷" if images.get("pickup") else "⭕"
-        delivery_icon = "📷" if images.get("delivery") else "⭕"
-        image_status = f"{pickup_icon} {delivery_icon}"
 
-        tr += f"""
-<tr class="admin-table-row" onclick="window.location.href='/admin/order/{r['id']}'" style="cursor: pointer;">
-  <td><strong>#{r['id']}</strong></td>
-  <td><span class="status {r['status']}">{status_fi}</span></td>
-  <td>{r.get('user_name','?')} &lt;{r.get('user_email','?')}&gt;</td>
-  <td>{r['pickup_address']} → {r['dropoff_address']}</td>
-  <td>{distance_km:.1f} km</td>
-  <td>{price_gross:.2f} €</td>
-  <td class="image-status">{image_status}</td>
-  <td onclick="event.stopPropagation();">
-    <form method="POST" action="/admin/update" class="admin-inline-form">
-      <input type="hidden" name="id" value="{r['id']}">
-      <select name="status">
-        <option value="NEW" {'selected' if r['status'] == 'NEW' else ''}>UUSI</option>
-        <option value="CONFIRMED" {'selected' if r['status'] == 'CONFIRMED' else ''}>VAHVISTETTU</option>
-        <option value="IN_TRANSIT" {'selected' if r['status'] == 'IN_TRANSIT' else ''}>KULJETUKSESSA</option>
-        <option value="DELIVERED" {'selected' if r['status'] == 'DELIVERED' else ''}>TOIMITETTU</option>
-        <option value="CANCELLED" {'selected' if r['status'] == 'CANCELLED' else ''}>PERUUTETTU</option>
-      </select>
-      <button type="submit">Päivitä</button>
-    </form>
-  </td>
-</tr>
-"""
-    body = f"""
-<div class="admin-container">
-  <div class="admin-header">
-    <h2>Admin – Tilaukset</h2>
-    <div class="admin-actions">
-      <a class="btn btn-ghost" href="/admin/users">Käyttäjät</a>
-      <a class="btn btn-secondary" href="/logout">Kirjaudu ulos</a>
-    </div>
-  </div>
-  <table class="admin-table">
-    <thead><tr><th>ID</th><th>Tila</th><th>Asiakas</th><th>Reitti</th><th>Km</th><th>Hinta</th><th>Kuvat</th><th>Päivitä</th></tr></thead>
-    <tbody>{tr or "<tr><td colspan='8' class='muted'>Ei tilauksia</td></tr>"}</tbody>
-  </table>
-</div>
-"""
-    return wrap(body, u)
 
 
 
-@app.get("/admin/users")
-def admin_users():
-    u = current_user()
-    if not u or u.get("role") != "admin":
-        return wrap("<div class='card'><h2>Adminalue</h2><p class='muted'>Kirjaudu admin-käyttäjänä.</p></div>", u)
 
-    # Get all users sorted by creation date (newest first)
-    users = list(users_col().find({}, {"_id": 0}).sort("created_at", -1))
 
-    user_rows = ""
-    for user in users:
-        # Use new status field instead of deprecated approved field
-        user_status = user.get("status", "pending")
 
-        # Status display logic
-        if user_status == "active":
-            status_text = "✅ Aktiivinen"
-            status_class = "status-confirmed"
-            is_active = True
-        elif user_status == "pending":
-            status_text = "⏳ Odottaa hyväksyntää"
-            status_class = "status-new"
-            is_active = False
-        else:
-            status_text = f"❓ {user_status}"
-            status_class = "status-new"
-            is_active = False
 
-        role_badge = "Admin" if user.get("role") == "admin" else "Asiakas"
 
-        action_buttons = ""
-        if user.get("role") != "admin":  # Don't allow modifying admin accounts
-            if is_active:
-                action_buttons = f"""
-                <form method="POST" action="/admin/users/deny" class="admin-inline-form">
-                  <input type="hidden" name="user_id" value="{user['id']}">
-                  <button type="submit" class="btn btn-sm" style="background: #dc2626; color: white;">Hylkää</button>
-                </form>
-                """
-            else:
-                action_buttons = f"""
-                <div class="admin-inline-form">
-                  <form method="POST" action="/admin/users/approve" class="admin-inline-form">
-                    <input type="hidden" name="user_id" value="{user['id']}">
-                    <button type="submit" class="btn btn-success btn-sm">Hyväksy</button>
-                  </form>
-                  <form method="POST" action="/admin/users/deny" class="admin-inline-form">
-                    <input type="hidden" name="user_id" value="{user['id']}">
-                    <button type="submit" class="btn btn-sm" style="background: #dc2626; color: white;">Hylkää</button>
-                  </form>
-                </div>
-                """
 
-        user_rows += f"""
-<tr>
-  <td>#{user['id']}</td>
-  <td>{user['name']}</td>
-  <td>{user['email']}</td>
-  <td><span class="pill">{role_badge}</span></td>
-  <td><span class="status {status_class}">{status_text}</span></td>
-  <td>{format_helsinki_time(user.get('created_at')) if user.get('created_at') else '-'}</td>
-  <td>{action_buttons}</td>
-</tr>
-"""
 
-    body = f"""
-<div class="admin-container">
-  <div class="admin-header">
-    <h2>Käyttäjien hallinta</h2>
-    <div class="admin-actions">
-      <a class="btn btn-ghost" href="/admin">Takaisin tilauksiin</a>
-      <a class="btn btn-secondary" href="/logout">Kirjaudu ulos</a>
-    </div>
-  </div>
-  <p class="text-muted">Hallinnoi käyttäjätilien hyväksyntää ja hylkäämistä.</p>
-  <table class="admin-table admin-users-table">
-    <thead><tr><th>ID</th><th>Nimi</th><th>Sähköposti</th><th>Rooli</th><th>Tila</th><th>Luotu</th><th>Toiminnot</th></tr></thead>
-    <tbody>{user_rows or "<tr><td colspan='7' class='muted'>Ei käyttäjiä</td></tr>"}</tbody>
-  </table>
-</div>
-"""
-    return wrap(body, u)
-
-
-
-@app.post("/admin/users/approve")
-def admin_approve_user():
-    admin_required()
-    user_id = int(request.form.get("user_id"))
-
-    # Use the service layer method instead of direct database call
-    success, error = auth_service.approve_user(user_id)
-
-    if success:
-        flash("Käyttäjä hyväksytty onnistuneesti", "success")
-    else:
-        flash(f"Virhe: {error}", "error")
-
-    return redirect(url_for("admin_users"))
-
-
-@app.post("/admin/users/deny")
-def admin_deny_user():
-    admin_required()
-    user_id = int(request.form.get("user_id"))
-
-    # Use the service layer method instead of direct database call
-    success, error = auth_service.deny_user(user_id)
-
-    if success:
-        flash("Käyttäjä hylätty onnistuneesti", "success")
-    else:
-        flash(f"Virhe: {error}", "error")
-
-    return redirect(url_for("admin_users"))
-
-
-@app.post("/admin/update")
-def admin_update_order():
-    u = current_user()
-    if not u or u.get("role") != "admin":
-        return redirect(url_for("login"))
-
-    order_id = int(request.form.get("id"))
-    new_status = request.form.get("status")
-
-    # Validate status
-    valid_statuses = ["NEW", "CONFIRMED", "IN_TRANSIT", "DELIVERED", "CANCELLED"]
-    if new_status not in valid_statuses:
-        return redirect(url_for("admin_home"))
-
-    # Use service layer to update order status (includes automatic email sending)
-    success, error = order_service.update_order_status(order_id, new_status)
-
-    # Add debug feedback
-    if success:
-        flash(f"Tilauksen #{order_id} tila päivitetty: {translate_status(new_status)}", "success")
-    else:
-        flash(f"Virhe: {error or f'Tilauksen #{order_id} tilaa ei voitu päivittää'}", "error")
-
-    return redirect(url_for("admin_home"))
-
-def create_multi_image_section(images, image_type, order_id):
-    """Create HTML for multi-image grid display"""
-    # Handle both old single image format and new array format
-    if not isinstance(images, list):
-        images = [images] if images else []
-
-    # Sort images by order
-    images.sort(key=lambda x: x.get('order', 1))
-
-    image_type_fi = "Nouto" if image_type == "pickup" else "Toimitus"
-    images_count = len(images)
-
-    if images_count == 0:
-        # No images - show upload form
-        return f"""
-        <div class="image-section">
-            <h3>{image_type_fi} kuvat</h3>
-            <div class="image-counter">
-                <span class="image-counter-text">0/15 kuvaa</span>
-                <span class="image-counter-limit">Maksimi 15 kuvaa</span>
-            </div>
-            <form method="POST" action="/admin/order/{order_id}/upload" enctype="multipart/form-data" class="upload-form" id="{image_type}-form-{order_id}">
-                <input type="hidden" name="image_type" value="{image_type}">
-                <input type="file" name="image" accept=".jpg,.jpeg,.png,.webp" required onchange="submitImageForm(this)">
-                <button type="submit" class="btn btn-primary">Lataa {image_type_fi.lower()} kuva</button>
-                <div class="upload-status" style="display: none;">
-                    <span class="uploading">Ladataan...</span>
-                </div>
-            </form>
-        </div>"""
-
-    # Generate grid of images
-    images_html = ""
-    for img in images:
-        # upload_date = format_helsinki_time(img.get('uploaded_at'))  # Not used in display
-        images_html += f"""
-        <div class="image-item" data-image-type="{image_type}">
-            <img src="{img['file_path']}" alt="{image_type_fi} kuva" class="image-thumbnail"
-                 data-image-id="{img['id']}" onclick="openImageModal('{image_type}', '{img['id']}')">
-            <div class="image-actions">
-                <button class="image-action-btn delete" onclick="deleteImage('{order_id}', '{image_type}', '{img['id']}')"
-                        title="Poista kuva">×</button>
-            </div>
-        </div>"""
-
-    # Add upload form if under limit
-    upload_form = ""
-    if images_count < 15:
-        upload_form = f"""
-        <form method="POST" action="/admin/order/{order_id}/upload" enctype="multipart/form-data" class="upload-form" id="{image_type}-form-{order_id}">
-            <input type="hidden" name="image_type" value="{image_type}">
-            <input type="file" name="image" accept=".jpg,.jpeg,.png,.webp" required onchange="submitImageForm(this)">
-            <button type="submit" class="btn btn-primary">Lataa lisää kuvia</button>
-            <div class="upload-status" style="display: none;">
-                <span class="uploading">Ladataan...</span>
-            </div>
-        </form>"""
-
-    return f"""
-    <div class="image-section">
-        <h3>{image_type_fi} kuvat</h3>
-        <div class="image-counter">
-            <span class="image-counter-text">{images_count}/15 kuvaa</span>
-            <span class="image-counter-limit">Maksimi 15 kuvaa</span>
-        </div>
-        <div class="images-grid">
-            {images_html}
-        </div>
-        {upload_form}
-    </div>"""
-
-
-@app.get("/admin/order/<int:order_id>")
-def admin_order_detail(order_id):
-    u = current_user()
-    if not u or u.get("role") != "admin":
-        return redirect(url_for("login"))
-
-    # Get order with user info
-    pipeline = [
-        {"$match": {"id": int(order_id)}},
-        {"$lookup": {
-            "from": "users",
-            "localField": "user_id",
-            "foreignField": "id",
-            "as": "user"
-        }},
-        {"$unwind": {"path": "$user", "preserveNullAndEmptyArrays": True}},
-        {"$project": {
-            "_id": 0,
-            "id": 1, "status": 1,
-            "pickup_address": 1, "dropoff_address": 1,
-            "distance_km": 1, "price_gross": 1,
-            "reg_number": 1, "winter_tires": 1, "pickup_date": 1,
-            "extras": 1, "images": 1,
-            "user_name": "$user.name",
-            "user_email": "$user.email"
-        }}
-    ]
-    order_result = list(orders_col().aggregate(pipeline))
-
-    if not order_result:
-        return wrap("<div class='card'><h2>Tilaus ei löytynyt</h2></div>", u)
-
-    order = order_result[0]
-
-    status_fi = translate_status(order.get('status', 'NEW'))
-
-    pickup_date_fi = order.get('pickup_date', 'Ei asetettu')
-    if pickup_date_fi and pickup_date_fi != 'Ei asetettu':
-        try:
-            # Try to format the date if it's a datetime object
-            if hasattr(pickup_date_fi, 'strftime'):
-                pickup_date_fi = pickup_date_fi.strftime('%d.%m.%Y')
-        except:
-            pass
-
-    return render_with_context('admin/order_detail.html',
-        order=order,
-        status_fi=status_fi,
-        pickup_date_fi=pickup_date_fi
-    )
-
-
-@app.post("/admin/order/<int:order_id>/upload")
-def admin_upload_image(order_id):
-    u = current_user()
-    if not u or u.get("role") != "admin":
-        return redirect(url_for("login"))
-
-    image_type = request.form.get("image_type")
-    if image_type not in ["pickup", "delivery"]:
-        flash("Virheellinen kuvatyyppi", "error")
-        return redirect(url_for("admin_order_detail", order_id=order_id))
-
-    if 'image' not in request.files:
-        flash("Kuvaa ei valittu", "error")
-        return redirect(url_for("admin_order_detail", order_id=order_id))
-
-    file = request.files['image']
-    if file.filename == '':
-        flash("Kuvaa ei valittu", "error")
-        return redirect(url_for("admin_order_detail", order_id=order_id))
-
-    # Save and process image using ImageService
-    image_info, error = image_service.save_order_image(file, order_id, image_type, u.get("email", "admin"))
-
-    if error:
-        flash(error, "error")
-        return redirect(url_for("admin_order_detail", order_id=order_id))
-
-    # Add image to order using ImageService
-    success, add_error = image_service.add_image_to_order(order_id, image_type, image_info)
-
-    if not success:
-        flash(add_error, "error")
-        return redirect(url_for("admin_order_detail", order_id=order_id))
-
-    image_type_fi = "Nouto" if image_type == "pickup" else "Toimitus"
-    flash(f"{image_type_fi} kuva ladattu onnistuneesti", "success")
-    return redirect(url_for("admin_order_detail", order_id=order_id))
-
-
-@app.post("/admin/order/<int:order_id>/image/<image_type>/delete")
-def admin_delete_image(order_id, image_type):
-    u = current_user()
-    if not u or u.get("role") != "admin":
-        return redirect(url_for("login"))
-
-    if image_type not in ["pickup", "delivery"]:
-        flash("Virheellinen kuvatyyppi", "error")
-        return redirect(url_for("admin_order_detail", order_id=order_id))
-
-    success, message = image_service.delete_order_image(order_id, image_type, request.form.get('image_id'))
-
-    image_type_fi = "Nouto" if image_type == "pickup" else "Toimitus"
-
-    if success:
-        flash(f"{image_type_fi} kuva poistettu onnistuneesti", "success")
-    else:
-        # Translate error messages
-        finnish_message = message
-        if "Order or image not found" in message:
-            finnish_message = "Tilausta tai kuvaa ei löytynyt"
-        elif "Image not found" in message:
-            finnish_message = "Kuvaa ei löytynyt"
-        elif "Delete failed" in message:
-            finnish_message = "Poisto epäonnistui"
-
-        flash(finnish_message, "error")
-
-    return redirect(url_for("admin_order_detail", order_id=order_id))
-
-
-@app.post("/admin/order/<int:order_id>/image/<image_type>/<image_id>/delete")
-def admin_delete_image_by_id(order_id, image_type, image_id):
-    u = current_user()
-    if not u or u.get("role") != "admin":
-        return redirect(url_for("login"))
-
-    if image_type not in ["pickup", "delivery"]:
-        flash("Virheellinen kuvatyyppi", "error")
-        return redirect(url_for("admin_order_detail", order_id=order_id))
-
-    success, message = image_service.delete_order_image(order_id, image_type, image_id)
-
-    image_type_fi = "Nouto" if image_type == "pickup" else "Toimitus"
-
-    if success:
-        flash(f"{image_type_fi} kuva poistettu onnistuneesti", "success")
-    else:
-        # Translate error messages
-        finnish_message = message
-        if "Order or image not found" in message:
-            finnish_message = "Tilausta tai kuvaa ei löytynyt"
-        elif "Image not found" in message:
-            finnish_message = "Kuvaa ei löytynyt"
-        elif "Delete failed" in message:
-            finnish_message = "Poisto epäonnistui"
-
-        flash(finnish_message, "error")
-
-    return redirect(url_for("admin_order_detail", order_id=order_id))
 
 
 @app.get("/order/new")
@@ -1527,17 +760,25 @@ def progress_step(status: str) -> int:
     # 3-vaiheinen palkki: 1=Noudettu, 2=Kuljetuksessa, 3=Toimitettu
     status = (status or "").upper()
     mapping = {
-        "NEW": 0,          # uusi tilaus, ei vielä noudettu
-        "CONFIRMED": 0,    # vahvistettu, odottaa noutoa
-        "IN_TRANSIT": 2,   # kuljetuksessa (noudettu + kuljetuksessa)
-        "DELIVERED": 3,    # toimitettu (kaikki vaiheet valmiit)
-        "CANCELLED": 0     # peruttu -> ei edistystä
+        "NEW": 0,                      # uusi tilaus, ei vielä noudettu
+        "CONFIRMED": 0,                # vahvistettu, odottaa kuljettajaa
+        "ASSIGNED_TO_DRIVER": 0,       # kuljettaja määritetty, matkalla
+        "DRIVER_ARRIVED": 1,           # kuljettaja saapunut
+        "PICKUP_IMAGES_ADDED": 1,      # noudettu
+        "IN_TRANSIT": 2,               # kuljetuksessa
+        "DELIVERY_ARRIVED": 2,         # saapunut kohteeseen
+        "DELIVERY_IMAGES_ADDED": 2,    # valmis luovutukseen
+        "DELIVERED": 3,                # toimitettu
+        "CANCELLED": 0                 # peruttu -> ei edistystä
     }
     return mapping.get(status, 0)
 
 
 def is_active_status(status: str) -> bool:
-    return (status or "").upper() in ("NEW", "CONFIRMED", "IN_TRANSIT")
+    return (status or "").upper() in (
+        "NEW", "CONFIRMED", "ASSIGNED_TO_DRIVER", "DRIVER_ARRIVED",
+        "PICKUP_IMAGES_ADDED", "IN_TRANSIT", "DELIVERY_ARRIVED", "DELIVERY_IMAGES_ADDED"
+    )
 
 
 # ----------------- API -----------------
@@ -1546,6 +787,7 @@ def api_quote_for_addresses():
     payload = request.get_json(force=True, silent=True) or {}
     pickup = payload.get("pickup", "").strip()
     dropoff = payload.get("dropoff", "").strip()
+    # NOTE: return_leg parameter exists but is not used in the current UI
     return_leg = bool(payload.get("return_leg", False))  # optional flag
     if not pickup or not dropoff:
         return jsonify({"error": "Lähtö- ja kohdeosoite vaaditaan"}), 400
@@ -1573,6 +815,115 @@ def api_quote():
     return jsonify({"net": net, "vat": vat, "gross": gross})
 
 
+# ----------------- DRIVER APPLICATION ROUTES -----------------
+
+@app.get("/hae-kuljettajaksi")
+def driver_application_form():
+    """Display driver application form"""
+    return render_template('driver_application.html')
+
+
+@app.post("/hae-kuljettajaksi")
+def submit_driver_application():
+    """Process driver application submission"""
+    from models.driver_application import driver_application_model
+    from services.email_service import email_service
+
+    # Get form data
+    application_data = {
+        "first_name": (request.form.get("first_name") or "").strip(),
+        "last_name": (request.form.get("last_name") or "").strip(),
+        "email": (request.form.get("email") or "").strip(),
+        "phone": (request.form.get("phone") or "").strip(),
+        "password": (request.form.get("password") or "").strip(),
+        "password_confirm": (request.form.get("password_confirm") or "").strip()
+    }
+    application_data["name"] = " ".join(
+        part for part in [application_data["first_name"], application_data["last_name"]]
+        if part
+    ).strip()
+
+    # Validate required fields
+    required_fields = ["first_name", "last_name", "email", "phone", "password", "password_confirm"]
+    field_labels = {
+        "first_name": "Etunimi",
+        "last_name": "Sukunimi",
+        "email": "Sähköposti",
+        "phone": "Puhelinnumero",
+        "password": "Salasana",
+        "password_confirm": "Salasanan vahvistus"
+    }
+
+    for field in required_fields:
+        if not application_data.get(field):
+            label = field_labels.get(field, field)
+            flash(f"Virhe: {label} on pakollinen kenttä", "error")
+            return render_template('driver_application.html')
+
+    if not application_data["name"]:
+        flash("Virhe: Lisää etu- ja sukunimi", "error")
+        return render_template('driver_application.html')
+
+    # Validate password confirmation
+    if application_data["password"] != application_data["password_confirm"]:
+        flash("Salasanat eivät täsmää", "error")
+        return render_template('driver_application.html')
+
+    # Validate password length
+    if len(application_data["password"]) < 6:
+        flash("Salasana tulee olla vähintään 6 merkkiä pitkä", "error")
+        return render_template('driver_application.html')
+
+    # Check if application already exists
+    existing = driver_application_model.find_by_email(application_data["email"])
+    if existing:
+        flash("Sähköpostiosoitteella on jo lähetetty hakemus", "error")
+        return render_template('driver_application.html')
+
+    # Check if user already exists in the system
+    from models.user import user_model
+    existing_user = user_model.find_by_email(application_data["email"])
+    if existing_user:
+        flash("Sähköpostiosoite on jo käytössä järjestelmässä", "error")
+        return render_template('driver_application.html')
+
+    # Create application
+    application, error = driver_application_model.create_application(application_data)
+    if error:
+        flash(f"Virhe hakemuksen lähettämisessä: {error}", "error")
+        return render_template('driver_application.html')
+
+    # Send confirmation email to applicant
+    try:
+        email_service.send_driver_application_confirmation(application_data["email"], application_data["name"])
+    except Exception as e:
+        print(f"Failed to send confirmation email: {e}")
+
+    # Send notification email to admin
+    try:
+        email_service.send_admin_driver_application_notification(application)
+    except Exception as e:
+        print(f"Failed to send admin notification: {e}")
+
+    applicant_name = application_data["first_name"] or application_data["name"]
+
+    return render_template(
+        'driver_application_success.html',
+        applicant_name=applicant_name,
+        application_id=application["id"]
+    )
+
+
+# Register blueprints
+from routes.main import main_bp
+from routes.driver import driver_bp
+from routes.auth import auth_bp
+from routes.admin import admin_bp
+app.register_blueprint(main_bp)
+app.register_blueprint(driver_bp)
+app.register_blueprint(auth_bp)
+app.register_blueprint(admin_bp)
+
 # Import feature modules
 import order_wizard
 import marketing
@@ -1581,6 +932,11 @@ import marketing
 if __name__ == "__main__":
     init_db()
     seed_admin()
+
+    # Only seed test drivers in development environment
+    if os.getenv("FLASK_ENV", "production") == "development":
+        seed_test_driver()
+
     migrate_images_to_array()  # Migrate existing single images to array format
     port = int(os.getenv("PORT", "8000"))
     app.run(host="0.0.0.0", port=port, debug=True)

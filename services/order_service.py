@@ -21,7 +21,11 @@ MID_KM = 170.0
 MID_GROSS = float(os.getenv("MID_GROSS", "81"))
 LONG_KM = 600.0
 LONG_GROSS = float(os.getenv("LONG_GROSS", "207"))
+# NOTE: Return leg discount is not currently used in the application UI
+# This feature is preserved for potential future use
 ROUNDTRIP_DISCOUNT = 0.30
+# Minimum order price - all orders must be at least this amount
+MINIMUM_ORDER_PRICE = 20.0
 
 # External API configuration
 GOOGLE_PLACES_API_KEY = os.getenv("GOOGLE_PLACES_API_KEY", "")
@@ -64,10 +68,14 @@ class OrderService:
                     # Get user details for email
                     user = user_model.find_by_id(user_id)
                     if user:
+                        # Send email to customer
                         email_service.send_order_created_email(user["email"], user["name"], order)
+
+                        # Send admin notification
+                        email_service.send_admin_new_order_notification(order, user)
                 except Exception as e:
                     # Log error but don't fail order creation
-                    print(f"Failed to send order created email: {e}")
+                    print(f"Failed to send order emails: {e}")
 
             return order is not None, order, error
 
@@ -100,9 +108,8 @@ class OrderService:
                 # Get user details for email
                 user = user_model.find_by_id(order.get("user_id"))
                 if user:
-                    status_description = self.get_status_description(new_status)
                     email_service.send_status_update_email(
-                        user["email"], user["name"], order, new_status, status_description
+                        user["email"], user["name"], order_id, new_status
                     )
             except Exception as e:
                 # Log error but don't fail status update
@@ -142,11 +149,14 @@ class OrderService:
             rate_per_km = LONG_GROSS / LONG_KM
             base_price = distance_km * rate_per_km
 
-        # Apply return trip discount
+        # Apply return trip discount (NOTE: This feature is not currently used in the UI)
         if return_leg:
             base_price *= (1 - ROUNDTRIP_DISCOUNT)
 
-        return round(base_price, 2)
+        # Enforce minimum order price
+        final_price = max(base_price, MINIMUM_ORDER_PRICE)
+
+        return round(final_price, 2)
 
     def calculate_route_distance(self, pickup_addr: str, dropoff_addr: str) -> float:
         """Calculate route distance using OSRM API"""
@@ -226,25 +236,13 @@ class OrderService:
     # Status and translation methods
     def translate_status(self, status: str) -> str:
         """Translate order status to Finnish"""
-        translations = {
-            "NEW": "Uusi",
-            "CONFIRMED": "Vahvistettu",
-            "IN_TRANSIT": "Kuljetuksessa",
-            "DELIVERED": "Toimitettu",
-            "CANCELLED": "Peruutettu"
-        }
-        return translations.get(status, status)
+        from utils.status_translations import translate_status
+        return translate_status(status)
 
     def get_status_description(self, status: str) -> str:
         """Get user-friendly status description"""
-        descriptions = {
-            "NEW": "Tilaus on vastaanotettu ja odottaa käsittelyä",
-            "CONFIRMED": "Tilaus on vahvistettu ja noutoa odotetaan",
-            "IN_TRANSIT": "Auto on kuljetuksessa määränpäähän",
-            "DELIVERED": "Auto on toimitettu onnistuneesti",
-            "CANCELLED": "Tilaus on peruutettu"
-        }
-        return descriptions.get(status, "Tuntematon tila")
+        from utils.status_translations import get_status_description
+        return get_status_description(status)
 
     def get_progress_step(self, status: str) -> int:
         """Get progress step for status (1-3)"""
@@ -318,6 +316,43 @@ class OrderService:
         net = gross / (1 + VAT_RATE)
         vat = gross - net
         return round(net, 2), round(vat, 2)
+
+    def assign_driver_to_order(self, order_id: int, driver_id: int) -> Tuple[bool, Optional[str]]:
+        """Assign or reassign a driver to an order"""
+        try:
+            # Verify driver exists and is active
+            from models.user import user_model
+            driver = user_model.find_by_id(driver_id)
+
+            if not driver or driver.get('role') != 'driver':
+                return False, "Kuljettajaa ei löytynyt tai käyttäjä ei ole kuljettaja"
+
+            if driver.get('status') != 'active':
+                return False, "Kuljettaja ei ole aktiivinen"
+
+            # Assign driver using order model
+            success, error = self.order_model.assign_driver(order_id, driver_id)
+
+            if success:
+                # Send notification emails
+                try:
+                    from services.email_service import email_service
+                    order = self.order_model.find_by_id(order_id)
+                    if order:
+                        # Notify driver about assignment
+                        email_service.send_driver_assignment_email(driver['email'], driver['name'], order)
+
+                        # Notify customer that driver has been assigned
+                        user = user_model.find_by_id(order['user_id'])
+                        if user:
+                            email_service.send_customer_driver_assigned_email(user['email'], user['name'], order, driver)
+                except Exception as e:
+                    print(f"Failed to send assignment emails: {e}")
+
+            return success, error
+
+        except Exception as e:
+            return False, f"Virhe kuljettajan määrityksessä: {str(e)}"
 
 
 # Global instance

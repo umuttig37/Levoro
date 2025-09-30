@@ -76,7 +76,7 @@ def wizard_shell(active: int, inner_html: str, session_data: dict = None) -> str
 def order_step1():
     u = auth_service.get_current_user()
     if not u:
-        return redirect(url_for("login", next="/order/new/step1"))
+        return redirect(url_for("auth.login", next="/order/new/step1"))
 
     if request.method == "GET":
         # esitäyttö query-parametreilla (jatka tilaukseen -napista)
@@ -356,7 +356,7 @@ const step1Autocomplete = new WizardGooglePlacesAutocomplete(
 def order_step2():
     u = auth_service.get_current_user()
     if not u:
-        return redirect(url_for("login", next="/order/new/step2"))
+        return redirect(url_for("auth.login", next="/order/new/step2"))
 
     # Validate step access
     session_data = session.get("order_draft", {})
@@ -567,7 +567,7 @@ const step2Autocomplete = new WizardGooglePlacesAutocomplete(
 @app.route("/order/new/step3", methods=["GET","POST"])
 def order_step3():
     u = auth_service.get_current_user()
-    if not u: return redirect(url_for("login", next="/order/new/step3"))
+    if not u: return redirect(url_for("auth.login", next="/order/new/step3"))
 
     # Validate step access
     session_data = session.get("order_draft", {})
@@ -615,7 +615,7 @@ def order_step3():
 @app.route("/order/new/step4", methods=["GET","POST"])
 def order_step4():
     u = auth_service.get_current_user()
-    if not u: return redirect(url_for("login", next="/order/new/step4"))
+    if not u: return redirect(url_for("auth.login", next="/order/new/step4"))
 
     # Validate step access
     session_data = session.get("order_draft", {})
@@ -665,7 +665,7 @@ def order_step4():
 @app.route("/order/new/step5", methods=["GET","POST"])
 def order_step5():
     u = auth_service.get_current_user()
-    if not u: return redirect(url_for("login", next="/order/new/step5"))
+    if not u: return redirect(url_for("auth.login", next="/order/new/step5"))
 
     # Validate step access
     session_data = session.get("order_draft", {})
@@ -693,7 +693,7 @@ def order_step5():
 @app.route("/order/new/confirm", methods=["GET","POST"])
 def order_confirm():
     u = auth_service.get_current_user()
-    if not u: return redirect(url_for("login", next="/order/new/confirm"))
+    if not u: return redirect(url_for("auth.login", next="/order/new/confirm"))
 
     # Validate step access
     session_data = session.get("order_draft", {})

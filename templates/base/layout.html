@@ -28,6 +28,11 @@
     <!-- Main CSS -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
 
+    <!-- Driver-specific CSS -->
+    {% if current_user and current_user.role == 'driver' and request.endpoint and 'driver.' in request.endpoint %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/driver-images.css') }}">
+    {% endif %}
+
     <!-- Dashboard Table CSS -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard-table.css') }}">
 
@@ -47,7 +52,7 @@
                 </div>
 
                 <!-- Mobile Menu Toggle -->
-                <button class="mobile-menu-toggle" aria-label="Avaa menu" onclick="toggleMobileMenu()">
+                <button class="mobile-menu-toggle" aria-label="Avaa menu" id="mobile-menu-toggle">
                     <span></span>
                     <span></span>
                     <span></span>
@@ -56,19 +61,30 @@
                 <!-- Navigation -->
                 <nav class="nav" id="nav-menu">
                     <a href="/" class="nav-link">Etusivu</a>
+
+                    <!-- Role-based navigation -->
+                    {% if current_user and current_user.get('role') == 'driver' %}
+                    <a href="/driver/dashboard" class="nav-link">Kuljettajan sivu</a>
+                    {% elif current_user and current_user.get('role') == 'admin' %}
+                    <!-- Admin users don't need Oma sivu link -->
+                    {% elif current_user %}
                     <a href="/order/new/step1" class="nav-link">Uusi tilaus</a>
                     <a href="/dashboard" class="nav-link">Oma sivu</a>
+                    {% else %}
+                    <a href="/order/new/step1" class="nav-link">Uusi tilaus</a>
+                    {% endif %}
 
                     <!-- Admin Link -->
-                    {% if current_user and current_user.role == 'admin' %}
+                    {% if current_user and current_user.get('role') == 'admin' %}
                     <a href="/admin" class="nav-link">Admin</a>
                     {% endif %}
 
                     <!-- Auth Links -->
                     {% if current_user %}
-                    <span class="pill">Hei, {{ current_user.name }}</span>
+                    <span class="pill">Hei, {{ current_user.get('name', 'Käyttäjä') }}</span>
                     <a class="nav-link" href="/logout">Ulos</a>
                     {% else %}
+                    <a href="/hae-kuljettajaksi" class="nav-link">Hae kuljettajaksi</a>
                     <a href="/login" class="nav-link">Kirjaudu</a>
                     <a href="/register" class="nav-link">Luo tili</a>
                     {% endif %}

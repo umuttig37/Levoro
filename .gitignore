@@ -37,3 +37,8 @@ Thumbs.db
 
 # Logs
 *.log
+
+.venv/
+.env
+issues.md
+claude.md

@@ -11,7 +11,7 @@
                  class="client-image-thumbnail"
                  onclick="openClientImageModal('{{ image_type }}', '{{ img.id }}')">
             <div class="client-image-info">
-                <small class="client-image-date">Kuvattu: {{ img.uploaded_at.strftime('%d.%m.%Y %H:%M') if img.uploaded_at else 'N/A' }}</small>
+                <small class="client-image-date">Kuvattu: {{ img.uploaded_at|helsinki_time if img.uploaded_at else 'N/A' }}</small>
             </div>
         </div>
         {% endfor %}

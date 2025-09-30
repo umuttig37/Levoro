@@ -1,0 +1,100 @@
+{% extends "base/layout.html" %}
+
+{% block title %}Luo yritystili – Autonkuljetus{% endblock %}
+
+{% block content %}
+<div class="container">
+  <div class="section-padding">
+    <div class="text-center mb-8">
+      <h1 class="calculator-title">Luo yritystili</h1>
+      <p class="calculator-subtitle">Täytä tiedot alla luodaksesi tilin kuljetuspalveluun</p>
+    </div>
+  </div>
+
+  <div class="calculator-grid" style="grid-template-columns: 1fr; max-width: 600px; margin: 0 auto;">
+    <div class="card calculator-form">
+      <div class="card-header">
+        <h2 class="card-title">Rekisteröintitiedot</h2>
+        <p class="card-subtitle">Kaikki kentät ovat pakollisia</p>
+      </div>
+
+      <div class="card-body">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            {% for category, message in messages %}
+              <div class="alert alert-{% if category == 'error' %}danger{% else %}{{ category }}{% endif %} mb-4">
+                {{ message }}
+              </div>
+            {% endfor %}
+          {% endif %}
+        {% endwith %}
+
+        <form method="POST">
+          <div class="form-group">
+            <label class="form-label">Nimi *</label>
+            <input name="name" required class="form-input" placeholder="Etunimi Sukunimi" value="{{ request.form.get('name', '') }}">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Sähköposti *</label>
+            <input type="email" name="email" required class="form-input" placeholder="nimi@yritys.fi" value="{{ request.form.get('email', '') }}">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Salasana *</label>
+            <input type="password" name="password" minlength="6" required class="form-input" placeholder="Vähintään 6 merkkiä">
+          </div>
+
+          <div class="calculator-actions">
+            <button type="submit" class="btn btn-primary btn-lg">Rekisteröidy</button>
+            <a href="{{ url_for('auth.login') }}" class="btn btn-ghost">Onko sinulla jo tili? Kirjaudu</a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- INFO SECTION -->
+<div class="container">
+  <section class="section-padding">
+    <div style="max-width: 600px; margin: 0 auto;">
+      <div class="card">
+        <div class="card-header">
+          <h3 class="card-title">Mitä tapahtuu rekisteröinnin jälkeen?</h3>
+        </div>
+        <div class="card-body">
+          <div class="space-y-4">
+            <div>
+              <h4>📋 Tilin hyväksyntä</h4>
+              <p>Ylläpitäjämme tarkistaa tilisi tiedot ja aktivoi sen mahdollisimman pian. Saat sähköpostiviestin kun tili on aktivoitu.</p>
+            </div>
+
+            <div>
+              <h4>🚗 Kuljetusten tilaaminen</h4>
+              <p>Hyväksytyn tilin jälkeen voit:</p>
+              <ul class="list-disc list-inside space-y-1 ml-4">
+                <li>Laskea kuljetushinnat reaaliajassa</li>
+                <li>Tehdä kuljetustilauksia helposti</li>
+                <li>Seurata tilauksiesi etenemistä</li>
+                <li>Hallita kuljetushistoriaasi</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- FOOTER-CTA -->
+<div class="container">
+  <section class="section-padding text-center">
+    <p class="text-muted">Onko sinulla jo tili?</p>
+    <div class="flex justify-center gap-4 mt-4 footer-cta">
+      <a class="btn btn-ghost" href="{{ url_for('auth.login') }}">Kirjaudu sisään</a>
+      <a class="btn btn-ghost" href="{{ url_for('main.index') }}">Takaisin etusivulle</a>
+    </div>
+  </section>
+</div>
+{% endblock %}

@@ -55,6 +55,9 @@ class AuthService:
             try:
                 from services.email_service import email_service
                 email_service.send_registration_email(user["email"], user["name"])
+
+                # Send admin notification
+                email_service.send_admin_new_user_notification(user)
             except Exception as e:
                 # Log error but don't fail registration
                 print(f"Failed to send registration email: {e}")
