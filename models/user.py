@@ -31,6 +31,7 @@ class UserModel(BaseModel):
             "role": role,
             "phone": phone.strip() if phone else None,
             "status": "pending" if role == "user" else "active",
+            "terms_accepted": False if role == "driver" else True,  # Drivers must accept terms
             "created_at": datetime.now(timezone.utc),
             "updated_at": datetime.now(timezone.utc)
         }
@@ -187,6 +188,17 @@ class UserModel(BaseModel):
             "active": active_drivers,
             "pending": pending_drivers
         }
+
+    def accept_terms(self, user_id):
+        """Mark that driver has accepted terms and conditions"""
+        return self.update_one(
+            {"id": int(user_id)},
+            {"$set": {
+                "terms_accepted": True,
+                "terms_accepted_at": datetime.now(timezone.utc),
+                "updated_at": datetime.now(timezone.utc)
+            }}
+        )
 
     def get_user_stats(self):
         """Get user statistics"""

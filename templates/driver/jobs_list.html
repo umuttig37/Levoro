@@ -38,11 +38,11 @@
             <div class="space-y-2 text-sm">
               <div>
                 <span class="font-medium">Nouto:</span>
-                <span class="text-gray-600">{{ job.pickup_address }}</span>
+                <span class="text-gray-600">{{ job.pickup_address|extract_city }}</span>
               </div>
               <div>
                 <span class="font-medium">Toimitus:</span>
-                <span class="text-gray-600">{{ job.dropoff_address }}</span>
+                <span class="text-gray-600">{{ job.dropoff_address|extract_city }}</span>
               </div>
               <div>
                 <span class="font-medium">Matka:</span>

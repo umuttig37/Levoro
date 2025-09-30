@@ -234,35 +234,13 @@ def migrate_images_to_array():
 
 def translate_status(status):
     """Translate English status to Finnish"""
-    translations = {
-        'NEW': 'UUSI',
-        'CONFIRMED': 'TEHTÄVÄ_VAHVISTETTU',
-        'ASSIGNED_TO_DRIVER': 'MÄÄRITETTY_KULJETTAJALLE',
-        'DRIVER_ARRIVED': 'KULJETTAJA_SAAPUNUT',
-        'PICKUP_IMAGES_ADDED': 'NOUTOKUVAT_LISÄTTY',
-        'IN_TRANSIT': 'TOIMITUKSESSA',
-        'DELIVERY_ARRIVED': 'KULJETUS_SAAPUNUT',
-        'DELIVERY_IMAGES_ADDED': 'TOIMITUSKUVAT_LISÄTTY',
-        'DELIVERED': 'TOIMITETTU',
-        'CANCELLED': 'PERUUTETTU'
-    }
-    return translations.get(status, status)
+    from utils.status_translations import translate_status as translate
+    return translate(status)
 
 def get_status_description(status):
     """Get user-friendly status description"""
-    descriptions = {
-        'NEW': 'Tilaus odottaa vahvistusta',
-        'CONFIRMED': 'Tehtävä vahvistettu, odottaa kuljettajaa',
-        'ASSIGNED_TO_DRIVER': 'Kuljettaja määritetty, matkalla noutopaikalle',
-        'DRIVER_ARRIVED': 'Kuljettaja saapunut noutopaikalle',
-        'PICKUP_IMAGES_ADDED': 'Noutokuvat lisätty, valmis kuljetukseen',
-        'IN_TRANSIT': 'Ajoneuvo on kuljetuksessa',
-        'DELIVERY_ARRIVED': 'Kuljetus saapunut toimituspaikalle',
-        'DELIVERY_IMAGES_ADDED': 'Toimituskuvat lisätty, valmis luovutukseen',
-        'DELIVERED': 'Kuljetus suoritettu onnistuneesti',
-        'CANCELLED': 'Tilaus on peruutettu'
-    }
-    return descriptions.get(status, 'Tuntematon tila')
+    from utils.status_translations import get_status_description as get_desc
+    return get_desc(status)
 
 def format_helsinki_time(dt):
     """Format datetime to Helsinki timezone string"""
@@ -299,6 +277,33 @@ def format_helsinki_time(dt):
 def helsinki_time_filter(dt):
     """Template filter to convert datetime to Helsinki timezone"""
     return format_helsinki_time(dt)
+
+@app.template_filter('extract_city')
+def extract_city_filter(address):
+    """Extract city name from full address"""
+    if not address or not isinstance(address, str):
+        return 'Tuntematon kaupunki'
+
+    # Finnish address format: "Street, PostalCode City, Country"
+    # We want to extract the city part
+    parts = address.split(',')
+
+    if len(parts) >= 2:
+        # Get the part with postal code and city (second part usually)
+        city_part = parts[1].strip()
+        # Remove postal code (5 digits at start)
+        import re
+        city_match = re.sub(r'^\d{5}\s*', '', city_part)
+        return city_match.strip() if city_match else 'Tuntematon kaupunki'
+    elif len(parts) == 1:
+        # If no comma, try to extract city from the string
+        # Look for pattern: digits followed by city name
+        import re
+        match = re.search(r'\d{5}\s+([A-Za-zäöåÄÖÅ\s]+)', address)
+        if match:
+            return match.group(1).strip()
+
+    return 'Tuntematon kaupunki'
 
 def current_user():
     """Get current user - using auth service"""

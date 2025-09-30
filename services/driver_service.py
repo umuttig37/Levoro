@@ -253,6 +253,7 @@ class DriverService:
                 "role": "driver",
                 "phone": application.get('phone', '').strip() if application.get('phone') else None,
                 "status": "active",
+                "terms_accepted": False,  # Driver must accept terms on first login
                 "created_at": datetime.now(timezone.utc),
                 "updated_at": datetime.now(timezone.utc)
             }
@@ -268,7 +269,7 @@ class DriverService:
 
             # Send approval email
             try:
-                email_service.send_driver_approval_email(
+                email_service.send_driver_application_approved(
                     application['email'],
                     application['name']
                 )

@@ -20,6 +20,12 @@ def driver_required(f):
         if not user or user.get('role') != 'driver':
             flash('Kirjaudu sisään kuljettajana', 'error')
             return redirect(url_for('auth.login'))
+
+        # Check if driver has accepted terms (except for terms page itself)
+        if f.__name__ != 'terms' and not user.get('terms_accepted', False):
+            flash('Sinun tulee hyväksyä kuljettajan säännöt ensin', 'warning')
+            return redirect(url_for('driver.terms'))
+
         return f(*args, **kwargs)
     decorated_function.__name__ = f.__name__
     return decorated_function
@@ -278,3 +284,45 @@ def get_job_status(order_id):
         'status': order.get('status'),
         'updated_at': format_helsinki_time(order.get('updated_at'))
     })
+
+
+@driver_bp.route('/terms', methods=['GET', 'POST'])
+def terms():
+    """Driver terms and conditions page"""
+    # Check if user is logged in
+    user = auth_service.get_current_user()
+    if not user or user.get('role') != 'driver':
+        flash('Kirjaudu sisään kuljettajana', 'error')
+        return redirect(url_for('auth.login'))
+
+    if request.method == 'GET':
+        # Load terms content from markdown file
+        import os
+        import markdown
+
+        terms_file = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'static', 'content', 'driver_terms_fi.md')
+
+        try:
+            with open(terms_file, 'r', encoding='utf-8') as f:
+                terms_markdown = f.read()
+                terms_html = markdown.markdown(terms_markdown)
+        except Exception as e:
+            print(f"Error loading terms: {e}")
+            terms_html = "<p>Virhe ladattaessa sääntöjä. Ota yhteyttä tukeen.</p>"
+
+        return render_template('driver/terms.html', terms_content=terms_html, current_user=user)
+
+    # POST - Accept terms
+    if request.form.get('accept_terms'):
+        from models.user import user_model
+        success = user_model.accept_terms(user['id'])
+
+        if success:
+            flash('Kiitos! Olet hyväksynyt kuljettajan säännöt.', 'success')
+            return redirect(url_for('driver.dashboard'))
+        else:
+            flash('Virhe hyväksynnässä. Yritä uudelleen.', 'error')
+            return redirect(url_for('driver.terms'))
+
+    flash('Sinun tulee hyväksyä säännöt jatkaaksesi', 'error')
+    return redirect(url_for('driver.terms'))

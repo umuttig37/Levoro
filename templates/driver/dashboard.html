@@ -112,7 +112,7 @@
             <div class="driver-job-header">
               <div class="driver-job-content">
                 <h3 class="driver-job-title">Tilaus #{{ job.id }}</h3>
-                <p class="driver-job-route">{{ job.pickup_address }} → {{ job.dropoff_address }}</p>
+                <p class="driver-job-route">{{ job.pickup_address|extract_city }} → {{ job.dropoff_address|extract_city }}</p>
                 <div class="driver-job-meta">
                   <span>{{ job.distance_km|round(1) }} km</span>
                   <span>{{ job.price_gross|round(2) }} €</span>

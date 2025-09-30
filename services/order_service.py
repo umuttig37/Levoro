@@ -236,35 +236,13 @@ class OrderService:
     # Status and translation methods
     def translate_status(self, status: str) -> str:
         """Translate order status to Finnish"""
-        translations = {
-            "NEW": "UUSI",
-            "CONFIRMED": "TEHTÄVÄ_VAHVISTETTU",
-            "ASSIGNED_TO_DRIVER": "MÄÄRITETTY_KULJETTAJALLE",
-            "DRIVER_ARRIVED": "KULJETTAJA_SAAPUNUT",
-            "PICKUP_IMAGES_ADDED": "NOUTOKUVAT_LISÄTTY",
-            "IN_TRANSIT": "TOIMITUKSESSA",
-            "DELIVERY_ARRIVED": "KULJETUS_SAAPUNUT",
-            "DELIVERY_IMAGES_ADDED": "TOIMITUSKUVAT_LISÄTTY",
-            "DELIVERED": "TOIMITETTU",
-            "CANCELLED": "PERUUTETTU"
-        }
-        return translations.get(status, status)
+        from utils.status_translations import translate_status
+        return translate_status(status)
 
     def get_status_description(self, status: str) -> str:
         """Get user-friendly status description"""
-        descriptions = {
-            "NEW": "Tilaus on vastaanotettu ja odottaa käsittelyä",
-            "CONFIRMED": "Tehtävä on vahvistettu ja odottaa kuljettajaa",
-            "ASSIGNED_TO_DRIVER": "Kuljettaja määritetty, matkalla noutopaikalle",
-            "DRIVER_ARRIVED": "Kuljettaja saapunut noutopaikalle",
-            "PICKUP_IMAGES_ADDED": "Noutokuvat lisätty, valmis kuljetukseen",
-            "IN_TRANSIT": "Auto on kuljetuksessa määränpäähän",
-            "DELIVERY_ARRIVED": "Kuljetus saapunut toimituspaikalle",
-            "DELIVERY_IMAGES_ADDED": "Toimituskuvat lisätty, valmis luovutukseen",
-            "DELIVERED": "Auto on toimitettu onnistuneesti",
-            "CANCELLED": "Tilaus on peruutettu"
-        }
-        return descriptions.get(status, "Tuntematon tila")
+        from utils.status_translations import get_status_description
+        return get_status_description(status)
 
     def get_progress_step(self, status: str) -> int:
         """Get progress step for status (1-3)"""
