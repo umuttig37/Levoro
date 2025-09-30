@@ -50,18 +50,62 @@
             </div>
 
             <div class="status-section">
-                <h3>Päivitä tila</h3>
+                <h3>Tilaustoiminnot</h3>
+
+                {% if order.status == 'NEW' %}
+                <form method="POST" action="{{ url_for('admin.confirm_order', order_id=order.id) }}" class="confirm-order-form">
+                    <button type="submit" class="btn btn-success" data-tooltip="true">
+                        ✅ Vahvista tilaus
+                    </button>
+                    <div class="tooltip-content">
+                        Tilauksen vahvistaminen:<br>
+                        • Asiakas saa vahvistusviestin sähköpostiin<br>
+                        • Tilaus tulee näkyviin kuljettajien saatavilla oleviin töihin<br>
+                        • Kuljettajat voivat ottaa tilauksen vastaan
+                    </div>
+                </form>
+                {% endif %}
+
+                <h4>Päivitä tila</h4>
                 <form method="POST" action="/admin/update">
                     <input type="hidden" name="id" value="{{ order.id }}">
                     <select name="status" class="status-select">
                         <option value="NEW" {% if order.status == 'NEW' %}selected{% endif %}>UUSI</option>
                         <option value="CONFIRMED" {% if order.status == 'CONFIRMED' %}selected{% endif %}>VAHVISTETTU</option>
+                        <option value="ASSIGNED_TO_DRIVER" {% if order.status == 'ASSIGNED_TO_DRIVER' %}selected{% endif %}>KULJETTAJA MÄÄRITETTY</option>
+                        <option value="DRIVER_ARRIVED" {% if order.status == 'DRIVER_ARRIVED' %}selected{% endif %}>KULJETTAJA PAIKALLA</option>
+                        <option value="PICKUP_IMAGES_ADDED" {% if order.status == 'PICKUP_IMAGES_ADDED' %}selected{% endif %}>NOUTOKUVAT LISÄTTY</option>
                         <option value="IN_TRANSIT" {% if order.status == 'IN_TRANSIT' %}selected{% endif %}>KULJETUKSESSA</option>
+                        <option value="DELIVERY_ARRIVED" {% if order.status == 'DELIVERY_ARRIVED' %}selected{% endif %}>TOIMITUS PAIKALLA</option>
+                        <option value="DELIVERY_IMAGES_ADDED" {% if order.status == 'DELIVERY_IMAGES_ADDED' %}selected{% endif %}>TOIMITUSKUVAT LISÄTTY</option>
                         <option value="DELIVERED" {% if order.status == 'DELIVERED' %}selected{% endif %}>TOIMITETTU</option>
                         <option value="CANCELLED" {% if order.status == 'CANCELLED' %}selected{% endif %}>PERUUTETTU</option>
                     </select>
                     <button type="submit" class="btn btn-primary">Päivitä</button>
                 </form>
+
+                <div class="driver-section">
+                    <h4>Kuljettaja</h4>
+                    {% if order.driver_id %}
+                        <div class="current-driver">
+                            <p><strong>Nykyinen kuljettaja:</strong> {{ order.driver_name or 'Tuntematon' }}</p>
+                            {% if order.driver_phone %}
+                            <p><strong>Puhelin:</strong> <a href="tel:{{ order.driver_phone }}">{{ order.driver_phone }}</a></p>
+                            {% endif %}
+                        </div>
+                    {% endif %}
+                    <form method="POST" action="{{ url_for('admin.assign_driver_to_order', order_id=order.id) }}">
+                        <select name="driver_id" class="status-select" required>
+                            <option value="">{{ 'Vaihda kuljettaja' if order.driver_id else 'Valitse kuljettaja' }}</option>
+                            {% for driver in available_drivers %}
+                                <option value="{{ driver.id }}" {% if driver.id == order.driver_id %}selected{% endif %}>
+                                    {{ driver.name }} - {{ driver.phone or 'Ei puhelinnumeroa' }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                        <button type="submit" class="btn btn-primary">{{ 'Vaihda kuljettaja' if order.driver_id else 'Määritä kuljettaja' }}</button>
+                    </form>
+                </div>
             </div>
         </div>
 

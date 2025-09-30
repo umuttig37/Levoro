@@ -443,6 +443,8 @@
 @media (max-width: 768px) {
     .simple-progress {
         padding: 0 10px;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
     }
 
     .step-circle {
@@ -452,13 +454,52 @@
     }
 
     .step-title {
-        font-size: 0.8rem;
-        max-width: 80px;
+        font-size: 0.75rem;
+        max-width: 70px;
+        word-wrap: break-word;
+        line-height: 1.1;
+        hyphens: auto;
     }
 
     .progress-connector {
-        margin: 0 8px;
+        margin: 0 6px;
         top: -20px;
+        min-width: 20px;
+    }
+}
+
+/* Extra small devices - prevent overflow */
+@media (max-width: 480px) {
+    .simple-progress {
+        padding: 0 8px;
+        gap: 0;
+    }
+
+    .step-circle {
+        width: 28px;
+        height: 28px;
+        font-size: 0.8rem;
+        margin-bottom: 6px;
+    }
+
+    .step-title {
+        font-size: 0.65rem;
+        max-width: 55px;
+        line-height: 1.05;
+        overflow-wrap: break-word;
+    }
+
+    .progress-connector {
+        margin: 0 4px;
+        top: -18px;
+        min-width: 15px;
+        flex-shrink: 0;
+    }
+
+    .current-status-description {
+        font-size: 0.85rem;
+        padding: 10px 16px;
+        margin-top: 12px;
     }
 }
 

@@ -339,6 +339,43 @@ class OrderService:
         vat = gross - net
         return round(net, 2), round(vat, 2)
 
+    def assign_driver_to_order(self, order_id: int, driver_id: int) -> Tuple[bool, Optional[str]]:
+        """Assign or reassign a driver to an order"""
+        try:
+            # Verify driver exists and is active
+            from models.user import user_model
+            driver = user_model.find_by_id(driver_id)
+
+            if not driver or driver.get('role') != 'driver':
+                return False, "Kuljettajaa ei löytynyt tai käyttäjä ei ole kuljettaja"
+
+            if driver.get('status') != 'active':
+                return False, "Kuljettaja ei ole aktiivinen"
+
+            # Assign driver using order model
+            success, error = self.order_model.assign_driver(order_id, driver_id)
+
+            if success:
+                # Send notification emails
+                try:
+                    from services.email_service import email_service
+                    order = self.order_model.find_by_id(order_id)
+                    if order:
+                        # Notify driver about assignment
+                        email_service.send_driver_assignment_email(driver['email'], driver['name'], order)
+
+                        # Notify customer that driver has been assigned
+                        user = user_model.find_by_id(order['user_id'])
+                        if user:
+                            email_service.send_customer_driver_assigned_email(user['email'], user['name'], order, driver)
+                except Exception as e:
+                    print(f"Failed to send assignment emails: {e}")
+
+            return success, error
+
+        except Exception as e:
+            return False, f"Virhe kuljettajan määrityksessä: {str(e)}"
+
 
 # Global instance
 order_service = OrderService()

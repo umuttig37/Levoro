@@ -3,7 +3,7 @@ Driver Service
 Handles driver-related business logic and operations
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List, Dict, Optional, Tuple
 from flask import session
 from models.user import user_model
@@ -221,6 +221,65 @@ class DriverService:
             })
 
         return performance_data
+
+    def approve_driver_application(self, application_id: int) -> Tuple[bool, Optional[str]]:
+        """Approve driver application and create driver account"""
+        try:
+            from models.driver_application import driver_application_model
+            from services.auth_service import auth_service
+
+            # Get application
+            application = driver_application_model.find_by_id(application_id)
+            if not application:
+                return False, "Hakemusta ei löytynyt"
+
+            if application.get('status') != 'pending':
+                return False, "Hakemus on jo käsitelty"
+
+            # Check if user already exists
+            if user_model.find_by_email(application['email']):
+                return False, "Sähköposti on jo käytössä"
+
+            # Generate new user ID
+            from models.database import counter_manager
+            user_id = counter_manager.get_next_id("users")
+
+            # Create driver user document directly with already-hashed password
+            user_data = {
+                "id": user_id,
+                "email": application['email'].lower().strip(),
+                "password_hash": application['password_hash'],  # Already hashed, don't hash again
+                "name": application['name'].strip(),
+                "role": "driver",
+                "phone": application.get('phone', '').strip() if application.get('phone') else None,
+                "status": "active",
+                "created_at": datetime.now(timezone.utc),
+                "updated_at": datetime.now(timezone.utc)
+            }
+
+            # Insert user directly
+            try:
+                user_model.insert_one(user_data)
+            except Exception as e:
+                return False, f"Kuljettajatilin luominen epäonnistui: {str(e)}"
+
+            # Mark application as approved
+            driver_application_model.approve_application(application_id, session.get('user_id', 0))
+
+            # Send approval email
+            try:
+                email_service.send_driver_approval_email(
+                    application['email'],
+                    application['name']
+                )
+            except Exception as e:
+                print(f"Failed to send approval email: {e}")
+                # Don't fail the approval if email fails
+
+            return True, None
+
+        except Exception as e:
+            return False, f"Virhe hakemuksen käsittelyssä: {str(e)}"
 
 
 # Global service instance

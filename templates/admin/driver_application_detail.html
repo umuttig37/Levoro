@@ -1,0 +1,147 @@
+{% extends "base/layout.html" %}
+
+{% block title %}Hakemus #{{ application.id }} – Admin{% endblock %}
+
+{% block content %}
+<div class="admin-container">
+  <div class="admin-header">
+    <h2>Kuljettajahakemus #{{ application.id }}</h2>
+    <div class="admin-actions">
+      <a class="btn btn-ghost" href="{{ url_for('admin.driver_applications') }}">← Takaisin hakemuksiin</a>
+      <a class="btn btn-secondary" href="{{ url_for('auth.logout') }}">Kirjaudu ulos</a>
+    </div>
+  </div>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      {% for category, message in messages %}
+        <div class="alert alert-{% if category == 'error' %}danger{% else %}{{ category }}{% endif %} mb-4">
+          {{ message }}
+        </div>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
+
+  <!-- Application Status -->
+  <div class="card mb-6">
+    <div class="card-header">
+      <h3 class="card-title">Hakemuksen tila</h3>
+    </div>
+    <div class="card-body">
+      <div class="flex items-center justify-between">
+        {% if application.status == 'pending' %}
+          {% set status_class = 'status-new' %}
+          {% set status_text = '⏳ Odottaa käsittelyä' %}
+        {% elif application.status == 'approved' %}
+          {% set status_class = 'status-confirmed' %}
+          {% set status_text = '✅ Hyväksytty' %}
+        {% elif application.status == 'denied' %}
+          {% set status_class = 'status-cancelled' %}
+          {% set status_text = '❌ Hylätty' %}
+        {% else %}
+          {% set status_class = 'status-new' %}
+          {% set status_text = 'Tuntematon' %}
+        {% endif %}
+
+        <span class="status {{ status_class }}">{{ status_text }}</span>
+
+        {% if application.processed_at %}
+        <span class="text-sm text-muted">
+          Käsitelty: {{ application.processed_at|helsinki_time if application.processed_at else '-' }}
+        </span>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Application Details -->
+  <div class="card mb-6">
+    <div class="card-header">
+      <h3 class="card-title">Hakijan tiedot</h3>
+    </div>
+    <div class="card-body">
+      <div class="space-y-4">
+        <div class="grid cols-2 gap-4">
+          <div>
+            <label class="form-label">Etunimi</label>
+            <p class="text-primary">{{ application.first_name or '-' }}</p>
+          </div>
+          <div>
+            <label class="form-label">Sukunimi</label>
+            <p class="text-primary">{{ application.last_name or '-' }}</p>
+          </div>
+        </div>
+
+        <div>
+          <label class="form-label">Koko nimi</label>
+          <p class="text-primary font-semibold">{{ application.name }}</p>
+        </div>
+
+        <div class="grid cols-2 gap-4">
+          <div>
+            <label class="form-label">Sähköposti</label>
+            <p class="text-primary"><a href="mailto:{{ application.email }}">{{ application.email }}</a></p>
+          </div>
+          <div>
+            <label class="form-label">Puhelinnumero</label>
+            <p class="text-primary"><a href="tel:{{ application.phone }}">{{ application.phone }}</a></p>
+          </div>
+        </div>
+
+        <div>
+          <label class="form-label">Hakemus lähetetty</label>
+          <p class="text-primary">{{ application.created_at|helsinki_time if application.created_at else '-' }}</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Actions -->
+  {% if application.status == 'pending' %}
+  <div class="card">
+    <div class="card-header">
+      <h3 class="card-title">Toiminnot</h3>
+    </div>
+    <div class="card-body">
+      <div class="flex gap-4">
+        <form method="POST" action="{{ url_for('admin.approve_driver_application') }}" style="flex: 1;">
+          <input type="hidden" name="application_id" value="{{ application.id }}">
+          <button type="submit" class="btn btn-success w-full" onclick="return confirm('Hyväksy hakemus ja luo kuljettajatili?\n\nHakijalle lähetetään vahvistusviesti sähköpostiin.')">
+            ✅ Hyväksy hakemus
+          </button>
+        </form>
+
+        <form method="POST" action="{{ url_for('admin.deny_driver_application') }}" style="flex: 1;">
+          <input type="hidden" name="application_id" value="{{ application.id }}">
+          <button type="submit" class="btn btn-error w-full" onclick="return confirm('Hylkää hakemus?\n\nHakijalle lähetetään hylkäysviesti sähköpostiin.')">
+            ❌ Hylkää hakemus
+          </button>
+        </form>
+      </div>
+
+      <div class="mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+        <p class="text-sm text-muted">
+          <strong>Huomio:</strong> Hyväksyminen luo automaattisesti kuljettajatilin ja lähettää kirjautumistiedot hakijalle sähköpostitse.
+        </p>
+      </div>
+    </div>
+  </div>
+  {% elif application.status == 'approved' %}
+  <div class="card">
+    <div class="card-body text-center">
+      <div class="text-4xl mb-3">✅</div>
+      <h3 class="font-semibold text-lg mb-2">Hakemus hyväksytty</h3>
+      <p class="text-muted">Kuljettajatili on luotu ja hakijalle on lähetetty vahvistusviesti.</p>
+    </div>
+  </div>
+  {% elif application.status == 'denied' %}
+  <div class="card">
+    <div class="card-body text-center">
+      <div class="text-4xl mb-3">❌</div>
+      <h3 class="font-semibold text-lg mb-2">Hakemus hylätty</h3>
+      <p class="text-muted">Hakijalle on lähetetty hylkäysviesti.</p>
+    </div>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

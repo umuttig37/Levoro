@@ -266,6 +266,12 @@
         text-align: left;
     }
 
+    .driver-job-actions .btn {
+        width: 100%;
+        min-height: 44px;
+        padding: var(--space-3) var(--space-4);
+    }
+
     .driver-job-meta {
         flex-direction: column;
         gap: var(--space-1);
@@ -275,10 +281,40 @@
         grid-template-columns: 1fr;
     }
 
+    .driver-actions-grid .btn {
+        width: 100%;
+        min-height: 48px;
+        padding: var(--space-3) var(--space-5);
+        font-size: var(--font-size-base);
+    }
+
     .driver-section {
         padding: var(--space-4);
         margin-bottom: var(--space-6);
     }
+
+    .driver-section-title {
+        font-size: var(--font-size-xl);
+    }
+
+    .driver-section-subtitle {
+        font-size: var(--font-size-xs);
+    }
+
+    /* Tab navigation mobile styles */
+    .driver-tab-button {
+        padding: var(--space-3) var(--space-4);
+        font-size: var(--font-size-sm);
+    }
+
+    .driver-tab-content {
+        padding: var(--space-4);
+    }
+
+    .driver-tabs-header::-webkit-scrollbar {
+        display: none; /* Hide scrollbar for cleaner mobile look */
+    }
+
 }
 
 @media (max-width: 480px) {
@@ -294,12 +330,113 @@
         padding: var(--space-3);
     }
 
+    .driver-job-title {
+        font-size: var(--font-size-base);
+    }
+
+    .driver-job-status {
+        font-size: 0.7rem;
+        padding: 6px 10px;
+    }
+
     .driver-empty-state {
         padding: var(--space-8) var(--space-4);
     }
 
     .driver-empty-icon {
         font-size: 3rem;
+    }
+
+    .driver-section-title {
+        font-size: var(--font-size-lg);
+    }
+}
+
+/* Driver Tab Navigation */
+.driver-tabs {
+    background: var(--color-white);
+    border-radius: var(--radius-xl);
+    overflow: hidden;
+    box-shadow: var(--shadow-sm);
+    margin-bottom: var(--space-6);
+}
+
+.driver-tabs-header {
+    display: flex;
+    border-bottom: 2px solid var(--border-light);
+    background: var(--color-gray-50);
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.driver-tab-button {
+    flex: 1;
+    min-width: max-content;
+    padding: var(--space-4) var(--space-6);
+    background: transparent;
+    border: none;
+    border-bottom: 3px solid transparent;
+    color: var(--text-secondary);
+    font-size: var(--font-size-base);
+    font-weight: var(--font-weight-medium);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2);
+}
+
+.driver-tab-button:hover {
+    color: var(--text-primary);
+    background: rgba(var(--color-primary-rgb), 0.05);
+}
+
+.driver-tab-button.active {
+    color: var(--color-primary);
+    border-bottom-color: var(--color-primary);
+    background: var(--color-white);
+    font-weight: var(--font-weight-semibold);
+}
+
+.driver-tab-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 20px;
+    height: 20px;
+    padding: 0 6px;
+    background: var(--color-primary);
+    color: var(--color-white);
+    border-radius: 10px;
+    font-size: 0.75rem;
+    font-weight: var(--font-weight-bold);
+    line-height: 1;
+}
+
+.driver-tab-button.active .driver-tab-badge {
+    background: var(--color-primary-600);
+}
+
+.driver-tab-content {
+    display: none;
+    padding: var(--space-6);
+    animation: fadeIn 0.3s ease-in-out;
+}
+
+.driver-tab-content.active {
+    display: block;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
     }
 }
 

@@ -139,8 +139,8 @@ def seed_admin():
             "password_hash": generate_password_hash(SEED_ADMIN_PASS),
             "role": "admin",
             "status": "active",  # Admin is always active
-            "created_at": datetime.datetime.now(ZoneInfo("Europe/Helsinki")),
-            "updated_at": datetime.datetime.now(ZoneInfo("Europe/Helsinki")),
+            "created_at": datetime.datetime.now(datetime.timezone.utc),
+            "updated_at": datetime.datetime.now(datetime.timezone.utc),
         })
 
 def seed_test_driver():
@@ -167,8 +167,8 @@ def seed_test_driver():
                 "password_hash": generate_password_hash(driver_data["password"]),
                 "role": "driver",
                 "status": "active",  # Driver is active by default for testing
-                "created_at": datetime.datetime.now(ZoneInfo("Europe/Helsinki")),
-                "updated_at": datetime.datetime.now(ZoneInfo("Europe/Helsinki")),
+                "created_at": datetime.datetime.now(datetime.timezone.utc),
+                "updated_at": datetime.datetime.now(datetime.timezone.utc),
             })
             print(f"Test driver created: {driver_data['email']} / {driver_data['password']}")
         else:
@@ -534,34 +534,6 @@ def api_places_autocomplete():
         error_msg = f"Google Places API failed: {str(e)}"
         return jsonify({"error": error_msg}), 500
 
-@app.get("/api/test_places_api")
-def test_places_api():
-    """Test endpoint to validate Google Places API configuration"""
-    if not GOOGLE_PLACES_API_KEY:
-        return jsonify({"error": "Google Places API key not configured"}), 500
-    
-    try:
-        # Test with a simple geocoding request
-        url = "https://maps.googleapis.com/maps/api/geocode/json"
-        params = {
-            "address": "Helsinki, Finland",
-            "key": GOOGLE_PLACES_API_KEY
-        }
-        
-        response = requests.get(url, params=params, timeout=10)
-        response.raise_for_status()
-        data = response.json()
-        
-        return jsonify({
-            "status": "success",
-            "api_key_valid": data.get("status") == "OK",
-            "google_response": data
-        })
-        
-    except Exception as e:
-        error_msg = f"API test failed: {str(e)}"
-        return jsonify({"error": error_msg}), 500
-
 @app.post("/api/route_geo")
 def api_route_geo():
     data = request.get_json(force=True, silent=True) or {}
@@ -628,63 +600,13 @@ def api_route_geo():
 
 
 
-def create_client_image_section(images_dict, image_type):
-    """Create HTML for client-side image display with grid layout"""
-    image_data = images_dict.get(image_type)
-
-    # Handle both old single image format and new array format
-    if isinstance(image_data, list):
-        images = image_data
-    else:
-        # Old single image format - convert to list
-        images = [image_data] if image_data else []
-
-    image_type_fi = "Nouto" if image_type == "pickup" else "Toimitus"
-    images_count = len(images)
-
-    if images_count == 0:
-        status_text = "Nouto odottaa" if image_type == "pickup" else "Toimitus odottaa"
-        return f"""
-        <div class="client-image-placeholder">
-            <div class="placeholder-icon">📷</div>
-            <div class="placeholder-text">
-                <p class="placeholder-title">Ei kuvaa vielä</p>
-                <p class="placeholder-subtitle">{status_text}</p>
-            </div>
-        </div>"""
-
-    # Sort images by order
-    images.sort(key=lambda x: x.get('order', 1))
-
-    # Generate grid of images
-    images_html = ""
-    for img in images:
-        upload_date = format_helsinki_time(img.get('uploaded_at'))
-        images_html += f"""
-        <div class="client-image-item">
-            <img src="{img['file_path']}" alt="{image_type_fi} kuva" class="client-image-thumbnail"
-                 onclick="openClientImageModal('{image_type}', '{img['id']}')">
-            <div class="client-image-info">
-                <small class="client-image-date">Kuvattu: {upload_date}</small>
-            </div>
-        </div>"""
-
-    return f"""
-    <div class="client-image-section">
-        <div class="client-image-counter">
-            <span class="client-image-count">{images_count} kuvaa</span>
-        </div>
-        <div class="client-images-grid">
-            {images_html}
-        </div>
-    </div>"""
 
 
 @app.get("/order/<int:order_id>")
 def order_view(order_id: int):
     u = current_user()
     if not u:
-        return redirect(url_for("login", next=f"/order/{order_id}"))
+        return redirect(url_for("auth.login", next=f"/order/{order_id}"))
 
     # Get order with driver information
     from models.order import order_model
@@ -717,7 +639,7 @@ def order_view(order_id: int):
     order_result = list(orders_col().aggregate(pipeline))
     r = order_result[0] if order_result else None
     if not r:
-        return wrap("<div class='card'><h2>Ei oikeuksia tähän tilaukseen</h2></div>", u)
+        return render_with_context('errors/no_access.html')
 
     # numerot tulostusta varten
     distance_km = float(r.get("distance_km", 0.0))
@@ -728,9 +650,10 @@ def order_view(order_id: int):
 
     # Enhanced progress bar with detailed status tracking
     def get_detailed_progress_html(status, step):
-        # Simplified progress with only 4 key steps
+        # 5-step progress with correct labels
         statuses = [
-            {"key": "NEW", "label": "Vahvistettu", "group": ["NEW", "CONFIRMED"]},
+            {"key": "NEW", "label": "Tilaus luotu", "group": ["NEW"]},
+            {"key": "CONFIRMED", "label": "Vahvistettu", "group": ["CONFIRMED"]},
             {"key": "ASSIGNED_TO_DRIVER", "label": "Kuljettaja määritetty", "group": ["ASSIGNED_TO_DRIVER", "DRIVER_ARRIVED", "PICKUP_IMAGES_ADDED"]},
             {"key": "IN_TRANSIT", "label": "Kuljetuksessa", "group": ["IN_TRANSIT", "DELIVERY_ARRIVED", "DELIVERY_IMAGES_ADDED"]},
             {"key": "DELIVERED", "label": "Toimitettu", "group": ["DELIVERED"]}
@@ -821,256 +744,6 @@ def order_view(order_id: int):
 
 
 
-
-
-@app.post("/admin/update")
-def admin_update_order():
-    u = current_user()
-    if not u or u.get("role") != "admin":
-        return redirect(url_for("login"))
-
-    order_id = int(request.form.get("id"))
-    new_status = request.form.get("status")
-
-    # Validate status
-    from models.order import order_model
-    if new_status not in order_model.VALID_STATUSES:
-        return redirect(url_for("main.admin_dashboard"))
-
-    # Use service layer to update order status (includes automatic email sending)
-    success, error = order_service.update_order_status(order_id, new_status)
-
-    # Add debug feedback
-    if success:
-        flash(f"Tilauksen #{order_id} tila päivitetty: {translate_status(new_status)}", "success")
-    else:
-        flash(f"Virhe: {error or f'Tilauksen #{order_id} tilaa ei voitu päivittää'}", "error")
-
-    return redirect(url_for("main.admin_dashboard"))
-
-def create_multi_image_section(images, image_type, order_id):
-    """Create HTML for multi-image grid display"""
-    # Handle both old single image format and new array format
-    if not isinstance(images, list):
-        images = [images] if images else []
-
-    # Sort images by order
-    images.sort(key=lambda x: x.get('order', 1))
-
-    image_type_fi = "Nouto" if image_type == "pickup" else "Toimitus"
-    images_count = len(images)
-
-    if images_count == 0:
-        # No images - show upload form
-        return f"""
-        <div class="image-section">
-            <h3>{image_type_fi} kuvat</h3>
-            <div class="image-counter">
-                <span class="image-counter-text">0/15 kuvaa</span>
-                <span class="image-counter-limit">Maksimi 15 kuvaa</span>
-            </div>
-            <form method="POST" action="/admin/order/{order_id}/upload" enctype="multipart/form-data" class="upload-form" id="{image_type}-form-{order_id}">
-                <input type="hidden" name="image_type" value="{image_type}">
-                <input type="file" name="image" accept=".jpg,.jpeg,.png,.webp" required onchange="submitImageForm(this)">
-                <button type="submit" class="btn btn-primary">Lataa {image_type_fi.lower()} kuva</button>
-                <div class="upload-status" style="display: none;">
-                    <span class="uploading">Ladataan...</span>
-                </div>
-            </form>
-        </div>"""
-
-    # Generate grid of images
-    images_html = ""
-    for img in images:
-        # upload_date = format_helsinki_time(img.get('uploaded_at'))  # Not used in display
-        images_html += f"""
-        <div class="image-item" data-image-type="{image_type}">
-            <img src="{img['file_path']}" alt="{image_type_fi} kuva" class="image-thumbnail"
-                 data-image-id="{img['id']}" onclick="openImageModal('{image_type}', '{img['id']}')">
-            <div class="image-actions">
-                <button class="image-action-btn delete" onclick="deleteImage('{order_id}', '{image_type}', '{img['id']}')"
-                        title="Poista kuva">×</button>
-            </div>
-        </div>"""
-
-    # Add upload form if under limit
-    upload_form = ""
-    if images_count < 15:
-        upload_form = f"""
-        <form method="POST" action="/admin/order/{order_id}/upload" enctype="multipart/form-data" class="upload-form" id="{image_type}-form-{order_id}">
-            <input type="hidden" name="image_type" value="{image_type}">
-            <input type="file" name="image" accept=".jpg,.jpeg,.png,.webp" required onchange="submitImageForm(this)">
-            <button type="submit" class="btn btn-primary">Lataa lisää kuvia</button>
-            <div class="upload-status" style="display: none;">
-                <span class="uploading">Ladataan...</span>
-            </div>
-        </form>"""
-
-    return f"""
-    <div class="image-section">
-        <h3>{image_type_fi} kuvat</h3>
-        <div class="image-counter">
-            <span class="image-counter-text">{images_count}/15 kuvaa</span>
-            <span class="image-counter-limit">Maksimi 15 kuvaa</span>
-        </div>
-        <div class="images-grid">
-            {images_html}
-        </div>
-        {upload_form}
-    </div>"""
-
-
-@app.get("/admin/order/<int:order_id>")
-def admin_order_detail(order_id):
-    u = current_user()
-    if not u or u.get("role") != "admin":
-        return redirect(url_for("login"))
-
-    # Get order with user info
-    pipeline = [
-        {"$match": {"id": int(order_id)}},
-        {"$lookup": {
-            "from": "users",
-            "localField": "user_id",
-            "foreignField": "id",
-            "as": "user"
-        }},
-        {"$unwind": {"path": "$user", "preserveNullAndEmptyArrays": True}},
-        {"$project": {
-            "_id": 0,
-            "id": 1, "status": 1,
-            "pickup_address": 1, "dropoff_address": 1,
-            "distance_km": 1, "price_gross": 1,
-            "reg_number": 1, "winter_tires": 1, "pickup_date": 1,
-            "extras": 1, "images": 1,
-            "user_name": "$user.name",
-            "user_email": "$user.email"
-        }}
-    ]
-    order_result = list(orders_col().aggregate(pipeline))
-
-    if not order_result:
-        return wrap("<div class='card'><h2>Tilaus ei löytynyt</h2></div>", u)
-
-    order = order_result[0]
-
-    status_fi = translate_status(order.get('status', 'NEW'))
-
-    pickup_date_fi = order.get('pickup_date', 'Ei asetettu')
-    if pickup_date_fi and pickup_date_fi != 'Ei asetettu':
-        try:
-            # Try to format the date if it's a datetime object
-            if hasattr(pickup_date_fi, 'strftime'):
-                pickup_date_fi = pickup_date_fi.strftime('%d.%m.%Y')
-        except:
-            pass
-
-    return render_with_context('admin/order_detail.html',
-        order=order,
-        status_fi=status_fi,
-        pickup_date_fi=pickup_date_fi
-    )
-
-
-@app.post("/admin/order/<int:order_id>/upload")
-def admin_upload_image(order_id):
-    u = current_user()
-    if not u or u.get("role") != "admin":
-        return redirect(url_for("login"))
-
-    image_type = request.form.get("image_type")
-    if image_type not in ["pickup", "delivery"]:
-        flash("Virheellinen kuvatyyppi", "error")
-        return redirect(url_for("admin_order_detail", order_id=order_id))
-
-    if 'image' not in request.files:
-        flash("Kuvaa ei valittu", "error")
-        return redirect(url_for("admin_order_detail", order_id=order_id))
-
-    file = request.files['image']
-    if file.filename == '':
-        flash("Kuvaa ei valittu", "error")
-        return redirect(url_for("admin_order_detail", order_id=order_id))
-
-    # Save and process image using ImageService
-    image_info, error = image_service.save_order_image(file, order_id, image_type, u.get("email", "admin"))
-
-    if error:
-        flash(error, "error")
-        return redirect(url_for("admin_order_detail", order_id=order_id))
-
-    # Add image to order using ImageService
-    success, add_error = image_service.add_image_to_order(order_id, image_type, image_info)
-
-    if not success:
-        flash(add_error, "error")
-        return redirect(url_for("admin_order_detail", order_id=order_id))
-
-    image_type_fi = "Nouto" if image_type == "pickup" else "Toimitus"
-    flash(f"{image_type_fi} kuva ladattu onnistuneesti", "success")
-    return redirect(url_for("admin_order_detail", order_id=order_id))
-
-
-@app.post("/admin/order/<int:order_id>/image/<image_type>/delete")
-def admin_delete_image(order_id, image_type):
-    u = current_user()
-    if not u or u.get("role") != "admin":
-        return redirect(url_for("login"))
-
-    if image_type not in ["pickup", "delivery"]:
-        flash("Virheellinen kuvatyyppi", "error")
-        return redirect(url_for("admin_order_detail", order_id=order_id))
-
-    success, message = image_service.delete_order_image(order_id, image_type, request.form.get('image_id'))
-
-    image_type_fi = "Nouto" if image_type == "pickup" else "Toimitus"
-
-    if success:
-        flash(f"{image_type_fi} kuva poistettu onnistuneesti", "success")
-    else:
-        # Translate error messages
-        finnish_message = message
-        if "Order or image not found" in message:
-            finnish_message = "Tilausta tai kuvaa ei löytynyt"
-        elif "Image not found" in message:
-            finnish_message = "Kuvaa ei löytynyt"
-        elif "Delete failed" in message:
-            finnish_message = "Poisto epäonnistui"
-
-        flash(finnish_message, "error")
-
-    return redirect(url_for("admin_order_detail", order_id=order_id))
-
-
-@app.post("/admin/order/<int:order_id>/image/<image_type>/<image_id>/delete")
-def admin_delete_image_by_id(order_id, image_type, image_id):
-    u = current_user()
-    if not u or u.get("role") != "admin":
-        return redirect(url_for("login"))
-
-    if image_type not in ["pickup", "delivery"]:
-        flash("Virheellinen kuvatyyppi", "error")
-        return redirect(url_for("admin_order_detail", order_id=order_id))
-
-    success, message = image_service.delete_order_image(order_id, image_type, image_id)
-
-    image_type_fi = "Nouto" if image_type == "pickup" else "Toimitus"
-
-    if success:
-        flash(f"{image_type_fi} kuva poistettu onnistuneesti", "success")
-    else:
-        # Translate error messages
-        finnish_message = message
-        if "Order or image not found" in message:
-            finnish_message = "Tilausta tai kuvaa ei löytynyt"
-        elif "Image not found" in message:
-            finnish_message = "Kuvaa ei löytynyt"
-        elif "Delete failed" in message:
-            finnish_message = "Poisto epäonnistui"
-
-        flash(finnish_message, "error")
-
-    return redirect(url_for("admin_order_detail", order_id=order_id))
 
 
 @app.get("/order/new")

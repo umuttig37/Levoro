@@ -17,7 +17,7 @@ app = get_app()
 def calculator():
     u = auth_service.get_current_user()
     if not u:
-        return redirect(url_for("login", next="/calculator"))
+        return redirect(url_for("auth.login", next="/calculator"))
     body = """
 <div class="container">
   <!-- Page Header -->

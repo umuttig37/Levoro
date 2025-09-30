@@ -53,7 +53,7 @@
             {% set status_text = 'Tuntematon' %}
           {% endif %}
 
-          <tr class="admin-table-row" style="cursor: pointer;">
+          <tr class="admin-table-row" style="cursor: pointer;" onclick="window.location='{{ url_for('admin.driver_application_detail', application_id=app.id) }}';">
             <td>#{{ app.id }}</td>
             <td><strong>{{ app.name }}</strong></td>
             <td>{{ app.email }}</td>
@@ -61,18 +61,7 @@
             <td><span class="status {{ status_class }}">{{ status_text }}</span></td>
             <td>{{ app.created_at.strftime('%d.%m.%Y') if app.created_at else '-' }}</td>
             <td onclick="event.stopPropagation();">
-              {% if app.status == 'pending' %}
-                <form method="POST" action="{{ url_for('admin.approve_driver_application') }}" class="admin-inline-form">
-                  <input type="hidden" name="application_id" value="{{ app.id }}">
-                  <button type="submit" class="btn btn-sm btn-success" onclick="return confirm('Hyväksy hakemus?')">Hyväksy</button>
-                </form>
-                <form method="POST" action="{{ url_for('admin.deny_driver_application') }}" class="admin-inline-form">
-                  <input type="hidden" name="application_id" value="{{ app.id }}">
-                  <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Hylkää hakemus?')">Hylkää</button>
-                </form>
-              {% else %}
-                <span class="muted">Käsitelty</span>
-              {% endif %}
+              <a href="{{ url_for('admin.driver_application_detail', application_id=app.id) }}" class="btn btn-sm btn-ghost">Katso</a>
             </td>
           </tr>
         {% endfor %}

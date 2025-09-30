@@ -19,7 +19,7 @@ def driver_required(f):
         user = auth_service.get_current_user()
         if not user or user.get('role') != 'driver':
             flash('Kirjaudu sisään kuljettajana', 'error')
-            return redirect(url_for('login'))
+            return redirect(url_for('auth.login'))
         return f(*args, **kwargs)
     decorated_function.__name__ = f.__name__
     return decorated_function
@@ -38,13 +38,17 @@ def dashboard():
     active_jobs = driver_service.get_active_driver_jobs(driver['id'])
 
     # Get available jobs
-    available_jobs = driver_service.get_available_jobs(limit=10)
+    available_jobs = driver_service.get_available_jobs(limit=50)
+
+    # Get all driver's jobs
+    all_jobs = driver_service.get_driver_jobs(driver['id'])
 
     return render_template('driver/dashboard.html',
                          driver=driver,
                          stats=stats,
                          active_jobs=active_jobs,
                          available_jobs=available_jobs,
+                         all_jobs=all_jobs,
                          current_user=driver)
 
 
