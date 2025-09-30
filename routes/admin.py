@@ -303,8 +303,7 @@ def upload_order_image(order_id):
         return redirect(url_for("admin.order_detail", order_id=order_id))
 
     # Save and process image using ImageService
-    from utils.helpers import current_user
-    u = current_user()
+    u = auth_service.get_current_user()
     image_info, error = image_service.save_order_image(file, order_id, image_type, u.get("email", "admin"))
 
     if error:
