@@ -932,7 +932,11 @@ import marketing
 if __name__ == "__main__":
     init_db()
     seed_admin()
-    seed_test_driver()  # Seed test driver for development
+
+    # Only seed test drivers in development environment
+    if os.getenv("FLASK_ENV", "production") == "development":
+        seed_test_driver()
+
     migrate_images_to_array()  # Migrate existing single images to array format
     port = int(os.getenv("PORT", "8000"))
     app.run(host="0.0.0.0", port=port, debug=True)
