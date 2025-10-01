@@ -1,5 +1,5 @@
 <!-- Driver Image Section Component -->
-<div class="image-section">
+<div class="image-section" data-image-type="{{ image_type }}">
     <h3>{{ 'Nouto' if image_type == 'pickup' else 'Toimitus' }}kuvat</h3>
     <div class="image-counter">
         <span class="image-counter-text">{{ images_data|length if images_data else 0 }}/15 kuvaa</span>
@@ -32,24 +32,24 @@
     <form method="POST" action="{{ url_for('driver.upload_image', order_id=order.id) }}"
           enctype="multipart/form-data"
           class="upload-form"
-          id="driver-{{ image_type }}-form-{{ order.id }}">
+          id="driver-{{ image_type }}-form-{{ order.id }}"
+          data-ajax="true"
+          data-order-id="{{ order.id }}"
+          data-image-type="{{ image_type }}">
         <input type="hidden" name="image_type" value="{{ image_type }}">
         <input type="file"
                name="image"
                accept=".jpg,.jpeg,.png,.webp"
-               required
-               onchange="submitDriverImageForm(this)"
+               multiple
                aria-label="Valitse {{ 'nouto' if image_type == 'pickup' else 'toimitus' }}kuva">
 
         {% if images_data and images_data|length > 0 %}
-        <button type="submit" class="btn btn-primary">Lataa lisää kuvia</button>
+        <button type="button" onclick="document.querySelector('#driver-{{ image_type }}-form-{{ order.id }} input[type=file]').click()" class="btn btn-primary">Valitse lisää kuvia</button>
         {% else %}
-        <button type="submit" class="btn btn-primary">Lataa {{ 'nouto' if image_type == 'pickup' else 'toimitus' }}kuva</button>
+        <button type="button" onclick="document.querySelector('#driver-{{ image_type }}-form-{{ order.id }} input[type=file]').click()" class="btn btn-primary">Valitse {{ 'nouto' if image_type == 'pickup' else 'toimitus' }}kuvat</button>
         {% endif %}
 
-        <div class="upload-status" style="display: none;">
-            <span class="uploading">Ladataan...</span>
-        </div>
+        <div class="upload-queue" id="upload-queue-{{ image_type }}" style="margin-top: 1rem;"></div>
     </form>
     {% elif not can_upload %}
     <div class="text-muted">
@@ -78,40 +78,198 @@
 </div>
 
 <script>
-function submitDriverImageForm(input) {
+// AJAX Multi-Image Upload Handler
+document.addEventListener('DOMContentLoaded', function() {
+    // Attach file input change handlers to all upload forms
+    document.querySelectorAll('form[data-ajax="true"] input[type="file"]').forEach(input => {
+        input.addEventListener('change', function(e) {
+            handleFileSelection(this);
+        });
+    });
+});
+
+function handleFileSelection(input) {
+    const files = input.files;
+    if (!files || files.length === 0) return;
+
     const form = input.closest('form');
-    const status = form.querySelector('.upload-status');
-    const button = form.querySelector('button[type="submit"]');
+    const orderId = form.dataset.orderId;
+    const imageType = form.dataset.imageType;
+    const queueContainer = document.getElementById(`upload-queue-${imageType}`);
 
-    status.style.display = 'block';
-    button.disabled = true;
-    button.textContent = 'Ladataan...';
+    // Get current image count
+    const currentCount = document.querySelectorAll(`.image-item[data-image-type="${imageType}"]`).length;
+    const remainingSlots = 15 - currentCount;
 
-    form.submit();
+    if (files.length > remainingSlots) {
+        alert(`Voit ladata enintään ${remainingSlots} kuvaa. Valitsit ${files.length} kuvaa.`);
+        input.value = ''; // Clear selection
+        return;
+    }
+
+    // Upload each file
+    Array.from(files).forEach((file, index) => {
+        uploadFileAjax(file, orderId, imageType, queueContainer);
+    });
+
+    // Clear input
+    input.value = '';
+}
+
+function uploadFileAjax(file, orderId, imageType, queueContainer) {
+    // Create upload item UI
+    const uploadId = `upload-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const uploadItem = document.createElement('div');
+    uploadItem.id = uploadId;
+    uploadItem.className = 'upload-item';
+    uploadItem.innerHTML = `
+        <div class="upload-item-info">
+            <span class="upload-filename">${file.name}</span>
+            <span class="upload-status">Ladataan...</span>
+        </div>
+        <div class="upload-progress-bar">
+            <div class="upload-progress-fill"></div>
+        </div>
+    `;
+    queueContainer.appendChild(uploadItem);
+
+    // Prepare form data
+    const formData = new FormData();
+    formData.append('image', file);
+    formData.append('image_type', imageType);
+
+    // Upload via AJAX
+    fetch(`/driver/api/job/${orderId}/upload`, {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Update UI
+            uploadItem.querySelector('.upload-status').textContent = 'Valmis!';
+            uploadItem.querySelector('.upload-progress-fill').style.width = '100%';
+            uploadItem.style.backgroundColor = '#d4edda';
+
+            // Add image to grid
+            addImageToGrid(data.image, imageType, orderId);
+
+            // Update counter
+            updateImageCounter(imageType, data.image_count);
+
+            // Remove upload item after delay
+            setTimeout(() => {
+                uploadItem.remove();
+            }, 2000);
+
+            // Show success message if status was updated
+            if (data.status_updated && data.message) {
+                showNotification(data.message, 'success');
+                // Reload page after a delay to update action buttons
+                setTimeout(() => location.reload(), 2000);
+            }
+        } else {
+            // Show error
+            uploadItem.querySelector('.upload-status').textContent = data.error || 'Virhe!';
+            uploadItem.style.backgroundColor = '#f8d7da';
+            uploadItem.innerHTML += `<button onclick="retryUpload('${uploadId}', '${orderId}', '${imageType}')" class="btn-retry">Yritä uudelleen</button>`;
+        }
+    })
+    .catch(error => {
+        console.error('Upload error:', error);
+        uploadItem.querySelector('.upload-status').textContent = 'Lataus epäonnistui';
+        uploadItem.style.backgroundColor = '#f8d7da';
+    });
+}
+
+function addImageToGrid(imageData, imageType, orderId) {
+    // Find the correct section by image type
+    const section = document.querySelector(`.image-section[data-image-type="${imageType}"]`);
+    if (!section) {
+        console.error(`Section not found for imageType: ${imageType}`);
+        return;
+    }
+
+    // Find or create grid within this specific section
+    let grid = section.querySelector('.images-grid');
+    if (!grid) {
+        grid = document.createElement('div');
+        grid.className = 'images-grid';
+        const uploadForm = section.querySelector('.upload-form');
+        section.insertBefore(grid, uploadForm);
+    }
+
+    const imageItem = document.createElement('div');
+    imageItem.className = 'image-item';
+    imageItem.dataset.imageType = imageType;
+    imageItem.dataset.imageId = imageData.id;
+    imageItem.innerHTML = `
+        <img src="${imageData.file_path}"
+             alt="${imageType === 'pickup' ? 'Nouto kuva' : 'Toimitus kuva'}"
+             class="image-thumbnail"
+             loading="lazy"
+             onclick="openDriverImageModal('${imageType}', '${imageData.id}', '${imageData.file_path}')">
+        <div class="image-actions">
+            <button class="image-action-btn delete"
+                    onclick="deleteDriverImage('${orderId}', '${imageType}', '${imageData.id}')"
+                    title="Poista kuva">×</button>
+        </div>
+    `;
+
+    grid.appendChild(imageItem);
+}
+
+function updateImageCounter(imageType, count) {
+    // Find the correct section by image type
+    const section = document.querySelector(`.image-section[data-image-type="${imageType}"]`);
+    if (!section) {
+        console.error(`Section not found for imageType: ${imageType}`);
+        return;
+    }
+
+    const counter = section.querySelector('.image-counter-text');
+    if (counter) {
+        counter.textContent = `${count}/15 kuvaa`;
+    }
+}
+
+function showNotification(message, type = 'info') {
+    // Simple notification - you can enhance this
+    const notification = document.createElement('div');
+    notification.className = `notification notification-${type}`;
+    notification.textContent = message;
+    notification.style.cssText = 'position: fixed; top: 20px; right: 20px; padding: 1rem 2rem; background: #28a745; color: white; border-radius: 4px; z-index: 10000;';
+    document.body.appendChild(notification);
+
+    setTimeout(() => {
+        notification.remove();
+    }, 3000);
 }
 
 function deleteDriverImage(orderId, imageType, imageId) {
     if (confirm('Haluatko varmasti poistaa tämän kuvan?')) {
-        // Disable the delete button during request
         const deleteBtn = event.target;
+        const imageItem = deleteBtn.closest('.image-item');
+
         deleteBtn.disabled = true;
         deleteBtn.textContent = '...';
 
-        fetch(`/driver/order/${orderId}/image/${imageType}/${imageId}`, {
+        fetch(`/driver/api/job/${orderId}/image/${imageType}/${imageId}`, {
             method: 'DELETE',
             headers: {
                 'Content-Type': 'application/json',
             }
         })
-        .then(response => {
-            if (response.ok) {
-                return response.json();
-            }
-            throw new Error('Network response was not ok');
-        })
+        .then(response => response.json())
         .then(data => {
             if (data.success) {
-                location.reload();
+                // Remove image from DOM
+                imageItem.remove();
+
+                // Update counter
+                updateImageCounter(imageType, data.image_count);
+
+                showNotification('Kuva poistettu', 'success');
             } else {
                 alert('Kuvan poistaminen epäonnistui: ' + (data.error || 'Tuntematon virhe'));
                 deleteBtn.disabled = false;

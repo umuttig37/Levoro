@@ -19,6 +19,9 @@ from services.image_service import image_service
 from services.email_service import email_service
 from utils.formatters import format_helsinki_time
 
+# Import modern next_id for consistent counter usage
+from models.database import next_id, db_manager
+
 MONGODB_URI = os.getenv("MONGODB_URI", "").strip()
 DB_NAME = os.getenv("DB_NAME", "carrental") # käytetään MongoDB:n kantanimenä
 
@@ -106,15 +109,6 @@ except Exception:
 
 # ----------------- DB HELPERS -----------------
 
-def next_id(seq_name: str) -> int:
-    doc = counters_col().find_one_and_update(
-        {"_id": seq_name},
-        {"$inc": {"seq": 1}},
-        upsert=True,
-        return_document=ReturnDocument.AFTER
-    )
-    return int(doc["seq"])
-
 def init_db():
     # indeksit
     users_col().create_index("email", unique=True)
@@ -125,10 +119,13 @@ def init_db():
     orders_col().create_index([("status", 1), ("id", -1)])
 
     # Sync counters with existing data to prevent duplicate key errors
-    from models.database import db_manager
     print("Syncing counters with existing data...")
-    db_manager.sync_counter("users", "users", "id")
-    db_manager.sync_counter("orders", "orders", "id")
+    try:
+        db_manager.sync_counter("users", "users", "id")
+        db_manager.sync_counter("orders", "orders", "id")
+        db_manager.sync_counter("driver_applications", "driver_applications", "id")
+    except Exception as e:
+        print(f"Warning: Counter sync failed (may be concurrent initialization): {e}")
 
 def seed_admin():
     if not users_col().find_one({"email": SEED_ADMIN_EMAIL}):
@@ -828,6 +825,8 @@ def submit_driver_application():
     """Process driver application submission"""
     from models.driver_application import driver_application_model
     from services.email_service import email_service
+    from services.image_service import image_service
+    from services.gcs_service import gcs_service
 
     # Get form data
     application_data = {
@@ -860,6 +859,18 @@ def submit_driver_application():
             flash(f"Virhe: {label} on pakollinen kenttä", "error")
             return render_template('driver_application.html')
 
+    # Validate license images
+    license_front = request.files.get('license_front')
+    license_back = request.files.get('license_back')
+
+    if not license_front or license_front.filename == '':
+        flash("Virhe: Ajokortin etupuoli on pakollinen", "error")
+        return render_template('driver_application.html')
+
+    if not license_back or license_back.filename == '':
+        flash("Virhe: Ajokortin takapuoli on pakollinen", "error")
+        return render_template('driver_application.html')
+
     if not application_data["name"]:
         flash("Virhe: Lisää etu- ja sukunimi", "error")
         return render_template('driver_application.html')
@@ -891,6 +902,93 @@ def submit_driver_application():
     application, error = driver_application_model.create_application(application_data)
     if error:
         flash(f"Virhe hakemuksen lähettämisessä: {error}", "error")
+        return render_template('driver_application.html')
+
+    # Process and upload license images
+    application_id = application["id"]
+    license_images = {"front": None, "back": None}
+
+    try:
+        import uuid
+        from werkzeug.utils import secure_filename
+
+        # Process front image
+        # Validate file
+        front_validation_error = image_service._validate_file(license_front)
+        if front_validation_error:
+            flash(f"Virhe ajokortin etupuolessa: {front_validation_error}", "error")
+            return render_template('driver_application.html')
+
+        # Generate unique filename and save temporarily
+        front_extension = image_service._get_file_extension(license_front.filename)
+        front_unique_filename = f"license_{application_id}_front_{uuid.uuid4().hex}.{front_extension}"
+        front_temp_path = os.path.join(image_service.upload_folder, front_unique_filename)
+        license_front.save(front_temp_path)
+
+        # Process image (resize, optimize)
+        front_processed_path = image_service._process_image(front_temp_path)
+        if not front_processed_path:
+            image_service._cleanup_file(front_temp_path)
+            flash("Virhe ajokortin etupuolen käsittelyssä - tarkista että kuva ei ole vioittunut", "error")
+            return render_template('driver_application.html')
+
+        # Upload front image to GCS privately
+        front_blob_name = f"driver-licenses/{application_id}/front.jpg"
+        front_blob, front_upload_error = gcs_service.upload_private_file(
+            front_processed_path,
+            front_blob_name
+        )
+        if front_upload_error:
+            flash(f"Virhe ajokortin etupuolen tallentamisessa: {front_upload_error}", "error")
+            image_service._cleanup_file(front_processed_path)
+            return render_template('driver_application.html')
+
+        license_images["front"] = front_blob_name
+        image_service._cleanup_file(front_processed_path)  # Clean up temp file
+
+        # Process back image
+        # Validate file
+        back_validation_error = image_service._validate_file(license_back)
+        if back_validation_error:
+            flash(f"Virhe ajokortin takapuolessa: {back_validation_error}", "error")
+            return render_template('driver_application.html')
+
+        # Generate unique filename and save temporarily
+        back_extension = image_service._get_file_extension(license_back.filename)
+        back_unique_filename = f"license_{application_id}_back_{uuid.uuid4().hex}.{back_extension}"
+        back_temp_path = os.path.join(image_service.upload_folder, back_unique_filename)
+        license_back.save(back_temp_path)
+
+        # Process image (resize, optimize)
+        back_processed_path = image_service._process_image(back_temp_path)
+        if not back_processed_path:
+            image_service._cleanup_file(back_temp_path)
+            flash("Virhe ajokortin takapuolen käsittelyssä - tarkista että kuva ei ole vioittunut", "error")
+            return render_template('driver_application.html')
+
+        # Upload back image to GCS privately
+        back_blob_name = f"driver-licenses/{application_id}/back.jpg"
+        back_blob, back_upload_error = gcs_service.upload_private_file(
+            back_processed_path,
+            back_blob_name
+        )
+        if back_upload_error:
+            flash(f"Virhe ajokortin takapuolen tallentamisessa: {back_upload_error}", "error")
+            image_service._cleanup_file(back_processed_path)
+            return render_template('driver_application.html')
+
+        license_images["back"] = back_blob_name
+        image_service._cleanup_file(back_processed_path)  # Clean up temp file
+
+        # Update application with license image blob names
+        driver_application_model.update_one(
+            {"id": application_id},
+            {"$set": {"license_images": license_images}}
+        )
+
+    except Exception as e:
+        print(f"Error processing license images: {e}")
+        flash(f"Virhe ajokorttikuvien käsittelyssä: {str(e)}", "error")
         return render_template('driver_application.html')
 
     # Send confirmation email to applicant

@@ -81,6 +81,23 @@ def job_detail(order_id):
         flash('Tilaus ei löytynyt', 'error')
         return redirect(url_for('driver.dashboard'))
 
+    # Auto-fix status if images exist but status not updated (race condition recovery)
+    images = order.get('images', {})
+    pickup_images = images.get('pickup', [])
+    delivery_images = images.get('delivery', [])
+    current_status = order.get('status')
+
+    # Fix pickup status if images exist but status is still DRIVER_ARRIVED
+    if len(pickup_images) > 0 and current_status == order_model.STATUS_DRIVER_ARRIVED:
+        driver_service.update_pickup_images_status(order_id, driver['id'])
+        order = order_model.find_by_id(order_id)  # Refresh order
+        current_status = order.get('status')
+
+    # Fix delivery status if images exist but status is still DELIVERY_ARRIVED
+    if len(delivery_images) > 0 and current_status == order_model.STATUS_DELIVERY_ARRIVED:
+        driver_service.update_delivery_images_status(order_id, driver['id'])
+        order = order_model.find_by_id(order_id)  # Refresh order
+
     # Check if driver can access this job
     driver_id = order.get('driver_id')
     status = order.get('status')
@@ -243,6 +260,112 @@ def upload_image(order_id):
         flash(f'{image_type_fi}kuva lisätty onnistuneesti', 'success')
 
     return redirect(url_for('driver.job_detail', order_id=order_id))
+
+
+@driver_bp.route('/api/job/<int:order_id>/upload', methods=['POST'])
+@driver_required
+def upload_image_ajax(order_id):
+    """AJAX endpoint for uploading images (supports multiple uploads without page reload)"""
+    driver = auth_service.get_current_user()
+    image_type = request.form.get('image_type')
+
+    # Validation
+    if image_type not in ['pickup', 'delivery']:
+        return jsonify({'success': False, 'error': 'Virheellinen kuvatyyppi'}), 400
+
+    # Verify driver can add images for this stage
+    if image_type == 'pickup' and not driver_service.can_add_pickup_images(order_id, driver['id']):
+        return jsonify({'success': False, 'error': 'Et voi lisätä noutokuvia tässä vaiheessa'}), 403
+
+    if image_type == 'delivery' and not driver_service.can_add_delivery_images(order_id, driver['id']):
+        return jsonify({'success': False, 'error': 'Et voi lisätä toimituskuvia tässä vaiheessa'}), 403
+
+    if 'image' not in request.files:
+        return jsonify({'success': False, 'error': 'Kuvaa ei valittu'}), 400
+
+    file = request.files['image']
+    if file.filename == '':
+        return jsonify({'success': False, 'error': 'Kuvaa ei valittu'}), 400
+
+    # Check image limit
+    can_add, limit_error = image_service.validate_image_limit(order_id, image_type, max_images=15)
+    if not can_add:
+        return jsonify({'success': False, 'error': limit_error}), 400
+
+    # Save and process image using ImageService
+    image_info, error = image_service.save_order_image(file, order_id, image_type, driver.get('email', 'driver'))
+
+    if error:
+        return jsonify({'success': False, 'error': error}), 400
+
+    # Add image to order using ImageService
+    success, add_error = image_service.add_image_to_order(order_id, image_type, image_info)
+
+    if not success:
+        return jsonify({'success': False, 'error': add_error}), 500
+
+    # Update order status after first image of each type
+    from models.order import order_model
+    order = order_model.find_by_id(order_id)
+    current_images = order.get('images', {}).get(image_type, [])
+    current_status = order.get('status')
+
+    status_updated = False
+    message = ''
+
+    # Update status if images exist and status hasn't been updated yet (more robust for concurrent uploads)
+    if len(current_images) >= 1:
+        if image_type == 'pickup' and current_status == order_model.STATUS_DRIVER_ARRIVED:
+            driver_service.update_pickup_images_status(order_id, driver['id'])
+            message = 'Noutokuva lisätty! Voit nyt aloittaa kuljetuksen.'
+            status_updated = True
+        elif image_type == 'delivery' and current_status == order_model.STATUS_DELIVERY_ARRIVED:
+            driver_service.update_delivery_images_status(order_id, driver['id'])
+            message = 'Toimituskuva lisätty! Voit nyt päättää toimituksen.'
+            status_updated = True
+        else:
+            image_type_fi = 'Nouto' if image_type == 'pickup' else 'Toimitus'
+            message = f'{image_type_fi}kuva lisätty onnistuneesti'
+    else:
+        image_type_fi = 'Nouto' if image_type == 'pickup' else 'Toimitus'
+        message = f'{image_type_fi}kuva lisätty onnistuneesti'
+
+    return jsonify({
+        'success': True,
+        'message': message,
+        'image': image_info,
+        'image_count': len(current_images),
+        'status_updated': status_updated
+    })
+
+
+@driver_bp.route('/api/job/<int:order_id>/image/<string:image_type>/<string:image_id>', methods=['DELETE'])
+@driver_required
+def delete_image_ajax(order_id, image_type, image_id):
+    """AJAX endpoint for deleting images"""
+    driver = auth_service.get_current_user()
+
+    # Verify driver owns this job
+    from models.order import order_model
+    order = order_model.find_by_id(order_id)
+    if not order or order.get('driver_id') != driver['id']:
+        return jsonify({'success': False, 'error': 'Ei oikeuksia'}), 403
+
+    # Delete image
+    success, error = image_service.delete_order_image(order_id, image_type, image_id)
+
+    if not success:
+        return jsonify({'success': False, 'error': error}), 400
+
+    # Get updated image count
+    order = order_model.find_by_id(order_id)
+    current_images = order.get('images', {}).get(image_type, [])
+
+    return jsonify({
+        'success': True,
+        'message': 'Kuva poistettu',
+        'image_count': len(current_images)
+    })
 
 
 @driver_bp.route('/my-jobs')

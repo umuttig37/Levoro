@@ -9,4 +9,5 @@ Pillow==10.4.0
 Flask-Mail==0.9.1
 tzdata==2025.2
 markdown==3.9
+google-cloud-storage==2.18.2
 

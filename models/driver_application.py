@@ -35,14 +35,36 @@ class DriverApplicationModel(BaseModel):
             "created_at": datetime.now(timezone.utc),
             "updated_at": datetime.now(timezone.utc),
             "processed_at": None,
-            "processed_by": None
+            "processed_by": None,
+            "license_images": {
+                "front": None,  # GCS blob name (e.g., "driver-licenses/1/front.jpg")
+                "back": None    # GCS blob name (e.g., "driver-licenses/1/back.jpg")
+            }
         }
 
         try:
             self.insert_one(application)
             return application, None
         except Exception as e:
-            return None, f"Hakemuksen luominen epäonnistui: {str(e)}"
+            error_str = str(e)
+            # Handle duplicate key error - this can happen if counter is desynced
+            if "duplicate key error" in error_str.lower() or "E11000" in error_str:
+                print(f"Duplicate key error for driver application ID {application_id}, forcing counter resync...")
+                # Force resync counter and retry once
+                from models.database import db_manager
+                db_manager.sync_counter("driver_applications", "driver_applications", "id")
+
+                # Get new ID and retry
+                application_id = counter_manager.get_next_id("driver_applications")
+                application["id"] = application_id
+
+                try:
+                    self.insert_one(application)
+                    return application, None
+                except Exception as retry_error:
+                    return None, f"Hakemuksen luominen epäonnistui (retry): {str(retry_error)}"
+
+            return None, f"Hakemuksen luominen epäonnistui: {error_str}"
 
     def find_by_id(self, application_id):
         """Find application by ID"""

@@ -188,6 +188,43 @@ def deny_driver_application():
     return redirect(url_for("admin.driver_applications"))
 
 
+@admin_bp.route("/driver-applications/<int:application_id>/license/<string:image_type>")
+@admin_required
+def view_license_image(application_id, image_type):
+    """Generate signed URL for viewing driver license image"""
+    from models.driver_application import driver_application_model
+    from services.gcs_service import gcs_service
+
+    # Validate image_type
+    if image_type not in ['front', 'back']:
+        flash("Virheellinen kuvatyyppi", "error")
+        return redirect(url_for("admin.driver_application_detail", application_id=application_id))
+
+    # Get application
+    application = driver_application_model.find_by_id(application_id)
+    if not application:
+        flash("Hakemusta ei löytynyt", "error")
+        return redirect(url_for("admin.driver_applications"))
+
+    # Get license images
+    license_images = application.get("license_images", {})
+    blob_name = license_images.get(image_type)
+
+    if not blob_name:
+        flash(f"Ajokortin {image_type} kuvaa ei löytynyt", "error")
+        return redirect(url_for("admin.driver_application_detail", application_id=application_id))
+
+    # Generate signed URL (1 hour expiration)
+    signed_url = gcs_service.generate_signed_url(blob_name, expiration_minutes=60)
+
+    if not signed_url:
+        flash("Virhe kuvan URL:n generoinnissa", "error")
+        return redirect(url_for("admin.driver_application_detail", application_id=application_id))
+
+    # Redirect to signed URL
+    return redirect(signed_url)
+
+
 @admin_bp.route("/update", methods=["POST"])
 @admin_required
 def update_order():

@@ -75,27 +75,6 @@ class DatabaseManager:
             print(f"Error syncing counter {sequence_name}: {e}")
             return 0
 
-    def get_next_sequence(self, sequence_name):
-        """Get next sequence number for auto-incrementing IDs"""
-        counters_col = self.get_collection("counters")
-
-        # Check if counter exists, if not sync it first
-        counter_doc = counters_col.find_one({"_id": sequence_name})
-        if not counter_doc:
-            print(f"Counter {sequence_name} doesn't exist, syncing...")
-            if sequence_name == "orders":
-                self.sync_counter(sequence_name, "orders", "id")
-            elif sequence_name == "users":
-                self.sync_counter(sequence_name, "users", "id")
-
-        result = counters_col.find_one_and_update(
-            {"_id": sequence_name},
-            {"$inc": {"value": 1}},
-            upsert=True,
-            return_document=ReturnDocument.AFTER
-        )
-        return result["value"]
-
     def close(self):
         """Close database connection"""
         if self._client:
@@ -172,6 +151,20 @@ class CounterManager:
 
     def get_next_id(self, sequence_name):
         """Get the next ID for a sequence"""
+        # Check if counter exists, if not sync it first to prevent starting from 1
+        counter_doc = self.collection.find_one({"_id": sequence_name})
+        if not counter_doc:
+            print(f"Counter {sequence_name} doesn't exist, syncing with existing data...")
+            # Map sequence names to collection names
+            collection_mapping = {
+                "users": "users",
+                "orders": "orders",
+                "driver_applications": "driver_applications"
+            }
+            collection_name = collection_mapping.get(sequence_name, sequence_name)
+            self.db_manager.sync_counter(sequence_name, collection_name, "id")
+
+        # Atomically increment and get the new value
         result = self.collection.find_one_and_update(
             {"_id": sequence_name},
             {"$inc": {"value": 1}},
