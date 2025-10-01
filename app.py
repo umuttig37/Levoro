@@ -19,6 +19,9 @@ from services.image_service import image_service
 from services.email_service import email_service
 from utils.formatters import format_helsinki_time
 
+# Import modern next_id for consistent counter usage
+from models.database import next_id, db_manager
+
 MONGODB_URI = os.getenv("MONGODB_URI", "").strip()
 DB_NAME = os.getenv("DB_NAME", "carrental") # käytetään MongoDB:n kantanimenä
 
@@ -106,15 +109,6 @@ except Exception:
 
 # ----------------- DB HELPERS -----------------
 
-def next_id(seq_name: str) -> int:
-    doc = counters_col().find_one_and_update(
-        {"_id": seq_name},
-        {"$inc": {"seq": 1}},
-        upsert=True,
-        return_document=ReturnDocument.AFTER
-    )
-    return int(doc["seq"])
-
 def init_db():
     # indeksit
     users_col().create_index("email", unique=True)
@@ -125,10 +119,13 @@ def init_db():
     orders_col().create_index([("status", 1), ("id", -1)])
 
     # Sync counters with existing data to prevent duplicate key errors
-    from models.database import db_manager
     print("Syncing counters with existing data...")
-    db_manager.sync_counter("users", "users", "id")
-    db_manager.sync_counter("orders", "orders", "id")
+    try:
+        db_manager.sync_counter("users", "users", "id")
+        db_manager.sync_counter("orders", "orders", "id")
+        db_manager.sync_counter("driver_applications", "driver_applications", "id")
+    except Exception as e:
+        print(f"Warning: Counter sync failed (may be concurrent initialization): {e}")
 
 def seed_admin():
     if not users_col().find_one({"email": SEED_ADMIN_EMAIL}):

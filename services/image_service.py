@@ -11,6 +11,7 @@ from datetime import datetime
 from PIL import Image
 from werkzeug.utils import secure_filename
 from models.order import order_model
+from services.gcs_service import gcs_service
 
 # Configuration
 UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'static', 'uploads', 'orders')
@@ -68,13 +69,32 @@ class ImageService:
             # Update filename if processing changed the extension
             final_filename = os.path.basename(processed_path)
 
+            # Upload to GCS if enabled, otherwise use local storage
+            file_path_url = None
+            if gcs_service.enabled:
+                # Upload to Google Cloud Storage
+                blob_name = f"orders/{final_filename}"
+                public_url, gcs_error = gcs_service.upload_file(processed_path, blob_name)
+
+                if gcs_error:
+                    # Fallback to local storage on GCS error
+                    print(f"GCS upload failed, using local storage: {gcs_error}")
+                    file_path_url = f"/static/uploads/orders/{final_filename}"
+                else:
+                    file_path_url = public_url
+                    # Clean up local file after successful GCS upload
+                    self._cleanup_file(processed_path)
+            else:
+                # Use local storage (development mode)
+                file_path_url = f"/static/uploads/orders/{final_filename}"
+
             # Create image info
             image_info = {
                 "id": str(uuid.uuid4()),
                 "filename": final_filename,
                 "original_filename": secure_filename(file.filename),
-                "file_path": f"/static/uploads/orders/{final_filename}",
-                "file_size": os.path.getsize(processed_path),
+                "file_path": file_path_url,
+                "file_size": os.path.getsize(processed_path) if os.path.exists(processed_path) else 0,
                 "image_type": image_type,
                 "uploaded_at": datetime.utcnow(),
                 "uploaded_by": uploaded_by
@@ -124,10 +144,21 @@ class ImageService:
             if not image_to_delete:
                 return False, "Kuvaa ei löytynyt"
 
-            # Delete physical file
-            if "filename" in image_to_delete:
-                file_path = os.path.join(self.upload_folder, image_to_delete["filename"])
-                self._cleanup_file(file_path)
+            # Delete physical file (from GCS or local storage)
+            if "file_path" in image_to_delete:
+                file_path_url = image_to_delete["file_path"]
+
+                # Check if it's a GCS URL
+                if 'storage.googleapis.com' in file_path_url:
+                    # Delete from GCS
+                    blob_name = gcs_service.extract_blob_name_from_url(file_path_url)
+                    if blob_name:
+                        gcs_service.delete_file(blob_name)
+                else:
+                    # Delete from local filesystem
+                    if "filename" in image_to_delete:
+                        file_path = os.path.join(self.upload_folder, image_to_delete["filename"])
+                        self._cleanup_file(file_path)
 
             # Remove from database
             success, error = self.order_model.remove_image(order_id, image_type, image_id)

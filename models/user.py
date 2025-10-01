@@ -40,7 +40,25 @@ class UserModel(BaseModel):
             self.insert_one(user_data)
             return user_data, None
         except Exception as e:
-            return None, f"Käyttäjän luominen epäonnistui: {str(e)}"
+            error_str = str(e)
+            # Handle duplicate key error - this can happen if counter is desynced
+            if "duplicate key error" in error_str.lower() or "E11000" in error_str:
+                print(f"Duplicate key error for user ID {user_id}, forcing counter resync...")
+                # Force resync counter and retry once
+                from models.database import db_manager
+                db_manager.sync_counter("users", "users", "id")
+
+                # Get new ID and retry
+                user_id = counter_manager.get_next_id("users")
+                user_data["id"] = user_id
+
+                try:
+                    self.insert_one(user_data)
+                    return user_data, None
+                except Exception as retry_error:
+                    return None, f"Käyttäjän luominen epäonnistui (retry): {str(retry_error)}"
+
+            return None, f"Käyttäjän luominen epäonnistui: {error_str}"
 
     def find_by_email(self, email):
         """Find user by email"""

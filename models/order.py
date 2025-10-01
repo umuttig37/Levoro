@@ -58,7 +58,25 @@ class OrderModel(BaseModel):
             return order_doc, None
 
         except Exception as e:
-            return None, f"Tilauksen luominen epäonnistui: {str(e)}"
+            error_str = str(e)
+            # Handle duplicate key error - this can happen if counter is desynced
+            if "duplicate key error" in error_str.lower() or "E11000" in error_str:
+                print(f"Duplicate key error for order ID {order_id}, forcing counter resync...")
+                # Force resync counter and retry once
+                from models.database import db_manager
+                db_manager.sync_counter("orders", "orders", "id")
+
+                # Get new ID and retry
+                order_id = counter_manager.get_next_id("orders")
+                order_doc["id"] = order_id
+
+                try:
+                    self.insert_one(order_doc)
+                    return order_doc, None
+                except Exception as retry_error:
+                    return None, f"Tilauksen luominen epäonnistui (retry): {str(retry_error)}"
+
+            return None, f"Tilauksen luominen epäonnistui: {error_str}"
 
     def find_by_id(self, order_id: int, user_id: Optional[int] = None) -> Optional[Dict]:
         """Find order by ID, optionally filtered by user"""
@@ -134,12 +152,12 @@ class OrderModel(BaseModel):
             return False, f"Tilauksen päivitys epäonnistui: {str(e)}"
 
     def add_image(self, order_id: int, image_type: str, image_data: Dict) -> Tuple[bool, Optional[str]]:
-        """Add image to order"""
+        """Add image to order using atomic MongoDB $push operation"""
         if image_type not in ["pickup", "delivery"]:
             return False, "Virheellinen kuvatyyppi"
 
         try:
-            # Get current order
+            # First, verify order exists and check current image count
             order = self.find_by_id(order_id)
             if not order:
                 return False, "Tilausta ei löytynyt"
@@ -156,23 +174,20 @@ class OrderModel(BaseModel):
             if len(current_images) >= 15:
                 return False, "Maksimimäärä (15) kuvia saavutettu"
 
-            # Set order number for new image
+            # Set order number and timestamp for new image
             image_data["order"] = len(current_images) + 1
             image_data["uploaded_at"] = datetime.now(timezone.utc)
 
-            # Add new image
-            current_images.append(image_data)
-
-            # Update order
-            success = self.update_one(
+            # Use atomic $push to append image (safe for concurrent uploads)
+            result = self.collection.update_one(
                 {"id": int(order_id)},
-                {"$set": {
-                    f"images.{image_type}": current_images,
-                    "updated_at": datetime.now(timezone.utc)
-                }}
+                {
+                    "$push": {f"images.{image_type}": image_data},
+                    "$set": {"updated_at": datetime.now(timezone.utc)}
+                }
             )
 
-            return success, None
+            return result.modified_count > 0, None
 
         except Exception as e:
             return False, f"Kuvan lisääminen epäonnistui: {str(e)}"
