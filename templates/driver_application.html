@@ -243,7 +243,7 @@
         </p>
     </div>
 
-    <form class="application-form" method="POST" action="/hae-kuljettajaksi">
+    <form class="application-form" method="POST" action="/hae-kuljettajaksi" enctype="multipart/form-data">
         <div class="required-note">
             <strong>Huomio:</strong> Tähdellä (*) merkityt kentät ovat pakollisia.
         </div>
@@ -289,6 +289,28 @@
                     <label class="form-label required" for="password_confirm">Vahvista salasana</label>
                     <input type="password" id="password_confirm" name="password_confirm" class="form-input" required
                         placeholder="Syötä salasana uudelleen">
+                </div>
+            </div>
+        </div>
+
+        <!-- Driver's License Images -->
+        <div class="form-section">
+            <h2 class="form-section-title">📄 Ajokortti</h2>
+            <div class="form-help" style="margin-bottom: 20px; font-size: 0.95rem;">
+                Lataa selkeät kuvat ajokortistasi molemmilta puolilta. Varmista, että kaikki tiedot ovat luettavissa.
+            </div>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label class="form-label required" for="license_front">Ajokortti (etuosa)</label>
+                    <input type="file" id="license_front" name="license_front" class="form-input"
+                           accept=".jpg,.jpeg,.png,.webp" required>
+                    <div class="form-help">Ajokortin etupuoli (max 5MB)</div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label required" for="license_back">Ajokortti (takaosa)</label>
+                    <input type="file" id="license_back" name="license_back" class="form-input"
+                           accept=".jpg,.jpeg,.png,.webp" required>
+                    <div class="form-help">Ajokortin takapuoli (max 5MB)</div>
                 </div>
             </div>
         </div>

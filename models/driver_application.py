@@ -35,7 +35,11 @@ class DriverApplicationModel(BaseModel):
             "created_at": datetime.now(timezone.utc),
             "updated_at": datetime.now(timezone.utc),
             "processed_at": None,
-            "processed_by": None
+            "processed_by": None,
+            "license_images": {
+                "front": None,  # GCS blob name (e.g., "driver-licenses/1/front.jpg")
+                "back": None    # GCS blob name (e.g., "driver-licenses/1/back.jpg")
+            }
         }
 
         try:

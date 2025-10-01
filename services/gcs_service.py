@@ -17,6 +17,7 @@ class GCSService:
 
     def __init__(self):
         self.bucket_name = os.getenv('GCS_BUCKET_NAME')
+        self.private_bucket_name = os.getenv('GCS_PRIVATE_BUCKET_NAME')  # New private bucket
         self.project_id = os.getenv('GCS_PROJECT_ID')
         self.credentials_b64 = os.getenv('GCS_CREDENTIALS_JSON')
 
@@ -46,8 +47,17 @@ class GCSService:
                 project=self.project_id
             )
 
-            # Get bucket reference
+            # Get bucket references
             self.bucket = self.client.bucket(self.bucket_name)
+            print(f"✅ GCS public bucket initialized: {self.bucket_name}")
+
+            # Get private bucket reference if configured
+            if self.private_bucket_name:
+                self.private_bucket = self.client.bucket(self.private_bucket_name)
+                print(f"✅ GCS private bucket initialized: {self.private_bucket_name}")
+            else:
+                self.private_bucket = self.bucket  # Fallback to public bucket
+                print(f"⚠️  No private bucket configured - using public bucket for private files")
 
         except Exception as e:
             print(f"Failed to initialize GCS client: {e}")
@@ -82,6 +92,73 @@ class GCSService:
             error_msg = f"GCS upload failed: {str(e)}"
             print(error_msg)
             return None, error_msg
+
+    def upload_private_file(self, local_file_path: str, destination_blob_name: str) -> Tuple[Optional[str], Optional[str]]:
+        """
+        Upload a file to PRIVATE GCS bucket (not publicly accessible)
+
+        Args:
+            local_file_path: Path to local file
+            destination_blob_name: Name for the file in GCS (e.g., "driver-licenses/1/front.jpg")
+
+        Returns:
+            Tuple[Optional[str], Optional[str]]: (blob_name, error_message)
+        """
+        if not self.enabled:
+            return None, "GCS not enabled"
+
+        try:
+            # Create blob in PRIVATE bucket (file reference in GCS)
+            blob = self.private_bucket.blob(destination_blob_name)
+            print(f"📤 Uploading private file to bucket: {self.private_bucket.name} → {destination_blob_name}")
+
+            # Upload file
+            blob.upload_from_filename(local_file_path, content_type='image/jpeg')
+
+            # NOTE: Do NOT make public - this is private storage
+            # Access will be via signed URLs only
+            print(f"✅ Private file uploaded successfully to: {self.private_bucket.name}/{destination_blob_name}")
+            return destination_blob_name, None
+
+        except Exception as e:
+            error_msg = f"GCS private upload failed: {str(e)}"
+            print(error_msg)
+            return None, error_msg
+
+    def generate_signed_url(self, blob_name: str, expiration_minutes: int = 60) -> Optional[str]:
+        """
+        Generate temporary signed URL for private file access
+
+        Args:
+            blob_name: Name of the blob in PRIVATE GCS bucket
+            expiration_minutes: URL validity period (default 1 hour)
+
+        Returns:
+            Signed URL valid for specified duration, or None on error
+        """
+        if not self.enabled:
+            return None
+
+        try:
+            from datetime import timedelta
+            blob = self.private_bucket.blob(blob_name)
+
+            # Check if blob exists
+            if not blob.exists():
+                print(f"Blob not found: {blob_name}")
+                return None
+
+            # Generate signed URL
+            url = blob.generate_signed_url(
+                version="v4",
+                expiration=timedelta(minutes=expiration_minutes),
+                method="GET"
+            )
+            return url
+
+        except Exception as e:
+            print(f"Failed to generate signed URL: {e}")
+            return None
 
     def delete_file(self, blob_name: str) -> Tuple[bool, Optional[str]]:
         """

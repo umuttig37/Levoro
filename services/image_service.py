@@ -72,8 +72,8 @@ class ImageService:
             # Upload to GCS if enabled, otherwise use local storage
             file_path_url = None
             if gcs_service.enabled:
-                # Upload to Google Cloud Storage
-                blob_name = f"orders/{final_filename}"
+                # Upload to Google Cloud Storage (organized by order ID)
+                blob_name = f"orders/{order_id}/{final_filename}"
                 public_url, gcs_error = gcs_service.upload_file(processed_path, blob_name)
 
                 if gcs_error:
