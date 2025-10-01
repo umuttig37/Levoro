@@ -49,15 +49,13 @@ class GCSService:
 
             # Get bucket references
             self.bucket = self.client.bucket(self.bucket_name)
-            print(f"✅ GCS public bucket initialized: {self.bucket_name}")
 
             # Get private bucket reference if configured
             if self.private_bucket_name:
                 self.private_bucket = self.client.bucket(self.private_bucket_name)
-                print(f"✅ GCS private bucket initialized: {self.private_bucket_name}")
             else:
                 self.private_bucket = self.bucket  # Fallback to public bucket
-                print(f"⚠️  No private bucket configured - using public bucket for private files")
+                print("⚠️  No private bucket configured - using public bucket for private files")
 
         except Exception as e:
             print(f"Failed to initialize GCS client: {e}")
@@ -110,14 +108,12 @@ class GCSService:
         try:
             # Create blob in PRIVATE bucket (file reference in GCS)
             blob = self.private_bucket.blob(destination_blob_name)
-            print(f"📤 Uploading private file to bucket: {self.private_bucket.name} → {destination_blob_name}")
 
             # Upload file
             blob.upload_from_filename(local_file_path, content_type='image/jpeg')
 
             # NOTE: Do NOT make public - this is private storage
             # Access will be via signed URLs only
-            print(f"✅ Private file uploaded successfully to: {self.private_bucket.name}/{destination_blob_name}")
             return destination_blob_name, None
 
         except Exception as e:
