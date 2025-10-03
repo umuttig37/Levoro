@@ -56,7 +56,7 @@
             <div class="space-y-2 text-sm">
               <div>
                 <span class="font-medium">Hinta:</span>
-                <span class="text-gray-600">{{ job.price_gross|round(2) }} €</span>
+                <span class="text-gray-600"><strong style="font-size: 1.15em;">{{ "%.2f"|format((job.price_gross|float) / 1.255) }} €</strong> <strong>+ ALV 0%</strong></span>
               </div>
               {# Vehicle info hidden until job accepted #}
               {% if job.pickup_date %}

@@ -61,7 +61,7 @@
             <h4 class="font-semibold mb-2">Tiedot</h4>
             <div class="space-y-1 text-sm text-gray-600">
               <div>{{ job.distance_km|round(1) }} km</div>
-              <div>{{ job.price_gross|round(2) }} €</div>
+              <div><strong style="font-size: 1.1em;">{{ "%.2f"|format((job.price_gross|float) / 1.255) }} € + ALV 0%</strong></div>
               {% if job.reg_number %}
               <div>{{ job.reg_number }}</div>
               {% endif %}

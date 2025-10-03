@@ -50,7 +50,7 @@
             <span class="metric-label">Matka</span>
           </div>
           <div class="metric-card price-card">
-            <span class="metric-value">{{ "%.2f"|format(price_gross) }} €</span>
+            <span class="metric-value">{{ price_gross|format_price_with_vat|safe }}</span>
             <span class="metric-label">Hinta</span>
           </div>
           {% if order.status in ['ASSIGNED_TO_DRIVER', 'DRIVER_ARRIVED', 'PICKUP_IMAGES_ADDED', 'IN_TRANSIT', 'DELIVERY_ARRIVED', 'DELIVERY_IMAGES_ADDED', 'DELIVERED'] %}

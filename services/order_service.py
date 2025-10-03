@@ -12,20 +12,20 @@ from models.order import order_model
 # Configuration from environment
 BASE_FEE = float(os.getenv("BASE_FEE", "49"))
 PER_KM = float(os.getenv("PER_KM", "1.20"))
-VAT_RATE = float(os.getenv("VAT_RATE", "0.24"))
+VAT_RATE = float(os.getenv("VAT_RATE", "0.255"))  # 25.5% Finnish VAT
 
-# Pricing tiers
+# Pricing tiers (NET prices - VAT will be added on top)
 METRO_CITIES = {"helsinki", "espoo", "vantaa", "kauniainen"}
-METRO_GROSS = float(os.getenv("METRO_GROSS", "27"))
+METRO_NET = float(os.getenv("METRO_NET", "27"))  # Net price for metro area
 MID_KM = 170.0
-MID_GROSS = float(os.getenv("MID_GROSS", "81"))
+MID_NET = float(os.getenv("MID_NET", "81"))  # Net price for mid-distance
 LONG_KM = 600.0
-LONG_GROSS = float(os.getenv("LONG_GROSS", "207"))
+LONG_NET = float(os.getenv("LONG_NET", "207"))  # Net price for long-distance
 # NOTE: Return leg discount is not currently used in the application UI
 # This feature is preserved for potential future use
 ROUNDTRIP_DISCOUNT = 0.30
-# Minimum order price - all orders must be at least this amount
-MINIMUM_ORDER_PRICE = 20.0
+# Minimum order price - all orders must be at least this amount (net)
+MINIMUM_ORDER_PRICE_NET = 20.0
 
 # External API configuration
 GOOGLE_PLACES_API_KEY = os.getenv("GOOGLE_PLACES_API_KEY", "")
@@ -131,32 +131,36 @@ class OrderService:
 
     # Pricing and routing methods
     def calculate_price(self, distance_km: float, pickup_addr: str = "", dropoff_addr: str = "", return_leg: bool = False) -> float:
-        """Calculate transport price based on distance and addresses"""
+        """Calculate transport price based on distance and addresses - returns GROSS price (including VAT)"""
         if distance_km <= 0:
             return 0.0
 
+        # Calculate NET price first
         # Check if both addresses are in metro area
         if self._both_in_metro(pickup_addr, dropoff_addr):
-            base_price = METRO_GROSS
+            net_price = METRO_NET
         elif distance_km <= MID_KM:
             # Interpolate between metro and mid-distance
-            base_price = self._interpolate(distance_km, 50, METRO_GROSS, MID_KM, MID_GROSS)
+            net_price = self._interpolate(distance_km, 50, METRO_NET, MID_KM, MID_NET)
         elif distance_km <= LONG_KM:
             # Interpolate between mid and long distance
-            base_price = self._interpolate(distance_km, MID_KM, MID_GROSS, LONG_KM, LONG_GROSS)
+            net_price = self._interpolate(distance_km, MID_KM, MID_NET, LONG_KM, LONG_NET)
         else:
             # Long distance: fixed rate per km
-            rate_per_km = LONG_GROSS / LONG_KM
-            base_price = distance_km * rate_per_km
+            rate_per_km = LONG_NET / LONG_KM
+            net_price = distance_km * rate_per_km
 
         # Apply return trip discount (NOTE: This feature is not currently used in the UI)
         if return_leg:
-            base_price *= (1 - ROUNDTRIP_DISCOUNT)
+            net_price *= (1 - ROUNDTRIP_DISCOUNT)
 
-        # Enforce minimum order price
-        final_price = max(base_price, MINIMUM_ORDER_PRICE)
+        # Enforce minimum order price (net)
+        net_price = max(net_price, MINIMUM_ORDER_PRICE_NET)
 
-        return round(final_price, 2)
+        # Add VAT to get gross price
+        gross_price = net_price * (1 + VAT_RATE)
+
+        return round(gross_price, 2)
 
     def calculate_route_distance(self, pickup_addr: str, dropoff_addr: str) -> float:
         """Calculate route distance using OSRM API"""

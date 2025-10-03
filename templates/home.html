@@ -14,7 +14,9 @@
       <h1 class="hero-title">Samana päivänä, ja halvin.<br/>Levorolla mahdollista.</h1>
       <p class="hero-subtitle">Suomen nopein, edullisin ja luotettavin tapa siirtää autoja. Läpinäkyvä hinnoittelu, reaaliaikainen seuranta ja helppo tilausportaali.</p>
       <div class="hero-actions">
+        {% if not current_user or current_user.role != 'driver' %}
         <a class="btn btn-primary btn-lg" href="/calculator">Laske halvin hinta nyt</a>
+        {% endif %}
         <a class="btn btn-secondary btn-lg" href="#how">Miten se toimii</a>
         {% if not current_user %}
         <a class="btn btn-outline btn-lg" href="/hae-kuljettajaksi">🚗 Hae kuljettajaksi</a>
@@ -101,7 +103,9 @@
           <p>Vakuutusturva koko kuljetuksen ajan – ilman lisämaksuja.</p>
         </div>
       </div>
+      {% if not current_user or current_user.role != 'driver' %}
       <a class="btn btn-primary btn-lg" href="/calculator">Laske hinta →</a>
+      {% endif %}
     </div>
   </section>
 </div>

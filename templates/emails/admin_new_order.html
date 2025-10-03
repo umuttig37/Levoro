@@ -189,9 +189,17 @@
                 </div>
                 {% endif %}
                 {% if order.price_gross %}
-                <div class="detail-row">
-                    <span class="detail-label">Hinta (brutto):</span>
-                    <span class="detail-value"><strong>{{ "%.2f"|format(order.price_gross) }} €</strong></span>
+                <div class="detail-row" style="padding: 12px 0; border-bottom: 2px solid #e2e8f0;">
+                    <span class="detail-label" style="font-size: 14px; font-weight: 600;">Hinta:</span>
+                    <span class="detail-value"><strong style="font-size: 24px; color: #1a365d;">{{ "%.2f"|format(order.price_gross / 1.255) }} € <span style="font-size: 14px; font-weight: 700;">+ ALV 0%</span></strong></span>
+                </div>
+                <div class="detail-row" style="padding: 4px 0; opacity: 0.6;">
+                    <span class="detail-label" style="font-size: 11px;">ALV 25,5%:</span>
+                    <span class="detail-value" style="font-size: 11px;">{{ "%.2f"|format(order.price_gross - (order.price_gross / 1.255)) }} €</span>
+                </div>
+                <div class="detail-row" style="padding: 4px 0 8px 0; opacity: 0.6;">
+                    <span class="detail-label" style="font-size: 11px;">Yhteensä sis. ALV:</span>
+                    <span class="detail-value" style="font-size: 11px;">{{ "%.2f"|format(order.price_gross) }} €</span>
                 </div>
                 {% endif %}
             </div>

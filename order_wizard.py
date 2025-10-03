@@ -781,7 +781,7 @@ def order_confirm():
             # Stay on confirmation page to show error
             pass
 
-    price_block = f"<div class='card'><strong>Arvioitu hinta:</strong> {km:.1f} km → {gross:.2f} €</div>"
+    price_block = f"<div class='card'><strong style='font-size: 0.9em;'>Arvioitu hinta:</strong> <span style='font-size: 1.5em; font-weight: 800;'>{net:.2f} €</span> <strong style='font-size: 1.1em;'>+ ALV 0%</strong> <span style='opacity: 0.6; font-size: 0.85em;'>({km:.1f} km)</span></div>"
     if err: price_block = f"<div class='card'><span class='muted'>{err}</span><br>{price_block}</div>"
 
     # Check for error message in session
@@ -803,7 +803,7 @@ def order_confirm():
     <div class='confirmation-card map-card'>
       <h3 class='confirmation-title'>Reitti</h3>
       <div id="confirmation_map" class="confirmation-map"></div>
-      <p class='confirmation-meta'>Arvioitu hinta: {gross:.2f} €</p>
+      <p class='confirmation-meta'><strong style='font-size: 1.3em; font-weight: 800;'>{net:.2f} €</strong> <strong>+ ALV 0%</strong></p>
     </div>
   </div>
 </div>
@@ -812,7 +812,11 @@ def order_confirm():
     <h3 class='price-title'>Arvioitu hinta</h3>
     <div class='price-details'>
       <span class='distance'>{km:.1f} km</span>
-      <span class='price'>{gross:.2f} €</span>
+      <div class='price-breakdown-confirm'>
+        <div class='price-main-confirm' style="font-size: 2.5em; font-weight: 800; line-height: 1.1; margin-bottom: 4px;">{net:.2f} €</div>
+        <div style="font-size: 1.2em; font-weight: 700; margin-bottom: 12px;">+ ALV 0%</div>
+        <div class='price-vat-confirm' style="font-size: 0.75em; opacity: 0.5; margin-top: 8px;">ALV 25,5%: {vat:.2f} € | Yhteensä sis. ALV: {gross:.2f} €</div>
+      </div>
     </div>
     {f'<p class="price-error">{err}</p>' if err else ''}
   </div>

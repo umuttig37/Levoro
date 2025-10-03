@@ -3,18 +3,18 @@ Status Translation Utilities
 Centralized status translations for orders
 """
 
-# Status translations (English to Finnish)
+# Status translations (English to Finnish) - Friendly text for emails
 STATUS_TRANSLATIONS = {
-    'NEW': 'UUSI',
-    'CONFIRMED': 'TEHTÄVÄ_VAHVISTETTU',
-    'ASSIGNED_TO_DRIVER': 'MÄÄRITETTY_KULJETTAJALLE',
-    'DRIVER_ARRIVED': 'KULJETTAJA_SAAPUNUT',
-    'PICKUP_IMAGES_ADDED': 'NOUTOKUVAT_LISÄTTY',
-    'IN_TRANSIT': 'TOIMITUKSESSA',
-    'DELIVERY_ARRIVED': 'KULJETUS_SAAPUNUT',
-    'DELIVERY_IMAGES_ADDED': 'TOIMITUSKUVAT_LISÄTTY',
-    'DELIVERED': 'TOIMITETTU',
-    'CANCELLED': 'PERUUTETTU'
+    'NEW': 'Uusi tilaus',
+    'CONFIRMED': 'Tilaus vahvistettu',
+    'ASSIGNED_TO_DRIVER': 'Kuljettaja määritetty',
+    'DRIVER_ARRIVED': 'Kuljettaja saapunut',
+    'PICKUP_IMAGES_ADDED': 'Noutokuvat lisätty',
+    'IN_TRANSIT': 'Kuljetuksessa',
+    'DELIVERY_ARRIVED': 'Toimitus saapunut',
+    'DELIVERY_IMAGES_ADDED': 'Toimituskuvat lisätty',
+    'DELIVERED': 'Toimitettu',
+    'CANCELLED': 'Peruutettu'
 }
 
 # User-friendly status descriptions

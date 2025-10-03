@@ -86,6 +86,21 @@
             font-size: 24px;
             font-weight: bold;
         }
+        .price-highlight .net-price {
+            font-size: 28px;
+            font-weight: bold;
+            margin: 5px 0;
+        }
+        .price-highlight .vat-info {
+            font-size: 14px;
+            opacity: 0.9;
+            margin: 3px 0;
+        }
+        .price-highlight .total-price {
+            font-size: 16px;
+            opacity: 0.9;
+            margin: 3px 0;
+        }
         .status-box {
             background-color: #f0fff4;
             border-left: 4px solid #38a169;
@@ -183,8 +198,12 @@
 
             {% if order.price_gross %}
             <div class="price-highlight">
-                <div>Kokonaishinta (sis. ALV)</div>
-                <div class="amount">{{ "%.2f"|format(order.price_gross) }} €</div>
+                <div style="font-size: 13px; opacity: 0.85; margin-bottom: 12px;">Kuljetuksen hinta</div>
+                <div class="net-price" style="font-size: 42px; font-weight: 800; line-height: 1.1; margin-bottom: 4px;">{{ "%.2f"|format(order.price_gross / 1.255) }} €</div>
+                <div style="font-size: 16px; font-weight: 600; opacity: 0.95; margin-bottom: 16px;">+ ALV 0%</div>
+                <div class="vat-info" style="font-size: 10px; margin-top: 16px; padding-top: 16px; border-top: 1px solid rgba(255,255,255,0.25); opacity: 0.65;">
+                    ALV 25,5%: {{ "%.2f"|format(order.price_gross - (order.price_gross / 1.255)) }} € | Yhteensä sis. ALV: {{ "%.2f"|format(order.price_gross) }} €
+                </div>
             </div>
             {% endif %}
 

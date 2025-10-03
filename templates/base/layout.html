@@ -61,6 +61,7 @@
                 <!-- Navigation -->
                 <nav class="nav" id="nav-menu">
                     <a href="/" class="nav-link">Etusivu</a>
+                    <a href="/yhteystiedot" class="nav-link">Yhteystiedot</a>
 
                     <!-- Role-based navigation -->
                     {% if current_user and current_user.get('role') == 'driver' %}
@@ -116,13 +117,13 @@
                 <div class="text-center">
                     <!-- Footer CTA -->
                     <div class="footer-cta" style="margin-bottom: 1rem;">
-                        {% if current_user %}
+                        {% if current_user and current_user.role != 'driver' %}
                         <a href="/calculator" class="btn btn-primary">Laske hinta</a>
-                        {% else %}
+                        {% elif not current_user %}
                         <a href="/register" class="btn btn-primary">Kirjaudu ja laske hinta</a>
                         {% endif %}
                     </div>
-                    <p style="margin: 0; opacity: 0.8;">© 2025 Levoro – Luotettava autonkuljetus</p>
+                    <p style="margin: 0; opacity: 0.8;">© 2025 Levoro - Tiyouba Oy | Y-tunnus: 1541430-2</p>
                 </div>
             </div>
         </div>

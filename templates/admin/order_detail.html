@@ -40,7 +40,7 @@
                     </div>
                     <div class="info-item">
                         <span class="info-label">Hinta:</span>
-                        <span class="info-value">{{ "%.2f"|format(order.price_gross or 0) }} €</span>
+                        <span class="info-value">{{ (order.price_gross or 0)|format_price_with_vat|safe }}</span>
                     </div>
                     <div class="info-item">
                         <span class="info-label">Noutopäivä:</span>
@@ -53,17 +53,31 @@
                 <h3>Tilaustoiminnot</h3>
 
                 {% if order.status == 'NEW' %}
-                <form method="POST" action="{{ url_for('admin.confirm_order', order_id=order.id) }}" class="confirm-order-form">
-                    <button type="submit" class="btn btn-success" data-tooltip="true">
-                        ✅ Vahvista tilaus
-                    </button>
-                    <div class="tooltip-content">
-                        Tilauksen vahvistaminen:<br>
+                <div style="background: #fef3c7; border: 2px solid #f59e0b; border-radius: 8px; padding: 20px; margin-bottom: 20px;">
+                    <h4 style="margin-top: 0; color: #92400e;">⚠️ Toimenpide vaaditaan</h4>
+                    <p style="margin: 8px 0; color: #78350f;">Tämä tilaus odottaa vahvistusta. Vahvista tilaus julkaistaksesi sen kuljettajille.</p>
+                    <form method="POST" action="{{ url_for('admin.confirm_order', order_id=order.id) }}" class="confirm-order-form" style="margin-top: 16px;">
+                        <button type="submit" class="btn btn-success" style="font-size: 16px; padding: 12px 24px;">
+                            ✅ Vahvista tilaus ja julkaise kuljettajille
+                        </button>
+                    </form>
+                    <div style="margin-top: 12px; font-size: 0.9em; color: #78350f;">
+                        <strong>Vahvistamisen jälkeen:</strong><br>
                         • Asiakas saa vahvistusviestin sähköpostiin<br>
-                        • Tilaus tulee näkyviin kuljettajien saatavilla oleviin töihin<br>
+                        • Tilaus tulee näkyviin kuljettajien "Saatavilla olevat työt" -listaan<br>
                         • Kuljettajat voivat ottaa tilauksen vastaan
                     </div>
-                </form>
+                </div>
+                {% elif order.status == 'CONFIRMED' and not order.driver_id %}
+                <div style="background: #dcfce7; border: 2px solid #22c55e; border-radius: 8px; padding: 20px; margin-bottom: 20px;">
+                    <h4 style="margin-top: 0; color: #166534;">👁️ Julkaistu kuljettajille</h4>
+                    <p style="margin: 8px 0; color: #166534;">Tämä tilaus on näkyvissä kuljettajille ja odottaa että kuljettaja ottaa sen vastaan.</p>
+                </div>
+                {% elif order.driver_id %}
+                <div style="background: #e0e7ff; border: 2px solid #6366f1; border-radius: 8px; padding: 20px; margin-bottom: 20px;">
+                    <h4 style="margin-top: 0; color: #3730a3;">🔒 Kuljettaja määritetty</h4>
+                    <p style="margin: 8px 0; color: #3730a3;">Kuljettaja on ottanut tämän tilauksen vastaan ja suorittaa kuljetusta.</p>
+                </div>
                 {% endif %}
 
                 <h4>Päivitä tila</h4>

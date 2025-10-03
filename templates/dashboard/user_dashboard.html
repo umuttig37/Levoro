@@ -99,7 +99,11 @@
                     {{ "%.1f"|format(order.distance_km|float) }} km
                   </td>
                   <td style="padding: 1rem; border-bottom: 1px solid #e5e7eb; color: #111827; font-size: 0.875rem; font-weight: 600; background: rgba(255, 255, 255, 0.9); vertical-align: middle; text-align: right;">
-                    {{ "%.2f"|format(order.price_gross|float) }} €
+                    <div style="line-height: 1.2;">
+                      <div style="font-size: 1.3rem; font-weight: 800;">{{ "%.2f"|format((order.price_gross|float) / 1.255) }} €</div>
+                      <div style="font-size: 0.85rem; font-weight: 700; margin-bottom: 4px;">+ ALV 0%</div>
+                      <div style="font-size: 0.65rem; color: #6b7280; font-weight: 400; opacity: 0.6;">ALV 25,5%: {{ "%.2f"|format((order.price_gross|float) - ((order.price_gross|float) / 1.255)) }} € | Yhteensä: {{ "%.2f"|format(order.price_gross|float) }} €</div>
+                    </div>
                   </td>
                   <td style="padding: 1rem; border-bottom: 1px solid #e5e7eb; color: #111827; font-size: 0.875rem; font-weight: 500; background: rgba(255, 255, 255, 0.9); vertical-align: middle; text-align: center;">
                     <a style="display: inline-flex; align-items: center; padding: 0.5rem 0.75rem; background: #3b82f6; color: #ffffff; text-decoration: none; border-radius: 0.5rem; font-size: 0.75rem; font-weight: 500; transition: all 0.15s ease-in-out; border: none; cursor: pointer; white-space: nowrap;"

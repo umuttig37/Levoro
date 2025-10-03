@@ -58,8 +58,20 @@ def approve_user():
 def deny_user():
     """Deny/delete a user"""
     from app import users_col
+    from models.user import user_model
+    from models.driver_application import driver_application_model
 
     user_id = int(request.form.get("user_id"))
+
+    # Get user details before deletion (to find corresponding application)
+    user = user_model.find_by_id(user_id)
+
+    if user:
+        # If this is a driver, also delete their driver application record
+        if user.get('role') == 'driver' and user.get('email'):
+            driver_app = driver_application_model.find_by_email(user['email'])
+            if driver_app:
+                driver_application_model.delete_one({"id": driver_app['id']})
 
     # Delete the user completely
     result = users_col().delete_one({"id": user_id})

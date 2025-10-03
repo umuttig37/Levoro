@@ -85,7 +85,7 @@
               <td>#{{ order.id }}</td>
               <td>{{ order.pickup_address }} → {{ order.dropoff_address }}</td>
               <td>{{ "%.1f"|format(order.distance_km) }} km</td>
-              <td>{{ "%.2f"|format(order.price_gross) }} €</td>
+              <td><strong style="font-size: 1.1em;">{{ "%.2f"|format(order.price_gross / 1.255) }} €</strong> <span style="font-size: 0.85em; opacity: 0.7;">+ ALV 0%</span></td>
               <td>
                 <form method="POST" action="{{ url_for('admin.assign_driver') }}" style="display: inline;">
                   <input type="hidden" name="order_id" value="{{ order.id }}">

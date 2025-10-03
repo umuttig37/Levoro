@@ -160,7 +160,7 @@
 <body>
     <div class="email-container">
         <div class="header {{ new_status.lower() }}">
-            <h1>📦 Tilauksen päivitys</h1>
+            <h1> Tilauksen päivitys</h1>
             <div class="status-badge">{{ order.status }}</div>
         </div>
 
@@ -205,6 +205,17 @@
                 <div class="detail-row">
                     <div class="detail-label">Ajoneuvo:</div>
                     <div class="detail-value">{{ order.vehicle_make }} {{ order.vehicle_model }}</div>
+                </div>
+                {% endif %}
+
+                {% if order.price_gross %}
+                <div class="detail-row" style="padding: 12px 0; border-top: 2px solid #cbd5e0; margin-top: 8px;">
+                    <div class="detail-label" style="font-size: 14px; font-weight: 600;">Hinta:</div>
+                    <div class="detail-value"><strong style="font-size: 24px; color: #1a365d;">{{ "%.2f"|format(order.price_gross / 1.255) }} € <span style="font-size: 14px; font-weight: 700;">+ ALV 0%</span></strong></div>
+                </div>
+                <div class="detail-row" style="padding: 2px 0; opacity: 0.55;">
+                    <div class="detail-label" style="font-size: 10px;">ALV 25,5%: {{ "%.2f"|format(order.price_gross - (order.price_gross / 1.255)) }} €</div>
+                    <div class="detail-value" style="font-size: 10px;">Yhteensä sis. ALV: {{ "%.2f"|format(order.price_gross) }} €</div>
                 </div>
                 {% endif %}
             </div>

@@ -38,13 +38,13 @@
   <!-- Tab Navigation -->
   <div class="driver-tabs">
     <div class="driver-tabs-header">
-      <button class="driver-tab-button active" data-tab="active">
+      <button class="driver-tab-button" data-tab="active">
         Aktiiviset työt
         {% if active_jobs|length > 0 %}
         <span class="driver-tab-badge">{{ active_jobs|length }}</span>
         {% endif %}
       </button>
-      <button class="driver-tab-button" data-tab="available">
+      <button class="driver-tab-button active" data-tab="available">
         Saatavilla
         {% if available_jobs|length > 0 %}
         <span class="driver-tab-badge">{{ available_jobs|length }}</span>
@@ -59,7 +59,7 @@
     </div>
 
     <!-- Active Jobs Tab Content -->
-    <div class="driver-tab-content active" id="tab-active">
+    <div class="driver-tab-content" id="tab-active">
       {% if active_jobs %}
       <div class="driver-section-body">
         <div class="driver-job-list">
@@ -71,7 +71,7 @@
                 <p class="driver-job-route">{{ job.pickup_address }} → {{ job.dropoff_address }}</p>
                 <div class="driver-job-meta">
                   <span>{{ job.distance_km|round(1) }} km</span>
-                  <span>{{ job.price_gross|round(2) }} €</span>
+                  <span><strong>{{ "%.2f"|format((job.price_gross|float) / 1.255) }} € + ALV 0%</strong></span>
                 </div>
               </div>
               <div class="driver-job-actions">
@@ -103,7 +103,7 @@
     </div>
 
     <!-- Available Jobs Tab Content -->
-    <div class="driver-tab-content" id="tab-available">
+    <div class="driver-tab-content active" id="tab-available">
       {% if available_jobs %}
       <div class="driver-section-body">
         <div class="driver-job-list">
@@ -115,7 +115,7 @@
                 <p class="driver-job-route">{{ job.pickup_address|extract_city }} → {{ job.dropoff_address|extract_city }}</p>
                 <div class="driver-job-meta">
                   <span>{{ job.distance_km|round(1) }} km</span>
-                  <span>{{ job.price_gross|round(2) }} €</span>
+                  <span><strong>{{ "%.2f"|format((job.price_gross|float) / 1.255) }} € + ALV 0%</strong></span>
                   <span>Luotu: {{ job.created_at|helsinki_time if job.created_at else 'Tuntematon' }}</span>
                 </div>
               </div>
@@ -153,7 +153,7 @@
                 <p class="driver-job-route">{{ job.pickup_address }} → {{ job.dropoff_address }}</p>
                 <div class="driver-job-meta">
                   <span>{{ job.distance_km|round(1) }} km</span>
-                  <span>{{ job.price_gross|round(2) }} €</span>
+                  <span><strong>{{ "%.2f"|format((job.price_gross|float) / 1.255) }} € + ALV 0%</strong></span>
                   {% if job.delivery_completed %}
                   <span>Valmistunut: {{ job.delivery_completed|helsinki_time if job.delivery_completed else '-' }}</span>
                   {% endif %}

@@ -90,7 +90,7 @@
               </div>
               <div>
                 <label class="form-label">Hinta</label>
-                <p class="text-primary">{{ order.price_gross|round(2) }} €</p>
+                <p class="text-primary">{{ order.price_gross|format_price_with_vat|safe }}</p>
               </div>
             </div>
           </div>

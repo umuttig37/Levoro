@@ -1926,3 +1926,61 @@ input[type="file"]::file-selector-button {
         display: block;
     }
 }
+/* ==========================================================================
+   Visibility Badges for Admin Dashboard
+   ========================================================================== */
+
+.visibility-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-1);
+    padding: var(--space-1) var(--space-3);
+    border-radius: var(--radius-full);
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-semibold);
+    border: 2px solid;
+    white-space: nowrap;
+}
+
+.visibility-badge.visible {
+    background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%);
+    color: #166534;
+    border-color: #22c55e;
+}
+
+.visibility-badge.hidden {
+    background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+    color: #92400e;
+    border-color: #fbbf24;
+}
+
+.visibility-badge.assigned {
+    background: linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%);
+    color: #3730a3;
+    border-color: #6366f1;
+}
+
+/* ==========================================================================
+   Role Badges for Admin User List
+   ========================================================================== */
+
+.pill.role-admin {
+    background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+    color: #1e40af;
+    border: 2px solid #3b82f6;
+    font-weight: var(--font-weight-bold);
+}
+
+.pill.role-driver {
+    background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+    color: #92400e;
+    border: 2px solid #f59e0b;
+    font-weight: var(--font-weight-bold);
+}
+
+.pill.role-customer {
+    background: linear-gradient(135deg, #f3e8ff 0%, #e9d5ff 100%);
+    color: #6b21a8;
+    border: 2px solid #a855f7;
+    font-weight: var(--font-weight-bold);
+}
