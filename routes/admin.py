@@ -371,6 +371,93 @@ def upload_order_image(order_id):
     return redirect(url_for("admin.order_detail", order_id=order_id))
 
 
+@admin_bp.route("/api/order/<int:order_id>/upload", methods=["POST"])
+@admin_required
+def upload_order_image_ajax(order_id):
+    """AJAX endpoint for uploading images (supports multiple uploads without page reload)"""
+    admin_user = auth_service.get_current_user()
+    image_type = request.form.get('image_type')
+
+    # Validation
+    if image_type not in ['pickup', 'delivery']:
+        return jsonify({'success': False, 'error': 'Virheellinen kuvatyyppi'}), 400
+
+    if 'image' not in request.files:
+        return jsonify({'success': False, 'error': 'Kuvaa ei valittu'}), 400
+
+    file = request.files['image']
+    if file.filename == '':
+        return jsonify({'success': False, 'error': 'Kuvaa ei valittu'}), 400
+
+    # Check image limit
+    can_add, limit_error = image_service.validate_image_limit(order_id, image_type, max_images=15)
+    if not can_add:
+        return jsonify({'success': False, 'error': limit_error}), 400
+
+    # Save and process image using ImageService
+    image_info, error = image_service.save_order_image(file, order_id, image_type, admin_user.get('email', 'admin'))
+
+    if error:
+        return jsonify({'success': False, 'error': error}), 400
+
+    # Add image to order using ImageService
+    success, add_error = image_service.add_image_to_order(order_id, image_type, image_info)
+
+    if not success:
+        return jsonify({'success': False, 'error': add_error}), 500
+
+    # Get current image count
+    from models.order import order_model
+    order = order_model.find_by_id(order_id)
+    current_images = order.get('images', {}).get(image_type, [])
+
+    image_type_fi = 'Nouto' if image_type == 'pickup' else 'Toimitus'
+    message = f'{image_type_fi}kuva lisätty onnistuneesti'
+
+    return jsonify({
+        'success': True,
+        'message': message,
+        'image': image_info,
+        'image_count': len(current_images)
+    })
+
+
+@admin_bp.route("/api/order/<int:order_id>/image/<string:image_type>/<string:image_id>", methods=["DELETE"])
+@admin_required
+def delete_order_image_ajax(order_id, image_type, image_id):
+    """AJAX endpoint for deleting images"""
+
+    # Validation
+    if image_type not in ['pickup', 'delivery']:
+        return jsonify({'success': False, 'error': 'Virheellinen kuvatyyppi'}), 400
+
+    # Delete image using ImageService
+    success, message = image_service.delete_order_image(order_id, image_type, image_id)
+
+    if not success:
+        # Translate error messages to Finnish
+        finnish_message = message
+        if "Order or image not found" in message:
+            finnish_message = "Tilausta tai kuvaa ei löytynyt"
+        elif "Image not found" in message:
+            finnish_message = "Kuvaa ei löytynyt"
+        elif "Delete failed" in message:
+            finnish_message = "Poisto epäonnistui"
+
+        return jsonify({'success': False, 'error': finnish_message}), 400
+
+    # Get updated image count
+    from models.order import order_model
+    order = order_model.find_by_id(order_id)
+    current_images = order.get('images', {}).get(image_type, [])
+
+    return jsonify({
+        'success': True,
+        'message': 'Kuva poistettu',
+        'image_count': len(current_images)
+    })
+
+
 @admin_bp.route("/order/<int:order_id>/image/<image_type>/delete", methods=["POST"])
 @admin_required
 def delete_order_image(order_id, image_type):

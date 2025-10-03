@@ -91,6 +91,31 @@
     color: var(--color-white, #fff);
 }
 
+.status-badge.status-assigned_to_driver {
+    background: #6366f1;
+    color: var(--color-white, #fff);
+}
+
+.status-badge.status-driver_arrived {
+    background: #0ea5e9;
+    color: var(--color-white, #fff);
+}
+
+.status-badge.status-pickup_images_added {
+    background: #06b6d4;
+    color: var(--color-white, #fff);
+}
+
+.status-badge.status-delivery_arrived {
+    background: #0ea5e9;
+    color: var(--color-white, #fff);
+}
+
+.status-badge.status-delivery_images_added {
+    background: #06b6d4;
+    color: var(--color-white, #fff);
+}
+
 .status-description {
     color: var(--color-gray-600, #4b5563);
     font-size: 1rem;

@@ -63,52 +63,5 @@
       </tbody>
     </table>
   </div>
-
-  <!-- Available Orders for Assignment -->
-  <div>
-    <h3>Saatavilla olevat tilaukset</h3>
-    <p class="text-muted">Määritä kuljettaja saataville oleviin tilauksiin</p>
-    <table class="admin-table">
-      <thead>
-        <tr>
-          <th>ID</th>
-          <th>Reitti</th>
-          <th>Matka</th>
-          <th>Hinta</th>
-          <th>Toiminnot</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% if available_orders %}
-          {% for order in available_orders %}
-            <tr>
-              <td>#{{ order.id }}</td>
-              <td>{{ order.pickup_address }} → {{ order.dropoff_address }}</td>
-              <td>{{ "%.1f"|format(order.distance_km) }} km</td>
-              <td><strong style="font-size: 1.1em;">{{ "%.2f"|format(order.price_gross / 1.255) }} €</strong> <span style="font-size: 0.85em; opacity: 0.7;">+ ALV 0%</span></td>
-              <td>
-                <form method="POST" action="{{ url_for('admin.assign_driver') }}" style="display: inline;">
-                  <input type="hidden" name="order_id" value="{{ order.id }}">
-                  <select name="driver_id" required>
-                    <option value="">Valitse kuljettaja</option>
-                    {% for driver in drivers_performance %}
-                      {% if driver.get('status') == 'active' %}
-                        <option value="{{ driver.id }}">{{ driver.name }}</option>
-                      {% endif %}
-                    {% endfor %}
-                  </select>
-                  <button type="submit" class="btn btn-sm">Määritä</button>
-                </form>
-              </td>
-            </tr>
-          {% endfor %}
-        {% else %}
-          <tr>
-            <td colspan="5" class="muted">Ei saatavilla olevia tilauksia</td>
-          </tr>
-        {% endif %}
-      </tbody>
-    </table>
-  </div>
 </div>
 {% endblock %}

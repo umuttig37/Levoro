@@ -57,7 +57,7 @@
                     <h4 style="margin-top: 0; color: #92400e;">⚠️ Toimenpide vaaditaan</h4>
                     <p style="margin: 8px 0; color: #78350f;">Tämä tilaus odottaa vahvistusta. Vahvista tilaus julkaistaksesi sen kuljettajille.</p>
                     <form method="POST" action="{{ url_for('admin.confirm_order', order_id=order.id) }}" class="confirm-order-form" style="margin-top: 16px;">
-                        <button type="submit" class="btn btn-success" style="font-size: 16px; padding: 12px 24px;">
+                        <button type="submit" class="btn btn-success" style="padding: 12px 24px; font-size: 16px; font-weight: 600; border-radius: 8px; background: #22c55e; color: white; border: none; cursor: pointer; transition: background 0.2s;">
                             ✅ Vahvista tilaus ja julkaise kuljettajille
                         </button>
                     </form>
@@ -80,10 +80,10 @@
                 </div>
                 {% endif %}
 
-                <h4>Päivitä tila</h4>
-                <form method="POST" action="/admin/update">
+                <h4 style="margin-bottom: 16px;">Päivitä tila</h4>
+                <form method="POST" action="/admin/update" style="display: flex; flex-direction: column; gap: 12px;">
                     <input type="hidden" name="id" value="{{ order.id }}">
-                    <select name="status" class="status-select">
+                    <select name="status" class="status-select" style="padding: 12px; font-size: 14px; border: 2px solid #e5e7eb; border-radius: 8px; background: white; width: 100%;">
                         <option value="NEW" {% if order.status == 'NEW' %}selected{% endif %}>UUSI</option>
                         <option value="CONFIRMED" {% if order.status == 'CONFIRMED' %}selected{% endif %}>VAHVISTETTU</option>
                         <option value="ASSIGNED_TO_DRIVER" {% if order.status == 'ASSIGNED_TO_DRIVER' %}selected{% endif %}>KULJETTAJA MÄÄRITETTY</option>
@@ -95,31 +95,20 @@
                         <option value="DELIVERED" {% if order.status == 'DELIVERED' %}selected{% endif %}>TOIMITETTU</option>
                         <option value="CANCELLED" {% if order.status == 'CANCELLED' %}selected{% endif %}>PERUUTETTU</option>
                     </select>
-                    <button type="submit" class="btn btn-primary">Päivitä</button>
+                    <button type="submit" class="btn btn-primary" style="padding: 12px 24px; font-size: 16px; font-weight: 600; border-radius: 8px; background: #3b82f6; color: white; border: none; cursor: pointer; transition: background 0.2s;">Päivitä tila</button>
                 </form>
 
-                <div class="driver-section">
-                    <h4>Kuljettaja</h4>
-                    {% if order.driver_id %}
-                        <div class="current-driver">
-                            <p><strong>Nykyinen kuljettaja:</strong> {{ order.driver_name or 'Tuntematon' }}</p>
-                            {% if order.driver_phone %}
-                            <p><strong>Puhelin:</strong> <a href="tel:{{ order.driver_phone }}">{{ order.driver_phone }}</a></p>
-                            {% endif %}
-                        </div>
-                    {% endif %}
-                    <form method="POST" action="{{ url_for('admin.assign_driver_to_order', order_id=order.id) }}">
-                        <select name="driver_id" class="status-select" required>
-                            <option value="">{{ 'Vaihda kuljettaja' if order.driver_id else 'Valitse kuljettaja' }}</option>
-                            {% for driver in available_drivers %}
-                                <option value="{{ driver.id }}" {% if driver.id == order.driver_id %}selected{% endif %}>
-                                    {{ driver.name }} - {{ driver.phone or 'Ei puhelinnumeroa' }}
-                                </option>
-                            {% endfor %}
-                        </select>
-                        <button type="submit" class="btn btn-primary">{{ 'Vaihda kuljettaja' if order.driver_id else 'Määritä kuljettaja' }}</button>
-                    </form>
+                {% if order.driver_id %}
+                <div style="margin-top: 24px; padding: 16px; background: #f3f4f6; border-radius: 8px;">
+                    <h4 style="margin-top: 0; margin-bottom: 12px; color: #111827;">Kuljettaja</h4>
+                    <div>
+                        <p style="margin: 4px 0;"><strong>Nimi:</strong> {{ order.driver_name or 'Tuntematon' }}</p>
+                        {% if order.driver_phone %}
+                        <p style="margin: 4px 0;"><strong>Puhelin:</strong> <a href="tel:{{ order.driver_phone }}" style="color: #3b82f6; text-decoration: none;">{{ order.driver_phone }}</a></p>
+                        {% endif %}
+                    </div>
                 </div>
+                {% endif %}
             </div>
         </div>
 

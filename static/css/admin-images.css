@@ -732,3 +732,175 @@
         font-size: 16px;
     }
 }
+
+/* ==========================================================================
+   AJAX Upload Queue Styles
+   ========================================================================== */
+
+.upload-queue {
+    margin-top: 1rem;
+    width: 100%;
+}
+
+.upload-item {
+    padding: 12px 16px;
+    background: #f8f9fa;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    margin-bottom: 8px;
+    transition: background-color 0.3s ease;
+}
+
+.upload-item-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.upload-filename {
+    font-weight: 500;
+    color: #333;
+    font-size: 0.9em;
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    margin-right: 12px;
+}
+
+.upload-status {
+    font-size: 0.85em;
+    color: #666;
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+.upload-progress-bar {
+    height: 4px;
+    background: #e0e0e0;
+    border-radius: 2px;
+    overflow: hidden;
+    position: relative;
+}
+
+.upload-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #007bff, #0056b3);
+    width: 0%;
+    transition: width 0.3s ease;
+    border-radius: 2px;
+}
+
+/* Success state */
+.upload-item[style*="background: #d4edda"],
+.upload-item[style*="background-color: rgb(212, 237, 218)"] {
+    background-color: #d4edda !important;
+    border-color: #c3e6cb;
+}
+
+.upload-item[style*="background: #d4edda"] .upload-progress-fill,
+.upload-item[style*="background-color: rgb(212, 237, 218)"] .upload-progress-fill {
+    background: linear-gradient(90deg, #28a745, #218838);
+}
+
+.upload-item[style*="background: #d4edda"] .upload-status,
+.upload-item[style*="background-color: rgb(212, 237, 218)"] .upload-status {
+    color: #155724;
+    font-weight: 600;
+}
+
+/* Error state */
+.upload-item[style*="background: #f8d7da"],
+.upload-item[style*="background-color: rgb(248, 215, 218)"] {
+    background-color: #f8d7da !important;
+    border-color: #f5c6cb;
+}
+
+.upload-item[style*="background: #f8d7da"] .upload-status,
+.upload-item[style*="background-color: rgb(248, 215, 218)"] .upload-status {
+    color: #721c24;
+    font-weight: 600;
+}
+
+/* Notification styles */
+.notification {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    padding: 1rem 2rem;
+    color: white;
+    border-radius: 8px;
+    z-index: 10000;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    font-weight: 500;
+    font-size: 0.95em;
+    animation: slideIn 0.3s ease-out;
+}
+
+.notification-success {
+    background: linear-gradient(135deg, #28a745, #218838);
+}
+
+.notification-error {
+    background: linear-gradient(135deg, #dc3545, #c82333);
+}
+
+.notification-info {
+    background: linear-gradient(135deg, #17a2b8, #138496);
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateX(400px);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+/* Responsive upload queue */
+@media (max-width: 768px) {
+    .upload-item {
+        padding: 10px 12px;
+    }
+
+    .upload-filename {
+        font-size: 0.85em;
+    }
+
+    .upload-status {
+        font-size: 0.75em;
+    }
+
+    .notification {
+        top: 10px;
+        right: 10px;
+        left: 10px;
+        padding: 0.75rem 1rem;
+        font-size: 0.9em;
+    }
+}
+
+@media (max-width: 480px) {
+    .upload-item {
+        padding: 8px 10px;
+    }
+
+    .upload-item-info {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 4px;
+    }
+
+    .upload-filename {
+        font-size: 0.8em;
+        margin-right: 0;
+    }
+
+    .upload-status {
+        font-size: 0.7em;
+    }
+}
