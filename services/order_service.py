@@ -7,7 +7,31 @@ import os
 import requests
 from typing import Dict, List, Optional, Tuple
 from datetime import datetime
+from decimal import Decimal, ROUND_HALF_UP
 from models.order import order_model
+
+
+def round_half_up(value: float, decimals: int = 2) -> float:
+    """
+    Round using arithmetic rounding (round half up) instead of banker's rounding.
+    This follows Finnish standard: when the next decimal is 5 or more, round up.
+
+    Examples:
+        33.885 -> 33.89 (not 33.88)
+        6.885 -> 6.89 (not 6.88)
+    """
+    if value is None:
+        return 0.0
+
+    # Convert to Decimal for precise rounding
+    decimal_value = Decimal(str(value))
+    # Create quantizer for desired precision (e.g., '0.01' for 2 decimals)
+    quantizer = Decimal(10) ** -decimals
+    # Round using ROUND_HALF_UP mode
+    rounded = decimal_value.quantize(quantizer, rounding=ROUND_HALF_UP)
+
+    return float(rounded)
+
 
 # Configuration from environment
 BASE_FEE = float(os.getenv("BASE_FEE", "49"))
@@ -160,7 +184,7 @@ class OrderService:
         # Add VAT to get gross price
         gross_price = net_price * (1 + VAT_RATE)
 
-        return round(gross_price, 2)
+        return round_half_up(gross_price, 2)
 
     def calculate_route_distance(self, pickup_addr: str, dropoff_addr: str) -> float:
         """Calculate route distance using OSRM API"""
@@ -215,7 +239,7 @@ class OrderService:
         else:
             details = "long"
 
-        return round(net_price, 2), round(vat_amount, 2), round(gross_price, 2), details
+        return round_half_up(net_price, 2), round_half_up(vat_amount, 2), round_half_up(gross_price, 2), details
 
     def get_price_quote(self, pickup_addr: str, dropoff_addr: str, return_leg: bool = False) -> Dict:
         """Get price quote for addresses"""
@@ -319,7 +343,7 @@ class OrderService:
         """Split gross price to net and VAT"""
         net = gross / (1 + VAT_RATE)
         vat = gross - net
-        return round(net, 2), round(vat, 2)
+        return round_half_up(net, 2), round_half_up(vat, 2)
 
     def assign_driver_to_order(self, order_id: int, driver_id: int) -> Tuple[bool, Optional[str]]:
         """Assign or reassign a driver to an order"""

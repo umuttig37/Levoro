@@ -8,18 +8,19 @@
   <div class="hero">
     <div class="hero-content">
       <div class="hero-badge">
-        <span aria-hidden="true">🚗</span>
+        <span aria-hidden="true"></span>
         Saman päivän auton kuljetukset
       </div>
-      <h1 class="hero-title">Samana päivänä, ja halvin.<br/>Levorolla mahdollista.</h1>
-      <p class="hero-subtitle">Suomen nopein, edullisin ja luotettavin tapa siirtää autoja. Läpinäkyvä hinnoittelu, reaaliaikainen seuranta ja helppo tilausportaali.</p>
+      <h1 class="hero-title">Samana päivänä, ja halvin.<br />Levorolla mahdollista.</h1>
+      <p class="hero-subtitle">Suomen nopein, edullisin ja luotettavin tapa siirtää autoja. Läpinäkyvä hinnoittelu,
+        reaaliaikainen seuranta ja helppo tilausportaali.</p>
       <div class="hero-actions">
         {% if not current_user or current_user.role != 'driver' %}
         <a class="btn btn-primary btn-lg" href="/calculator">Laske halvin hinta nyt</a>
         {% endif %}
         <a class="btn btn-secondary btn-lg" href="#how">Miten se toimii</a>
         {% if not current_user %}
-        <a class="btn btn-outline btn-lg" href="/hae-kuljettajaksi">🚗 Hae kuljettajaksi</a>
+        <a class="btn btn-outline btn-lg" href="/hae-kuljettajaksi">Hae kuljettajaksi</a>
         {% endif %}
       </div>
       <div class="hero-features">
@@ -41,7 +42,8 @@
       <div class="feature-card">
         <div class="feature-icon">⚡</div>
         <h3 class="feature-title">Nopeus</h3>
-        <p class="feature-description">Optimointi, eurooppalaiset vakioreitit ja oma verkosto. Useimmat toimitukset 3–5 päivässä.</p>
+        <p class="feature-description">Optimointi, eurooppalaiset vakioreitit ja oma verkosto. Useimmat toimitukset 3–5
+          päivässä.</p>
       </div>
       <div class="feature-card">
         <div class="feature-icon">💶</div>
@@ -94,7 +96,8 @@
       <div class="trust-content">
         <div class="trust-icon">
           <svg viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M12 3l7 3v5c0 5-3.5 9-7 10-3.5-1-7-5-7-10V6l7-3z" fill="none" stroke-width="2" stroke-linejoin="round"></path>
+            <path d="M12 3l7 3v5c0 5-3.5 9-7 10-3.5-1-7-5-7-10V6l7-3z" fill="none" stroke-width="2"
+              stroke-linejoin="round"></path>
             <path d="M8 12l3 3 5-5" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
           </svg>
         </div>

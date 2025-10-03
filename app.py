@@ -927,13 +927,8 @@ def submit_driver_application():
 
         # If user doesn't exist but application was approved/denied, allow re-application
         # (User was deleted, so they can re-register)
-
-    # Check if user already exists in the system (only if no existing application or user)
-    from models.user import user_model
-    existing_user = user_model.find_by_email(application_data["email"])
-    if existing_user:
-        flash("Sähköpostiosoite on jo käytössä järjestelmässä", "error")
-        return render_template('driver_application.html')
+        # Delete the old application record to avoid duplicates
+        driver_application_model.delete_one({"id": existing['id']})
 
     # Create application
     application, error = driver_application_model.create_application(application_data)

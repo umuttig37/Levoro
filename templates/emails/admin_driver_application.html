@@ -1,42 +1,60 @@
 <!DOCTYPE html>
 <html>
+
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 </head>
+
 <body style="margin: 0; padding: 0; font-family: Arial, sans-serif;">
     <div style="font-family: Arial, sans-serif; max-width: 700px; margin: 0 auto; padding: 20px;">
-        <div style="background: #dc2626; color: white; padding: 25px; border-radius: 12px; margin-bottom: 30px; text-align: center;">
-            <h1 style="margin: 0; font-size: 24px;">🚗 Uusi kuljettajahakemus</h1>
+        <div
+            style="background: #dc2626; color: white; padding: 25px; border-radius: 12px; margin-bottom: 30px; text-align: center;">
+            <h1 style="margin: 0; font-size: 24px;">Uusi kuljettajahakemus</h1>
             <p style="margin: 10px 0 0 0; opacity: 0.9;">Hakemus #{{ application.id }} odottaa käsittelyä</p>
         </div>
 
         <div style="padding: 0 20px;">
             <!-- Personal Information -->
             <div style="background: #f9fafb; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
-                <h3 style="margin-top: 0; color: #1f2937;">👤 Hakijan tiedot</h3>
+                <h3 style="margin-top: 0; color: #1f2937; border-bottom: 2px solid #e5e7eb; padding-bottom: 8px;">
+                    Hakijan tiedot</h3>
                 <table style="width: 100%; border-collapse: collapse;">
-                    <tr><td style="padding: 8px 0; font-weight: bold; width: 30%;">Nimi:</td><td style="padding: 8px 0;">{{ applicant_name }}</td></tr>
-                    <tr><td style="padding: 8px 0; font-weight: bold;">Sähköposti:</td><td style="padding: 8px 0;">{{ application.email }}</td></tr>
-                    <tr><td style="padding: 8px 0; font-weight: bold;">Puhelin:</td><td style="padding: 8px 0;">{{ application.phone }}</td></tr>
-                    <tr><td style="padding: 8px 0; font-weight: bold;">Salasana:</td><td style="padding: 8px 0;">Asetettu (käyttäjä loi oman)</td></tr>
+                    <tr>
+                        <td style="padding: 8px 0; font-weight: bold; width: 30%;">Nimi:</td>
+                        <td style="padding: 8px 0;">{{ applicant_name }}</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px 0; font-weight: bold;">Sähköposti:</td>
+                        <td style="padding: 8px 0;">{{ application.email }}</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px 0; font-weight: bold;">Puhelin:</td>
+                        <td style="padding: 8px 0;">{{ application.phone }}</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px 0; font-weight: bold;">Salasana:</td>
+                        <td style="padding: 8px 0;">Asetettu (käyttäjä loi oman)</td>
+                    </tr>
                 </table>
             </div>
 
             <div style="background: #f0fdf4; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
                 <h3 style="margin-top: 0; color: #1f2937;">ℹ️ Huomio</h3>
                 <p style="margin: 0; color: #065f46;">
-                    Hakija on luonut oman salasanan rekisteröityessään. Hyväksymisen yhteydessä käyttäjätili luodaan automaattisesti.
+                    Hakija on luonut oman salasanan rekisteröityessään. Hyväksymisen yhteydessä käyttäjätili luodaan
+                    automaattisesti.
                 </p>
             </div>
 
             <div style="text-align: center; margin-top: 30px;">
                 <a href="{{ application_url }}"
-                   style="background: #3b82f6; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600;">
+                    style="background: #3b82f6; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600;">
                     Käsittele hakemus
                 </a>
             </div>
         </div>
     </div>
 </body>
+
 </html>
