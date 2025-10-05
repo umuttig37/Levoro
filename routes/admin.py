@@ -25,8 +25,8 @@ def users():
     """Admin user management page"""
     from app import users_col
 
-    # Get all users sorted by creation date (newest first)
-    users = list(users_col().find({}, {"_id": 0}).sort("created_at", -1))
+    # Get all users EXCEPT drivers (drivers are managed separately)
+    users = list(users_col().find({"role": {"$ne": "driver"}}, {"_id": 0}).sort("created_at", -1))
 
     return render_template("admin/users.html", users=users, current_user=auth_service.get_current_user())
 
@@ -36,8 +36,15 @@ def users():
 def approve_user():
     """Approve a pending user"""
     from app import users_col
+    from models.user import user_model
 
     user_id = int(request.form.get("user_id"))
+
+    # SAFETY: Prevent approving drivers from users page
+    user = user_model.find_by_id(user_id)
+    if user and user.get('role') == 'driver':
+        flash("Kuljettajia ei voi hyväksyä täältä. Käytä Kuljettajahakemukset-sivua.", "error")
+        return redirect(url_for("admin.users"))
 
     # Update user status to active
     result = users_col().update_one(
@@ -68,6 +75,11 @@ def deny_user():
 
     if not user:
         flash("Käyttäjää ei löytynyt", "error")
+        return redirect(url_for("admin.users"))
+
+    # SAFETY: Prevent deleting drivers from users page
+    if user.get('role') == 'driver':
+        flash("Kuljettajia ei voi poistaa täältä. Käytä Kuljettajat-sivua.", "error")
         return redirect(url_for("admin.users"))
 
     user_email = user.get('email')
@@ -205,8 +217,10 @@ def approve_driver_application():
 @admin_bp.route("/driver-applications/deny", methods=["POST"])
 @admin_required
 def deny_driver_application():
-    """Deny driver application"""
+    """Deny driver application and clean up any associated driver account"""
     from models.driver_application import driver_application_model
+    from models.user import user_model
+    from app import users_col
 
     application_id = int(request.form.get("application_id"))
 
@@ -219,10 +233,25 @@ def deny_driver_application():
         flash("Hakemusta ei löytynyt tai se on jo käsitelty", "error")
         return redirect(url_for("admin.driver_applications"))
 
+    # Check if a driver user account was already created (orphaned or accidental)
+    app_email = app.get('email')
+    existing_user = user_model.find_by_email(app_email)
+
+    if existing_user and existing_user.get('role') == 'driver':
+        # Delete the orphaned driver account
+        try:
+            users_col().delete_one({"id": existing_user['id']})
+            flash(f"Hakemus hylätty ja liittyvä kuljettajatili poistettu: {app['name']}", "warning")
+        except Exception as e:
+            print(f"Failed to delete orphaned driver account: {e}")
+            flash(f"Hakemus hylätty, mutta kuljettajatilin poistaminen epäonnistui: {app['name']}", "error")
+            return redirect(url_for("admin.driver_applications"))
+    else:
+        flash(f"Hakemus hylätty: {app['name']}", "warning")
+
     # Mark application as denied
     driver_application_model.deny_application(application_id, user["id"])
 
-    flash(f"Hakemus hylätty: {app['name']}", "warning")
     return redirect(url_for("admin.driver_applications"))
 
 

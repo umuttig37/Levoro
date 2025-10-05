@@ -76,7 +76,7 @@
             <td><span class="status {{ status_class }}">{{ status_text }}</span></td>
             <td>{{ user.created_at | helsinki_time if user.created_at else '-' }}</td>
             <td>
-              {% if user.get('role') != 'admin' %}
+              {% if user.get('role') != 'admin' and user.get('role') != 'driver' %}
                 {% if is_active %}
                   <form method="POST" action="{{ url_for('admin.deny_user') }}" class="admin-inline-form">
                     <input type="hidden" name="user_id" value="{{ user.id }}">
