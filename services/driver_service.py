@@ -237,8 +237,15 @@ class DriverService:
                 return False, "Hakemus on jo käsitelty"
 
             # Check if user already exists
-            if user_model.find_by_email(application['email']):
-                return False, "Sähköposti on jo käytössä"
+            existing_user = user_model.find_by_email(application['email'])
+            if existing_user:
+                # If user exists and is a driver, application may have been approved before
+                if existing_user.get('role') == 'driver':
+                    print(f"Driver account already exists for {application['email']}, marking application as approved")
+                    driver_application_model.approve_application(application_id, session.get('user_id', 0))
+                    return True, None
+                else:
+                    return False, f"Sähköposti on jo käytössä ({existing_user.get('role')} tili)"
 
             # Generate new user ID
             from models.database import counter_manager
@@ -259,13 +266,24 @@ class DriverService:
             }
 
             # Insert user directly
+            user_created = False
             try:
                 user_model.insert_one(user_data)
+                user_created = True
+                print(f"✓ Driver account created for {application['email']} (User ID: {user_id})")
             except Exception as e:
+                print(f"✗ CRITICAL: Failed to create driver account for application #{application_id}: {str(e)}")
                 return False, f"Kuljettajatilin luominen epäonnistui: {str(e)}"
 
-            # Mark application as approved
-            driver_application_model.approve_application(application_id, session.get('user_id', 0))
+            # ONLY mark application as approved if user creation succeeded
+            if user_created:
+                try:
+                    driver_application_model.approve_application(application_id, session.get('user_id', 0))
+                    print(f"✓ Application #{application_id} marked as approved")
+                except Exception as e:
+                    print(f"✗ WARNING: User created but failed to mark application as approved: {str(e)}")
+                    # User exists but application not marked - this is recoverable
+                    # The integrity check script will detect this
 
             # Send approval email
             try:
@@ -280,6 +298,7 @@ class DriverService:
             return True, None
 
         except Exception as e:
+            print(f"✗ CRITICAL ERROR in approve_driver_application: {str(e)}")
             return False, f"Virhe hakemuksen käsittelyssä: {str(e)}"
 
 

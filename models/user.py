@@ -19,6 +19,13 @@ class UserModel(BaseModel):
         if self.find_by_email(email):
             return None, "Sähköposti on jo käytössä"
 
+        # Check if a driver application exists with this email (prevent duplicates)
+        if role != "driver":  # Only check for non-driver registrations
+            from models.driver_application import driver_application_model
+            existing_application = driver_application_model.find_by_email(email)
+            if existing_application and existing_application.get('status') == 'pending':
+                return None, "Sähköpostiosoite on jo käytössä kuljettajahakemuksessa. Odota hakemuksen käsittelyä tai ota yhteyttä tukeen."
+
         # Generate new user ID
         user_id = counter_manager.get_next_id("users")
 
