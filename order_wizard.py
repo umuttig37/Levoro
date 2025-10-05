@@ -26,7 +26,9 @@ def get_accessible_steps(session_data):
         accessible.append(3)
     if session_data.get("reg_number"):
         accessible.append(4)
-    if session_data.get("customer_name") and session_data.get("email") and session_data.get("phone"):
+    # Check for both orderer and customer required fields
+    if (session_data.get("orderer_name") and session_data.get("orderer_email") and session_data.get("orderer_phone") and
+        session_data.get("customer_name") and session_data.get("customer_email") and session_data.get("customer_phone")):
         accessible.append(5)
     if session_data.get("additional_info") is not None:  # Can be empty string
         accessible.append(6)
@@ -622,21 +624,42 @@ def order_step4():
     access_check = validate_step_access(4, session_data)
     if access_check:
         return access_check
+
     if request.method == "POST":
         d = session.get("order_draft", {})
+        # Orderer (Tilaaja) fields
+        d["orderer_name"] = request.form.get("orderer_name","").strip()
+        d["orderer_email"] = request.form.get("orderer_email","").strip()
+        d["orderer_phone"] = request.form.get("orderer_phone","").strip()
+        # Customer (Asiakas) fields
+        d["customer_reference"] = request.form.get("customer_reference","").strip()
         d["customer_name"] = request.form.get("customer_name","").strip()
-        d["company"] = request.form.get("company","").strip()
-        d["email"] = request.form.get("email","").strip()
-        d["phone"] = request.form.get("phone","").strip()
+        d["customer_phone"] = request.form.get("customer_phone","").strip()
+        d["customer_email"] = request.form.get("customer_email","").strip()
+        # Legacy field for backward compatibility
+        d["email"] = d["customer_email"]
+        d["phone"] = d["customer_phone"]
         session["order_draft"] = d
         return redirect("/order/new/step5")
 
     # Get form values from session for pre-filling
     d = session.get("order_draft", {})
+
+    # Auto-fill orderer from logged-in user if not already filled
+    if not d.get("orderer_name"):
+        d["orderer_name"] = u.get("name", "")
+        d["orderer_email"] = u.get("email", "")
+        d["orderer_phone"] = u.get("phone", "")
+        session["order_draft"] = d
+
+    orderer_name_val = (d.get("orderer_name", "") or "").replace('"', '&quot;')
+    orderer_email_val = (d.get("orderer_email", "") or "").replace('"', '&quot;')
+    orderer_phone_val = (d.get("orderer_phone", "") or "").replace('"', '&quot;')
+
+    customer_reference_val = (d.get("customer_reference", "") or "").replace('"', '&quot;')
     customer_name_val = (d.get("customer_name", "") or "").replace('"', '&quot;')
-    company_val = (d.get("company", "") or "").replace('"', '&quot;')
-    email_val = (d.get("email", "") or "").replace('"', '&quot;')
-    phone_val = (d.get("phone", "") or "").replace('"', '&quot;')
+    customer_phone_val = (d.get("customer_phone", "") or "").replace('"', '&quot;')
+    customer_email_val = (d.get("customer_email", "") or "").replace('"', '&quot;')
 
     # Check for error message and display it
     error_msg = session.pop("error_message", None)
@@ -646,14 +669,36 @@ def order_step4():
 <h2 class='card-title'>Yhteystiedot</h2>
 {error_html}
 <form method='POST' class='calculator-form'>
-  <label class='form-label'>Nimi *</label>
-  <input name='customer_name' required class='form-input' value="{customer_name_val}">
-  <label class='form-label'>Yritys</label>
-  <input name='company' class='form-input' value="{company_val}">
-  <label class='form-label'>Sähköposti *</label>
-  <input type='email' name='email' required class='form-input' value="{email_val}">
-  <label class='form-label'>Puhelin *</label>
-  <input name='phone' required class='form-input' value="{phone_val}">
+  <!-- Orderer Section -->
+  <div style='background: #f0f9ff; padding: 1.25rem; border-radius: 8px; margin-bottom: 1.5rem; border: 1px solid #bfdbfe;'>
+    <h3 style='margin-top: 0; margin-bottom: 1rem; color: #1e40af; font-size: 1.1rem; display: flex; align-items: center; gap: 0.5rem;'>
+      🏢 Tilaajan tiedot
+      <span style='font-size: 0.8rem; font-weight: normal; color: #64748b;'>(Kuka tilaa kuljetuksen)</span>
+    </h3>
+    <label class='form-label'>Tilaajan nimi *</label>
+    <input name='orderer_name' required class='form-input' value="{orderer_name_val}" placeholder="Yrityksen nimi tai yhteyshenkilö">
+    <label class='form-label'>Tilaajan sähköposti *</label>
+    <input type='email' name='orderer_email' required class='form-input' value="{orderer_email_val}" placeholder="yritys@example.com">
+    <label class='form-label'>Tilaajan puhelin *</label>
+    <input name='orderer_phone' required class='form-input' value="{orderer_phone_val}" placeholder="+358...">
+  </div>
+
+  <!-- Customer Section -->
+  <div style='background: #fefce8; padding: 1.25rem; border-radius: 8px; margin-bottom: 1.5rem; border: 1px solid #fde047;'>
+    <h3 style='margin-top: 0; margin-bottom: 1rem; color: #854d0e; font-size: 1.1rem; display: flex; align-items: center; gap: 0.5rem;'>
+      👤 Asiakkaan tiedot
+      <span style='font-size: 0.8rem; font-weight: normal; color: #64748b;'>(Kenelle auto toimitetaan)</span>
+    </h3>
+    <label class='form-label'>Asiakkaan viite / referenssi</label>
+    <input name='customer_reference' class='form-input' value="{customer_reference_val}" placeholder="Esim. tilausnumero, projektikoodi">
+    <label class='form-label'>Asiakkaan nimi *</label>
+    <input name='customer_name' required class='form-input' value="{customer_name_val}" placeholder="Vastaanottajan nimi">
+    <label class='form-label'>Asiakkaan puhelinnumero *</label>
+    <input name='customer_phone' required class='form-input' value="{customer_phone_val}" placeholder="+358...">
+    <label class='form-label'>Asiakkaan sähköposti *</label>
+    <input type='email' name='customer_email' required class='form-input' value="{customer_email_val}" placeholder="asiakas@example.com">
+  </div>
+
   <div class='row calculator-actions'>
     <button type='button' onclick='window.location.href="/order/new/step3"' class='btn btn-ghost'>← Takaisin</button>
     <button type='submit' class='btn btn-primary'>Jatka →</button>
@@ -701,7 +746,9 @@ def order_confirm():
     if access_check:
         return access_check
     d = session.get("order_draft", {})
-    required = ["pickup","dropoff","reg_number","customer_name","email","phone"]
+    required = ["pickup","dropoff","reg_number",
+                "orderer_name","orderer_email","orderer_phone",
+                "customer_name","customer_email","customer_phone"]
 
     # Check which fields are missing and redirect to appropriate step
     missing_fields = [k for k in required if not d.get(k)]
@@ -722,10 +769,15 @@ def order_confirm():
         elif "reg_number" in missing_fields:
             session["error_message"] = "Ajoneuvon rekisterinumero puuttuu. Täytä rekisterinumero."
             return redirect("/order/new/step3")
-        elif any(field in missing_fields for field in ["customer_name", "email", "phone"]):
-            missing_contact_fields = [f for f in ["customer_name", "email", "phone"] if f in missing_fields]
-            field_names = {"customer_name": "nimi", "email": "sähköposti", "phone": "puhelinnumero"};
-            missing_names = [field_names[f] for f in missing_contact_fields];
+        elif any(field in missing_fields for field in ["orderer_name", "orderer_email", "orderer_phone",
+                                                        "customer_name", "customer_email", "customer_phone"]):
+            missing_contact_fields = [f for f in ["orderer_name", "orderer_email", "orderer_phone",
+                                                   "customer_name", "customer_email", "customer_phone"] if f in missing_fields]
+            field_names = {
+                "orderer_name": "tilaajan nimi", "orderer_email": "tilaajan sähköposti", "orderer_phone": "tilaajan puhelinnumero",
+                "customer_name": "asiakkaan nimi", "customer_email": "asiakkaan sähköposti", "customer_phone": "asiakkaan puhelinnumero"
+            }
+            missing_names = [field_names[f] for f in missing_contact_fields]
             session["error_message"] = f"Yhteystiedot puuttuvat: {', '.join(missing_names)}. Täytä puuttuvat tiedot."
             return redirect("/order/new/step4")
 
@@ -754,10 +806,22 @@ def order_confirm():
             "reg_number": d.get("reg_number"),
             "pickup_date": d.get("pickup_date") or None,
 
+            # Orderer (Tilaaja) information
+            "orderer_name": d.get("orderer_name"),
+            "orderer_email": d.get("orderer_email"),
+            "orderer_phone": d.get("orderer_phone"),
+
+            # Customer (Asiakas) information
+            "customer_reference": d.get("customer_reference"),
             "customer_name": d.get("customer_name"),
+            "customer_phone": d.get("customer_phone"),
+            "customer_email": d.get("customer_email"),
+
+            # Legacy fields for backward compatibility
+            "email": d.get("customer_email"),
+            "phone": d.get("customer_phone"),
             "company": d.get("company"),
-            "email": d.get("email"),
-            "phone": d.get("phone"),
+
             "additional_info": d.get("additional_info"),
 
             "distance_km": float(round(km, 2)),
@@ -796,7 +860,8 @@ def order_confirm():
     <div class='confirmation-card'><h3 class='confirmation-title'>Nouto</h3><p class='confirmation-text'>{d.get('pickup')}</p><p class='confirmation-meta'>{d.get('pickup_date') or 'Heti'}</p></div>
     <div class='confirmation-card'><h3 class='confirmation-title'>Toimitus</h3><p class='confirmation-text'>{d.get('dropoff')}</p></div>
     <div class='confirmation-card'><h3 class='confirmation-title'>Ajoneuvo</h3><p class='confirmation-text'>Rekisteri: {d.get('reg_number')}</p><p class='confirmation-meta'>Talvirenkaat: {"Kyllä" if d.get('winter_tires') else "Ei"}</p></div>
-    <div class='confirmation-card'><h3 class='confirmation-title'>Yhteystiedot</h3><p class='confirmation-text'>{d.get('customer_name')} ({d.get('company') or '-'})</p><p class='confirmation-meta'>{d.get('email')} / {d.get('phone')}</p></div>
+    <div class='confirmation-card'><h3 class='confirmation-title'>🏢 Tilaaja</h3><p class='confirmation-text'>{d.get('orderer_name')}</p><p class='confirmation-meta'>{d.get('orderer_email')} / {d.get('orderer_phone')}</p></div>
+    <div class='confirmation-card'><h3 class='confirmation-title'>👤 Asiakas</h3><p class='confirmation-text'>{d.get('customer_name')}</p><p class='confirmation-meta'>Viite: {d.get('customer_reference') or '-'}</p><p class='confirmation-meta'>{d.get('customer_email')} / {d.get('customer_phone')}</p></div>
     <div class='confirmation-card'><h3 class='confirmation-title'>Lisätiedot</h3><p class='confirmation-text'>{(d.get('additional_info') or '-').replace('<','&lt;')}</p></div>
   </div>
   <div class='confirmation-map-container'>

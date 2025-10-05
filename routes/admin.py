@@ -56,7 +56,7 @@ def approve_user():
 @admin_bp.route("/users/deny", methods=["POST"])
 @admin_required
 def deny_user():
-    """Deny/delete a user"""
+    """Deny/delete a user with comprehensive cleanup"""
     from app import users_col
     from models.user import user_model
     from models.driver_application import driver_application_model
@@ -66,18 +66,44 @@ def deny_user():
     # Get user details before deletion (to find corresponding application)
     user = user_model.find_by_id(user_id)
 
-    if user:
-        # If this is a driver, also delete their driver application record
-        if user.get('role') == 'driver' and user.get('email'):
-            driver_app = driver_application_model.find_by_email(user['email'])
+    if not user:
+        flash("Käyttäjää ei löytynyt", "error")
+        return redirect(url_for("admin.users"))
+
+    user_email = user.get('email')
+    user_role = user.get('role')
+    deletion_successful = True
+    app_deletion_successful = True
+
+    # If this is a driver, delete their driver application record first
+    if user_role == 'driver' and user_email:
+        try:
+            driver_app = driver_application_model.find_by_email(user_email)
             if driver_app:
-                driver_application_model.delete_one({"id": driver_app['id']})
+                result = driver_application_model.delete_one({"id": driver_app['id']})
+                if not result:
+                    app_deletion_successful = False
+                    print(f"Warning: Failed to delete driver application for {user_email}")
+            else:
+                print(f"Info: No driver application found for {user_email} (this is OK)")
+        except Exception as e:
+            app_deletion_successful = False
+            print(f"Error deleting driver application for {user_email}: {str(e)}")
 
-    # Delete the user completely
-    result = users_col().delete_one({"id": user_id})
+    # Delete the user from users collection
+    try:
+        result = users_col().delete_one({"id": user_id})
+        if result.deleted_count == 0:
+            deletion_successful = False
+    except Exception as e:
+        deletion_successful = False
+        print(f"Error deleting user {user_id}: {str(e)}")
 
-    if result.deleted_count > 0:
-        flash("Käyttäjä poistettu onnistuneesti", "success")
+    # Provide appropriate feedback
+    if deletion_successful and app_deletion_successful:
+        flash("Käyttäjä ja siihen liittyvät tiedot poistettu onnistuneesti", "success")
+    elif deletion_successful and not app_deletion_successful:
+        flash("Käyttäjä poistettu, mutta kuljettajahakemuksen poisto epäonnistui. Ota yhteyttä ylläpitäjään.", "warning")
     else:
         flash("Käyttäjän poistaminen epäonnistui", "error")
 
@@ -292,6 +318,8 @@ def order_detail(order_id):
             "distance_km": 1, "price_gross": 1,
             "reg_number": 1, "winter_tires": 1, "pickup_date": 1,
             "extras": 1, "images": 1,
+            "orderer_name": 1, "orderer_email": 1, "orderer_phone": 1,
+            "customer_name": 1, "customer_email": 1, "customer_phone": 1, "customer_reference": 1,
             "user_name": "$user.name",
             "user_email": "$user.email",
             "driver_name": "$driver.name",

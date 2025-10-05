@@ -74,19 +74,6 @@
       </div>
     </div> -->
 
-    <!-- CTA Section -->
-    <div class="text-center section-padding">
-      <p class="text-muted" style="margin-bottom: 1rem;">Onko sinulla jo tili?</p>
-      <div class="flex justify-center gap-4 footer-cta">
-        {% if not current_user %}
-        <a href="/login" class="btn btn-ghost">Kirjaudu sisään</a>
-        <a href="/register" class="btn btn-ghost">Luo yritystili</a>
-        {% else %}
-        <a href="/calculator" class="btn btn-primary">Laske hinta</a>
-        <a href="/order/new/step1" class="btn btn-secondary">Uusi tilaus</a>
-        {% endif %}
-      </div>
-    </div>
   </div>
 </div>
 {% endblock %}

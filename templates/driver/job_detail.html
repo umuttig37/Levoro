@@ -64,33 +64,33 @@
           <h2 class="card-title">Reittitiedot</h2>
         </div>
         <div class="card-body">
-          <div class="space-y-4">
+          <div style="display: flex; flex-direction: column; gap: 0.75rem;">
             <div>
-              <label class="form-label">Noutopaikka</label>
+              <label class="form-label" style="margin-bottom: 0.125rem; font-size: 0.75rem;">Noutopaikka</label>
               {% if order.driver_id == driver.id %}
-              <p class="text-primary">{{ order.pickup_address }}</p>
+              <p class="text-primary" style="margin: 0; font-size: 0.875rem;">{{ order.pickup_address }}</p>
               {% else %}
-              <p class="text-primary">{{ order.pickup_address|extract_city }}</p>
-              <p class="text-xs text-muted">Tarkka osoite näkyy kun otat työn vastaan</p>
+              <p class="text-primary" style="margin: 0; font-size: 0.875rem;">{{ order.pickup_address|extract_city }}</p>
+              <p class="text-xs text-muted" style="margin: 0.125rem 0 0 0; font-size: 0.7rem;">Tarkka osoite näkyy kun otat työn vastaan</p>
               {% endif %}
             </div>
             <div>
-              <label class="form-label">Toimituspaikka</label>
+              <label class="form-label" style="margin-bottom: 0.125rem; font-size: 0.75rem;">Toimituspaikka</label>
               {% if order.driver_id == driver.id %}
-              <p class="text-primary">{{ order.dropoff_address }}</p>
+              <p class="text-primary" style="margin: 0; font-size: 0.875rem;">{{ order.dropoff_address }}</p>
               {% else %}
-              <p class="text-primary">{{ order.dropoff_address|extract_city }}</p>
-              <p class="text-xs text-muted">Tarkka osoite näkyy kun otat työn vastaan</p>
+              <p class="text-primary" style="margin: 0; font-size: 0.875rem;">{{ order.dropoff_address|extract_city }}</p>
+              <p class="text-xs text-muted" style="margin: 0.125rem 0 0 0; font-size: 0.7rem;">Tarkka osoite näkyy kun otat työn vastaan</p>
               {% endif %}
             </div>
-            <div class="grid cols-2 gap-4">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
               <div>
-                <label class="form-label">Matka</label>
-                <p class="text-primary">{{ order.distance_km|round(1) }} km</p>
+                <label class="form-label" style="margin-bottom: 0.125rem; font-size: 0.75rem;">Matka</label>
+                <p class="text-primary" style="margin: 0; font-size: 0.875rem;">{{ order.distance_km|round(1) }} km</p>
               </div>
               <div>
-                <label class="form-label">Hinta</label>
-                <p class="text-primary">{{ order.price_gross|format_price_with_vat|safe }}</p>
+                <label class="form-label" style="margin-bottom: 0.125rem; font-size: 0.75rem;">Hinta</label>
+                <p class="text-primary" style="margin: 0; font-size: 0.875rem;">{{ order.price_gross|format_price_with_vat|safe }}</p>
               </div>
             </div>
           </div>
@@ -104,19 +104,91 @@
           <h2 class="card-title">Ajoneuvotiedot</h2>
         </div>
         <div class="card-body">
-          <div class="space-y-3">
+          <div style="display: flex; flex-direction: column; gap: 0.5rem;">
             {% if order.reg_number %}
             <div>
-              <label class="form-label">Rekisterinumero</label>
-              <p class="text-primary">{{ order.reg_number }}</p>
+              <label class="form-label" style="margin-bottom: 0.125rem; font-size: 0.75rem;">Rekisterinumero</label>
+              <p class="text-primary" style="margin: 0; font-size: 0.875rem;">{{ order.reg_number }}</p>
             </div>
             {% endif %}
             {% if order.winter_tires is not none %}
             <div>
-              <label class="form-label">Talvirenkaat</label>
-              <p class="text-primary">{{ "Kyllä" if order.winter_tires else "Ei" }}</p>
+              <label class="form-label" style="margin-bottom: 0.125rem; font-size: 0.75rem;">Talvirenkaat</label>
+              <p class="text-primary" style="margin: 0; font-size: 0.875rem;">{{ "Kyllä" if order.winter_tires else "Ei" }}</p>
             </div>
             {% endif %}
+          </div>
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- Contact Information - Only show if job is accepted -->
+      {% if order.driver_id == driver.id and order.status != 'NEW' %}
+      <div class="card mb-6">
+        <div class="card-header">
+          <h2 class="card-title">Yhteystiedot</h2>
+        </div>
+        <div class="card-body">
+          <div class="space-y-3">
+            <!-- Orderer Section -->
+            <div style="background: #f0f9ff; padding: 0.75rem; border-radius: 6px; border: 1px solid #bfdbfe;">
+              <h3 style="margin: 0 0 0.5rem 0; color: #1e40af; font-size: 0.875rem; font-weight: 600;">
+                🏢 Tilaaja
+              </h3>
+              <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                <div>
+                  <label class="form-label" style="margin-bottom: 0.125rem; font-size: 0.75rem;">Nimi</label>
+                  <p class="text-primary" style="margin: 0; font-size: 0.875rem;">{{ order.orderer_name or order.user_name or '-' }}</p>
+                </div>
+                <div>
+                  <label class="form-label" style="margin-bottom: 0.125rem; font-size: 0.75rem;">Sähköposti</label>
+                  <p class="text-primary" style="margin: 0; font-size: 0.875rem;">{{ order.orderer_email or order.user_email or '-' }}</p>
+                </div>
+                <div>
+                  <label class="form-label" style="margin-bottom: 0.125rem; font-size: 0.75rem;">Puhelin</label>
+                  <p class="text-primary" style="margin: 0; font-size: 0.875rem;">
+                    {% if order.orderer_phone %}
+                      <a href="tel:{{ order.orderer_phone }}" style="color: #2563eb; text-decoration: none;">{{ order.orderer_phone }}</a>
+                    {% else %}
+                      -
+                    {% endif %}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Customer Section -->
+            <div style="background: #fefce8; padding: 0.75rem; border-radius: 6px; border: 1px solid #fde047;">
+              <h3 style="margin: 0 0 0.5rem 0; color: #854d0e; font-size: 0.875rem; font-weight: 600;">
+                👤 Asiakas (vastaanottaja)
+              </h3>
+              <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                {% if order.customer_reference %}
+                <div>
+                  <label class="form-label" style="margin-bottom: 0.125rem; font-size: 0.75rem;">Asiakkaan viite</label>
+                  <p class="text-primary" style="margin: 0; font-size: 0.875rem;">{{ order.customer_reference }}</p>
+                </div>
+                {% endif %}
+                <div>
+                  <label class="form-label" style="margin-bottom: 0.125rem; font-size: 0.75rem;">Nimi</label>
+                  <p class="text-primary" style="margin: 0; font-size: 0.875rem;">{{ order.customer_name or '-' }}</p>
+                </div>
+                <div>
+                  <label class="form-label" style="margin-bottom: 0.125rem; font-size: 0.75rem;">Puhelinnumero</label>
+                  <p class="text-primary" style="margin: 0; font-size: 0.875rem;">
+                    {% if order.customer_phone or order.phone %}
+                      <a href="tel:{{ order.customer_phone or order.phone }}" style="color: #854d0e; text-decoration: none;">{{ order.customer_phone or order.phone }}</a>
+                    {% else %}
+                      -
+                    {% endif %}
+                  </p>
+                </div>
+                <div>
+                  <label class="form-label" style="margin-bottom: 0.125rem; font-size: 0.75rem;">Sähköposti</label>
+                  <p class="text-primary" style="margin: 0; font-size: 0.875rem;">{{ order.customer_email or order.email or '-' }}</p>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -129,17 +201,17 @@
           <h2 class="card-title">Lisätiedot</h2>
         </div>
         <div class="card-body">
-          <div class="space-y-3">
+          <div style="display: flex; flex-direction: column; gap: 0.5rem;">
             {% if order.pickup_date %}
             <div>
-              <label class="form-label">Toivottu noutopäivä</label>
-              <p class="text-primary">{{ order.pickup_date }}</p>
+              <label class="form-label" style="margin-bottom: 0.125rem; font-size: 0.75rem;">Toivottu noutopäivä</label>
+              <p class="text-primary" style="margin: 0; font-size: 0.875rem;">{{ order.pickup_date }}</p>
             </div>
             {% endif %}
             {% if order.extras %}
             <div>
-              <label class="form-label">Lisätiedot</label>
-              <p class="text-primary">{{ order.extras }}</p>
+              <label class="form-label" style="margin-bottom: 0.125rem; font-size: 0.75rem;">Lisätiedot</label>
+              <p class="text-primary" style="margin: 0; font-size: 0.875rem;">{{ order.extras }}</p>
             </div>
             {% endif %}
           </div>

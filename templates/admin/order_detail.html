@@ -19,10 +19,34 @@
                 <h3>Tilauksen tiedot</h3>
                 <div class="info-grid">
                     <div class="info-item">
-                        <span class="info-label">Asiakas:</span>
-                        <span class="info-value">{{ order.user_name or 'Tuntematon' }} ({{ order.user_email or 'Tuntematon' }})</span>
+                        <span class="info-label">🏢 Tilaaja:</span>
+                        <span class="info-value">{{ order.orderer_name or order.user_name or 'Tuntematon' }}</span>
                     </div>
                     <div class="info-item">
+                        <span class="info-label">Tilaajan sähköposti:</span>
+                        <span class="info-value">{{ order.orderer_email or order.user_email or 'Tuntematon' }}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Tilaajan puhelin:</span>
+                        <span class="info-value">{{ order.orderer_phone or '-' }}</span>
+                    </div>
+                    <div class="info-item" style="border-top: 2px solid #e5e7eb; padding-top: 12px; margin-top: 8px;">
+                        <span class="info-label">👤 Asiakas (vastaanottaja):</span>
+                        <span class="info-value">{{ order.customer_name or 'Tuntematon' }}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Asiakkaan viite:</span>
+                        <span class="info-value">{{ order.customer_reference or '-' }}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Asiakkaan puhelin:</span>
+                        <span class="info-value">{{ order.customer_phone or order.phone or '-' }}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Asiakkaan sähköposti:</span>
+                        <span class="info-value">{{ order.customer_email or order.email or '-' }}</span>
+                    </div>
+                    <div class="info-item" style="border-top: 2px solid #e5e7eb; padding-top: 12px; margin-top: 8px;">
                         <span class="info-label">Rekisterinumero:</span>
                         <span class="info-value">{{ order.reg_number or 'Ei tiedossa' }}</span>
                     </div>

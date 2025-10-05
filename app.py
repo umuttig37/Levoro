@@ -649,6 +649,8 @@ def order_view(order_id: int):
             "reg_number": 1, "winter_tires": 1, "pickup_date": 1,
             "extras": 1, "images": 1, "customer_name": 1,
             "email": 1, "phone": 1,
+            "orderer_name": 1, "orderer_email": 1, "orderer_phone": 1,
+            "customer_reference": 1, "customer_email": 1, "customer_phone": 1,
             "assigned_at": 1, "arrival_time": 1,
             "pickup_started": 1, "delivery_completed": 1,
             "created_at": 1, "updated_at": 1,
@@ -726,7 +728,11 @@ def order_view(order_id: int):
     # Smart content logic
     has_reg_number = bool(r.get('reg_number', '').strip())
     has_winter_tires = r.get('winter_tires') is not None
-    has_customer_info = bool(r.get('customer_name', '').strip() or r.get('email', '').strip() or r.get('phone', '').strip())
+    has_customer_info = bool(
+        r.get('customer_name', '').strip() or r.get('email', '').strip() or r.get('phone', '').strip() or
+        r.get('orderer_name', '').strip() or r.get('orderer_email', '').strip() or r.get('orderer_phone', '').strip() or
+        r.get('customer_email', '').strip() or r.get('customer_phone', '').strip() or r.get('customer_reference', '').strip()
+    )
     has_images = bool(r.get('images', {}))
 
     # Show vehicle section only if there's meaningful data
@@ -920,15 +926,14 @@ def submit_driver_application():
             flash("Sähköpostiosoite on jo käytössä järjestelmässä", "error")
             return render_template('driver_application.html')
 
-        # If application is pending, block duplicate
-        if existing.get('status') == 'pending':
-            flash("Sähköpostiosoitteella on jo lähetetty hakemus odottamassa hyväksyntää", "error")
-            return render_template('driver_application.html')
-
-        # If user doesn't exist but application was approved/denied, allow re-application
-        # (User was deleted, so they can re-register)
-        # Delete the old application record to avoid duplicates
+        # If user doesn't exist, this is an orphaned application record
+        # Delete it regardless of status to allow re-registration
+        # This handles cases where a user was deleted but their application remained
+        print(f"Cleaning up orphaned application for {application_data['email']} (status: {existing.get('status')})")
         driver_application_model.delete_one({"id": existing['id']})
+
+        # Note: We no longer block re-registration for pending applications if the user doesn't exist
+        # This fixes the issue where deleted users couldn't re-register
 
     # Create application
     application, error = driver_application_model.create_application(application_data)

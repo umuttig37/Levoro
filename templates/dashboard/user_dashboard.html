@@ -56,6 +56,7 @@
                   'IN_TRANSIT': 'Kuljetuksessa',
                   'DELIVERY_ARRIVED': 'Toimitus paikalla',
                   'DELIVERY_IMAGES_ADDED': 'Toimituskuva lisätty',
+                  'DELIVERED': 'Toimitettu',
                   'COMPLETED': 'Valmis',
                   'CANCELLED': 'Peruutettu'
                 }.get(order.status, order.status) %}
@@ -69,6 +70,7 @@
                   'IN_TRANSIT': 'in-progress',
                   'DELIVERY_ARRIVED': 'in-progress',
                   'DELIVERY_IMAGES_ADDED': 'in-progress',
+                  'DELIVERED': 'completed',
                   'COMPLETED': 'completed',
                   'CANCELLED': 'cancelled'
                 }.get(order.status, 'pending') %}
