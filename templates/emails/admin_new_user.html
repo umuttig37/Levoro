@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="fi">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -13,6 +14,7 @@
             background-color: #f8fafc;
             color: #374151;
         }
+
         .container {
             max-width: 600px;
             margin: 0 auto;
@@ -21,20 +23,24 @@
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
             overflow: hidden;
         }
+
         .header {
             background: linear-gradient(135deg, #10b981 0%, #059669 100%);
             color: white;
             padding: 30px;
             text-align: center;
         }
+
         .header h1 {
             margin: 0;
             font-size: 24px;
             font-weight: 700;
         }
+
         .content {
             padding: 30px;
         }
+
         .user-info {
             background: #f0fdf4;
             border: 1px solid #bbf7d0;
@@ -42,6 +48,7 @@
             padding: 20px;
             margin: 20px 0;
         }
+
         .detail-row {
             display: flex;
             justify-content: space-between;
@@ -49,18 +56,22 @@
             padding-bottom: 8px;
             border-bottom: 1px solid #dcfce7;
         }
+
         .detail-row:last-child {
             margin-bottom: 0;
             border-bottom: none;
         }
+
         .detail-label {
             font-weight: 600;
             color: #374151;
         }
+
         .detail-value {
             color: #6b7280;
             text-align: right;
         }
+
         .stats-section {
             background: #eff6ff;
             border: 1px solid #bfdbfe;
@@ -69,6 +80,7 @@
             margin: 16px 0;
             text-align: center;
         }
+
         .action-section {
             background: #fef3cd;
             border: 1px solid #fbbf24;
@@ -77,6 +89,7 @@
             margin: 24px 0;
             text-align: center;
         }
+
         .action-button {
             display: inline-block;
             background: #10b981;
@@ -88,15 +101,19 @@
             margin: 8px;
             transition: background-color 0.2s;
         }
+
         .action-button:hover {
             background: #059669;
         }
+
         .action-button.secondary {
             background: #2563eb;
         }
+
         .action-button.secondary:hover {
             background: #1d4ed8;
         }
+
         .footer {
             background: #f9fafb;
             padding: 20px;
@@ -104,6 +121,7 @@
             font-size: 14px;
             color: #6b7280;
         }
+
         .role-badge {
             display: inline-block;
             background: #e0e7ff;
@@ -114,31 +132,35 @@
             font-weight: 600;
             text-transform: uppercase;
         }
+
         .role-badge.customer {
             background: #dbeafe;
             color: #1e40af;
         }
+
         .role-badge.driver {
             background: #fef3cd;
             color: #92400e;
         }
+
         .icon-large {
             font-size: 48px;
             margin-bottom: 16px;
         }
     </style>
 </head>
+
 <body>
     <div class="container">
         <div class="header">
-            <div class="icon-large">👤</div>
             <h1>Uusi käyttäjä rekisteröitynyt</h1>
             <p style="margin: 8px 0 0 0; opacity: 0.9;">Käyttäjätili luotu onnistuneesti</p>
         </div>
 
         <div class="content">
             <div class="user-info">
-                <h3 style="margin-top: 0; color: #065f46;">📋 Käyttäjätiedot</h3>
+                <h3 style="margin-top: 0; color: #065f46; border-bottom: 2px solid #d1fae5; padding-bottom: 8px;">
+                    Käyttäjätiedot</h3>
 
                 <div class="detail-row">
                     <span class="detail-label">Käyttäjätunnus:</span>
@@ -166,7 +188,8 @@
 
                 <div class="detail-row">
                     <span class="detail-label">Rekisteröity:</span>
-                    <span class="detail-value">{{ user.created_at.strftime('%d.%m.%Y %H:%M') if user.created_at else 'Juuri nyt' }}</span>
+                    <span class="detail-value">{{ user.created_at.strftime('%d.%m.%Y %H:%M') if user.created_at else
+                        'Juuri nyt' }}</span>
                 </div>
 
                 {% if user.phone %}
@@ -178,7 +201,7 @@
             </div>
 
             <div class="stats-section">
-                <h4 style="margin: 0 0 12px 0; color: #1e40af;">📊 Käyttäjätilastot</h4>
+                <h4 style="margin: 0 0 12px 0; color: #1e40af;">Käyttäjätilastot</h4>
                 <p style="margin: 0; color: #6b7280;">
                     <strong>Yhteensä käyttäjiä:</strong> {{ total_users }} |
                     <strong>Asiakkaita:</strong> {{ customer_count }} |
@@ -188,36 +211,39 @@
 
             {% if user.role == 'customer' %}
             <div class="action-section">
-                <h3 style="margin-top: 0; color: #92400e;">💡 Huomio</h3>
-                <p>Uusi asiakas on rekisteröitynyt palveluun. Tarkista tarvittaessa käyttäjän tiedot ja varmista, että kaikki on kunnossa.</p>
+                <h3 style="margin-top: 0; color: #92400e;">Huomio</h3>
+                <p>Uusi asiakas on rekisteröitynyt palveluun. Tarkista tarvittaessa käyttäjän tiedot ja varmista, että
+                    kaikki on kunnossa.</p>
 
                 <a href="{{ admin_users_url }}" class="action-button">
-                    👥 Käyttäjähallinta
+                    Käyttäjähallinta
                 </a>
 
                 <a href="{{ user_detail_url }}" class="action-button secondary">
-                    👁️ Näytä käyttäjä
+                    Näytä käyttäjä
                 </a>
             </div>
             {% elif user.role == 'driver' %}
             <div class="action-section">
-                <h3 style="margin-top: 0; color: #92400e;">🚗 Kuljettaja rekisteröitynyt</h3>
-                <p><strong>Tärkeää:</strong> Uusi kuljettaja on rekisteröitynyt. Varmista kuljettajan oikeudet ja pätevyys ennen työtehtävien määritystä.</p>
+                <h3 style="margin-top: 0; color: #92400e;">Kuljettaja rekisteröitynyt</h3>
+                <p><strong>Tärkeää:</strong> Uusi kuljettaja on rekisteröitynyt. Varmista kuljettajan oikeudet ja
+                    pätevyys ennen työtehtävien määritystä.</p>
 
                 <a href="{{ admin_users_url }}" class="action-button">
-                    👥 Kuljettajahallinta
+                    Kuljettajahallinta
                 </a>
 
                 <a href="{{ user_detail_url }}" class="action-button secondary">
-                    👁️ Näytä kuljettaja
+                    Näytä kuljettaja
                 </a>
             </div>
             {% endif %}
 
             <div style="background: #f3f4f6; border-radius: 8px; padding: 16px; margin: 20px 0;">
-                <h4 style="margin: 0 0 8px 0; color: #374151;">🔐 Turvallisuus</h4>
+                <h4 style="margin: 0 0 8px 0; color: #374151;">Turvallisuus</h4>
                 <p style="margin: 0; font-size: 14px; color: #6b7280;">
-                    Käyttäjän salasana on hashattu turvallisesti. IP-osoite ja rekisteröintitiedot on tallennettu lokeihin seurantaa varten.
+                    Käyttäjän salasana on hashattu turvallisesti. IP-osoite ja rekisteröintitiedot on tallennettu
+                    lokeihin seurantaa varten.
                 </p>
             </div>
         </div>
@@ -228,4 +254,5 @@
         </div>
     </div>
 </body>
+
 </html>

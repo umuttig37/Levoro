@@ -25,8 +25,8 @@ def users():
     """Admin user management page"""
     from app import users_col
 
-    # Get all users sorted by creation date (newest first)
-    users = list(users_col().find({}, {"_id": 0}).sort("created_at", -1))
+    # Get all users EXCEPT drivers (drivers are managed separately)
+    users = list(users_col().find({"role": {"$ne": "driver"}}, {"_id": 0}).sort("created_at", -1))
 
     return render_template("admin/users.html", users=users, current_user=auth_service.get_current_user())
 
@@ -36,8 +36,15 @@ def users():
 def approve_user():
     """Approve a pending user"""
     from app import users_col
+    from models.user import user_model
 
     user_id = int(request.form.get("user_id"))
+
+    # SAFETY: Prevent approving drivers from users page
+    user = user_model.find_by_id(user_id)
+    if user and user.get('role') == 'driver':
+        flash("Kuljettajia ei voi hyväksyä täältä. Käytä Kuljettajahakemukset-sivua.", "error")
+        return redirect(url_for("admin.users"))
 
     # Update user status to active
     result = users_col().update_one(
@@ -56,16 +63,59 @@ def approve_user():
 @admin_bp.route("/users/deny", methods=["POST"])
 @admin_required
 def deny_user():
-    """Deny/delete a user"""
+    """Deny/delete a user with comprehensive cleanup"""
     from app import users_col
+    from models.user import user_model
+    from models.driver_application import driver_application_model
 
     user_id = int(request.form.get("user_id"))
 
-    # Delete the user completely
-    result = users_col().delete_one({"id": user_id})
+    # Get user details before deletion (to find corresponding application)
+    user = user_model.find_by_id(user_id)
 
-    if result.deleted_count > 0:
-        flash("Käyttäjä poistettu onnistuneesti", "success")
+    if not user:
+        flash("Käyttäjää ei löytynyt", "error")
+        return redirect(url_for("admin.users"))
+
+    # SAFETY: Prevent deleting drivers from users page
+    if user.get('role') == 'driver':
+        flash("Kuljettajia ei voi poistaa täältä. Käytä Kuljettajat-sivua.", "error")
+        return redirect(url_for("admin.users"))
+
+    user_email = user.get('email')
+    user_role = user.get('role')
+    deletion_successful = True
+    app_deletion_successful = True
+
+    # If this is a driver, delete their driver application record first
+    if user_role == 'driver' and user_email:
+        try:
+            driver_app = driver_application_model.find_by_email(user_email)
+            if driver_app:
+                result = driver_application_model.delete_one({"id": driver_app['id']})
+                if not result:
+                    app_deletion_successful = False
+                    print(f"Warning: Failed to delete driver application for {user_email}")
+            else:
+                print(f"Info: No driver application found for {user_email} (this is OK)")
+        except Exception as e:
+            app_deletion_successful = False
+            print(f"Error deleting driver application for {user_email}: {str(e)}")
+
+    # Delete the user from users collection
+    try:
+        result = users_col().delete_one({"id": user_id})
+        if result.deleted_count == 0:
+            deletion_successful = False
+    except Exception as e:
+        deletion_successful = False
+        print(f"Error deleting user {user_id}: {str(e)}")
+
+    # Provide appropriate feedback
+    if deletion_successful and app_deletion_successful:
+        flash("Käyttäjä ja siihen liittyvät tiedot poistettu onnistuneesti", "success")
+    elif deletion_successful and not app_deletion_successful:
+        flash("Käyttäjä poistettu, mutta kuljettajahakemuksen poisto epäonnistui. Ota yhteyttä ylläpitäjään.", "warning")
     else:
         flash("Käyttäjän poistaminen epäonnistui", "error")
 
@@ -167,8 +217,10 @@ def approve_driver_application():
 @admin_bp.route("/driver-applications/deny", methods=["POST"])
 @admin_required
 def deny_driver_application():
-    """Deny driver application"""
+    """Deny driver application and clean up any associated driver account"""
     from models.driver_application import driver_application_model
+    from models.user import user_model
+    from app import users_col
 
     application_id = int(request.form.get("application_id"))
 
@@ -181,10 +233,25 @@ def deny_driver_application():
         flash("Hakemusta ei löytynyt tai se on jo käsitelty", "error")
         return redirect(url_for("admin.driver_applications"))
 
+    # Check if a driver user account was already created (orphaned or accidental)
+    app_email = app.get('email')
+    existing_user = user_model.find_by_email(app_email)
+
+    if existing_user and existing_user.get('role') == 'driver':
+        # Delete the orphaned driver account
+        try:
+            users_col().delete_one({"id": existing_user['id']})
+            flash(f"Hakemus hylätty ja liittyvä kuljettajatili poistettu: {app['name']}", "warning")
+        except Exception as e:
+            print(f"Failed to delete orphaned driver account: {e}")
+            flash(f"Hakemus hylätty, mutta kuljettajatilin poistaminen epäonnistui: {app['name']}", "error")
+            return redirect(url_for("admin.driver_applications"))
+    else:
+        flash(f"Hakemus hylätty: {app['name']}", "warning")
+
     # Mark application as denied
     driver_application_model.deny_application(application_id, user["id"])
 
-    flash(f"Hakemus hylätty: {app['name']}", "warning")
     return redirect(url_for("admin.driver_applications"))
 
 
@@ -280,6 +347,8 @@ def order_detail(order_id):
             "distance_km": 1, "price_gross": 1,
             "reg_number": 1, "winter_tires": 1, "pickup_date": 1,
             "extras": 1, "images": 1,
+            "orderer_name": 1, "orderer_email": 1, "orderer_phone": 1,
+            "customer_name": 1, "customer_email": 1, "customer_phone": 1, "customer_reference": 1,
             "user_name": "$user.name",
             "user_email": "$user.email",
             "driver_name": "$driver.name",
@@ -357,6 +426,93 @@ def upload_order_image(order_id):
     image_type_fi = "Nouto" if image_type == "pickup" else "Toimitus"
     flash(f"{image_type_fi} kuva ladattu onnistuneesti", "success")
     return redirect(url_for("admin.order_detail", order_id=order_id))
+
+
+@admin_bp.route("/api/order/<int:order_id>/upload", methods=["POST"])
+@admin_required
+def upload_order_image_ajax(order_id):
+    """AJAX endpoint for uploading images (supports multiple uploads without page reload)"""
+    admin_user = auth_service.get_current_user()
+    image_type = request.form.get('image_type')
+
+    # Validation
+    if image_type not in ['pickup', 'delivery']:
+        return jsonify({'success': False, 'error': 'Virheellinen kuvatyyppi'}), 400
+
+    if 'image' not in request.files:
+        return jsonify({'success': False, 'error': 'Kuvaa ei valittu'}), 400
+
+    file = request.files['image']
+    if file.filename == '':
+        return jsonify({'success': False, 'error': 'Kuvaa ei valittu'}), 400
+
+    # Check image limit
+    can_add, limit_error = image_service.validate_image_limit(order_id, image_type, max_images=15)
+    if not can_add:
+        return jsonify({'success': False, 'error': limit_error}), 400
+
+    # Save and process image using ImageService
+    image_info, error = image_service.save_order_image(file, order_id, image_type, admin_user.get('email', 'admin'))
+
+    if error:
+        return jsonify({'success': False, 'error': error}), 400
+
+    # Add image to order using ImageService
+    success, add_error = image_service.add_image_to_order(order_id, image_type, image_info)
+
+    if not success:
+        return jsonify({'success': False, 'error': add_error}), 500
+
+    # Get current image count
+    from models.order import order_model
+    order = order_model.find_by_id(order_id)
+    current_images = order.get('images', {}).get(image_type, [])
+
+    image_type_fi = 'Nouto' if image_type == 'pickup' else 'Toimitus'
+    message = f'{image_type_fi}kuva lisätty onnistuneesti'
+
+    return jsonify({
+        'success': True,
+        'message': message,
+        'image': image_info,
+        'image_count': len(current_images)
+    })
+
+
+@admin_bp.route("/api/order/<int:order_id>/image/<string:image_type>/<string:image_id>", methods=["DELETE"])
+@admin_required
+def delete_order_image_ajax(order_id, image_type, image_id):
+    """AJAX endpoint for deleting images"""
+
+    # Validation
+    if image_type not in ['pickup', 'delivery']:
+        return jsonify({'success': False, 'error': 'Virheellinen kuvatyyppi'}), 400
+
+    # Delete image using ImageService
+    success, message = image_service.delete_order_image(order_id, image_type, image_id)
+
+    if not success:
+        # Translate error messages to Finnish
+        finnish_message = message
+        if "Order or image not found" in message:
+            finnish_message = "Tilausta tai kuvaa ei löytynyt"
+        elif "Image not found" in message:
+            finnish_message = "Kuvaa ei löytynyt"
+        elif "Delete failed" in message:
+            finnish_message = "Poisto epäonnistui"
+
+        return jsonify({'success': False, 'error': finnish_message}), 400
+
+    # Get updated image count
+    from models.order import order_model
+    order = order_model.find_by_id(order_id)
+    current_images = order.get('images', {}).get(image_type, [])
+
+    return jsonify({
+        'success': True,
+        'message': 'Kuva poistettu',
+        'image_count': len(current_images)
+    })
 
 
 @admin_bp.route("/order/<int:order_id>/image/<image_type>/delete", methods=["POST"])

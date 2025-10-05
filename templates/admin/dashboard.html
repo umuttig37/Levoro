@@ -19,13 +19,14 @@
       <tr>
         <th>ID</th>
         <th>Tila</th>
+        <th>Näkyvyys</th>
         <th>Asiakas</th>
         <th>Kuljettaja</th>
         <th>Reitti</th>
         <th>Km</th>
-        <th>Hinta</th>
+        <th>Hinta (ALV 0%)</th>
         <th>Kuvat</th>
-        <th>Päivitä</th>
+        <th>Hallinta</th>
       </tr>
     </thead>
     <tbody>
@@ -54,32 +55,24 @@
             {% set driver_info = "Odottaa" %}
           {% endif %}
 
-          <tr class="admin-table-row" onclick="window.location.href='/admin/order/{{ order.id }}'" style="cursor: pointer;">
+          {% set is_visible = order.status in ['CONFIRMED', 'ASSIGNED_TO_DRIVER', 'DRIVER_ARRIVED', 'PICKUP_IMAGES_ADDED', 'IN_TRANSIT', 'DELIVERY_ARRIVED', 'DELIVERY_IMAGES_ADDED'] and not order.get('driver_id') %}
+          {% set visibility_icon = "👁️ Näkyvissä" if is_visible else ("🔒 Otettu" if order.get('driver_id') else "⏸️ Ei julkaistu") %}
+          {% set visibility_class = "visible" if is_visible else ("assigned" if order.get('driver_id') else "hidden") %}
+
+          <tr class="admin-table-row">
             <td><strong>#{{ order.id }}</strong></td>
             <td><span class="status {{ order.status }}">{{ status_fi }}</span></td>
+            <td><span class="visibility-badge {{ visibility_class }}" title="{% if is_visible %}Kuljettajat voivat nähdä ja ottaa vastaan{% elif order.get('driver_id') %}Kuljettaja on ottanut keikan{% else %}Vahvista tilaus julkaistaksesi kuljettajille{% endif %}">{{ visibility_icon }}</span></td>
             <td>{{ order.get('customer_name', '?') }} &lt;{{ order.get('customer_email', '?') }}&gt;</td>
             <td>{{ driver_info }}</td>
             <td>{{ order.pickup_address }} → {{ order.dropoff_address }}</td>
             <td>{{ "%.1f"|format(order.distance_km|float) }} km</td>
-            <td>{{ "%.2f"|format(order.price_gross|float) }} €</td>
+            <td><strong style="font-size: 1.1em;">{{ "%.2f"|format((order.price_gross|float) / 1.255) }} €</strong> <span style="font-size: 0.85em; opacity: 0.7;">+ ALV 0%</span></td>
             <td class="image-status">{{ pickup_icon }} {{ delivery_icon }}</td>
-            <td onclick="event.stopPropagation();">
-              <form method="POST" action="/admin/update" class="admin-inline-form">
-                <input type="hidden" name="id" value="{{ order.id }}">
-                <select name="status">
-                  <option value="NEW" {% if order.status == 'NEW' %}selected{% endif %}>UUSI</option>
-                  <option value="CONFIRMED" {% if order.status == 'CONFIRMED' %}selected{% endif %}>TEHTÄVÄ_VAHVISTETTU</option>
-                  <option value="ASSIGNED_TO_DRIVER" {% if order.status == 'ASSIGNED_TO_DRIVER' %}selected{% endif %}>MÄÄRITETTY_KULJETTAJALLE</option>
-                  <option value="DRIVER_ARRIVED" {% if order.status == 'DRIVER_ARRIVED' %}selected{% endif %}>KULJETTAJA_SAAPUNUT</option>
-                  <option value="PICKUP_IMAGES_ADDED" {% if order.status == 'PICKUP_IMAGES_ADDED' %}selected{% endif %}>NOUTOKUVAT_LISÄTTY</option>
-                  <option value="IN_TRANSIT" {% if order.status == 'IN_TRANSIT' %}selected{% endif %}>TOIMITUKSESSA</option>
-                  <option value="DELIVERY_ARRIVED" {% if order.status == 'DELIVERY_ARRIVED' %}selected{% endif %}>KULJETUS_SAAPUNUT</option>
-                  <option value="DELIVERY_IMAGES_ADDED" {% if order.status == 'DELIVERY_IMAGES_ADDED' %}selected{% endif %}>TOIMITUSKUVAT_LISÄTTY</option>
-                  <option value="DELIVERED" {% if order.status == 'DELIVERED' %}selected{% endif %}>TOIMITETTU</option>
-                  <option value="CANCELLED" {% if order.status == 'CANCELLED' %}selected{% endif %}>PERUUTETTU</option>
-                </select>
-                <button type="submit">Päivitä</button>
-              </form>
+            <td style="text-align: center;">
+              <a href="/admin/order/{{ order.id }}" class="btn btn-primary" style="display: inline-block; padding: 0.5rem 1rem; text-decoration: none;">
+                Hallinta
+              </a>
             </td>
           </tr>
         {% endfor %}

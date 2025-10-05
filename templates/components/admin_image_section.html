@@ -1,6 +1,6 @@
-<!-- Admin Image Section Component -->
-<div class="image-section">
-    <h3>{{ 'Nouto' if image_type == 'pickup' else 'Toimitus' }} kuvat</h3>
+<!-- Admin Image Section Component - Modern AJAX Upload -->
+<div class="image-section" data-image-type="{{ image_type }}">
+    <h3>{{ 'Nouto' if image_type == 'pickup' else 'Toimitus' }}kuvat</h3>
     <div class="image-counter">
         <span class="image-counter-text">{{ images_data|length if images_data else 0 }}/15 kuvaa</span>
         <span class="image-counter-limit">Maksimi 15 kuvaa</span>
@@ -10,16 +10,17 @@
     <!-- Images Grid -->
     <div class="images-grid">
         {% for img in images_data|sort(attribute='order') %}
-        <div class="image-item" data-image-type="{{ image_type }}">
+        <div class="image-item" data-image-type="{{ image_type }}" data-image-id="{{ img.id }}">
             <img src="{{ img.file_path }}"
                  alt="{{ 'Nouto kuva' if image_type == 'pickup' else 'Toimitus kuva' }}"
                  class="image-thumbnail"
-                 data-image-id="{{ img.id }}"
+                 loading="lazy"
                  onclick="openImageModal('{{ image_type }}', '{{ img.id }}')">
             <div class="image-actions">
                 <button class="image-action-btn delete"
-                        onclick="deleteImage('{{ order.id }}', '{{ image_type }}', '{{ img.id }}')"
-                        title="Poista kuva">×</button>
+                        onclick="deleteAdminImage('{{ order.id }}', '{{ image_type }}', '{{ img.id }}')"
+                        title="Poista kuva"
+                        aria-label="Poista {{ 'nouto' if image_type == 'pickup' else 'toimitus' }}kuva">×</button>
             </div>
         </div>
         {% endfor %}
@@ -31,19 +32,235 @@
     <form method="POST" action="/admin/order/{{ order.id }}/upload"
           enctype="multipart/form-data"
           class="upload-form"
-          id="{{ image_type }}-form-{{ order.id }}">
+          id="admin-{{ image_type }}-form-{{ order.id }}"
+          data-ajax="true"
+          data-order-id="{{ order.id }}"
+          data-image-type="{{ image_type }}">
         <input type="hidden" name="image_type" value="{{ image_type }}">
-        <input type="file" name="image" accept=".jpg,.jpeg,.png,.webp" required onchange="submitImageForm(this)">
+        <input type="file"
+               name="image"
+               accept=".jpg,.jpeg,.png,.webp"
+               multiple
+               aria-label="Valitse {{ 'nouto' if image_type == 'pickup' else 'toimitus' }}kuva">
 
         {% if images_data and images_data|length > 0 %}
-        <button type="submit" class="btn btn-primary">Lataa lisää kuvia</button>
+        <button type="button" onclick="document.querySelector('#admin-{{ image_type }}-form-{{ order.id }} input[type=file]').click()" class="btn btn-primary">Valitse lisää kuvia</button>
         {% else %}
-        <button type="submit" class="btn btn-primary">Lataa {{ 'nouto' if image_type == 'pickup' else 'toimitus' }} kuva</button>
+        <button type="button" onclick="document.querySelector('#admin-{{ image_type }}-form-{{ order.id }} input[type=file]').click()" class="btn btn-primary">Valitse {{ 'nouto' if image_type == 'pickup' else 'toimitus' }}kuvat</button>
         {% endif %}
 
-        <div class="upload-status" style="display: none;">
-            <span class="uploading">Ladataan...</span>
-        </div>
+        <div class="upload-queue" id="upload-queue-{{ image_type }}" style="margin-top: 1rem; width: 100%;"></div>
     </form>
+    {% else %}
+    <div class="text-muted">✅ Maksimi kuvia (15) ladattu</div>
     {% endif %}
 </div>
+
+<script>
+// AJAX Multi-Image Upload Handler for Admin
+document.addEventListener('DOMContentLoaded', function() {
+    // Attach file input change handlers to all admin upload forms
+    document.querySelectorAll('form[data-ajax="true"] input[type="file"]').forEach(input => {
+        input.addEventListener('change', function(e) {
+            handleAdminFileSelection(this);
+        });
+    });
+});
+
+function handleAdminFileSelection(input) {
+    const files = input.files;
+    if (!files || files.length === 0) return;
+
+    const form = input.closest('form');
+    const orderId = form.dataset.orderId;
+    const imageType = form.dataset.imageType;
+    const queueContainer = document.getElementById(`upload-queue-${imageType}`);
+
+    // Get current image count
+    const currentCount = document.querySelectorAll(`.image-item[data-image-type="${imageType}"]`).length;
+    const remainingSlots = 15 - currentCount;
+
+    if (files.length > remainingSlots) {
+        alert(`Voit ladata enintään ${remainingSlots} kuvaa. Valitsit ${files.length} kuvaa.`);
+        input.value = ''; // Clear selection
+        return;
+    }
+
+    // Upload each file
+    Array.from(files).forEach((file, index) => {
+        uploadAdminFileAjax(file, orderId, imageType, queueContainer);
+    });
+
+    // Clear input
+    input.value = '';
+}
+
+function uploadAdminFileAjax(file, orderId, imageType, queueContainer) {
+    // Create upload item UI
+    const uploadId = `upload-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const uploadItem = document.createElement('div');
+    uploadItem.id = uploadId;
+    uploadItem.className = 'upload-item';
+    uploadItem.innerHTML = `
+        <div class="upload-item-info">
+            <span class="upload-filename">${file.name}</span>
+            <span class="upload-status">Ladataan...</span>
+        </div>
+        <div class="upload-progress-bar">
+            <div class="upload-progress-fill"></div>
+        </div>
+    `;
+    queueContainer.appendChild(uploadItem);
+
+    // Prepare form data
+    const formData = new FormData();
+    formData.append('image', file);
+    formData.append('image_type', imageType);
+
+    // Upload via AJAX
+    fetch(`/admin/api/order/${orderId}/upload`, {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Update UI
+            uploadItem.querySelector('.upload-status').textContent = 'Valmis!';
+            uploadItem.querySelector('.upload-progress-fill').style.width = '100%';
+            uploadItem.style.backgroundColor = '#d4edda';
+
+            // Add image to grid
+            addAdminImageToGrid(data.image, imageType, orderId);
+
+            // Update counter
+            updateAdminImageCounter(imageType, data.image_count);
+
+            // Remove upload item after delay
+            setTimeout(() => {
+                uploadItem.remove();
+            }, 2000);
+
+            // Show success message
+            showAdminNotification(data.message, 'success');
+        } else {
+            // Show error
+            uploadItem.querySelector('.upload-status').textContent = data.error || 'Virhe!';
+            uploadItem.style.backgroundColor = '#f8d7da';
+        }
+    })
+    .catch(error => {
+        console.error('Upload error:', error);
+        uploadItem.querySelector('.upload-status').textContent = 'Lataus epäonnistui';
+        uploadItem.style.backgroundColor = '#f8d7da';
+    });
+}
+
+function addAdminImageToGrid(imageData, imageType, orderId) {
+    // Find the correct section by image type
+    const section = document.querySelector(`.image-section[data-image-type="${imageType}"]`);
+    if (!section) {
+        console.error(`Section not found for imageType: ${imageType}`);
+        return;
+    }
+
+    // Find or create grid within this specific section
+    let grid = section.querySelector('.images-grid');
+    if (!grid) {
+        grid = document.createElement('div');
+        grid.className = 'images-grid';
+        const uploadForm = section.querySelector('.upload-form');
+        section.insertBefore(grid, uploadForm);
+    }
+
+    const imageItem = document.createElement('div');
+    imageItem.className = 'image-item';
+    imageItem.dataset.imageType = imageType;
+    imageItem.dataset.imageId = imageData.id;
+    imageItem.innerHTML = `
+        <img src="${imageData.file_path}"
+             alt="${imageType === 'pickup' ? 'Nouto kuva' : 'Toimitus kuva'}"
+             class="image-thumbnail"
+             loading="lazy"
+             onclick="openImageModal('${imageType}', '${imageData.id}')">
+        <div class="image-actions">
+            <button class="image-action-btn delete"
+                    onclick="deleteAdminImage('${orderId}', '${imageType}', '${imageData.id}')"
+                    title="Poista kuva">×</button>
+        </div>
+    `;
+
+    grid.appendChild(imageItem);
+}
+
+function updateAdminImageCounter(imageType, count) {
+    // Find the correct section by image type
+    const section = document.querySelector(`.image-section[data-image-type="${imageType}"]`);
+    if (!section) {
+        console.error(`Section not found for imageType: ${imageType}`);
+        return;
+    }
+
+    const counter = section.querySelector('.image-counter-text');
+    if (counter) {
+        counter.textContent = `${count}/15 kuvaa`;
+    }
+}
+
+function showAdminNotification(message, type = 'info') {
+    // Simple notification - you can enhance this
+    const notification = document.createElement('div');
+    notification.className = `notification notification-${type}`;
+    notification.textContent = message;
+    notification.style.cssText = 'position: fixed; top: 20px; right: 20px; padding: 1rem 2rem; background: #28a745; color: white; border-radius: 4px; z-index: 10000; box-shadow: 0 4px 6px rgba(0,0,0,0.1);';
+
+    if (type === 'error') {
+        notification.style.background = '#dc3545';
+    }
+
+    document.body.appendChild(notification);
+
+    setTimeout(() => {
+        notification.remove();
+    }, 3000);
+}
+
+function deleteAdminImage(orderId, imageType, imageId) {
+    if (confirm('Haluatko varmasti poistaa tämän kuvan?')) {
+        const deleteBtn = event.target;
+        const imageItem = deleteBtn.closest('.image-item');
+
+        deleteBtn.disabled = true;
+        deleteBtn.textContent = '...';
+
+        fetch(`/admin/api/order/${orderId}/image/${imageType}/${imageId}`, {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Remove image from DOM
+                imageItem.remove();
+
+                // Update counter
+                updateAdminImageCounter(imageType, data.image_count);
+
+                showAdminNotification('Kuva poistettu', 'success');
+            } else {
+                alert('Kuvan poistaminen epäonnistui: ' + (data.error || 'Tuntematon virhe'));
+                deleteBtn.disabled = false;
+                deleteBtn.textContent = '×';
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Kuvan poistaminen epäonnistui');
+            deleteBtn.disabled = false;
+            deleteBtn.textContent = '×';
+        });
+    }
+}
+</script>

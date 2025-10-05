@@ -53,15 +53,15 @@ DB_PASS = os.getenv("DB_PASS", "Salasana1")
 
 BASE_FEE = float(os.getenv("BASE_FEE", "49"))
 PER_KM = float(os.getenv("PER_KM", "1.20"))
-VAT_RATE = float(os.getenv("VAT_RATE", "0.24"))
+VAT_RATE = float(os.getenv("VAT_RATE", "0.255"))  # 25.5% Finnish VAT
 # --- Your business pricing anchors ---
-# All prices below are TARGET **gross** (incl. VAT) that we want to hit.
+# All prices below are NET prices (excl. VAT). VAT will be added on top.
 METRO_CITIES = {"helsinki", "espoo", "vantaa", "kauniainen"}
-METRO_GROSS = float(os.getenv("METRO_GROSS", "27"))  # 30–32€ → default 27€ (10% reduction)
-MID_KM = 170.0  # “about 150–200 km”
-MID_GROSS = float(os.getenv("MID_GROSS", "81"))  # ~81€ (10% reduction)
+METRO_NET = float(os.getenv("METRO_NET", "27"))  # Net price for metro area
+MID_KM = 170.0  # "about 150–200 km"
+MID_NET = float(os.getenv("MID_NET", "81"))  # Net price for mid-distance
 LONG_KM = 600.0
-LONG_GROSS = float(os.getenv("LONG_GROSS", "207"))  # ~207€ (10% reduction)
+LONG_NET = float(os.getenv("LONG_NET", "207"))  # Net price for long-distance
 ROUNDTRIP_DISCOUNT = 0.30  # 30% off return leg
 
 SEED_ADMIN_EMAIL = os.getenv("SEED_ADMIN_EMAIL", "admin@example.com")
@@ -301,6 +301,26 @@ def extract_city_filter(address):
             return match.group(1).strip()
 
     return 'Tuntematon kaupunki'
+
+@app.template_filter('format_price_with_vat')
+def format_price_with_vat_filter(gross_price):
+    """Format price with VAT breakdown - shows net price (ALV 0%) prominently with gross price below"""
+    if not gross_price or gross_price <= 0:
+        return '<span class="price-main">0,00 €</span>'
+
+    # Calculate net and VAT from gross
+    net = gross_price / (1 + VAT_RATE)
+
+    # Format with Finnish number formatting (comma as decimal separator)
+    net_str = f"{net:.2f}".replace('.', ',')
+    gross_str = f"{gross_price:.2f}".replace('.', ',')
+
+    # Return HTML - NET price (ALV 0%) emphasized, gross price muted below
+    return f'''<div class="price-breakdown">
+        <div class="price-main" style="font-size: 1.6em; font-weight: 800; line-height: 1.1; color: var(--color-primary);">{net_str} €</div>
+        <div style="font-size: 0.75em; font-weight: 600; margin-top: 1px; color: var(--color-primary);">+ ALV 0%</div>
+        <div class="price-vat" style="font-size: 0.65em; opacity: 0.5; margin-top: 4px; color: var(--color-gray-600);">Hinta sis. ALV = {gross_str} €</div>
+    </div>'''
 
 def current_user():
     """Get current user - using auth service"""
@@ -629,6 +649,8 @@ def order_view(order_id: int):
             "reg_number": 1, "winter_tires": 1, "pickup_date": 1,
             "extras": 1, "images": 1, "customer_name": 1,
             "email": 1, "phone": 1,
+            "orderer_name": 1, "orderer_email": 1, "orderer_phone": 1,
+            "customer_reference": 1, "customer_email": 1, "customer_phone": 1,
             "assigned_at": 1, "arrival_time": 1,
             "pickup_started": 1, "delivery_completed": 1,
             "created_at": 1, "updated_at": 1,
@@ -671,8 +693,8 @@ def order_view(order_id: int):
         html_parts = ['<div class="simple-progress">']
 
         for i, step_info in enumerate(statuses):
-            is_completed = i < current_step
-            is_current = i == current_step
+            is_completed = i < current_step or (i == current_step and status == "DELIVERED")
+            is_current = i == current_step and status != "DELIVERED"
 
             step_classes = ["progress-step"]
             if is_completed:
@@ -706,7 +728,11 @@ def order_view(order_id: int):
     # Smart content logic
     has_reg_number = bool(r.get('reg_number', '').strip())
     has_winter_tires = r.get('winter_tires') is not None
-    has_customer_info = bool(r.get('customer_name', '').strip() or r.get('email', '').strip() or r.get('phone', '').strip())
+    has_customer_info = bool(
+        r.get('customer_name', '').strip() or r.get('email', '').strip() or r.get('phone', '').strip() or
+        r.get('orderer_name', '').strip() or r.get('orderer_email', '').strip() or r.get('orderer_phone', '').strip() or
+        r.get('customer_email', '').strip() or r.get('customer_phone', '').strip() or r.get('customer_reference', '').strip()
+    )
     has_images = bool(r.get('images', {}))
 
     # Show vehicle section only if there's meaningful data
@@ -859,17 +885,18 @@ def submit_driver_application():
             flash(f"Virhe: {label} on pakollinen kenttä", "error")
             return render_template('driver_application.html')
 
+    # TEMPORARILY DISABLED: License image validation removed for driver re-registration period
     # Validate license images
-    license_front = request.files.get('license_front')
-    license_back = request.files.get('license_back')
+    # license_front = request.files.get('license_front')
+    # license_back = request.files.get('license_back')
 
-    if not license_front or license_front.filename == '':
-        flash("Virhe: Ajokortin etupuoli on pakollinen", "error")
-        return render_template('driver_application.html')
+    # if not license_front or license_front.filename == '':
+    #     flash("Virhe: Ajokortin etupuoli on pakollinen", "error")
+    #     return render_template('driver_application.html')
 
-    if not license_back or license_back.filename == '':
-        flash("Virhe: Ajokortin takapuoli on pakollinen", "error")
-        return render_template('driver_application.html')
+    # if not license_back or license_back.filename == '':
+    #     flash("Virhe: Ajokortin takapuoli on pakollinen", "error")
+    #     return render_template('driver_application.html')
 
     if not application_data["name"]:
         flash("Virhe: Lisää etu- ja sukunimi", "error")
@@ -885,18 +912,28 @@ def submit_driver_application():
         flash("Salasana tulee olla vähintään 6 merkkiä pitkä", "error")
         return render_template('driver_application.html')
 
-    # Check if application already exists
+    # Check if application already exists (but allow re-application if user was deleted)
     existing = driver_application_model.find_by_email(application_data["email"])
     if existing:
-        flash("Sähköpostiosoitteella on jo lähetetty hakemus", "error")
-        return render_template('driver_application.html')
+        # If there's an existing application, check if it's still valid
+        # Allow re-application if the previous application was approved BUT the user no longer exists
+        # (meaning they were deleted and need to re-register)
+        from models.user import user_model
+        existing_user = user_model.find_by_email(application_data["email"])
 
-    # Check if user already exists in the system
-    from models.user import user_model
-    existing_user = user_model.find_by_email(application_data["email"])
-    if existing_user:
-        flash("Sähköpostiosoite on jo käytössä järjestelmässä", "error")
-        return render_template('driver_application.html')
+        # If user exists, block duplicate application
+        if existing_user:
+            flash("Sähköpostiosoite on jo käytössä järjestelmässä", "error")
+            return render_template('driver_application.html')
+
+        # If user doesn't exist, this is an orphaned application record
+        # Delete it regardless of status to allow re-registration
+        # This handles cases where a user was deleted but their application remained
+        print(f"Cleaning up orphaned application for {application_data['email']} (status: {existing.get('status')})")
+        driver_application_model.delete_one({"id": existing['id']})
+
+        # Note: We no longer block re-registration for pending applications if the user doesn't exist
+        # This fixes the issue where deleted users couldn't re-register
 
     # Create application
     application, error = driver_application_model.create_application(application_data)
@@ -904,92 +941,93 @@ def submit_driver_application():
         flash(f"Virhe hakemuksen lähettämisessä: {error}", "error")
         return render_template('driver_application.html')
 
+    # TEMPORARILY DISABLED: License image processing removed for driver re-registration period
     # Process and upload license images
-    application_id = application["id"]
-    license_images = {"front": None, "back": None}
+    # application_id = application["id"]
+    # license_images = {"front": None, "back": None}
 
-    try:
-        import uuid
-        from werkzeug.utils import secure_filename
+    # try:
+    #     import uuid
+    #     from werkzeug.utils import secure_filename
 
-        # Process front image
-        # Validate file
-        front_validation_error = image_service._validate_file(license_front)
-        if front_validation_error:
-            flash(f"Virhe ajokortin etupuolessa: {front_validation_error}", "error")
-            return render_template('driver_application.html')
+    #     # Process front image
+    #     # Validate file
+    #     front_validation_error = image_service._validate_file(license_front)
+    #     if front_validation_error:
+    #         flash(f"Virhe ajokortin etupuolessa: {front_validation_error}", "error")
+    #         return render_template('driver_application.html')
 
-        # Generate unique filename and save temporarily
-        front_extension = image_service._get_file_extension(license_front.filename)
-        front_unique_filename = f"license_{application_id}_front_{uuid.uuid4().hex}.{front_extension}"
-        front_temp_path = os.path.join(image_service.upload_folder, front_unique_filename)
-        license_front.save(front_temp_path)
+    #     # Generate unique filename and save temporarily
+    #     front_extension = image_service._get_file_extension(license_front.filename)
+    #     front_unique_filename = f"license_{application_id}_front_{uuid.uuid4().hex}.{front_extension}"
+    #     front_temp_path = os.path.join(image_service.upload_folder, front_unique_filename)
+    #     license_front.save(front_temp_path)
 
-        # Process image (resize, optimize)
-        front_processed_path = image_service._process_image(front_temp_path)
-        if not front_processed_path:
-            image_service._cleanup_file(front_temp_path)
-            flash("Virhe ajokortin etupuolen käsittelyssä - tarkista että kuva ei ole vioittunut", "error")
-            return render_template('driver_application.html')
+    #     # Process image (resize, optimize)
+    #     front_processed_path = image_service._process_image(front_temp_path)
+    #     if not front_processed_path:
+    #         image_service._cleanup_file(front_temp_path)
+    #         flash("Virhe ajokortin etupuolen käsittelyssä - tarkista että kuva ei ole vioittunut", "error")
+    #         return render_template('driver_application.html')
 
-        # Upload front image to GCS privately
-        front_blob_name = f"driver-licenses/{application_id}/front.jpg"
-        front_blob, front_upload_error = gcs_service.upload_private_file(
-            front_processed_path,
-            front_blob_name
-        )
-        if front_upload_error:
-            flash(f"Virhe ajokortin etupuolen tallentamisessa: {front_upload_error}", "error")
-            image_service._cleanup_file(front_processed_path)
-            return render_template('driver_application.html')
+    #     # Upload front image to GCS privately
+    #     front_blob_name = f"driver-licenses/{application_id}/front.jpg"
+    #     front_blob, front_upload_error = gcs_service.upload_private_file(
+    #         front_processed_path,
+    #         front_blob_name
+    #     )
+    #     if front_upload_error:
+    #         flash(f"Virhe ajokortin etupuolen tallentamisessa: {front_upload_error}", "error")
+    #         image_service._cleanup_file(front_processed_path)
+    #         return render_template('driver_application.html')
 
-        license_images["front"] = front_blob_name
-        image_service._cleanup_file(front_processed_path)  # Clean up temp file
+    #     license_images["front"] = front_blob_name
+    #     image_service._cleanup_file(front_processed_path)  # Clean up temp file
 
-        # Process back image
-        # Validate file
-        back_validation_error = image_service._validate_file(license_back)
-        if back_validation_error:
-            flash(f"Virhe ajokortin takapuolessa: {back_validation_error}", "error")
-            return render_template('driver_application.html')
+    #     # Process back image
+    #     # Validate file
+    #     back_validation_error = image_service._validate_file(license_back)
+    #     if back_validation_error:
+    #         flash(f"Virhe ajokortin takapuolessa: {back_validation_error}", "error")
+    #         return render_template('driver_application.html')
 
-        # Generate unique filename and save temporarily
-        back_extension = image_service._get_file_extension(license_back.filename)
-        back_unique_filename = f"license_{application_id}_back_{uuid.uuid4().hex}.{back_extension}"
-        back_temp_path = os.path.join(image_service.upload_folder, back_unique_filename)
-        license_back.save(back_temp_path)
+    #     # Generate unique filename and save temporarily
+    #     back_extension = image_service._get_file_extension(license_back.filename)
+    #     back_unique_filename = f"license_{application_id}_back_{uuid.uuid4().hex}.{back_extension}"
+    #     back_temp_path = os.path.join(image_service.upload_folder, back_unique_filename)
+    #     license_back.save(back_temp_path)
 
-        # Process image (resize, optimize)
-        back_processed_path = image_service._process_image(back_temp_path)
-        if not back_processed_path:
-            image_service._cleanup_file(back_temp_path)
-            flash("Virhe ajokortin takapuolen käsittelyssä - tarkista että kuva ei ole vioittunut", "error")
-            return render_template('driver_application.html')
+    #     # Process image (resize, optimize)
+    #     back_processed_path = image_service._process_image(back_temp_path)
+    #     if not back_processed_path:
+    #         image_service._cleanup_file(back_temp_path)
+    #         flash("Virhe ajokortin takapuolen käsittelyssä - tarkista että kuva ei ole vioittunut", "error")
+    #         return render_template('driver_application.html')
 
-        # Upload back image to GCS privately
-        back_blob_name = f"driver-licenses/{application_id}/back.jpg"
-        back_blob, back_upload_error = gcs_service.upload_private_file(
-            back_processed_path,
-            back_blob_name
-        )
-        if back_upload_error:
-            flash(f"Virhe ajokortin takapuolen tallentamisessa: {back_upload_error}", "error")
-            image_service._cleanup_file(back_processed_path)
-            return render_template('driver_application.html')
+    #     # Upload back image to GCS privately
+    #     back_blob_name = f"driver-licenses/{application_id}/back.jpg"
+    #     back_blob, back_upload_error = gcs_service.upload_private_file(
+    #         back_processed_path,
+    #         back_blob_name
+    #     )
+    #     if back_upload_error:
+    #         flash(f"Virhe ajokortin takapuolen tallentamisessa: {back_upload_error}", "error")
+    #         image_service._cleanup_file(back_processed_path)
+    #         return render_template('driver_application.html')
 
-        license_images["back"] = back_blob_name
-        image_service._cleanup_file(back_processed_path)  # Clean up temp file
+    #     license_images["back"] = back_blob_name
+    #     image_service._cleanup_file(back_processed_path)  # Clean up temp file
 
-        # Update application with license image blob names
-        driver_application_model.update_one(
-            {"id": application_id},
-            {"$set": {"license_images": license_images}}
-        )
+    #     # Update application with license image blob names
+    #     driver_application_model.update_one(
+    #         {"id": application_id},
+    #         {"$set": {"license_images": license_images}}
+    #     )
 
-    except Exception as e:
-        print(f"Error processing license images: {e}")
-        flash(f"Virhe ajokorttikuvien käsittelyssä: {str(e)}", "error")
-        return render_template('driver_application.html')
+    # except Exception as e:
+    #     print(f"Error processing license images: {e}")
+    #     flash(f"Virhe ajokorttikuvien käsittelyssä: {str(e)}", "error")
+    #     return render_template('driver_application.html')
 
     # Send confirmation email to applicant
     try:

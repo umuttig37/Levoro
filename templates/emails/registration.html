@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="fi">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -14,31 +15,37 @@
             padding: 20px;
             background-color: #f9f9f9;
         }
+
         .email-container {
             background-color: #ffffff;
             border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
             overflow: hidden;
         }
+
         .header {
             background-color: #1a365d;
             color: #ffffff;
             padding: 30px 20px;
             text-align: center;
         }
+
         .header h1 {
             margin: 0;
             font-size: 28px;
             font-weight: bold;
         }
+
         .content {
             padding: 30px 20px;
         }
+
         .content h2 {
             color: #1a365d;
             margin-top: 0;
             font-size: 22px;
         }
+
         .highlight-box {
             background-color: #edf2f7;
             border-left: 4px solid #4299e1;
@@ -46,6 +53,7 @@
             margin: 20px 0;
             border-radius: 4px;
         }
+
         .cta-button {
             display: inline-block;
             background-color: #4299e1;
@@ -56,6 +64,7 @@
             font-weight: bold;
             margin: 20px 0;
         }
+
         .footer {
             background-color: #edf2f7;
             padding: 20px;
@@ -63,23 +72,26 @@
             font-size: 14px;
             color: #666;
         }
+
         .footer a {
             color: #4299e1;
             text-decoration: none;
         }
     </style>
 </head>
+
 <body>
     <div class="email-container">
         <div class="header">
-            <h1>🚗 Levoro</h1>
-            <p>Autotransporttipalvelut</p>
+            <h1>Levoro</h1>
+            <p>Autonkuljetuspalvelut</p>
         </div>
 
         <div class="content">
             <h2>Tervetuloa Levoroon, {{ user_name }}!</h2>
 
-            <p>Kiitos rekisteröitymisestä Levoro-palveluun. Olemme vastaanottaneet rekisteröintisi ja tilisi on nyt tarkistettavana.</p>
+            <p>Kiitos rekisteröitymisestä Levoro-palveluun. Olemme vastaanottaneet rekisteröintisi ja tilisi on nyt
+                tarkistettavana.</p>
 
             <div class="highlight-box">
                 <strong>Mitä tapahtuu seuraavaksi?</strong>
@@ -92,21 +104,22 @@
 
             <p>Kun tilisi on hyväksytty, voit:</p>
             <ul>
-                <li>✓ Tilata autotransporttipalveluja</li>
-                <li>✓ Seurata tilausten tilaa</li>
-                <li>✓ Nähdä tilaushistoriasi</li>
+                <li>&#x2713; Tilata autonkuljetuspalveluja</li>
+                <li>&#x2713; Seurata tilausten tilaa</li>
+                <li>&#x2713; Nähdä tilaushistoriasi</li>
             </ul>
 
             <p>Jos sinulla on kysyttävää rekisteröinnistä tai palveluistamme, älä epäröi ottaa meihin yhteyttä.</p>
 
             <p>Ystävällisin terveisin,<br>
-            <strong>Levoro-tiimi</strong></p>
+                <strong>Levoro-tiimi</strong>
+            </p>
         </div>
 
         <div class="footer">
             <p>
                 <strong>Levoro Oy</strong><br>
-                Autotransporttipalvelut<br>
+                Autonkuljetuspalvelut<br>
                 Sähköposti: <a href="mailto:support@levoro.fi">support@levoro.fi</a><br>
                 Verkkosivu: <a href="https://www.levoro.fi">www.levoro.fi</a>
             </p>
@@ -116,4 +129,5 @@
         </div>
     </div>
 </body>
+
 </html>

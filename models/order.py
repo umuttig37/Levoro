@@ -388,8 +388,22 @@ class OrderModel(BaseModel):
                 "assigned_at": 1, "arrival_time": 1,
                 "pickup_started": 1, "delivery_completed": 1,
                 "images": 1,
-                "customer_name": "$customer.name",
-                "customer_email": "$customer.email",
+                "reg_number": 1, "winter_tires": 1,
+                "pickup_date": 1, "additional_info": 1,
+                # Orderer (Tilaaja) fields - from order document
+                "orderer_name": 1,
+                "orderer_email": 1,
+                "orderer_phone": 1,
+                # Customer (Asiakas) fields - from order document
+                "customer_reference": 1,
+                "customer_name": 1,
+                "customer_phone": 1,
+                "customer_email": 1,
+                # Legacy fields for backward compatibility
+                "user_name": "$customer.name",
+                "user_email": "$customer.email",
+                "email": 1, "phone": 1, "company": 1,
+                # Driver information from lookup
                 "driver_name": "$driver.name",
                 "driver_email": "$driver.email",
                 "driver_phone": "$driver.phone"

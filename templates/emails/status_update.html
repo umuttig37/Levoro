@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="fi">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -14,30 +15,49 @@
             padding: 20px;
             background-color: #f9f9f9;
         }
+
         .email-container {
             background-color: #ffffff;
             border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
             overflow: hidden;
         }
+
         .header {
             padding: 30px 20px;
             text-align: center;
         }
-        .header.new { background-color: #2d3748; }
-        .header.confirmed { background-color: #1a365d; }
-        .header.in_transit { background-color: #b7791f; }
-        .header.delivered { background-color: #22543d; }
-        .header.cancelled { background-color: #822727; }
+
+        .header.new {
+            background-color: #2d3748;
+        }
+
+        .header.confirmed {
+            background-color: #1a365d;
+        }
+
+        .header.in_transit {
+            background-color: #b7791f;
+        }
+
+        .header.delivered {
+            background-color: #22543d;
+        }
+
+        .header.cancelled {
+            background-color: #822727;
+        }
 
         .header {
             color: #ffffff;
         }
+
         .header h1 {
             margin: 0;
             font-size: 28px;
             font-weight: bold;
         }
+
         .status-badge {
             color: white;
             padding: 8px 16px;
@@ -46,21 +66,25 @@
             font-size: 14px;
             font-weight: bold;
             margin-top: 10px;
-            background-color: rgba(255,255,255,0.2);
+            background-color: rgba(255, 255, 255, 0.2);
         }
+
         .content {
             padding: 30px 20px;
         }
+
         .content h2 {
             color: #1a365d;
             margin-top: 0;
             font-size: 22px;
         }
+
         .status-icon {
             font-size: 48px;
             text-align: center;
             margin: 20px 0;
         }
+
         .status-description {
             background-color: #edf2f7;
             border-radius: 6px;
@@ -68,10 +92,12 @@
             margin: 20px 0;
             text-align: center;
         }
+
         .status-description h3 {
             margin-top: 0;
             color: #1a365d;
         }
+
         .order-details {
             background-color: #f8fafc;
             border-radius: 6px;
@@ -79,33 +105,40 @@
             margin: 20px 0;
             border: 1px solid #e2e8f0;
         }
+
         .detail-row {
             display: flex;
             justify-content: space-between;
             margin-bottom: 8px;
             padding: 5px 0;
         }
+
         .detail-row:not(:last-child) {
             border-bottom: 1px solid #e2e8f0;
         }
+
         .detail-label {
             font-weight: bold;
             color: #4a5568;
         }
+
         .detail-value {
             color: #2d3748;
         }
+
         .progress-steps {
             background-color: #f7fafc;
             padding: 20px;
             border-radius: 6px;
             margin: 20px 0;
         }
+
         .step {
             display: flex;
             align-items: center;
             margin: 10px 0;
         }
+
         .step-number {
             width: 25px;
             height: 25px;
@@ -117,18 +150,22 @@
             font-weight: bold;
             font-size: 12px;
         }
+
         .step.completed .step-number {
             background-color: #38a169;
             color: white;
         }
+
         .step.current .step-number {
             background-color: #4299e1;
             color: white;
         }
+
         .step.pending .step-number {
             background-color: #e2e8f0;
             color: #a0aec0;
         }
+
         .footer {
             background-color: #edf2f7;
             padding: 20px;
@@ -136,10 +173,12 @@
             font-size: 14px;
             color: #666;
         }
+
         .footer a {
             color: #4299e1;
             text-decoration: none;
         }
+
         .action-needed {
             background-color: #fef5e7;
             border-left: 4px solid #f56500;
@@ -147,20 +186,23 @@
             margin: 20px 0;
             border-radius: 4px;
         }
+
         @media (max-width: 600px) {
             .detail-row {
                 flex-direction: column;
             }
+
             .detail-value {
                 margin-top: 5px;
             }
         }
     </style>
 </head>
+
 <body>
     <div class="email-container">
         <div class="header {{ new_status.lower() }}">
-            <h1>📦 Tilauksen päivitys</h1>
+            <h1> Tilauksen päivitys</h1>
             <div class="status-badge">{{ order.status }}</div>
         </div>
 
@@ -169,12 +211,19 @@
 
             <p>Tilauksesi tila on päivittynyt:</p>
 
-            <div class="status-icon">
-                {% if new_status == 'NEW' %}🆕
-                {% elif new_status == 'CONFIRMED' %}✅
-                {% elif new_status == 'IN_TRANSIT' %}🚛
-                {% elif new_status == 'DELIVERED' %}✨
-                {% elif new_status == 'CANCELLED' %}❌
+            <div class="status-icon" style="font-size: 16px; font-weight: bold;">
+                {% if new_status == 'NEW' %}<span
+                    style="background: #3b82f6; color: white; padding: 10px 20px; border-radius: 8px;">UUSI</span>
+                {% elif new_status == 'CONFIRMED' %}<span
+                    style="background: #10b981; color: white; padding: 10px 20px; border-radius: 8px;">&#x2713;
+                    VAHVISTETTU</span>
+                {% elif new_status == 'IN_TRANSIT' %}<span
+                    style="background: #f59e0b; color: white; padding: 10px 20px; border-radius: 8px;">KULJETUKSESSA</span>
+                {% elif new_status == 'DELIVERED' %}<span
+                    style="background: #059669; color: white; padding: 10px 20px; border-radius: 8px;">&#x2713;
+                    TOIMITETTU</span>
+                {% elif new_status == 'CANCELLED' %}<span
+                    style="background: #ef4444; color: white; padding: 10px 20px; border-radius: 8px;">PERUUTETTU</span>
                 {% endif %}
             </div>
 
@@ -207,36 +256,57 @@
                     <div class="detail-value">{{ order.vehicle_make }} {{ order.vehicle_model }}</div>
                 </div>
                 {% endif %}
+
+                {% if order.price_gross %}
+                <div class="detail-row" style="padding: 12px 0; border-top: 2px solid #cbd5e0; margin-top: 8px;">
+                    <div class="detail-label" style="font-size: 14px; font-weight: 600;">Hinta:</div>
+                    <div class="detail-value"><strong style="font-size: 24px; color: #1a365d;">{{
+                            "%.2f"|format(order.price_gross / 1.255) }} € <span
+                                style="font-size: 14px; font-weight: 700;">+ ALV 0%</span></strong></div>
+                </div>
+                <div class="detail-row" style="padding: 2px 0; opacity: 0.55;">
+                    <div class="detail-label" style="font-size: 10px;">ALV 25,5%: {{ "%.2f"|format(order.price_gross -
+                        (order.price_gross / 1.255)) }} €</div>
+                    <div class="detail-value" style="font-size: 10px;">Yhteensä sis. ALV: {{
+                        "%.2f"|format(order.price_gross) }} €</div>
+                </div>
+                {% endif %}
             </div>
 
 
             {% if new_status == 'CONFIRMED' %}
             <div class="action-needed">
-                <strong>✅ Vahvistettu:</strong> Tilauksesi on vahvistettu ylläpidon toimesta ja odottaa noutopäivää.
+                <strong>Vahvistettu:</strong> Tilauksesi on vahvistettu ylläpidon toimesta ja odottaa noutopäivää.
             </div>
             {% elif new_status == 'IN_TRANSIT' %}
             <div class="action-needed">
-                <strong>🚛 Kuljetus käynnissä:</strong> Autosi on nyt matkalla määränpäähän. Kuljettaja on yhteydessä kun saapuu toimituspaikkaan.
+                <strong>Kuljetus käynnissä:</strong> Autosi on nyt matkalla määränpäähän. Kuljettaja on yhteydessä kun
+                saapuu toimituspaikkaan.
             </div>
             {% elif new_status == 'DELIVERED' %}
-            <div style="background-color: #f0fff4; border-left: 4px solid #38a169; padding: 15px; margin: 20px 0; border-radius: 4px;">
-                <strong>🎉 Toimitus valmis!</strong> Kiitos että valitsit Levoro-palvelun. Toivomme että olit tyytyväinen kuljetukseen!
+            <div
+                style="background-color: #f0fff4; border-left: 4px solid #38a169; padding: 15px; margin: 20px 0; border-radius: 4px;">
+                <strong>Toimitus valmis!</strong> Kiitos että valitsit Levoro-palvelun. Toivomme että olit tyytyväinen
+                kuljetukseen!
             </div>
             {% endif %}
 
             <p><strong>Voit seurata tilauksen etenemistä:</strong><br>
-            Kirjaudu sisään <a href="https://www.levoro.fi/login">www.levoro.fi</a> -sivustolla nähdäksesi ajantasaisen tilan.</p>
+                Kirjaudu sisään <a href="https://www.levoro.fi/login">www.levoro.fi</a> -sivustolla nähdäksesi
+                ajantasaisen tilan.</p>
 
-            <p>Jos sinulla on kysyttävää tilauksestasi, viittaa tilausnumeroon <strong>#{{ order.order_id }}</strong>.</p>
+            <p>Jos sinulla on kysyttävää tilauksestasi, viittaa tilausnumeroon <strong>#{{ order.order_id }}</strong>.
+            </p>
 
             <p>Ystävällisin terveisin,<br>
-            <strong>Levoro-tiimi</strong></p>
+                <strong>Levoro-tiimi</strong>
+            </p>
         </div>
 
         <div class="footer">
             <p>
                 <strong>Levoro Oy</strong><br>
-                Autotransporttipalvelut<br>
+                Autonkuljetuspalvelut<br>
                 Sähköposti: <a href="mailto:support@levoro.fi">support@levoro.fi</a><br>
                 Verkkosivu: <a href="https://www.levoro.fi">www.levoro.fi</a>
             </p>
@@ -246,4 +316,5 @@
         </div>
     </div>
 </body>
+
 </html>

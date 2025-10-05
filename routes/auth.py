@@ -53,8 +53,9 @@ def register():
     email = request.form.get("email", "").strip().lower()
     password = request.form.get("password", "")
     name = request.form.get("name", "").strip()
+    phone = request.form.get("phone", "").strip()
 
-    success, user, error = auth_service.register(email, password, name)
+    success, user, error = auth_service.register(email, password, name, phone)
 
     if not success:
         flash(error, "error")

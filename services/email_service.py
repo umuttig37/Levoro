@@ -50,7 +50,7 @@ class EmailService:
             bool: True if email was sent successfully, False otherwise
         """
         # Log email attempt details
-        print(f"📧 EMAIL ATTEMPT:")
+        print(f"[EMAIL] Attempting to send email")
         print(f"   From: {sender or current_app.config.get('MAIL_DEFAULT_SENDER', 'N/A')}")
         print(f"   To: {recipients}")
         print(f"   Subject: {subject}")
@@ -61,18 +61,18 @@ class EmailService:
 
         try:
             if not self.mail:
-                error_msg = "❌ Mail instance not configured"
+                error_msg = "[ERROR] Mail instance not configured"
                 current_app.logger.error(error_msg)
                 print(f"   {error_msg}")
                 return False
 
             if not recipients:
-                error_msg = "❌ No recipients provided"
+                error_msg = "[ERROR] No recipients provided"
                 current_app.logger.error(error_msg)
                 print(f"   {error_msg}")
                 return False
 
-            print(f"   📝 Creating email message...")
+            print(f"   [CREATE] Creating email message...")
             msg = Message(
                 subject=subject,
                 recipients=recipients,
@@ -81,28 +81,28 @@ class EmailService:
                 sender=sender
             )
 
-            print(f"   🚀 Attempting to send via Zoho SMTP...")
+            print(f"   [SEND] Attempting to send via Zoho SMTP...")
             self.mail.send(msg)
 
-            success_msg = f"✅ Email sent successfully to {recipients}"
+            success_msg = f"[SUCCESS] Email sent successfully to {recipients}"
             current_app.logger.info(success_msg)
             print(f"   {success_msg}")
             return True
 
         except Exception as e:
-            error_msg = f"❌ Failed to send email: {str(e)}"
+            error_msg = f"[ERROR] Failed to send email: {str(e)}"
             current_app.logger.error(error_msg)
             print(f"   {error_msg}")
 
             # Log additional SMTP debug info
             if "552" in str(e):
-                print(f"   🚫 SMTP Error 552: IP Address blocked by Zoho")
-                print(f"   💡 This is common in development environments like Codespaces")
-                print(f"   📍 Solution: Test from production server or use different SMTP provider for dev")
+                print(f"   [BLOCKED] SMTP Error 552: IP Address blocked by Zoho")
+                print(f"   [INFO] This is common in development environments like Codespaces")
+                print(f"   [TIP] Solution: Test from production server or use different SMTP provider for dev")
             elif "authentication" in str(e).lower():
-                print(f"   🔐 Authentication issue: Check ZOHO_EMAIL and ZOHO_PASSWORD")
+                print(f"   [AUTH] Authentication issue: Check ZOHO_EMAIL and ZOHO_PASSWORD")
             elif "connection" in str(e).lower():
-                print(f"   🔌 Connection issue: Check SMTP server/port settings")
+                print(f"   [CONN] Connection issue: Check SMTP server/port settings")
 
             return False
 
@@ -138,7 +138,7 @@ class EmailService:
 
     def send_order_created_email(self, user_email: str, user_name: str, order_data: Dict) -> bool:
         """Send email when new order is created"""
-        print(f"📦 ORDER CREATED EMAIL:")
+        print(f"[ORDER] Creating order confirmation email")
         print(f"   Recipient: {user_name} <{user_email}>")
         print(f"   Order ID: #{order_data.get('id')}")
         print(f"   Route: {order_data.get('pickup_address')} → {order_data.get('dropoff_address')}")
@@ -158,12 +158,12 @@ class EmailService:
                 'distance_km': order_data.get('distance_km', 0)
             }
 
-            print(f"   📝 Rendering order confirmation template...")
+            print(f"   [RENDER] Rendering order confirmation template...")
             html_body = render_template('emails/order_created.html',
                                       user_name=user_name,
                                       order=order_info)
 
-            print(f"   📧 Sending order confirmation email...")
+            print(f"   [SEND] Sending order confirmation email...")
             return self.send_email(
                 subject=f"Tilausvahvistus #{order_data.get('id')} - Levoro",
                 recipients=[user_email],
@@ -218,7 +218,7 @@ class EmailService:
                                       new_status=new_status,
                                       driver_name=driver_name)
 
-            print(f"   📧 Sending status update email...")
+            print(f"   [SEND] Sending status update email...")
             return self.send_email(
                 subject=f"Tilaus #{order_id} - {status_finnish}",
                 recipients=[user_email],
@@ -227,7 +227,7 @@ class EmailService:
         except Exception as e:
             error_msg = f"Failed to send status update email: {str(e)}"
             current_app.logger.error(error_msg)
-            print(f"   ❌ {error_msg}")
+            print(f"   [ERROR] {error_msg}")
             return False
 
     def send_admin_new_order_notification(self, order_data: Dict, customer_data: Dict = None) -> bool:
@@ -253,13 +253,13 @@ class EmailService:
                                       order_detail_url=order_detail_url)
 
             return self.send_email(
-                subject=f"🆕 Uusi tilaus #{order_data.get('id')} - Vahvistus tarvitaan",
+                subject=f"[Levoro] Uusi tilaus #{order_data.get('id')} - Vahvistus tarvitaan",
                 recipients=[admin_email],
                 html_body=html_body
             )
         except Exception as e:
             current_app.logger.error(f"Failed to send admin order notification: {str(e)}")
-            print(f"   ❌ Failed to send admin order notification: {str(e)}")
+            print(f"   [ERROR] Failed to send admin order notification: {str(e)}")
             return False
 
     def send_admin_new_user_notification(self, user_data: Dict, stats: Dict = None) -> bool:
@@ -296,38 +296,38 @@ class EmailService:
                                       driver_count=stats.get('driver_count'))
 
             return self.send_email(
-                subject=f"👤 Uusi käyttäjä rekisteröitynyt: {user_data.get('name')}",
+                subject=f"[Levoro] Uusi käyttäjä rekisteröitynyt: {user_data.get('name')}",
                 recipients=[admin_email],
                 html_body=html_body
             )
         except Exception as e:
             current_app.logger.error(f"Failed to send admin user notification: {str(e)}")
-            print(f"   ❌ Failed to send admin user notification: {str(e)}")
+            print(f"   [ERROR] Failed to send admin user notification: {str(e)}")
             return False
 
     def send_driver_application_confirmation(self, email: str, name: str) -> bool:
         """Send confirmation email to driver applicant"""
         try:
-            print(f"📧 Sending driver application confirmation to {email}")
+            print(f"[EMAIL] Sending driver application confirmation to {email}")
 
             html_body = render_template('emails/driver_application_confirmation.html',
                                       name=name)
 
             return self.send_email(
-                subject="🚗 Kuljettajahakemus vastaanotettu - Levoro",
+                subject="Kuljettajahakemus vastaanotettu - Levoro",
                 recipients=[email],
                 html_body=html_body
             )
         except Exception as e:
             current_app.logger.error(f"Failed to send driver application confirmation: {str(e)}")
-            print(f"   ❌ Failed to send driver application confirmation: {str(e)}")
+            print(f"   [ERROR] Failed to send driver application confirmation: {str(e)}")
             return False
 
     def send_admin_driver_application_notification(self, application: Dict) -> bool:
         """Send notification to admin about new driver application"""
         try:
             admin_email = os.getenv("ADMIN_EMAIL", "support@levoro.fi")
-            print(f"📧 Sending driver application notification to admin: {admin_email}")
+            print(f"[EMAIL] Sending driver application notification to admin: {admin_email}")
 
             applicant_name = application.get("name") or " ".join(
                 filter(None, [application.get("first_name"), application.get("last_name")])
@@ -342,7 +342,7 @@ class EmailService:
                                       application_url=application_url)
 
             return self.send_email(
-                subject=f"🚗 Uusi kuljettajahakemus: {applicant_name}",
+                subject=f"[Levoro] Uusi kuljettajahakemus: {applicant_name}",
                 recipients=[admin_email],
                 html_body=html_body
             )
@@ -354,31 +354,32 @@ class EmailService:
     def send_driver_application_approved(self, email: str, name: str) -> bool:
         """Send approval email to driver"""
         try:
-            print(f"📧 Sending driver application approval to {email}")
+            print(f"[EMAIL] Sending driver application approval to {email}")
 
             html_body = render_template('emails/driver_application_approved.html',
                                       name=name,
                                       email=email)
 
             return self.send_email(
-                subject="🎉 Kuljettajahakemus hyväksytty - Tervetuloa Levorolle!",
+                subject="Kuljettajahakemus hyväksytty - Tervetuloa Levorolle!",
                 recipients=[email],
                 html_body=html_body
             )
         except Exception as e:
             current_app.logger.error(f"Failed to send driver application approval: {str(e)}")
-            print(f"   ❌ Failed to send driver application approval: {str(e)}")
+            print(f"   [ERROR] Failed to send driver application approval: {str(e)}")
             return False
 
     def send_driver_assignment_email(self, driver_email: str, driver_name: str, order_data: Dict) -> bool:
         """Send email to driver when assigned to an order"""
         try:
-            print(f"📧 Sending driver assignment notification to {driver_email}")
+            print(f"[EMAIL] Sending driver assignment notification to {driver_email}")
 
             html_body = f"""
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
                 <div style="background: linear-gradient(135deg, #3b82f6, #2563eb); color: white; padding: 30px; border-radius: 12px; margin-bottom: 30px; text-align: center;">
-                    <h1 style="margin: 0; font-size: 28px;">🚗 Uusi tehtävä määritetty!</h1>
+                    <h1 style="margin: 0; font-size: 28px;">Uusi tehtävä määritetty!</h1>
+                    <p style="margin: 10px 0 0 0; font-size: 16px; opacity: 0.9;">Kuljetustehtävä</p>
                 </div>
 
                 <div style="padding: 0 20px;">
@@ -389,7 +390,7 @@ class EmailService:
                     </p>
 
                     <div style="background: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0;">
-                        <h3 style="margin-top: 0; color: #1f2937;">📦 Tehtävän tiedot</h3>
+                        <h3 style="margin-top: 0; color: #1f2937; border-bottom: 2px solid #e5e7eb; padding-bottom: 8px;">Tehtävän tiedot</h3>
                         <table style="width: 100%; border-collapse: collapse;">
                             <tr><td style="padding: 8px 0; font-weight: bold; width: 40%;">Tilaus #:</td><td style="padding: 8px 0;">{order_data.get('id')}</td></tr>
                             <tr><td style="padding: 8px 0; font-weight: bold;">Nouto:</td><td style="padding: 8px 0;">{order_data.get('pickup_address', 'N/A')}</td></tr>
@@ -422,24 +423,24 @@ class EmailService:
             """
 
             return self.send_email(
-                subject=f"🚗 Uusi tehtävä #{order_data.get('id')} - Levoro",
+                subject=f"Uusi tehtävä #{order_data.get('id')} - Levoro",
                 recipients=[driver_email],
                 html_body=html_body
             )
         except Exception as e:
             current_app.logger.error(f"Failed to send driver assignment email: {str(e)}")
-            print(f"   ❌ Failed to send driver assignment email: {str(e)}")
+            print(f"   [ERROR] Failed to send driver assignment email: {str(e)}")
             return False
 
     def send_customer_driver_assigned_email(self, customer_email: str, customer_name: str, order_data: Dict, driver_data: Dict) -> bool:
         """Send email to customer when driver is assigned to their order"""
         try:
-            print(f"📧 Sending driver assigned notification to customer {customer_email}")
+            print(f"[EMAIL] Sending driver assigned notification to customer {customer_email}")
 
             html_body = f"""
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
                 <div style="background: linear-gradient(135deg, #10b981, #059669); color: white; padding: 30px; border-radius: 12px; margin-bottom: 30px; text-align: center;">
-                    <h1 style="margin: 0; font-size: 28px;">✅ Kuljettaja määritetty!</h1>
+                    <h1 style="margin: 0; font-size: 28px;">&#x2713; Kuljettaja määritetty!</h1>
                 </div>
 
                 <div style="padding: 0 20px;">
@@ -450,7 +451,7 @@ class EmailService:
                     </p>
 
                     <div style="background: #f0fdf4; border: 2px solid #10b981; padding: 20px; border-radius: 8px; margin: 25px 0;">
-                        <h3 style="margin-top: 0; color: #047857;">👤 Kuljettajan tiedot</h3>
+                        <h3 style="margin-top: 0; color: #047857; border-bottom: 2px solid #bbf7d0; padding-bottom: 8px;">Kuljettajan tiedot</h3>
                         <table style="width: 100%; border-collapse: collapse;">
                             <tr><td style="padding: 8px 0; font-weight: bold; width: 30%;">Nimi:</td><td style="padding: 8px 0;">{driver_data.get('name', 'N/A')}</td></tr>
                             <tr><td style="padding: 8px 0; font-weight: bold;">Puhelin:</td><td style="padding: 8px 0;">{driver_data.get('phone', 'N/A')}</td></tr>
@@ -458,7 +459,7 @@ class EmailService:
                     </div>
 
                     <div style="background: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0;">
-                        <h3 style="margin-top: 0; color: #1f2937;">📦 Tilauksen tiedot</h3>
+                        <h3 style="margin-top: 0; color: #1f2937; border-bottom: 2px solid #e5e7eb; padding-bottom: 8px;">Tilauksen tiedot</h3>
                         <table style="width: 100%; border-collapse: collapse;">
                             <tr><td style="padding: 8px 0; font-weight: bold; width: 30%;">Tilaus #:</td><td style="padding: 8px 0;">{order_data.get('id')}</td></tr>
                             <tr><td style="padding: 8px 0; font-weight: bold;">Nouto:</td><td style="padding: 8px 0;">{order_data.get('pickup_address', 'N/A')}</td></tr>
@@ -495,13 +496,13 @@ class EmailService:
             )
         except Exception as e:
             current_app.logger.error(f"Failed to send customer driver assigned email: {str(e)}")
-            print(f"   ❌ Failed to send customer driver assigned email: {str(e)}")
+            print(f"   [ERROR] Failed to send customer driver assigned email: {str(e)}")
             return False
 
     def send_driver_application_denied(self, email: str, name: str) -> bool:
         """Send denial email to driver applicant"""
         try:
-            print(f"📧 Sending driver application denial to {email}")
+            print(f"[EMAIL] Sending driver application denial to {email}")
 
             html_body = render_template('emails/driver_application_denied.html',
                                       name=name)
@@ -513,7 +514,7 @@ class EmailService:
             )
         except Exception as e:
             current_app.logger.error(f"Failed to send driver application denial: {str(e)}")
-            print(f"   ❌ Failed to send driver application denial: {str(e)}")
+            print(f"   [ERROR] Failed to send driver application denial: {str(e)}")
             return False
 
     def _html_to_text(self, html_content: str) -> str:

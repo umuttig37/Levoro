@@ -13,11 +13,22 @@ def get_app():
 
 app = get_app()
 
+@app.get("/yhteystiedot")
+def contact():
+    u = auth_service.get_current_user()
+    from app import render_template
+    return render_template("contact.html", current_user=u)
+
 @app.get("/calculator")
 def calculator():
     u = auth_service.get_current_user()
     if not u:
         return redirect(url_for("auth.login", next="/calculator"))
+
+    # Drivers cannot access calculator - redirect to their dashboard
+    if u.get('role') == 'driver':
+        return redirect(url_for("driver.dashboard"))
+
     body = """
 <div class="container">
   <!-- Page Header -->
@@ -77,7 +88,17 @@ def calculator():
         <div class="card-body">
           <div id="receipt" class="receipt hidden">
             <div class="rowline"><span>Matka</span><span id="r_km">—</span></div>
-            <div class="rowline total"><span>Kokonaishinta</span><span id="r_gross">—</span></div>
+            <div class="rowline price-main-row" style="margin: 16px 0; padding: 16px 0; border-top: 2px solid var(--color-primary); border-bottom: 2px solid var(--color-primary);">
+              <span style="font-size: 1.1em; font-weight: 600;">Hinta</span>
+              <div style="text-align: right;">
+                <div style="font-size: 2.5em; font-weight: 800; line-height: 1.1;" id="r_net">—</div>
+                <div style="font-size: 1.2em; font-weight: 700; margin-top: 4px;">+ ALV 0%</div>
+              </div>
+            </div>
+            <div class="rowline" style="font-size: 0.75em; opacity: 0.6; margin: 8px 0;">
+              <span>ALV 25,5%: <span id="r_vat">—</span></span>
+              <span>Yhteensä sis. ALV: <span id="r_gross">—</span></span>
+            </div>
           </div>
 
           <div id="no-results" class="calculator-no-results">
@@ -457,6 +478,8 @@ async function calc(){
       const j=await r.json();
       if(!r.ok) throw new Error(j.error||'Tuntematon virhe');
       document.getElementById('r_km').textContent = kmfmt(j.km);
+      document.getElementById('r_net').textContent = euro(j.net);
+      document.getElementById('r_vat').textContent = euro(j.vat);
       document.getElementById('r_gross').textContent = euro(j.gross);
       rec.classList.remove('hidden');
       if(noResults) noResults.style.display = 'none';

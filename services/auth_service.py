@@ -37,7 +37,7 @@ class AuthService:
         """Clear user session"""
         session.clear()
 
-    def register(self, email: str, password: str, name: str) -> Tuple[bool, Optional[Dict], Optional[str]]:
+    def register(self, email: str, password: str, name: str, phone: str = None) -> Tuple[bool, Optional[Dict], Optional[str]]:
         """
         Register a new user
 
@@ -45,10 +45,10 @@ class AuthService:
             Tuple[bool, Optional[Dict], Optional[str]]: (success, user_data, error_message)
         """
         # Validate input
-        if not self._validate_registration_data(email, password, name):
+        if not self._validate_registration_data(email, password, name, phone):
             return False, None, "Tarkista tiedot"
 
-        user, error = self.user_model.create_user(email, password, name)
+        user, error = self.user_model.create_user(email, password, name, phone=phone)
 
         # Send registration email if user was created successfully
         if user is not None and error is None:
@@ -163,7 +163,7 @@ class AuthService:
 
         return self.user_model.change_password(user_id, current_password, new_password)
 
-    def _validate_registration_data(self, email: str, password: str, name: str) -> bool:
+    def _validate_registration_data(self, email: str, password: str, name: str, phone: str = None) -> bool:
         """Validate registration data"""
         # Basic validation
         if not email or not password or not name:
@@ -177,6 +177,12 @@ class AuthService:
 
         if len(name.strip()) < 2:
             return False
+
+        # Validate phone if provided
+        if phone:
+            phone_clean = phone.strip()
+            if len(phone_clean) < 5 or len(phone_clean) > 20:
+                return False
 
         return True
 
