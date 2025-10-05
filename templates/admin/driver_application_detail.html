@@ -190,5 +190,40 @@
     </div>
   </div>
   {% endif %}
+
+  <!-- Delete Section (Available for all statuses) -->
+  <div class="card mt-6" style="border-color: #dc2626;">
+    <div class="card-header" style="background: #fef2f2;">
+      <h3 class="card-title" style="color: #dc2626;">⚠️ Vaarallinen alue</h3>
+    </div>
+    <div class="card-body">
+      <form method="POST" action="{{ url_for('admin.delete_driver_application', application_id=application.id) }}">
+        <button type="submit" class="btn w-full" style="background: #dc2626; color: white;"
+          onclick="return confirmDelete()">
+          🗑️ Poista hakemus ja käyttäjätili
+        </button>
+      </form>
+      <div class="mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+        <p class="text-sm text-muted">
+          <strong>Varoitus:</strong> Tämä poistaa pysyvästi sekä hakemuksen että liittyvän käyttäjätilin.
+          Tätä toimintoa ei voi peruuttaa.
+        </p>
+      </div>
+    </div>
+  </div>
 </div>
+
+<script>
+function confirmDelete() {
+  return confirm(
+    "⚠️ VAROITUS: Tämä toiminto poistaa PYSYVÄSTI:\n\n" +
+    "• Kuljettajahakemuksen #{{ application.id }} ({{ application.name }})\n" +
+    "• Käyttäjätilin (jos olemassa): {{ application.email }}\n" +
+    "• Kaikki liittyvät tiedot\n\n" +
+    "Tätä toimintoa EI VOI PERUUTTAA!\n\n" +
+    "Haluatko varmasti jatkaa?"
+  );
+}
+</script>
+
 {% endblock %}

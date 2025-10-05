@@ -255,6 +255,70 @@ def deny_driver_application():
     return redirect(url_for("admin.driver_applications"))
 
 
+@admin_bp.route("/driver-applications/<int:application_id>/delete", methods=["POST"])
+@admin_required
+def delete_driver_application(application_id):
+    """Permanently delete driver application and associated user account"""
+    from models.driver_application import driver_application_model
+    from models.user import user_model
+    from app import users_col
+
+    # Get current user for logging
+    user = auth_service.get_current_user()
+
+    # Get application details
+    app = driver_application_model.find_by_id(application_id)
+    if not app:
+        flash("Hakemusta ei löytynyt", "error")
+        return redirect(url_for("admin.driver_applications"))
+
+    app_name = app.get('name', 'Tuntematon')
+    app_email = app.get('email', '')
+    app_status = app.get('status', 'unknown')
+
+    # Check if user account exists
+    existing_user = user_model.find_by_email(app_email)
+    user_deleted = False
+    user_info = ""
+
+    if existing_user:
+        user_id = existing_user.get('id')
+        user_role = existing_user.get('role')
+        user_status = existing_user.get('status')
+
+        # Delete user account
+        try:
+            users_col().delete_one({"id": user_id})
+            user_deleted = True
+            user_info = f"Käyttäjätili #{user_id} poistettu ({user_role}, {user_status})"
+            print(f"✓ Deleted user account #{user_id} ({app_email})")
+        except Exception as e:
+            print(f"✗ Failed to delete user account: {e}")
+            flash(f"Virhe käyttäjätilin poistamisessa: {str(e)}", "error")
+            return redirect(url_for("admin.driver_application_detail", application_id=application_id))
+
+    # Delete driver application
+    try:
+        driver_application_model.delete_one({"id": application_id})
+        print(f"✓ Deleted driver application #{application_id} ({app_email})")
+    except Exception as e:
+        print(f"✗ Failed to delete driver application: {e}")
+        flash(f"Virhe hakemuksen poistamisessa: {str(e)}", "error")
+        return redirect(url_for("admin.driver_application_detail", application_id=application_id))
+
+    # Build success message
+    success_msg = f"✓ Hakemus #{application_id} poistettu ({app_name} - {app_email})"
+    if user_deleted:
+        success_msg += f"\n✓ {user_info}"
+    else:
+        success_msg += "\nℹ️ Käyttäjätiliä ei löytynyt"
+
+    flash(success_msg, "success")
+    print(f"✓ Admin {user.get('name')} deleted driver application #{application_id}")
+
+    return redirect(url_for("admin.driver_applications"))
+
+
 @admin_bp.route("/driver-applications/<int:application_id>/license/<string:image_type>")
 @admin_required
 def view_license_image(application_id, image_type):
