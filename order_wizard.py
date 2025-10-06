@@ -672,7 +672,7 @@ def order_step4():
   <!-- Orderer Section -->
   <div style='background: #f0f9ff; padding: 1.25rem; border-radius: 8px; margin-bottom: 1.5rem; border: 1px solid #bfdbfe;'>
     <h3 style='margin-top: 0; margin-bottom: 1rem; color: #1e40af; font-size: 1.1rem; display: flex; align-items: center; gap: 0.5rem;'>
-      🏢 Tilaajan tiedot
+      Tilaajan tiedot
       <span style='font-size: 0.8rem; font-weight: normal; color: #64748b;'>(Kuka tilaa kuljetuksen)</span>
     </h3>
     <label class='form-label'>Tilaajan nimi *</label>
@@ -686,7 +686,7 @@ def order_step4():
   <!-- Customer Section -->
   <div style='background: #fefce8; padding: 1.25rem; border-radius: 8px; margin-bottom: 1.5rem; border: 1px solid #fde047;'>
     <h3 style='margin-top: 0; margin-bottom: 1rem; color: #854d0e; font-size: 1.1rem; display: flex; align-items: center; gap: 0.5rem;'>
-      👤 Asiakkaan tiedot
+      Asiakkaan tiedot
       <span style='font-size: 0.8rem; font-weight: normal; color: #64748b;'>(Kenelle auto toimitetaan)</span>
     </h3>
     <label class='form-label'>Asiakkaan viite / referenssi</label>
