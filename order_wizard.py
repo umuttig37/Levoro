@@ -1,9 +1,19 @@
 # order_wizard.py
 import datetime
+import re
 from flask import request, redirect, url_for, session
 from services.auth_service import auth_service
 from services.order_service import order_service
 from models.database import db_manager
+
+def validate_phone_number(phone):
+    """Validate that phone number contains only digits, spaces, +, -, and ()"""
+    if not phone:
+        return False
+    # Allow: digits, spaces, +, -, (, )
+    # Pattern: optional + at start, then digits/spaces/hyphens/parentheses
+    pattern = r'^[+]?[0-9\s\-()]+$'
+    return bool(re.match(pattern, phone))
 
 # Import app and wrap function - available after app initialization
 def get_app():
@@ -110,24 +120,12 @@ def order_step1():
   </div>
   <label>Toivottu noutopäivä</label>
     <div class="date-left">
-      <input type="date" name="pickup_date" id="pickup_date">
+      <input type="date" name="pickup_date" id="pickup_date" aria-label="Valitse noutopäivä">
     </div>
   <div class='calculator-actions mt-2'>
-    <button type='submit' class="btn btn-primary">Jatka →</button>
+    <button type='submit' class="btn btn-primary" aria-label="Jatka seuraavaan vaiheeseen">Jatka →</button>
   </div>
 </form>
-<style>
-  /* tee päivämääräkentästä kapea ja vasempaan */
-  .date-left{ max-width:260px; }
-  .date-left input[type="date"]{ width:100%; }
-
-  /* valinnainen: siirrä kalenteri-ikoni vasemmalle (Chromium/Safari) */
-  .date-left{ position:relative; }
-  .date-left input[type="date"]{ padding-left:40px; }
-  .date-left input[type="date"]::-webkit-calendar-picker-indicator{
-    position:absolute; left:10px; right:auto; opacity:1; cursor:pointer;
-  }
-</style>
 
 <script>
 /* ===== Google Places Autocomplete for Wizard ===== */
@@ -634,6 +632,18 @@ def order_step4():
         # Customer (Asiakas) fields
         d["customer_name"] = request.form.get("customer_name","").strip()
         d["customer_phone"] = request.form.get("customer_phone","").strip()
+        
+        # Validate phone numbers
+        if not validate_phone_number(d["orderer_phone"]):
+            session["error_message"] = "Tilaajan puhelinnumero ei ole kelvollinen. Käytä vain numeroita ja merkkejä +, -, ( )"
+            session["order_draft"] = d
+            return redirect("/order/new/step4")
+        
+        if not validate_phone_number(d["customer_phone"]):
+            session["error_message"] = "Asiakkaan puhelinnumero ei ole kelvollinen. Käytä vain numeroita ja merkkejä +, -, ( )"
+            session["order_draft"] = d
+            return redirect("/order/new/step4")
+        
         # Legacy field for backward compatibility
         d["phone"] = d["customer_phone"]
         session["order_draft"] = d
@@ -658,7 +668,7 @@ def order_step4():
 
     # Check for error message and display it
     error_msg = session.pop("error_message", None)
-    error_html = f"<div class='error-message' style='margin-bottom: 1rem; padding: 0.75rem; background-color: #fef2f2; border: 1px solid #fca5a5; border-radius: 0.375rem;'>{error_msg}</div>" if error_msg else ""
+    error_html = f"<div class='error-message'>{error_msg}</div>" if error_msg else ""
 
     inner = f"""
 <h2 class='card-title'>Yhteystiedot</h2>
@@ -675,7 +685,7 @@ def order_step4():
     <label class='form-label'>Tilaajan sähköposti *</label>
     <input type='email' name='orderer_email' required class='form-input' value="{orderer_email_val}" placeholder="yritys@example.com">
     <label class='form-label'>Tilaajan puhelin *</label>
-    <input name='orderer_phone' required class='form-input' value="{orderer_phone_val}" placeholder="+358...">
+    <input type='tel' name='orderer_phone' required class='form-input' value="{orderer_phone_val}" placeholder="+358..." pattern="[+]?[0-9\s\-()]+" title="Käytä vain numeroita ja merkkejä +, -, ( )" aria-label="Tilaajan puhelinnumero">
   </div>
 
   <!-- Customer Section -->
@@ -686,14 +696,49 @@ def order_step4():
     <label class='form-label'>Asiakkaan nimi *</label>
     <input name='customer_name' required class='form-input' value="{customer_name_val}" placeholder="Vastaanottajan nimi">
     <label class='form-label'>Asiakkaan puhelinnumero *</label>
-    <input name='customer_phone' required class='form-input' value="{customer_phone_val}" placeholder="+358...">
+    <input type='tel' name='customer_phone' required class='form-input' value="{customer_phone_val}" placeholder="+358..." pattern="[+]?[0-9\s\-()]+" title="Käytä vain numeroita ja merkkejä +, -, ( )" aria-label="Asiakkaan puhelinnumero">
   </div>
 
   <div class='row calculator-actions'>
     <button type='button' onclick='window.location.href="/order/new/step3"' class='btn btn-ghost'>← Takaisin</button>
     <button type='submit' class='btn btn-primary'>Jatka →</button>
   </div>
-</form>"""
+</form>
+<script>
+// Phone number validation with real-time feedback
+(function() {{
+    const phoneInputs = document.querySelectorAll('input[type="tel"]');
+    const phonePattern = /^[+]?[0-9\s\-()]+$/;
+    
+    phoneInputs.forEach(input => {{
+        // Create error message element
+        const errorMsg = document.createElement('small');
+        errorMsg.style.cssText = 'color: #dc2626; font-size: 0.875rem; margin-top: -18px; margin-bottom: 12px; display: none;';
+        errorMsg.textContent = 'Käytä vain numeroita ja merkkejä +, -, ( )';
+        input.parentNode.insertBefore(errorMsg, input.nextSibling);
+        
+        // Real-time validation
+        input.addEventListener('input', function() {{
+            const value = this.value.trim();
+            
+            if (value && !phonePattern.test(value)) {{
+                errorMsg.style.display = 'block';
+                this.setCustomValidity('Virheellinen puhelinnumero');
+            }} else {{
+                errorMsg.style.display = 'none';
+                this.setCustomValidity('');
+            }}
+        }});
+        
+        // Validation on blur
+        input.addEventListener('blur', function() {{
+            if (this.value.trim() && !phonePattern.test(this.value.trim())) {{
+                errorMsg.style.display = 'block';
+            }}
+        }});
+    }});
+}})();
+</script>"""
     return get_wrap()(wizard_shell(4, inner, session.get("order_draft", {})), u)
 
 # STEP 5: Notes
