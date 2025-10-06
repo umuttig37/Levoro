@@ -847,8 +847,8 @@ def order_confirm():
     <div class='confirmation-card'><h3 class='confirmation-title'>Nouto</h3><p class='confirmation-text'>{d.get('pickup')}</p><p class='confirmation-meta'>{d.get('pickup_date') or 'Heti'}</p></div>
     <div class='confirmation-card'><h3 class='confirmation-title'>Toimitus</h3><p class='confirmation-text'>{d.get('dropoff')}</p></div>
     <div class='confirmation-card'><h3 class='confirmation-title'>Ajoneuvo</h3><p class='confirmation-text'>Rekisteri: {d.get('reg_number')}</p><p class='confirmation-meta'>Talvirenkaat: {"Kyllä" if d.get('winter_tires') else "Ei"}</p></div>
-    <div class='confirmation-card'><h3 class='confirmation-title'>🏢 Tilaaja</h3><p class='confirmation-text'>{d.get('orderer_name')}</p><p class='confirmation-meta'>{d.get('orderer_email')} / {d.get('orderer_phone')}</p></div>
-    <div class='confirmation-card'><h3 class='confirmation-title'>👤 Asiakas</h3><p class='confirmation-text'>{d.get('customer_name')}</p><p class='confirmation-meta'>{d.get('customer_phone')}</p></div>
+    <div class='confirmation-card'><h3 class='confirmation-title'>Tilaajan tiedot</h3><p class='confirmation-text'>{d.get('orderer_name')}</p><p class='confirmation-meta'>{d.get('orderer_email')} / {d.get('orderer_phone')}</p></div>
+    <div class='confirmation-card'><h3 class='confirmation-title'>Asiakkaan tiedot</h3><p class='confirmation-text'>{d.get('customer_name')}</p><p class='confirmation-meta'>{d.get('customer_phone')}</p></div>
     <div class='confirmation-card'><h3 class='confirmation-title'>Lisätiedot</h3><p class='confirmation-text'>{(d.get('additional_info') or '-').replace('<','&lt;')}</p></div>
   </div>
   <div class='confirmation-map-container'>
@@ -911,6 +911,24 @@ def order_confirm():
   height: auto;
 }}
 
+/* Distance label styling for map */
+.distance-label {{
+  background: transparent;
+  border: none;
+}}
+
+.distance-text {{
+  background: rgba(59, 130, 246, 0.95);
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 1.5rem;
+  font-weight: 700;
+  font-size: 0.95rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  white-space: nowrap;
+  text-align: center;
+}}
+
 @media (max-width: 768px) {{
   .confirmation-layout {{
     flex-direction: column;
@@ -918,6 +936,11 @@ def order_confirm():
 
   .confirmation-map {{
     height: 200px;
+  }}
+  
+  .distance-text {{
+    font-size: 0.85rem;
+    padding: 0.4rem 0.8rem;
   }}
 }}
 </style>
@@ -971,18 +994,27 @@ class RouteMap {{
 document.addEventListener('DOMContentLoaded', function() {{
   const map = new RouteMap('confirmation_map', true);
 
-  // Fetch route data
-  const pickup = encodeURIComponent('{d.get("pickup")}');
-  const dropoff = encodeURIComponent('{d.get("dropoff")}');
+  // Fetch route data using the same endpoint as calculator
+  const pickup = '{d.get("pickup")}';
+  const dropoff = '{d.get("dropoff")}';
 
-  fetch(`/route?from=${{pickup}}&to=${{dropoff}}`)
+  fetch('/api/route_geo', {{
+    method: 'POST',
+    headers: {{
+      'Content-Type': 'application/json'
+    }},
+    body: JSON.stringify({{ pickup: pickup, dropoff: dropoff }})
+  }})
     .then(response => response.json())
     .then(data => {{
       if (data.latlngs && data.start && data.end) {{
         map.draw(data.latlngs, data.start, data.end, {km:.1f});
       }}
     }})
-    .catch(error => {{ /* Could not load route - silently handle */ }});
+    .catch(error => {{ 
+      console.error('Map loading error:', error);
+      /* Could not load route - silently handle */ 
+    }});
 }});
 </script>
 """

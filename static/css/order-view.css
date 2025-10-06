@@ -823,8 +823,8 @@
     }
 
     .route-line {
-        width: 50px;
-        height: 3px;
+        display: none;
+        /* Hide the line on mobile - arrow is sufficient */
     }
 
     .route-arrow {
