@@ -63,11 +63,14 @@
             <td><strong>#{{ order.id }}</strong></td>
             <td><span class="status {{ order.status }}">{{ status_fi }}</span></td>
             <td><span class="visibility-badge {{ visibility_class }}" title="{% if is_visible %}Kuljettajat voivat nähdä ja ottaa vastaan{% elif order.get('driver_id') %}Kuljettaja on ottanut keikan{% else %}Vahvista tilaus julkaistaksesi kuljettajille{% endif %}">{{ visibility_icon }}</span></td>
-            <td>{{ order.get('customer_name', '?') }} &lt;{{ order.get('customer_email', '?') }}&gt;</td>
+            <td>
+              <div>{{ order.get('customer_name', '?') }}</div>
+              {% if order.get('customer_phone') %}<div style="font-size: 0.85em; opacity: 0.7;">{{ order.get('customer_phone') }}</div>{% endif %}
+            </td>
             <td>{{ driver_info }}</td>
             <td>{{ order.pickup_address }} → {{ order.dropoff_address }}</td>
             <td>{{ "%.1f"|format(order.distance_km|float) }} km</td>
-            <td><strong style="font-size: 1.1em;">{{ "%.2f"|format((order.price_gross|float) / 1.255) }} €</strong> <span style="font-size: 0.85em; opacity: 0.7;">+ ALV 0%</span></td>
+            <td><strong style="font-size: 1.1em;">{{ "%.2f"|format((order.price_gross|float) / 1.255) }} €</strong> <span style="font-size: 0.85em; opacity: 0.7;">ALV 0%</span></td>
             <td class="image-status">{{ pickup_icon }} {{ delivery_icon }}</td>
             <td style="text-align: center;">
               <a href="/admin/order/{{ order.id }}" class="btn btn-primary" style="display: inline-block; padding: 0.5rem 1rem; text-decoration: none;">

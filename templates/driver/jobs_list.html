@@ -46,7 +46,7 @@
               </div>
               <div>
                 <span class="font-medium">Matka:</span>
-                <span class="text-gray-600">{{ job.distance_km|round(1) }} km</span>
+                <span class="text-gray-600">{{ job.distance_km|default(0)|round(1) }} km</span>
               </div>
             </div>
           </div>
@@ -55,8 +55,8 @@
             <h4 class="font-semibold mb-2">Tilaustiedot</h4>
             <div class="space-y-2 text-sm">
               <div>
-                <span class="font-medium">Hinta:</span>
-                <span class="text-gray-600"><strong style="font-size: 1.15em;">{{ "%.2f"|format((job.price_gross|float) / 1.255) }} €</strong> <strong>+ ALV 0%</strong></span>
+                <span class="font-medium">Palkkio:</span>
+                <span class="text-gray-600"><strong style="font-size: 1.15em; color: #059669;">{% if job.driver_reward %}{{ job.driver_reward|round(2) }}{% else %}0.00{% endif %} €</strong></span>
               </div>
               {# Vehicle info hidden until job accepted #}
               {% if job.pickup_date %}

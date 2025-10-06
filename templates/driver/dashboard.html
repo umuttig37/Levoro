@@ -70,9 +70,15 @@
                 <h3 class="driver-job-title">Tilaus #{{ job.id }}</h3>
                 <p class="driver-job-route">{{ job.pickup_address }} → {{ job.dropoff_address }}</p>
                 <div class="driver-job-meta">
-                  <span>{{ job.distance_km|round(1) }} km</span>
-                  <span><strong>{{ "%.2f"|format((job.price_gross|float) / 1.255) }} € + ALV 0%</strong></span>
+                  <span>{{ job.distance_km|default(0)|round(1) }} km</span>
+                  <span><strong>Palkkio: {% if job.driver_reward %}{{ job.driver_reward|round(2) }}{% else %}0.00{% endif %} €</strong></span>
                 </div>
+                {% if job.additional_info and job.additional_info|length > 0 %}
+                <p style="font-size: 0.85em; color: #6b7280; margin-top: 0.5rem;">📝 {{ job.additional_info[:50] }}{% if job.additional_info|length > 50 %}...{% endif %}</p>
+                {% endif %}
+                {% if job.car_brand or job.car_model %}
+                <p style="font-size: 0.85em; color: #374151; margin-top: 0.5rem;"><strong>Auto:</strong> {{ job.car_brand or '' }} {{ job.car_model or '' }}</p>
+                {% endif %}
               </div>
               <div class="driver-job-actions">
                 <span class="driver-job-status {% if job.status == 'ASSIGNED_TO_DRIVER' %}assigned{% elif job.status == 'DRIVER_ARRIVED' %}arrived{% elif job.status == 'PICKUP_IMAGES_ADDED' %}pickup-images{% elif job.status == 'IN_TRANSIT' %}in-transit{% elif job.status == 'DELIVERY_ARRIVED' %}delivery-arrived{% elif job.status == 'DELIVERY_IMAGES_ADDED' %}delivery-images{% else %}available{% endif %}">
@@ -114,10 +120,15 @@
                 <h3 class="driver-job-title">Tilaus #{{ job.id }}</h3>
                 <p class="driver-job-route">{{ job.pickup_address|extract_city }} → {{ job.dropoff_address|extract_city }}</p>
                 <div class="driver-job-meta">
-                  <span>{{ job.distance_km|round(1) }} km</span>
-                  <span><strong>{{ "%.2f"|format((job.price_gross|float) / 1.255) }} € + ALV 0%</strong></span>
-                  <span>Luotu: {{ job.created_at|helsinki_time if job.created_at else 'Tuntematon' }}</span>
+                  <span>{{ job.distance_km|default(0)|round(1) }} km</span>
+                  <span><strong>Palkkio: {% if job.driver_reward %}{{ job.driver_reward|round(2) }}{% else %}0.00{% endif %} €</strong></span>
                 </div>
+                {% if job.additional_info and job.additional_info|length > 0 %}
+                <p style="font-size: 0.85em; color: #6b7280; margin-top: 0.5rem;">📝 {{ job.additional_info[:50] }}{% if job.additional_info|length > 50 %}...{% endif %}</p>
+                {% endif %}
+                {% if job.car_brand or job.car_model %}
+                <p style="font-size: 0.85em; color: #374151; margin-top: 0.5rem;"><strong>Auto:</strong> {{ job.car_brand or '' }} {{ job.car_model or '' }}</p>
+                {% endif %}
               </div>
               <div class="driver-job-actions">
                 <span class="driver-job-status available">Saatavilla</span>
@@ -152,12 +163,12 @@
                 <h3 class="driver-job-title">Tilaus #{{ job.id }}</h3>
                 <p class="driver-job-route">{{ job.pickup_address }} → {{ job.dropoff_address }}</p>
                 <div class="driver-job-meta">
-                  <span>{{ job.distance_km|round(1) }} km</span>
-                  <span><strong>{{ "%.2f"|format((job.price_gross|float) / 1.255) }} € + ALV 0%</strong></span>
-                  {% if job.delivery_completed %}
-                  <span>Valmistunut: {{ job.delivery_completed|helsinki_time if job.delivery_completed else '-' }}</span>
-                  {% endif %}
+                  <span>{{ job.distance_km|default(0)|round(1) }} km</span>
+                  <span><strong>Palkkio: {% if job.driver_reward %}{{ job.driver_reward|round(2) }}{% else %}0.00{% endif %} €</strong></span>
                 </div>
+                {% if job.car_brand or job.car_model %}
+                <p style="font-size: 0.85em; color: #6b7280; margin-top: 0.25rem;">{{ job.car_brand or '' }} {{ job.car_model or '' }}</p>
+                {% endif %}
               </div>
               <div class="driver-job-actions">
                 <span class="driver-job-status delivered">✅ Toimitettu</span>

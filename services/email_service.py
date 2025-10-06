@@ -517,6 +517,96 @@ class EmailService:
             print(f"   [ERROR] Failed to send driver application denial: {str(e)}")
             return False
 
+    def send_admin_driver_action_notification(self, order_id: int, driver_name: str, action: str, order_data: Dict) -> bool:
+        """Send notification to admin when driver performs an action"""
+        admin_email = os.getenv("ADMIN_EMAIL", "support@levoro.fi")
+
+        print(f"[ADMIN] DRIVER ACTION NOTIFICATION:")
+        print(f"   To: {admin_email}")
+        print(f"   Order ID: #{order_id}")
+        print(f"   Driver: {driver_name}")
+        print(f"   Action: {action}")
+
+        try:
+            # Map action to Finnish description
+            action_descriptions = {
+                "DRIVER_ARRIVED": "Kuljettaja on saapunut noutopaikalle",
+                "PICKUP_IMAGES_ADDED": "Kuljettaja on lisännyt noutokuvat",
+                "IN_TRANSIT": "Kuljettaja on aloittanut kuljetuksen",
+                "DELIVERY_ARRIVED": "Kuljettaja on saapunut toimituspaikalle",
+                "DELIVERY_IMAGES_ADDED": "Kuljettaja on lisännyt toimituskuvat",
+                "DELIVERED": "Kuljettaja on merkinnyt toimituksen valmiiksi"
+            }
+
+            action_finnish = action_descriptions.get(action, action)
+
+            base_url = os.getenv("BASE_URL", "http://localhost:3000")
+            order_detail_url = f"{base_url}/admin/order/{order_id}"
+
+            html_body = f"""
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+                <div style="background: linear-gradient(135deg, #f59e0b, #d97706); color: white; padding: 30px; border-radius: 12px; margin-bottom: 30px; text-align: center;">
+                    <h1 style="margin: 0; font-size: 28px;">Kuljettajan toimenpide</h1>
+                    <p style="margin: 10px 0 0 0; font-size: 16px; opacity: 0.9;">Tilaus #{order_id}</p>
+                </div>
+
+                <div style="padding: 0 20px;">
+                    <div style="background: #fef3c7; border-left: 4px solid #f59e0b; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                        <h3 style="margin-top: 0; color: #92400e;">Toimenpide:</h3>
+                        <p style="font-size: 18px; font-weight: bold; color: #92400e; margin: 5px 0;">{action_finnish}</p>
+                        <p style="margin: 10px 0 0 0; color: #92400e;">Kuljettaja: <strong>{driver_name}</strong></p>
+                    </div>
+
+                    <div style="background: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                        <h3 style="margin-top: 0; color: #1f2937; border-bottom: 2px solid #e5e7eb; padding-bottom: 8px;">Tilauksen tiedot</h3>
+                        <table style="width: 100%; border-collapse: collapse;">
+                            <tr><td style="padding: 8px 0; font-weight: bold; width: 40%;">Tilaus #:</td><td style="padding: 8px 0;">{order_id}</td></tr>
+                            <tr><td style="padding: 8px 0; font-weight: bold;">Nouto:</td><td style="padding: 8px 0;">{order_data.get('pickup_address', 'N/A')}</td></tr>
+                            <tr><td style="padding: 8px 0; font-weight: bold;">Toimitus:</td><td style="padding: 8px 0;">{order_data.get('dropoff_address', 'N/A')}</td></tr>
+                            <tr><td style="padding: 8px 0; font-weight: bold;">Matka:</td><td style="padding: 8px 0;">{order_data.get('distance_km', 0)} km</td></tr>
+                            <tr><td style="padding: 8px 0; font-weight: bold;">Rekisterinumero:</td><td style="padding: 8px 0;">{order_data.get('reg_number', 'N/A')}</td></tr>
+                        </table>
+                    </div>
+
+                    <div style="background: #dbeafe; border: 2px solid #3b82f6; padding: 20px; border-radius: 8px; margin: 25px 0;">
+                        <p style="margin: 0; color: #1e40af; font-size: 14px;">
+                            <strong>Huomio:</strong> Tämä on automaattinen ilmoitus kuljettajan toimenpiteestä.
+                            Voit päivittää tilauksen tilan admin-paneelista tarpeen mukaan.
+                        </p>
+                    </div>
+
+                    <div style="text-align: center; margin: 30px 0;">
+                        <a href="{order_detail_url}"
+                           style="background: #3b82f6; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600; display: inline-block;">
+                            Näytä tilaus admin-paneelissa
+                        </a>
+                    </div>
+
+                    <p style="font-size: 16px; color: #374151;">
+                        Ystävällisin terveisin,<br>
+                        <strong>Levoro järjestelmä</strong>
+                    </p>
+                </div>
+
+                <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb;">
+                    <p style="font-size: 14px; color: #6b7280;">
+                        Levoro - Luotettavaa autokuljetusta<br>
+                        <a href="https://levoro.fi" style="color: #3b82f6;">levoro.fi</a>
+                    </p>
+                </div>
+            </div>
+            """
+
+            return self.send_email(
+                subject=f"[Levoro] Kuljettajan toimenpide tilaus #{order_id} - {action_finnish}",
+                recipients=[admin_email],
+                html_body=html_body
+            )
+        except Exception as e:
+            current_app.logger.error(f"Failed to send admin driver action notification: {str(e)}")
+            print(f"   [ERROR] Failed to send admin driver action notification: {str(e)}")
+            return False
+
     def _html_to_text(self, html_content: str) -> str:
         """Convert HTML content to plain text (simple implementation)"""
         try:

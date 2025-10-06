@@ -75,7 +75,7 @@ def job_detail(order_id):
 
     # Check if this job belongs to the driver or is available
     from models.order import order_model
-    order = order_model.find_by_id(order_id)
+    order = order_model.find_by_id(order_id, projection=order_model.DRIVER_PROJECTION)
 
     if not order:
         flash('Tilaus ei löytynyt', 'error')
@@ -90,13 +90,13 @@ def job_detail(order_id):
     # Fix pickup status if images exist but status is still DRIVER_ARRIVED
     if len(pickup_images) > 0 and current_status == order_model.STATUS_DRIVER_ARRIVED:
         driver_service.update_pickup_images_status(order_id, driver['id'])
-        order = order_model.find_by_id(order_id)  # Refresh order
+        order = order_model.find_by_id(order_id, projection=order_model.DRIVER_PROJECTION)  # Refresh order
         current_status = order.get('status')
 
     # Fix delivery status if images exist but status is still DELIVERY_ARRIVED
     if len(delivery_images) > 0 and current_status == order_model.STATUS_DELIVERY_ARRIVED:
         driver_service.update_delivery_images_status(order_id, driver['id'])
-        order = order_model.find_by_id(order_id)  # Refresh order
+        order = order_model.find_by_id(order_id, projection=order_model.DRIVER_PROJECTION)  # Refresh order
 
     # Check if driver can access this job
     driver_id = order.get('driver_id')
@@ -240,7 +240,7 @@ def upload_image(order_id):
 
     # Update order status after first image of each type
     from models.order import order_model
-    order = order_model.find_by_id(order_id)
+    order = order_model.find_by_id(order_id, projection=order_model.DRIVER_PROJECTION)
     current_images = order.get('images', {}).get(image_type, [])
     current_status = order.get('status')
 
@@ -306,7 +306,7 @@ def upload_image_ajax(order_id):
 
     # Update order status after first image of each type
     from models.order import order_model
-    order = order_model.find_by_id(order_id)
+    order = order_model.find_by_id(order_id, projection=order_model.DRIVER_PROJECTION)
     current_images = order.get('images', {}).get(image_type, [])
     current_status = order.get('status')
 
@@ -347,7 +347,7 @@ def delete_image_ajax(order_id, image_type, image_id):
 
     # Verify driver owns this job
     from models.order import order_model
-    order = order_model.find_by_id(order_id)
+    order = order_model.find_by_id(order_id, projection=order_model.DRIVER_PROJECTION)
     if not order or order.get('driver_id') != driver['id']:
         return jsonify({'success': False, 'error': 'Ei oikeuksia'}), 403
 
@@ -358,7 +358,7 @@ def delete_image_ajax(order_id, image_type, image_id):
         return jsonify({'success': False, 'error': error}), 400
 
     # Get updated image count
-    order = order_model.find_by_id(order_id)
+    order = order_model.find_by_id(order_id, projection=order_model.DRIVER_PROJECTION)
     current_images = order.get('images', {}).get(image_type, [])
 
     return jsonify({
@@ -394,7 +394,7 @@ def profile():
 def get_job_status(order_id):
     """Get current job status"""
     from models.order import order_model
-    order = order_model.find_by_id(order_id)
+    order = order_model.find_by_id(order_id, projection=order_model.DRIVER_PROJECTION)
 
     if not order:
         return jsonify({'error': 'Tilaus ei löytynyt'}), 404

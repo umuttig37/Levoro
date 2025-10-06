@@ -103,7 +103,7 @@
                   <td style="padding: 1rem; border-bottom: 1px solid #e5e7eb; color: #111827; font-size: 0.875rem; font-weight: 600; background: rgba(255, 255, 255, 0.9); vertical-align: middle; text-align: right;">
                     <div style="line-height: 1.2;">
                       <div style="font-size: 1.3rem; font-weight: 800;">{{ "%.2f"|format((order.price_gross|float) / 1.255) }} €</div>
-                      <div style="font-size: 0.85rem; font-weight: 700; margin-bottom: 4px;">+ ALV 0%</div>
+                      <div style="font-size: 0.85rem; font-weight: 700; margin-bottom: 4px;">ALV 0%</div>
                       <div style="font-size: 0.65rem; color: #6b7280; font-weight: 400; opacity: 0.6;">ALV 25,5%: {{ "%.2f"|format((order.price_gross|float) - ((order.price_gross|float) / 1.255)) }} € | Yhteensä: {{ "%.2f"|format(order.price_gross|float) }} €</div>
                     </div>
                   </td>

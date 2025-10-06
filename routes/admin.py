@@ -412,7 +412,8 @@ def order_detail(order_id):
             "reg_number": 1, "winter_tires": 1, "pickup_date": 1,
             "extras": 1, "images": 1,
             "orderer_name": 1, "orderer_email": 1, "orderer_phone": 1,
-            "customer_name": 1, "customer_email": 1, "customer_phone": 1, "customer_reference": 1,
+            "customer_name": 1, "customer_phone": 1,
+            "driver_reward": 1, "car_brand": 1, "car_model": 1, "additional_info": 1,
             "user_name": "$user.name",
             "user_email": "$user.email",
             "driver_name": "$driver.name",
@@ -672,6 +673,11 @@ def confirm_order(order_id):
         flash("Tilaus on jo vahvistettu", "warning")
         return redirect(url_for("admin.order_detail", order_id=order_id))
 
+    # Check if driver_reward is set before confirming
+    if not order.get('driver_reward') or order.get('driver_reward') <= 0:
+        flash('Virhe: Aseta kuskin palkkio ennen tilauksen vahvistamista', 'error')
+        return redirect(url_for('admin.order_detail', order_id=order_id))
+
     # Update to CONFIRMED status (will trigger email notification automatically)
     success, error = order_service.update_order_status(order_id, 'CONFIRMED')
 
@@ -681,3 +687,47 @@ def confirm_order(order_id):
         flash(f"Virhe: {error}", "error")
 
     return redirect(url_for("admin.order_detail", order_id=order_id))
+
+
+@admin_bp.route("/order/<int:order_id>/update-details", methods=["POST"])
+@admin_required
+def update_order_details(order_id):
+    """Update order details (driver reward, car info, additional info)"""
+    from models.order import order_model
+
+    # Get form data
+    driver_reward = request.form.get('driver_reward')
+    car_brand = request.form.get('car_brand', '').strip()
+    car_model = request.form.get('car_model', '').strip()
+    additional_info = request.form.get('additional_info', '').strip()
+
+    # Validate and update driver reward
+    if driver_reward:
+        try:
+            driver_reward_float = float(driver_reward)
+            if driver_reward_float <= 0:
+                flash('Virhe: Kuskin palkkio tulee olla suurempi kuin 0', 'error')
+                return redirect(url_for('admin.order_detail', order_id=order_id))
+
+            success, error = order_model.update_driver_reward(order_id, driver_reward_float)
+            if not success:
+                flash(f'Virhe palkkion päivityksessä: {error}', 'error')
+                return redirect(url_for('admin.order_detail', order_id=order_id))
+        except ValueError:
+            flash('Virhe: Virheellinen palkkion arvo', 'error')
+            return redirect(url_for('admin.order_detail', order_id=order_id))
+
+    # Update order details
+    success, error = order_model.update_order_details(
+        order_id,
+        car_model=car_model if car_model else None,
+        car_brand=car_brand if car_brand else None,
+        additional_info=additional_info if additional_info else None
+    )
+
+    if success:
+        flash('Tilauksen tiedot päivitetty onnistuneesti!', 'success')
+    else:
+        flash(f'Virhe: {error}', 'error')
+
+    return redirect(url_for('admin.order_detail', order_id=order_id))

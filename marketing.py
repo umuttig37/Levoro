@@ -92,7 +92,7 @@ def calculator():
               <span style="font-size: 1.1em; font-weight: 600;">Hinta</span>
               <div style="text-align: right;">
                 <div style="font-size: 2.5em; font-weight: 800; line-height: 1.1;" id="r_net">—</div>
-                <div style="font-size: 1.2em; font-weight: 700; margin-top: 4px;">+ ALV 0%</div>
+                <div style="font-size: 1.2em; font-weight: 700; margin-top: 4px;">ALV 0%</div>
               </div>
             </div>
             <div class="rowline" style="font-size: 0.75em; opacity: 0.6; margin: 8px 0;">

@@ -318,7 +318,7 @@ def format_price_with_vat_filter(gross_price):
     # Return HTML - NET price (ALV 0%) emphasized, gross price muted below
     return f'''<div class="price-breakdown">
         <div class="price-main" style="font-size: 1.6em; font-weight: 800; line-height: 1.1; color: var(--color-primary);">{net_str} €</div>
-        <div style="font-size: 0.75em; font-weight: 600; margin-top: 1px; color: var(--color-primary);">+ ALV 0%</div>
+        <div style="font-size: 0.75em; font-weight: 600; margin-top: 1px; color: var(--color-primary);">ALV 0%</div>
         <div class="price-vat" style="font-size: 0.65em; opacity: 0.5; margin-top: 4px; color: var(--color-gray-600);">Hinta sis. ALV = {gross_str} €</div>
     </div>'''
 
@@ -650,7 +650,7 @@ def order_view(order_id: int):
             "extras": 1, "images": 1, "customer_name": 1,
             "email": 1, "phone": 1,
             "orderer_name": 1, "orderer_email": 1, "orderer_phone": 1,
-            "customer_reference": 1, "customer_email": 1, "customer_phone": 1,
+            "customer_phone": 1,
             "assigned_at": 1, "arrival_time": 1,
             "pickup_started": 1, "delivery_completed": 1,
             "created_at": 1, "updated_at": 1,
@@ -731,7 +731,7 @@ def order_view(order_id: int):
     has_customer_info = bool(
         r.get('customer_name', '').strip() or r.get('email', '').strip() or r.get('phone', '').strip() or
         r.get('orderer_name', '').strip() or r.get('orderer_email', '').strip() or r.get('orderer_phone', '').strip() or
-        r.get('customer_email', '').strip() or r.get('customer_phone', '').strip() or r.get('customer_reference', '').strip()
+        r.get('customer_phone', '').strip()
     )
     has_images = bool(r.get('images', {}))
 

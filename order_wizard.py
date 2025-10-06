@@ -28,7 +28,7 @@ def get_accessible_steps(session_data):
         accessible.append(4)
     # Check for both orderer and customer required fields
     if (session_data.get("orderer_name") and session_data.get("orderer_email") and session_data.get("orderer_phone") and
-        session_data.get("customer_name") and session_data.get("customer_email") and session_data.get("customer_phone")):
+        session_data.get("customer_name") and session_data.get("customer_phone")):
         accessible.append(5)
     if session_data.get("additional_info") is not None:  # Can be empty string
         accessible.append(6)
@@ -632,12 +632,9 @@ def order_step4():
         d["orderer_email"] = request.form.get("orderer_email","").strip()
         d["orderer_phone"] = request.form.get("orderer_phone","").strip()
         # Customer (Asiakas) fields
-        d["customer_reference"] = request.form.get("customer_reference","").strip()
         d["customer_name"] = request.form.get("customer_name","").strip()
         d["customer_phone"] = request.form.get("customer_phone","").strip()
-        d["customer_email"] = request.form.get("customer_email","").strip()
         # Legacy field for backward compatibility
-        d["email"] = d["customer_email"]
         d["phone"] = d["customer_phone"]
         session["order_draft"] = d
         return redirect("/order/new/step5")
@@ -656,10 +653,8 @@ def order_step4():
     orderer_email_val = (d.get("orderer_email", "") or "").replace('"', '&quot;')
     orderer_phone_val = (d.get("orderer_phone", "") or "").replace('"', '&quot;')
 
-    customer_reference_val = (d.get("customer_reference", "") or "").replace('"', '&quot;')
     customer_name_val = (d.get("customer_name", "") or "").replace('"', '&quot;')
     customer_phone_val = (d.get("customer_phone", "") or "").replace('"', '&quot;')
-    customer_email_val = (d.get("customer_email", "") or "").replace('"', '&quot;')
 
     # Check for error message and display it
     error_msg = session.pop("error_message", None)
@@ -687,16 +682,11 @@ def order_step4():
   <div style='background: #fefce8; padding: 1.25rem; border-radius: 8px; margin-bottom: 1.5rem; border: 1px solid #fde047;'>
     <h3 style='margin-top: 0; margin-bottom: 1rem; color: #854d0e; font-size: 1.1rem; display: flex; align-items: center; gap: 0.5rem;'>
       Asiakkaan tiedot
-      <span style='font-size: 0.8rem; font-weight: normal; color: #64748b;'>(Kenelle auto toimitetaan)</span>
     </h3>
-    <label class='form-label'>Asiakkaan viite / referenssi</label>
-    <input name='customer_reference' class='form-input' value="{customer_reference_val}" placeholder="Esim. tilausnumero, projektikoodi">
     <label class='form-label'>Asiakkaan nimi *</label>
     <input name='customer_name' required class='form-input' value="{customer_name_val}" placeholder="Vastaanottajan nimi">
     <label class='form-label'>Asiakkaan puhelinnumero *</label>
     <input name='customer_phone' required class='form-input' value="{customer_phone_val}" placeholder="+358...">
-    <label class='form-label'>Asiakkaan sähköposti *</label>
-    <input type='email' name='customer_email' required class='form-input' value="{customer_email_val}" placeholder="asiakas@example.com">
   </div>
 
   <div class='row calculator-actions'>
@@ -748,7 +738,7 @@ def order_confirm():
     d = session.get("order_draft", {})
     required = ["pickup","dropoff","reg_number",
                 "orderer_name","orderer_email","orderer_phone",
-                "customer_name","customer_email","customer_phone"]
+                "customer_name","customer_phone"]
 
     # Check which fields are missing and redirect to appropriate step
     missing_fields = [k for k in required if not d.get(k)]
@@ -770,12 +760,12 @@ def order_confirm():
             session["error_message"] = "Ajoneuvon rekisterinumero puuttuu. Täytä rekisterinumero."
             return redirect("/order/new/step3")
         elif any(field in missing_fields for field in ["orderer_name", "orderer_email", "orderer_phone",
-                                                        "customer_name", "customer_email", "customer_phone"]):
+                                                        "customer_name", "customer_phone"]):
             missing_contact_fields = [f for f in ["orderer_name", "orderer_email", "orderer_phone",
-                                                   "customer_name", "customer_email", "customer_phone"] if f in missing_fields]
+                                                   "customer_name", "customer_phone"] if f in missing_fields]
             field_names = {
                 "orderer_name": "tilaajan nimi", "orderer_email": "tilaajan sähköposti", "orderer_phone": "tilaajan puhelinnumero",
-                "customer_name": "asiakkaan nimi", "customer_email": "asiakkaan sähköposti", "customer_phone": "asiakkaan puhelinnumero"
+                "customer_name": "asiakkaan nimi", "customer_phone": "asiakkaan puhelinnumero"
             }
             missing_names = [field_names[f] for f in missing_contact_fields]
             session["error_message"] = f"Yhteystiedot puuttuvat: {', '.join(missing_names)}. Täytä puuttuvat tiedot."
@@ -812,13 +802,10 @@ def order_confirm():
             "orderer_phone": d.get("orderer_phone"),
 
             # Customer (Asiakas) information
-            "customer_reference": d.get("customer_reference"),
             "customer_name": d.get("customer_name"),
             "customer_phone": d.get("customer_phone"),
-            "customer_email": d.get("customer_email"),
 
             # Legacy fields for backward compatibility
-            "email": d.get("customer_email"),
             "phone": d.get("customer_phone"),
             "company": d.get("company"),
 
@@ -845,7 +832,7 @@ def order_confirm():
             # Stay on confirmation page to show error
             pass
 
-    price_block = f"<div class='card'><strong style='font-size: 0.9em;'>Arvioitu hinta:</strong> <span style='font-size: 1.5em; font-weight: 800;'>{net:.2f} €</span> <strong style='font-size: 1.1em;'>+ ALV 0%</strong> <span style='opacity: 0.6; font-size: 0.85em;'>({km:.1f} km)</span></div>"
+    price_block = f"<div class='card'><strong style='font-size: 0.9em;'>Hinta:</strong> <span style='font-size: 1.5em; font-weight: 800;'>{net:.2f} €</span> <strong style='font-size: 1.1em;'>ALV 0%</strong> <span style='opacity: 0.6; font-size: 0.85em;'>({km:.1f} km)</span></div>"
     if err: price_block = f"<div class='card'><span class='muted'>{err}</span><br>{price_block}</div>"
 
     # Check for error message in session
@@ -861,25 +848,25 @@ def order_confirm():
     <div class='confirmation-card'><h3 class='confirmation-title'>Toimitus</h3><p class='confirmation-text'>{d.get('dropoff')}</p></div>
     <div class='confirmation-card'><h3 class='confirmation-title'>Ajoneuvo</h3><p class='confirmation-text'>Rekisteri: {d.get('reg_number')}</p><p class='confirmation-meta'>Talvirenkaat: {"Kyllä" if d.get('winter_tires') else "Ei"}</p></div>
     <div class='confirmation-card'><h3 class='confirmation-title'>🏢 Tilaaja</h3><p class='confirmation-text'>{d.get('orderer_name')}</p><p class='confirmation-meta'>{d.get('orderer_email')} / {d.get('orderer_phone')}</p></div>
-    <div class='confirmation-card'><h3 class='confirmation-title'>👤 Asiakas</h3><p class='confirmation-text'>{d.get('customer_name')}</p><p class='confirmation-meta'>Viite: {d.get('customer_reference') or '-'}</p><p class='confirmation-meta'>{d.get('customer_email')} / {d.get('customer_phone')}</p></div>
+    <div class='confirmation-card'><h3 class='confirmation-title'>👤 Asiakas</h3><p class='confirmation-text'>{d.get('customer_name')}</p><p class='confirmation-meta'>{d.get('customer_phone')}</p></div>
     <div class='confirmation-card'><h3 class='confirmation-title'>Lisätiedot</h3><p class='confirmation-text'>{(d.get('additional_info') or '-').replace('<','&lt;')}</p></div>
   </div>
   <div class='confirmation-map-container'>
     <div class='confirmation-card map-card'>
       <h3 class='confirmation-title'>Reitti</h3>
       <div id="confirmation_map" class="confirmation-map"></div>
-      <p class='confirmation-meta'><strong style='font-size: 1.3em; font-weight: 800;'>{net:.2f} €</strong> <strong>+ ALV 0%</strong></p>
+      <p class='confirmation-meta'><strong style='font-size: 1.3em; font-weight: 800;'>{net:.2f} €</strong> <strong>ALV 0%</strong></p>
     </div>
   </div>
 </div>
 <div class='price-summary'>
   <div class='price-card'>
-    <h3 class='price-title'>Arvioitu hinta</h3>
+    <h3 class='price-title'>Hinta</h3>
     <div class='price-details'>
       <span class='distance'>{km:.1f} km</span>
       <div class='price-breakdown-confirm'>
         <div class='price-main-confirm' style="font-size: 2.5em; font-weight: 800; line-height: 1.1; margin-bottom: 4px;">{net:.2f} €</div>
-        <div style="font-size: 1.2em; font-weight: 700; margin-bottom: 12px;">+ ALV 0%</div>
+        <div style="font-size: 1.2em; font-weight: 700; margin-bottom: 12px;">ALV 0%</div>
         <div class='price-vat-confirm' style="font-size: 0.75em; opacity: 0.5; margin-top: 8px;">ALV 25,5%: {vat:.2f} € | Yhteensä sis. ALV: {gross:.2f} €</div>
       </div>
     </div>

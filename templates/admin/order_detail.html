@@ -14,92 +14,167 @@
             <a href="/admin" class="btn btn-secondary">Takaisin tilauksiin</a>
         </div>
 
-        <div class="order-info">
-            <div class="info-section">
-                <h3>Tilauksen tiedot</h3>
-                <div class="info-grid">
-                    <div class="info-item">
-                        <span class="info-label">🏢 Tilaaja:</span>
+        <div class="order-info-cards">
+            <!-- Orderer Card -->
+            <div class="info-card info-card-orderer">
+                <h3 class="info-card-title">Tilaaja</h3>
+                <div class="info-card-body">
+                    <div class="info-row">
+                        <span class="info-label">Nimi</span>
                         <span class="info-value">{{ order.orderer_name or order.user_name or 'Tuntematon' }}</span>
                     </div>
-                    <div class="info-item">
-                        <span class="info-label">Tilaajan sähköposti:</span>
+                    <div class="info-row">
+                        <span class="info-label">Sähköposti</span>
                         <span class="info-value">{{ order.orderer_email or order.user_email or 'Tuntematon' }}</span>
                     </div>
-                    <div class="info-item">
-                        <span class="info-label">Tilaajan puhelin:</span>
+                    <div class="info-row">
+                        <span class="info-label">Puhelin</span>
                         <span class="info-value">{{ order.orderer_phone or '-' }}</span>
                     </div>
-                    <div class="info-item" style="border-top: 2px solid #e5e7eb; padding-top: 12px; margin-top: 8px;">
-                        <span class="info-label">👤 Asiakas (vastaanottaja):</span>
+                </div>
+            </div>
+
+            <!-- Customer/Recipient Card -->
+            <div class="info-card info-card-customer">
+                <h3 class="info-card-title">Vastaanottaja</h3>
+                <div class="info-card-body">
+                    <div class="info-row">
+                        <span class="info-label">Nimi</span>
                         <span class="info-value">{{ order.customer_name or 'Tuntematon' }}</span>
                     </div>
-                    <div class="info-item">
-                        <span class="info-label">Asiakkaan viite:</span>
-                        <span class="info-value">{{ order.customer_reference or '-' }}</span>
-                    </div>
-                    <div class="info-item">
-                        <span class="info-label">Asiakkaan puhelin:</span>
+                    <div class="info-row">
+                        <span class="info-label">Puhelin</span>
                         <span class="info-value">{{ order.customer_phone or order.phone or '-' }}</span>
                     </div>
-                    <div class="info-item">
-                        <span class="info-label">Asiakkaan sähköposti:</span>
-                        <span class="info-value">{{ order.customer_email or order.email or '-' }}</span>
-                    </div>
-                    <div class="info-item" style="border-top: 2px solid #e5e7eb; padding-top: 12px; margin-top: 8px;">
-                        <span class="info-label">Rekisterinumero:</span>
-                        <span class="info-value">{{ order.reg_number or 'Ei tiedossa' }}</span>
-                    </div>
-                    <div class="info-item">
-                        <span class="info-label">Talvirenkaat:</span>
-                        <span class="info-value">{{ 'Kyllä' if order.winter_tires else 'Ei' }}</span>
-                    </div>
-                    <div class="info-item">
-                        <span class="info-label">Reitti:</span>
+                </div>
+            </div>
+
+            <!-- Route & Vehicle Card -->
+            <div class="info-card info-card-route">
+                <h3 class="info-card-title">Reitti ja Ajoneuvo</h3>
+                <div class="info-card-body">
+                    <div class="info-row">
+                        <span class="info-label">Reitti</span>
                         <span class="info-value">{{ order.pickup_address }} → {{ order.dropoff_address }}</span>
                     </div>
-                    <div class="info-item">
-                        <span class="info-label">Matka:</span>
+                    <div class="info-row">
+                        <span class="info-label">Matka</span>
                         <span class="info-value">{{ "%.1f"|format(order.distance_km or 0) }} km</span>
                     </div>
-                    <div class="info-item">
-                        <span class="info-label">Hinta:</span>
-                        <span class="info-value">{{ (order.price_gross or 0)|format_price_with_vat|safe }}</span>
-                    </div>
-                    <div class="info-item">
-                        <span class="info-label">Noutopäivä:</span>
+                    <div class="info-row">
+                        <span class="info-label">Noutopäivä</span>
                         <span class="info-value">{{ pickup_date_fi }}</span>
                     </div>
+                    <div class="info-row">
+                        <span class="info-label">Rekisterinumero</span>
+                        <span class="info-value">{{ order.reg_number or 'Ei tiedossa' }}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Talvirenkaat</span>
+                        <span class="info-value">{{ 'Kyllä' if order.winter_tires else 'Ei' }}</span>
+                    </div>
+                    {% if order.car_brand or order.car_model %}
+                    <div class="info-row">
+                        <span class="info-label">Auton merkki/malli</span>
+                        <span class="info-value">{{ order.car_brand or '' }} {{ order.car_model or '' }}</span>
+                    </div>
+                    {% endif %}
                 </div>
+            </div>
+
+            <!-- Pricing Card -->
+            <div class="info-card info-card-pricing">
+                <h3 class="info-card-title">Hinnoittelu</h3>
+                <div class="info-card-body">
+                    <div class="info-row">
+                        <span class="info-label">Asiakkaan hinta</span>
+                        <span class="info-value">{{ (order.price_gross or 0)|format_price_with_vat|safe }}</span>
+                    </div>
+                    <div class="info-row info-row-highlight">
+                        <span class="info-label">Kuskin palkkio</span>
+                        <span class="info-value-highlight">
+                            {% if order.driver_reward %}{{ order.driver_reward|round(2) }} €
+                            {% else %}<span class="text-danger">Ei asetettu</span>{% endif %}
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="order-info">
+            <!-- Driver Reward and Details Form -->
+            <div class="info-section driver-reward-section">
+                <h3 style="color: #166534;">Kuskin palkkio ja lisätiedot</h3>
+                <form method="POST" action="{{ url_for('admin.update_order_details', order_id=order.id) }}" style="display: flex; flex-direction: column; gap: 16px;">
+                    <div>
+                        <label style="display: block; font-weight: 600; margin-bottom: 8px; color: #166534;">Kuskin palkkio (€) *</label>
+                        <input type="number" name="driver_reward" step="0.01" min="0" value="{{ order.driver_reward or '' }}"
+                               placeholder="Esim. 150.00" required
+                               style="width: 100%; padding: 12px; font-size: 16px; border: 2px solid #bbf7d0; border-radius: 8px;">
+                        <p style="margin: 4px 0 0 0; font-size: 0.85em; color: #166534;">Tämä summa näkyy kuljettajalle (ei ALV-tietoja)</p>
+                    </div>
+                    <div>
+                        <label style="display: block; font-weight: 600; margin-bottom: 8px;">Auton merkki</label>
+                        <input type="text" name="car_brand" value="{{ order.car_brand or '' }}" placeholder="Esim. Toyota"
+                               style="width: 100%; padding: 12px; font-size: 14px; border: 2px solid #e5e7eb; border-radius: 8px;">
+                    </div>
+                    <div>
+                        <label style="display: block; font-weight: 600; margin-bottom: 8px;">Auton malli</label>
+                        <input type="text" name="car_model" value="{{ order.car_model or '' }}" placeholder="Esim. Corolla"
+                               style="width: 100%; padding: 12px; font-size: 14px; border: 2px solid #e5e7eb; border-radius: 8px;">
+                    </div>
+                    <div>
+                        <label style="display: block; font-weight: 600; margin-bottom: 8px;">Lisätiedot kuljettajalle</label>
+                        <textarea name="additional_info" rows="4" placeholder="Kirjoita ohjeita tai tietoja kuljettajalle..."
+                                  style="width: 100%; padding: 12px; font-size: 14px; border: 2px solid #e5e7eb; border-radius: 8px; resize: vertical;">{{ order.additional_info or '' }}</textarea>
+                        <p style="margin: 4px 0 0 0; font-size: 0.85em; color: #6b7280;">Nämä tiedot näkyvät kuljettajalle kun hän ottaa työn vastaan</p>
+                    </div>
+                    <button type="submit" class="btn btn-success" style="padding: 12px 24px; font-size: 16px; font-weight: 600;">
+                        Tallenna tiedot
+                    </button>
+                </form>
             </div>
 
             <div class="status-section">
                 <h3>Tilaustoiminnot</h3>
 
                 {% if order.status == 'NEW' %}
-                <div style="background: #fef3c7; border: 2px solid #f59e0b; border-radius: 8px; padding: 20px; margin-bottom: 20px;">
-                    <h4 style="margin-top: 0; color: #92400e;">⚠️ Toimenpide vaaditaan</h4>
-                    <p style="margin: 8px 0; color: #78350f;">Tämä tilaus odottaa vahvistusta. Vahvista tilaus julkaistaksesi sen kuljettajille.</p>
+                <div class="alert-box alert-warning">
+                    <h4 class="alert-title">Toimenpide vaaditaan</h4>
+                    <p style="margin: 8px 0; color: #78350f;">Tämä tilaus odottaa vahvistusta. Aseta ensin kuskin palkkio, sitten vahvista tilaus.</p>
+                    {% if not order.driver_reward or order.driver_reward <= 0 %}
+                    <div class="alert-box alert-error" style="margin: 12px 0;">
+                        <strong style="color: #991b1b;">Kuskin palkkio puuttuu!</strong>
+                        <p style="margin: 4px 0 0 0; font-size: 0.9em; color: #991b1b;">Aseta kuskin palkkio yllä olevassa lomakkeessa ennen vahvistamista.</p>
+                    </div>
+                    {% endif %}
                     <form method="POST" action="{{ url_for('admin.confirm_order', order_id=order.id) }}" class="confirm-order-form" style="margin-top: 16px;">
-                        <button type="submit" class="btn btn-success" style="padding: 12px 24px; font-size: 16px; font-weight: 600; border-radius: 8px; background: #22c55e; color: white; border: none; cursor: pointer; transition: background 0.2s;">
-                            ✅ Vahvista tilaus ja julkaise kuljettajille
+                        <button type="submit" class="btn btn-success" {% if not order.driver_reward or order.driver_reward <= 0 %}disabled style="opacity: 0.5; cursor: not-allowed;"{% endif %} style="padding: 12px 24px; font-size: 16px; font-weight: 600; border-radius: 8px; background: #22c55e; color: white; border: none; cursor: pointer; transition: background 0.2s;">
+                            Vahvista tilaus ja julkaise kuljettajille
                         </button>
                     </form>
                     <div style="margin-top: 12px; font-size: 0.9em; color: #78350f;">
                         <strong>Vahvistamisen jälkeen:</strong><br>
                         • Asiakas saa vahvistusviestin sähköpostiin<br>
-                        • Tilaus tulee näkyviin kuljettajien "Saatavilla olevat työt" -listaan<br>
+                        • Tilaus tulee näkyviin kuljettajille (vain jos palkkio on asetettu)<br>
                         • Kuljettajat voivat ottaa tilauksen vastaan
                     </div>
                 </div>
                 {% elif order.status == 'CONFIRMED' and not order.driver_id %}
-                <div style="background: #dcfce7; border: 2px solid #22c55e; border-radius: 8px; padding: 20px; margin-bottom: 20px;">
-                    <h4 style="margin-top: 0; color: #166534;">👁️ Julkaistu kuljettajille</h4>
-                    <p style="margin: 8px 0; color: #166534;">Tämä tilaus on näkyvissä kuljettajille ja odottaa että kuljettaja ottaa sen vastaan.</p>
+                {% if order.driver_reward and order.driver_reward > 0 %}
+                <div class="alert-box alert-success">
+                    <h4 class="alert-title">Julkaistu kuljettajille</h4>
+                    <p style="margin: 8px 0; color: #166534;">Tämä tilaus on näkyvissä kuljettajille (palkkio: {{ order.driver_reward|round(2) }} €) ja odottaa että kuljettaja ottaa sen vastaan.</p>
                 </div>
+                {% else %}
+                <div class="alert-box alert-warning">
+                    <h4 class="alert-title">Palkkio puuttuu</h4>
+                    <p style="margin: 8px 0; color: #78350f;">Tilaus on vahvistettu, mutta se EI näy kuljettajille koska kuskin palkkio puuttuu. Aseta palkkio yllä.</p>
+                </div>
+                {% endif %}
                 {% elif order.driver_id %}
-                <div style="background: #e0e7ff; border: 2px solid #6366f1; border-radius: 8px; padding: 20px; margin-bottom: 20px;">
-                    <h4 style="margin-top: 0; color: #3730a3;">🔒 Kuljettaja määritetty</h4>
+                <div class="alert-box alert-info">
+                    <h4 class="alert-title">Kuljettaja määritetty</h4>
                     <p style="margin: 8px 0; color: #3730a3;">Kuljettaja on ottanut tämän tilauksen vastaan ja suorittaa kuljetusta.</p>
                 </div>
                 {% endif %}

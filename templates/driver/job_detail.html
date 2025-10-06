@@ -46,11 +46,6 @@
           {% elif order.status == 'DELIVERED' %}Toimitettu
           {% else %}{{ order.status }}{% endif %}
         </span>
-        {% if order.updated_at %}
-        <span class="text-sm text-muted">
-          Päivitetty: {{ order.updated_at|helsinki_time }}
-        </span>
-        {% endif %}
       </div>
     </div>
   </div>
@@ -86,16 +81,33 @@
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
               <div>
                 <label class="form-label" style="margin-bottom: 0.125rem; font-size: 0.75rem;">Matka</label>
-                <p class="text-primary" style="margin: 0; font-size: 0.875rem;">{{ order.distance_km|round(1) }} km</p>
+                <p class="text-primary" style="margin: 0; font-size: 0.875rem;">{{ order.distance_km|default(0)|round(1) }} km</p>
               </div>
               <div>
-                <label class="form-label" style="margin-bottom: 0.125rem; font-size: 0.75rem;">Hinta</label>
-                <p class="text-primary" style="margin: 0; font-size: 0.875rem;">{{ order.price_gross|format_price_with_vat|safe }}</p>
+                <label class="form-label" style="margin-bottom: 0.125rem; font-size: 0.75rem;">Palkkio</label>
+                <p class="text-primary" style="margin: 0; font-size: 1.2em; font-weight: 700; color: #059669;">{% if order.driver_reward %}{{ order.driver_reward|round(2) }}{% else %}0.00{% endif %} €</p>
               </div>
             </div>
           </div>
         </div>
       </div>
+
+      <!-- Car Information - ALWAYS visible if set by admin -->
+      {% if order.car_brand or order.car_model %}
+      <div class="card mb-6">
+        <div class="card-header">
+          <h2 class="card-title">Ajoneuvo</h2>
+        </div>
+        <div class="card-body">
+          <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+            <div>
+              <label class="form-label" style="margin-bottom: 0.125rem; font-size: 0.75rem;">Merkki ja malli</label>
+              <p class="text-primary" style="margin: 0; font-size: 0.875rem;">{{ order.car_brand or '' }} {{ order.car_model or '' }}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+      {% endif %}
 
       <!-- Vehicle Information - Only show if job is accepted -->
       {% if (order.reg_number or order.winter_tires is not none) and order.driver_id == driver.id %}
@@ -163,12 +175,6 @@
                 👤 Asiakas (vastaanottaja)
               </h3>
               <div style="display: flex; flex-direction: column; gap: 0.5rem;">
-                {% if order.customer_reference %}
-                <div>
-                  <label class="form-label" style="margin-bottom: 0.125rem; font-size: 0.75rem;">Asiakkaan viite</label>
-                  <p class="text-primary" style="margin: 0; font-size: 0.875rem;">{{ order.customer_reference }}</p>
-                </div>
-                {% endif %}
                 <div>
                   <label class="form-label" style="margin-bottom: 0.125rem; font-size: 0.75rem;">Nimi</label>
                   <p class="text-primary" style="margin: 0; font-size: 0.875rem;">{{ order.customer_name or '-' }}</p>
@@ -183,13 +189,21 @@
                     {% endif %}
                   </p>
                 </div>
-                <div>
-                  <label class="form-label" style="margin-bottom: 0.125rem; font-size: 0.75rem;">Sähköposti</label>
-                  <p class="text-primary" style="margin: 0; font-size: 0.875rem;">{{ order.customer_email or order.email or '-' }}</p>
-                </div>
               </div>
             </div>
           </div>
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- Admin Notes (Lisätiedot) - Always visible if set by admin -->
+      {% if order.additional_info and order.additional_info|trim %}
+      <div class="card mb-6">
+        <div class="card-header">
+          <h2 class="card-title">Ohjeita kuljettajalle</h2>
+        </div>
+        <div class="card-body">
+          <p style="white-space: pre-wrap; margin: 0; font-size: 0.875rem; line-height: 1.5;">{{ order.additional_info }}</p>
         </div>
       </div>
       {% endif %}
@@ -320,27 +334,6 @@
             </div>
             {% endif %}
           </div>
-
-          <!-- Timestamps -->
-          {% if order.driver_id == driver.id %}
-          <div class="mt-6 pt-4 border-t">
-            <h3 class="font-medium mb-3 text-sm">Aikataulutiedot</h3>
-            <div class="space-y-2 text-xs text-secondary">
-              {% if order.assigned_at %}
-              <div>Otettu vastaan: {{ order.assigned_at|helsinki_time }}</div>
-              {% endif %}
-              {% if order.arrival_time %}
-              <div>Saapunut: {{ order.arrival_time|helsinki_time }}</div>
-              {% endif %}
-              {% if order.pickup_started %}
-              <div>Kuljetus aloitettu: {{ order.pickup_started|helsinki_time }}</div>
-              {% endif %}
-              {% if order.delivery_completed %}
-              <div>Toimitettu: {{ order.delivery_completed|helsinki_time }}</div>
-              {% endif %}
-            </div>
-          </div>
-          {% endif %}
         </div>
       </div>
     </div>

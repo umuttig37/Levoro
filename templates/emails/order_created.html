@@ -226,7 +226,7 @@
                 <div style="font-size: 13px; opacity: 0.85; margin-bottom: 12px;">Kuljetuksen hinta</div>
                 <div class="net-price" style="font-size: 42px; font-weight: 800; line-height: 1.1; margin-bottom: 4px;">
                     {{ "%.2f"|format(order.price_gross / 1.255) }} €</div>
-                <div style="font-size: 16px; font-weight: 600; opacity: 0.95; margin-bottom: 16px;">+ ALV 0%</div>
+                <div style="font-size: 16px; font-weight: 600; opacity: 0.95; margin-bottom: 16px;">ALV 0%</div>
                 <div class="vat-info"
                     style="font-size: 10px; margin-top: 16px; padding-top: 16px; border-top: 1px solid rgba(255,255,255,0.25); opacity: 0.65;">
                     ALV 25,5%: {{ "%.2f"|format(order.price_gross - (order.price_gross / 1.255)) }} € | Yhteensä sis.

@@ -43,7 +43,7 @@ class DriverService:
         return order_model.get_active_driver_orders(driver_id)
 
     def accept_job(self, order_id: int, driver_id: int) -> Tuple[bool, Optional[str]]:
-        """Driver accepts a job"""
+        """Driver accepts a job - customer will be notified when admin updates status"""
         # Check if order exists and is available
         order = order_model.find_by_id(order_id)
         if not order:
@@ -55,32 +55,30 @@ class DriverService:
         if order.get("driver_id"):
             return False, "Tilaus on jo otettu toiselle kuljettajalle"
 
-        # Assign driver to order
+        # Assign driver to order (status changes to ASSIGNED_TO_DRIVER)
         success, error = order_model.assign_driver(order_id, driver_id)
         if not success:
             return False, error
 
-        # Send notification email to customer
+        # Send admin notification about driver accepting job
         try:
             driver = user_model.find_by_id(driver_id)
-            customer = user_model.find_by_id(order["user_id"])
 
-            if customer and driver:
-                email_service.send_status_update_email(
-                    customer["email"],
-                    customer["name"],
+            if driver:
+                email_service.send_admin_driver_action_notification(
                     order_id,
+                    driver["name"],
                     "ASSIGNED_TO_DRIVER",
-                    driver_name=driver["name"]
+                    order
                 )
         except Exception as e:
-            print(f"Email notification failed: {e}")
+            print(f"Admin notification failed: {e}")
 
         return True, None
 
     def update_job_status(self, order_id: int, driver_id: int, new_status: str,
                          timestamp_field: Optional[str] = None) -> Tuple[bool, Optional[str]]:
-        """Update job status by driver"""
+        """Update job status by driver - only notifies admin, not customer"""
         # Verify order belongs to driver
         order = order_model.find_by_id(order_id)
         if not order:
@@ -94,21 +92,19 @@ class DriverService:
         if not success:
             return False, error
 
-        # Send email notification to customer for all status changes
+        # Send admin notification about driver action (NOT customer)
         try:
-            customer = user_model.find_by_id(order["user_id"])
             driver = user_model.find_by_id(driver_id)
 
-            if customer and driver:
-                email_service.send_status_update_email(
-                    customer["email"],
-                    customer["name"],
+            if driver:
+                email_service.send_admin_driver_action_notification(
                     order_id,
+                    driver["name"],
                     new_status,
-                    driver_name=driver["name"]
+                    order
                 )
         except Exception as e:
-            print(f"Email notification failed: {e}")
+            print(f"Admin notification failed: {e}")
 
         return True, None
 
