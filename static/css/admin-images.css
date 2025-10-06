@@ -30,7 +30,8 @@
     margin-bottom: 40px;
 }
 
-.info-section, .status-section {
+.info-section,
+.status-section {
     background: white;
     padding: 25px;
     border-radius: 12px;
@@ -38,7 +39,8 @@
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
-.info-section h3, .status-section h3 {
+.info-section h3,
+.status-section h3 {
     margin-top: 0;
     margin-bottom: 20px;
     color: #333;
@@ -161,6 +163,14 @@
     word-break: break-word;
 }
 
+/* Large price styling for admin order view */
+.info-value-price-large {
+    font-size: 1.5em !important;
+    font-weight: 700 !important;
+    color: #0f172a !important;
+    letter-spacing: 0.5px;
+}
+
 /* Card themes */
 .info-card-orderer .info-card-title {
     background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
@@ -239,10 +249,21 @@
     font-size: 1.1em;
 }
 
-.alert-warning .alert-title { color: #92400e; }
-.alert-success .alert-title { color: #166534; }
-.alert-error .alert-title { color: #991b1b; }
-.alert-info .alert-title { color: #3730a3; }
+.alert-warning .alert-title {
+    color: #92400e;
+}
+
+.alert-success .alert-title {
+    color: #166534;
+}
+
+.alert-error .alert-title {
+    color: #991b1b;
+}
+
+.alert-info .alert-title {
+    color: #3730a3;
+}
 
 /* Images section */
 .images-section {
@@ -482,8 +503,13 @@
 }
 
 @keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
 }
 
 /* Image Modal/Lightbox */
@@ -836,7 +862,9 @@
         padding: 10px;
     }
 
-    .info-section, .status-section, .image-section {
+    .info-section,
+    .status-section,
+    .image-section {
         padding: 15px;
     }
 
@@ -863,7 +891,8 @@
         align-items: flex-start;
     }
 
-    .modal-header, .modal-footer {
+    .modal-header,
+    .modal-footer {
         padding: 12px 15px;
     }
 
@@ -1025,6 +1054,7 @@
         transform: translateX(400px);
         opacity: 0;
     }
+
     to {
         transform: translateX(0);
         opacity: 1;
@@ -1072,5 +1102,38 @@
 
     .upload-status {
         font-size: 0.7em;
+    }
+}
+
+/* Responsive styles for reorganized admin sections */
+@media (max-width: 768px) {
+    .admin-config-section form>div[style*="grid-template-columns"] {
+        grid-template-columns: 1fr !important;
+    }
+
+    .admin-config-section,
+    .admin-actions-section,
+    .admin-driver-section {
+        padding: 16px !important;
+    }
+
+    .admin-config-section h3,
+    .admin-actions-section h3,
+    .admin-driver-section h3 {
+        font-size: 1.1rem !important;
+    }
+}
+
+@media (max-width: 480px) {
+
+    .admin-config-section button,
+    .admin-actions-section button {
+        padding: 12px 20px !important;
+        font-size: 14px !important;
+    }
+
+    .status-select {
+        font-size: 13px !important;
+        padding: 10px !important;
     }
 }

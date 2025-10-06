@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="fi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tilausvahvistus - Levoro</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f9f9f9;
+        }
+
+        .email-container {
+            background-color: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background-color: #1a365d;
+            color: #ffffff;
+            padding: 30px 20px;
+            text-align: center;
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: 28px;
+            font-weight: bold;
+        }
+
+        .order-badge {
+            background-color: #4299e1;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            display: inline-block;
+            font-size: 14px;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+
+        .content {
+            padding: 30px 20px;
+        }
+
+        .content h2 {
+            color: #1a365d;
+            margin-top: 0;
+            font-size: 22px;
+        }
+
+        .order-details {
+            background-color: #edf2f7;
+            border-radius: 6px;
+            padding: 20px;
+            margin: 20px 0;
+            border: 1px solid #cbd5e0;
+        }
+
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            padding: 8px 0;
+        }
+
+        .detail-row:not(:last-child) {
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .detail-label {
+            font-weight: bold;
+            color: #4a5568;
+            flex: 1;
+        }
+
+        .detail-value {
+            flex: 2;
+            text-align: right;
+        }
+
+        .price-highlight {
+            background-color: #22543d;
+            color: white;
+            padding: 15px;
+            border-radius: 6px;
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        .price-highlight .amount {
+            font-size: 24px;
+            font-weight: bold;
+        }
+
+        .price-highlight .net-price {
+            font-size: 28px;
+            font-weight: bold;
+            margin: 5px 0;
+        }
+
+        .price-highlight .vat-info {
+            font-size: 14px;
+            opacity: 0.9;
+            margin: 3px 0;
+        }
+
+        .price-highlight .total-price {
+            font-size: 16px;
+            opacity: 0.9;
+            margin: 3px 0;
+        }
+
+        .status-box {
+            background-color: #f0fff4;
+            border-left: 4px solid #38a169;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+
+        .next-steps {
+            background-color: #fffaf0;
+            border-left: 4px solid #ed8936;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+
+        .footer {
+            background-color: #edf2f7;
+            padding: 20px;
+            text-align: center;
+            font-size: 14px;
+            color: #666;
+        }
+
+        .footer a {
+            color: #4299e1;
+            text-decoration: none;
+        }
+
+        @media (max-width: 600px) {
+            .detail-row {
+                flex-direction: column;
+            }
+
+            .detail-value {
+                text-align: left;
+                margin-top: 5px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="email-container">
+        <div class="header">
+            <h1>Tilausvahvistus</h1>
+            <div class="order-badge">TILAUS #{{ order.order_id }}</div>
+        </div>
+
+        <div class="content">
+            <h2>Kiitos tilauksestasi, {{ user_name }}!</h2>
+
+            <p>Olemme vastaanottaneet autotransporttitilauksesi. Alla näet tilauksen tiedot.</p>
+
+            <div class="order-details">
+                <h3 style="margin-top: 0; color: #1a365d; border-bottom: 2px solid #cbd5e0; padding-bottom: 8px;">
+                    Kuljetustiedot</h3>
+
+                <div class="detail-row">
+                    <div class="detail-label">Tilausnumero:</div>
+                    <div class="detail-value">#{{ order.order_id }}</div>
+                </div>
+
+                <div class="detail-row">
+                    <div class="detail-label">Nouto-osoite:</div>
+                    <div class="detail-value">{{ order.pickup_address }}</div>
+                </div>
+
+                <div class="detail-row">
+                    <div class="detail-label">Toimitusosoite:</div>
+                    <div class="detail-value">{{ order.dropoff_address }}</div>
+                </div>
+
+                {% if order.pickup_date %}
+                <div class="detail-row">
+                    <div class="detail-label">Noutopäivä:</div>
+                    <div class="detail-value">{{ order.pickup_date }}</div>
+                </div>
+                {% endif %}
+
+                {% if order.pickup_time %}
+                <div class="detail-row">
+                    <div class="detail-label">Noutoaika:</div>
+                    <div class="detail-value">{{ order.pickup_time }}</div>
+                </div>
+                {% endif %}
+
+                {% if order.vehicle_make and order.vehicle_model %}
+                <div class="detail-row">
+                    <div class="detail-label">Ajoneuvo:</div>
+                    <div class="detail-value">{{ order.vehicle_make }} {{ order.vehicle_model }}</div>
+                </div>
+                {% endif %}
+
+                {% if order.distance_km %}
+                <div class="detail-row">
+                    <div class="detail-label">Matka:</div>
+                    <div class="detail-value">{{ "%.1f"|format(order.distance_km) }} km</div>
+                </div>
+                {% endif %}
+            </div>
+
+            {% if order.price_gross %}
+            <div class="price-highlight">
+                <div style="font-size: 13px; opacity: 0.85; margin-bottom: 12px;">Kuljetuksen hinta</div>
+                <div class="net-price" style="font-size: 42px; font-weight: 800; line-height: 1.1; margin-bottom: 4px;">
+                    {{ "%.2f"|format(order.price_gross / 1.255) }} €</div>
+                <div style="font-size: 16px; font-weight: 600; opacity: 0.95; margin-bottom: 16px;">ALV 0%</div>
+                <div class="vat-info"
+                    style="font-size: 10px; margin-top: 16px; padding-top: 16px; border-top: 1px solid rgba(255,255,255,0.25); opacity: 0.65;">
+                    ALV 25,5%: {{ "%.2f"|format(order.price_gross - (order.price_gross / 1.255)) }} € | Yhteensä sis.
+                    ALV: {{ "%.2f"|format(order.price_gross) }} €
+                </div>
+            </div>
+            {% endif %}
+
+            <div class="status-box">
+                <strong>Tilauksen tila: Uusi tilaus</strong><br>
+                Tilauksesi on vastaanotettu ja odottaa käsittelyä. Saat ilmoituksen kun tilaus vahvistetaan.
+            </div>
+
+            <div class="next-steps">
+                <strong>Seuraavat vaiheet:</strong>
+                <ol>
+                    <li>Tarkistamme tilauksen tiedot</li>
+                    <li>Vahvistamme tilauksen</li>
+                    <li>Ajoneuvon nouto sovittuna päivänä</li>
+                </ol>
+            </div>
+
+            <p><strong>Voit seurata tilauksen etenemistä:</strong><br>
+                Kirjaudu sisään <a href="https://www.levoro.fi/login">www.levoro.fi</a> -sivustolla ja näet ajantasaisen
+                tilan "Omat tilaukset" -sivulta.</p>
+
+            <p>Jos sinulla on kysyttävää tilauksestasi, viittaa tilausnumeroon <strong>#{{ order.order_id }}</strong>.
+            </p>
+
+            <p>Ystävällisin terveisin,<br>
+                <strong>Levoro-tiimi</strong>
+            </p>
+        </div>
+
+        <div class="footer">
+            <p>
+                <strong>Levoro Oy</strong><br>
+                Autonkuljetuspalvelut<br>
+                Sähköposti: <a href="mailto:support@levoro.fi">support@levoro.fi</a><br>
+                Verkkosivu: <a href="https://www.levoro.fi">www.levoro.fi</a>
+            </p>
+            <p style="margin-top: 15px; font-size: 12px; color: #999;">
+                Sait tämän viestin koska teit tilauksen Levoro-palvelussa. Tilausnumero: #{{ order.order_id }}
+            </p>
+        </div>
+    </div>
+</body>
+
+</html>

@@ -188,7 +188,7 @@ def calculator():
 2. **Home Page Hero** (`templates/home.html` lines 17-19)
    ```jinja
    {% if not current_user or current_user.role != 'driver' %}
-   <a class="btn btn-primary btn-lg" href="/calculator">Laske halvin hinta nyt</a>
+   <a class="btn btn-primary btn-lg" href="/calculator">Laske edullisin hinta nyt</a>
    {% endif %}
    ```
 

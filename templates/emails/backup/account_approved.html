@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="fi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tilisi on hyväksytty - Levoro</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f9f9f9;
+        }
+
+        .email-container {
+            background-color: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background-color: #22543d;
+            color: #ffffff;
+            padding: 30px 20px;
+            text-align: center;
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: 28px;
+            font-weight: bold;
+        }
+
+        .success-badge {
+            background-color: #38a169;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            display: inline-block;
+            font-size: 14px;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+
+        .content {
+            padding: 30px 20px;
+        }
+
+        .content h2 {
+            color: #22543d;
+            margin-top: 0;
+            font-size: 22px;
+        }
+
+        .highlight-box {
+            background-color: #f0fff4;
+            border-left: 4px solid #38a169;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+
+        .cta-button {
+            display: inline-block;
+            background-color: #38a169;
+            color: #ffffff;
+            text-decoration: none;
+            padding: 15px 30px;
+            border-radius: 6px;
+            font-weight: bold;
+            margin: 20px 0;
+            text-align: center;
+        }
+
+        .cta-button:hover {
+            background-color: #2f855a;
+        }
+
+        .service-list {
+            background-color: #edf2f7;
+            padding: 20px;
+            border-radius: 6px;
+            margin: 20px 0;
+        }
+
+        .service-list h3 {
+            margin-top: 0;
+            color: #1a365d;
+        }
+
+        .footer {
+            background-color: #edf2f7;
+            padding: 20px;
+            text-align: center;
+            font-size: 14px;
+            color: #666;
+        }
+
+        .footer a {
+            color: #38a169;
+            text-decoration: none;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="email-container">
+        <div class="header">
+            <h1>Tilisi on hyväksytty!</h1>
+            <div class="success-badge">TILI KÄYTTÖVALMIS</div>
+        </div>
+
+        <div class="content">
+            <h2>Tervetuloa Levoroon, {{ user_name }}!</h2>
+
+            <p>Hienoa! Tilisi on nyt hyväksytty ja voit aloittaa Levoro-palvelun käytön heti.</p>
+
+            <div class="highlight-box">
+                <strong>Voit nyt tilata autonkuljetuspalveluja!</strong><br>
+                Tilisi on täysin toimintavalmis ja voit tehdä ensimmäisen tilauksesi heti.
+            </div>
+
+            <div style="text-align: center;">
+                <a href="https://www.levoro.fi/login" class="cta-button">Kirjaudu sisään ja aloita</a>
+            </div>
+
+            <div class="service-list">
+                <h3>Palvelumme:</h3>
+                <ul>
+                    <li><strong>Autotransportit</strong> - Turvallinen autonkuljetus kaikkialle Suomeen</li>
+                    <li><strong>Nopea hinnoittelu</strong> - Saat tarjouksen välittömästi</li>
+                    <li><strong>Reaaliaikainen seuranta</strong> - Näet tilauksen etenemisen</li>
+                    <li><strong>Kuvadokumentointi</strong> - Kattava dokumentointi noudosta ja toimituksesta</li>
+                    <li><strong>Vakuutusturva</strong> - Kaikki kuljetukset vakuutettu</li>
+                </ul>
+            </div>
+
+            <p><strong>Ensimmäisen tilauksen tekeminen:</strong></p>
+            <ol>
+                <li>Kirjaudu sisään tilillesi</li>
+                <li>Klikkaa "Uusi tilaus"</li>
+                <li>Täytä kuljetustiedot</li>
+                <li>Saat hintatarjouksen heti</li>
+                <li>Vahvista tilaus</li>
+            </ol>
+
+            <p>Jos tarvitset apua palvelun käytössä tai sinulla on kysyttävää, älä epäröi ottaa meihin yhteyttä.</p>
+
+            <p>Ystävällisin terveisin,<br>
+                <strong>Levoro-tiimi</strong>
+            </p>
+        </div>
+
+        <div class="footer">
+            <p>
+                <strong>Levoro Oy</strong><br>
+                Autonkuljetuspalvelut<br>
+                Sähköposti: <a href="mailto:support@levoro.fi">support@levoro.fi</a><br>
+                Verkkosivu: <a href="https://www.levoro.fi">www.levoro.fi</a>
+            </p>
+            <p style="margin-top: 15px; font-size: 12px; color: #999;">
+                Sait tämän viestin koska tilisi hyväksyttiin Levoro-palvelussa.
+            </p>
+        </div>
+    </div>
+</body>
+
+</html>

@@ -14,6 +14,7 @@ class EmailService:
 
     def __init__(self, mail_instance: Mail = None):
         self.mail = mail_instance
+        self.dev_mode = os.getenv('FLASK_ENV', 'production') == 'development'
 
     def configure_mail(self, app):
         """Configure Flask-Mail with Zoho SMTP settings"""
@@ -38,6 +39,7 @@ class EmailService:
                    text_body: str = None, sender: str = None) -> bool:
         """
         Send an email using Flask-Mail and Zoho SMTP
+        In development mode, saves emails as HTML files instead of sending
 
         Args:
             subject: Email subject
@@ -54,6 +56,12 @@ class EmailService:
         print(f"   From: {sender or current_app.config.get('MAIL_DEFAULT_SENDER', 'N/A')}")
         print(f"   To: {recipients}")
         print(f"   Subject: {subject}")
+        
+        # In development mode, save email to file instead of sending
+        if self.dev_mode:
+            print(f"   [DEV MODE] Saving email to file instead of sending...")
+            return self._save_email_to_file(subject, recipients, html_body, sender)
+        
         print(f"   SMTP Server: {current_app.config.get('MAIL_SERVER', 'N/A')}")
         print(f"   SMTP Port: {current_app.config.get('MAIL_PORT', 'N/A')}")
         print(f"   Use SSL: {current_app.config.get('MAIL_USE_SSL', 'N/A')}")
@@ -606,6 +614,272 @@ class EmailService:
             current_app.logger.error(f"Failed to send admin driver action notification: {str(e)}")
             print(f"   [ERROR] Failed to send admin driver action notification: {str(e)}")
             return False
+
+    def _save_email_to_file(self, subject: str, recipients: List[str], html_body: str, sender: str = None) -> bool:
+        """Save email as HTML file for development testing"""
+        try:
+            from datetime import datetime
+            import re
+            
+            # Create dev_emails directory if it doesn't exist
+            emails_dir = os.path.join('static', 'dev_emails')
+            os.makedirs(emails_dir, exist_ok=True)
+            
+            # Generate filename with timestamp
+            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S_%f')
+            # Sanitize subject for filename
+            safe_subject = re.sub(r'[^a-zA-Z0-9_-]', '_', subject)[:50]
+            filename = f"{timestamp}_{safe_subject}.html"
+            filepath = os.path.join(emails_dir, filename)
+            
+            # Create email wrapper with metadata
+            email_html = f"""
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>{subject}</title>
+    <style>
+        body {{ font-family: Arial, sans-serif; margin: 0; padding: 20px; background: #f5f5f5; }}
+        .email-metadata {{
+            background: #2c3e50;
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }}
+        .email-metadata h2 {{ margin-top: 0; color: #3498db; }}
+        .email-metadata p {{ margin: 5px 0; }}
+        .email-metadata strong {{ color: #ecf0f1; }}
+        .email-content {{
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }}
+        .timestamp {{ color: #95a5a6; font-size: 0.9em; }}
+    </style>
+</head>
+<body>
+    <div class="email-metadata">
+        <h2>📧 Development Email Mock</h2>
+        <p><strong>From:</strong> {sender or 'support@levoro.fi'}</p>
+        <p><strong>To:</strong> {', '.join(recipients)}</p>
+        <p><strong>Subject:</strong> {subject}</p>
+        <p class="timestamp"><strong>Timestamp:</strong> {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</p>
+    </div>
+    <div class="email-content">
+        {html_body}
+    </div>
+</body>
+</html>
+"""
+            
+            # Write to file
+            with open(filepath, 'w', encoding='utf-8') as f:
+                f.write(email_html)
+            
+            # Create index.html for easy browsing
+            self._update_email_index(emails_dir)
+            
+            print(f"   ✅ [DEV] Email saved to: {filepath}")
+            print(f"   🌐 [DEV] View at: http://localhost:8000/static/dev_emails/{filename}")
+            print(f"   📋 [DEV] Email index: http://localhost:8000/static/dev_emails/index.html")
+            return True
+            
+        except Exception as e:
+            print(f"   ❌ [DEV] Failed to save email to file: {str(e)}")
+            return False
+    
+    def _update_email_index(self, emails_dir: str):
+        """Update index.html with list of all saved emails"""
+        try:
+            from datetime import datetime
+            import glob
+            
+            # Get all email files
+            email_files = sorted(
+                glob.glob(os.path.join(emails_dir, '*.html')),
+                key=os.path.getmtime,
+                reverse=True
+            )
+            
+            # Remove index.html from list
+            email_files = [f for f in email_files if not f.endswith('index.html')]
+            
+            # Generate index HTML
+            index_html = f"""
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Development Emails - Levoro</title>
+    <style>
+        body {{
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }}
+        .container {{
+            max-width: 1200px;
+            margin: 0 auto;
+        }}
+        h1 {{
+            color: white;
+            text-align: center;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }}
+        .subtitle {{
+            text-align: center;
+            color: rgba(255,255,255,0.9);
+            margin-bottom: 30px;
+        }}
+        .stats {{
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
+            padding: 15px;
+            border-radius: 8px;
+            color: white;
+            text-align: center;
+            margin-bottom: 20px;
+        }}
+        .email-list {{
+            display: grid;
+            gap: 15px;
+        }}
+        .email-card {{
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            transition: transform 0.2s, box-shadow 0.2s;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }}
+        .email-card:hover {{
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+        }}
+        .email-info {{
+            flex: 1;
+        }}
+        .email-filename {{
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 5px;
+            font-size: 1.1em;
+        }}
+        .email-time {{
+            color: #7f8c8d;
+            font-size: 0.9em;
+        }}
+        .email-actions {{
+            display: flex;
+            gap: 10px;
+        }}
+        .btn {{
+            padding: 10px 20px;
+            border-radius: 6px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.2s;
+            display: inline-block;
+        }}
+        .btn-primary {{
+            background: #3498db;
+            color: white;
+        }}
+        .btn-primary:hover {{
+            background: #2980b9;
+        }}
+        .btn-danger {{
+            background: #e74c3c;
+            color: white;
+        }}
+        .btn-danger:hover {{
+            background: #c0392b;
+        }}
+        .no-emails {{
+            background: white;
+            padding: 40px;
+            border-radius: 12px;
+            text-align: center;
+            color: #7f8c8d;
+        }}
+        .clear-all {{
+            text-align: center;
+            margin-top: 20px;
+        }}
+        .icon {{ font-size: 1.2em; margin-right: 5px; }}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📧 Development Email Inbox</h1>
+        <p class="subtitle">All emails are saved here instead of being sent in development mode</p>
+        
+        <div class="stats">
+            <strong>Total Emails:</strong> {len(email_files)} | 
+            <strong>Last Updated:</strong> {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
+        </div>
+        
+        <div class="email-list">
+"""
+            
+            if email_files:
+                for email_file in email_files:
+                    filename = os.path.basename(email_file)
+                    file_time = datetime.fromtimestamp(os.path.getmtime(email_file))
+                    time_str = file_time.strftime('%Y-%m-%d %H:%M:%S')
+                    
+                    # Extract readable subject from filename
+                    parts = filename.split('_', 3)
+                    display_name = parts[3].replace('.html', '').replace('_', ' ') if len(parts) > 3 else filename
+                    
+                    index_html += f"""
+            <div class="email-card">
+                <div class="email-info">
+                    <div class="email-filename"><span class="icon">📨</span>{display_name}</div>
+                    <div class="email-time">🕐 {time_str}</div>
+                </div>
+                <div class="email-actions">
+                    <a href="{filename}" class="btn btn-primary" target="_blank">View Email</a>
+                </div>
+            </div>
+"""
+            else:
+                index_html += """
+            <div class="no-emails">
+                <div style="font-size: 4em; margin-bottom: 20px;">📭</div>
+                <h2>No Emails Yet</h2>
+                <p>Emails will appear here as they are generated in development mode.</p>
+            </div>
+"""
+            
+            index_html += f"""
+        </div>
+        
+        {f'<div class="clear-all"><button class="btn btn-danger" onclick="if(confirm(\'Clear all emails?\')) {{ alert(\'Please delete files manually from static/dev_emails folder\'); }}">🗑️ Clear All Emails</button></div>' if email_files else ''}
+    </div>
+    <script>
+        // Auto-refresh every 5 seconds
+        setTimeout(() => location.reload(), 5000);
+    </script>
+</body>
+</html>
+"""
+            
+            # Write index file
+            index_path = os.path.join(emails_dir, 'index.html')
+            with open(index_path, 'w', encoding='utf-8') as f:
+                f.write(index_html)
+                
+        except Exception as e:
+            print(f"   ⚠️ [DEV] Failed to update email index: {str(e)}")
 
     def _html_to_text(self, html_content: str) -> str:
         """Convert HTML content to plain text (simple implementation)"""

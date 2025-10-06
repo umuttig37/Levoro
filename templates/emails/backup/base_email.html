@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="fi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>{% block title %}Levoro{% endblock %}</title>
+    <!--[if mso]>
+    <noscript>
+        <xml>
+            <o:OfficeDocumentSettings>
+                <o:PixelsPerInch>96</o:PixelsPerInch>
+            </o:OfficeDocumentSettings>
+        </xml>
+    </noscript>
+    <![endif]-->
+    <style>
+        /* ==================== BASE STYLES ==================== */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            margin: 0 !important;
+            padding: 0 !important;
+            width: 100% !important;
+            -webkit-text-size-adjust: 100%;
+            -ms-text-size-adjust: 100%;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.6;
+            color: #1f2937;
+            background-color: #f3f4f6;
+        }
+        
+        table {
+            border-collapse: collapse;
+            border-spacing: 0;
+            width: 100%;
+        }
+        
+        img {
+            border: 0;
+            outline: none;
+            text-decoration: none;
+            -ms-interpolation-mode: bicubic;
+            max-width: 100%;
+            height: auto;
+            display: block;
+        }
+        
+        a {
+            text-decoration: none;
+            color: #3b82f6;
+        }
+        
+        /* ==================== LAYOUT STRUCTURE ==================== */
+        .email-wrapper {
+            width: 100%;
+            background-color: #f3f4f6;
+            padding: 20px 0;
+        }
+        
+        .email-container {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #ffffff;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+        
+        /* ==================== HEADER STYLES ==================== */
+        .email-header {
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+            color: #ffffff;
+            padding: 32px 24px;
+            text-align: center;
+        }
+        
+        .email-header.success {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        }
+        
+        .email-header.warning {
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+        }
+        
+        .email-header.info {
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+        }
+        
+        .email-header.danger {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+        }
+        
+        .email-header h1 {
+            margin: 0;
+            font-size: 26px;
+            font-weight: 700;
+            line-height: 1.3;
+            color: #ffffff;
+        }
+        
+        .email-header p {
+            margin: 8px 0 0 0;
+            font-size: 14px;
+            opacity: 0.95;
+            line-height: 1.4;
+        }
+        
+        .status-badge {
+            display: inline-block;
+            background-color: rgba(255, 255, 255, 0.25);
+            color: #ffffff;
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 600;
+            margin-top: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        /* ==================== CONTENT STYLES ==================== */
+        .email-content {
+            padding: 32px 24px;
+        }
+        
+        .email-content h2 {
+            color: #1f2937;
+            font-size: 20px;
+            font-weight: 700;
+            margin: 0 0 16px 0;
+            line-height: 1.4;
+        }
+        
+        .email-content p {
+            color: #4b5563;
+            font-size: 15px;
+            line-height: 1.6;
+            margin: 0 0 16px 0;
+        }
+        
+        .email-content p:last-child {
+            margin-bottom: 0;
+        }
+        
+        /* ==================== INFO BOX STYLES ==================== */
+        .info-box {
+            background-color: #eff6ff;
+            border-left: 4px solid #3b82f6;
+            padding: 16px;
+            margin: 20px 0;
+            border-radius: 6px;
+        }
+        
+        .info-box.success {
+            background-color: #f0fdf4;
+            border-left-color: #10b981;
+        }
+        
+        .info-box.warning {
+            background-color: #fffbeb;
+            border-left-color: #f59e0b;
+        }
+        
+        .info-box.danger {
+            background-color: #fef2f2;
+            border-left-color: #ef4444;
+        }
+        
+        .info-box p {
+            margin: 0;
+            color: #374151;
+            font-size: 14px;
+        }
+        
+        .info-box strong {
+            color: #1f2937;
+            display: block;
+            margin-bottom: 4px;
+            font-weight: 600;
+        }
+        
+        /* ==================== DETAILS CARD STYLES ==================== */
+        .details-card {
+            background-color: #f9fafb;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        
+        .details-card h3 {
+            color: #1f2937;
+            font-size: 16px;
+            font-weight: 600;
+            margin: 0 0 16px 0;
+            padding-bottom: 12px;
+            border-bottom: 2px solid #e5e7eb;
+        }
+        
+        .detail-row {
+            display: table;
+            width: 100%;
+            padding: 10px 0;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        
+        .detail-row:last-child {
+            border-bottom: none;
+        }
+        
+        .detail-label {
+            display: table-cell;
+            font-weight: 600;
+            color: #6b7280;
+            font-size: 14px;
+            padding-right: 12px;
+            width: 40%;
+            vertical-align: top;
+        }
+        
+        .detail-value {
+            display: table-cell;
+            color: #1f2937;
+            font-size: 14px;
+            text-align: right;
+            vertical-align: top;
+            word-break: break-word;
+        }
+        
+        .detail-value strong {
+            color: #3b82f6;
+            font-weight: 700;
+        }
+        
+        /* ==================== PRICE HIGHLIGHT ==================== */
+        .price-highlight {
+            background: linear-gradient(135deg, #1e40af 0%, #1e3a8a 100%);
+            color: #ffffff;
+            padding: 24px;
+            border-radius: 8px;
+            text-align: center;
+            margin: 24px 0;
+        }
+        
+        .price-highlight .price-label {
+            font-size: 12px;
+            opacity: 0.85;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .price-highlight .price-amount {
+            font-size: 42px;
+            font-weight: 800;
+            line-height: 1.1;
+            margin-bottom: 4px;
+        }
+        
+        .price-highlight .price-vat {
+            font-size: 16px;
+            font-weight: 600;
+            opacity: 0.95;
+            margin-bottom: 16px;
+        }
+        
+        .price-highlight .price-details {
+            font-size: 11px;
+            padding-top: 16px;
+            border-top: 1px solid rgba(255, 255, 255, 0.25);
+            opacity: 0.7;
+        }
+        
+        /* ==================== BUTTON STYLES ==================== */
+        .button {
+            display: inline-block;
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+            color: #ffffff !important;
+            text-decoration: none;
+            padding: 14px 28px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 15px;
+            text-align: center;
+            margin: 8px 4px;
+            transition: all 0.2s;
+        }
+        
+        .button:hover {
+            background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+        
+        .button.success {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        }
+        
+        .button.success:hover {
+            background: linear-gradient(135deg, #059669 0%, #047857 100%);
+        }
+        
+        .button-container {
+            text-align: center;
+            margin: 24px 0;
+        }
+        
+        /* ==================== FOOTER STYLES ==================== */
+        .email-footer {
+            background-color: #f9fafb;
+            padding: 24px;
+            text-align: center;
+            border-top: 1px solid #e5e7eb;
+        }
+        
+        .email-footer p {
+            color: #6b7280;
+            font-size: 13px;
+            line-height: 1.6;
+            margin: 8px 0;
+        }
+        
+        .email-footer a {
+            color: #3b82f6;
+            text-decoration: underline;
+        }
+        
+        .email-footer strong {
+            color: #1f2937;
+        }
+        
+        .footer-divider {
+            margin: 16px 0;
+            font-size: 12px;
+            color: #9ca3af;
+        }
+        
+        /* ==================== RESPONSIVE STYLES ==================== */
+        @media only screen and (max-width: 600px) {
+            .email-wrapper {
+                padding: 10px 0;
+            }
+            
+            .email-container {
+                border-radius: 0;
+                margin: 0;
+            }
+            
+            .email-header {
+                padding: 24px 16px;
+            }
+            
+            .email-header h1 {
+                font-size: 22px;
+            }
+            
+            .email-content {
+                padding: 24px 16px;
+            }
+            
+            .details-card {
+                padding: 16px;
+            }
+            
+            .detail-row {
+                display: block;
+                padding: 12px 0;
+            }
+            
+            .detail-label {
+                display: block;
+                width: 100%;
+                margin-bottom: 4px;
+                padding-right: 0;
+            }
+            
+            .detail-value {
+                display: block;
+                text-align: left;
+            }
+            
+            .price-highlight .price-amount {
+                font-size: 36px;
+            }
+            
+            .button {
+                display: block;
+                width: 100%;
+                margin: 8px 0;
+            }
+        }
+        
+        /* ==================== DARK MODE SUPPORT ==================== */
+        @media (prefers-color-scheme: dark) {
+            .email-wrapper {
+                background-color: #111827 !important;
+            }
+            
+            .email-container {
+                background-color: #1f2937 !important;
+            }
+            
+            .email-content p,
+            .email-content h2 {
+                color: #f3f4f6 !important;
+            }
+            
+            .details-card {
+                background-color: #374151 !important;
+                border-color: #4b5563 !important;
+            }
+            
+            .email-footer {
+                background-color: #374151 !important;
+                border-top-color: #4b5563 !important;
+            }
+        }
+        
+        {% block extra_styles %}{% endblock %}
+    </style>
+</head>
+<body>
+    <table class="email-wrapper" role="presentation">
+        <tr>
+            <td align="center">
+                <table class="email-container" role="presentation">
+                    <!-- Header -->
+                    <tr>
+                        <td class="email-header {% block header_class %}{% endblock %}">
+                            {% block header %}
+                            <h1>{% block header_title %}Levoro{% endblock %}</h1>
+                            {% block header_subtitle %}{% endblock %}
+                            {% endblock %}
+                        </td>
+                    </tr>
+                    
+                    <!-- Content -->
+                    <tr>
+                        <td class="email-content">
+                            {% block content %}{% endblock %}
+                        </td>
+                    </tr>
+                    
+                    <!-- Footer -->
+                    <tr>
+                        <td class="email-footer">
+                            <p><strong>Levoro Oy</strong></p>
+                            <p>Autonkuljetuspalvelut</p>
+                            <p>
+                                Sähköposti: <a href="mailto:support@levoro.fi">support@levoro.fi</a><br>
+                                Verkkosivu: <a href="https://www.levoro.fi">www.levoro.fi</a>
+                            </p>
+                            <p class="footer-divider">{% block footer_note %}{% endblock %}</p>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>

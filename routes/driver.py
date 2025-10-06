@@ -231,6 +231,17 @@ def upload_image(order_id):
         flash(error, 'error')
         return redirect(url_for('driver.job_detail', order_id=order_id))
 
+    # Check current status BEFORE adding image to determine if this is the first image
+    from models.order import order_model
+    order_before = order_model.find_by_id(order_id, projection=order_model.DRIVER_PROJECTION)
+    status_before = order_before.get('status')
+    should_trigger_status_update = False
+    
+    if image_type == 'pickup' and status_before == order_model.STATUS_DRIVER_ARRIVED:
+        should_trigger_status_update = True
+    elif image_type == 'delivery' and status_before == order_model.STATUS_DELIVERY_ARRIVED:
+        should_trigger_status_update = True
+
     # Add image to order using ImageService
     success, add_error = image_service.add_image_to_order(order_id, image_type, image_info)
 
@@ -238,23 +249,14 @@ def upload_image(order_id):
         flash(add_error, 'error')
         return redirect(url_for('driver.job_detail', order_id=order_id))
 
-    # Update order status after first image of each type
-    from models.order import order_model
-    order = order_model.find_by_id(order_id, projection=order_model.DRIVER_PROJECTION)
-    current_images = order.get('images', {}).get(image_type, [])
-    current_status = order.get('status')
-
-    # If this is the first image and status hasn't been updated yet, update status
-    if len(current_images) == 1:
-        if image_type == 'pickup' and current_status == order_model.STATUS_DRIVER_ARRIVED:
+    # Update order status ONLY if this was the first image (status transition)
+    if should_trigger_status_update:
+        if image_type == 'pickup':
             driver_service.update_pickup_images_status(order_id, driver['id'])
-            flash('Noutokuva lisätty! Voit nyt aloittaa kuljetuksen.', 'success')
-        elif image_type == 'delivery' and current_status == order_model.STATUS_DELIVERY_ARRIVED:
+            flash('Noutokuva lisätty! Odottaa admin hyväksyntää.', 'success')
+        elif image_type == 'delivery':
             driver_service.update_delivery_images_status(order_id, driver['id'])
-            flash('Toimituskuva lisätty! Voit nyt päättää toimituksen.', 'success')
-        else:
-            image_type_fi = 'Nouto' if image_type == 'pickup' else 'Toimitus'
-            flash(f'{image_type_fi}kuva lisätty onnistuneesti', 'success')
+            flash('Toimituskuva lisätty! Odottaa admin hyväksyntää.', 'success')
     else:
         image_type_fi = 'Nouto' if image_type == 'pickup' else 'Toimitus'
         flash(f'{image_type_fi}kuva lisätty onnistuneesti', 'success')
@@ -292,6 +294,17 @@ def upload_image_ajax(order_id):
     if not can_add:
         return jsonify({'success': False, 'error': limit_error}), 400
 
+    # Check current status BEFORE adding image to determine if this is the first image
+    from models.order import order_model
+    order_before = order_model.find_by_id(order_id, projection=order_model.DRIVER_PROJECTION)
+    status_before = order_before.get('status')
+    should_trigger_status_update = False
+    
+    if image_type == 'pickup' and status_before == order_model.STATUS_DRIVER_ARRIVED:
+        should_trigger_status_update = True
+    elif image_type == 'delivery' and status_before == order_model.STATUS_DELIVERY_ARRIVED:
+        should_trigger_status_update = True
+
     # Save and process image using ImageService
     image_info, error = image_service.save_order_image(file, order_id, image_type, driver.get('email', 'driver'))
 
@@ -304,28 +317,23 @@ def upload_image_ajax(order_id):
     if not success:
         return jsonify({'success': False, 'error': add_error}), 500
 
-    # Update order status after first image of each type
-    from models.order import order_model
-    order = order_model.find_by_id(order_id, projection=order_model.DRIVER_PROJECTION)
-    current_images = order.get('images', {}).get(image_type, [])
-    current_status = order.get('status')
+    # Get updated image count
+    order_after = order_model.find_by_id(order_id, projection=order_model.DRIVER_PROJECTION)
+    current_images = order_after.get('images', {}).get(image_type, [])
 
     status_updated = False
     message = ''
 
-    # Update status if images exist and status hasn't been updated yet (more robust for concurrent uploads)
-    if len(current_images) >= 1:
-        if image_type == 'pickup' and current_status == order_model.STATUS_DRIVER_ARRIVED:
+    # Update status ONLY if this was the first image (status transition)
+    if should_trigger_status_update:
+        if image_type == 'pickup':
             driver_service.update_pickup_images_status(order_id, driver['id'])
-            message = 'Noutokuva lisätty! Voit nyt aloittaa kuljetuksen.'
+            message = 'Noutokuva lisätty! Odottaa admin hyväksyntää.'
             status_updated = True
-        elif image_type == 'delivery' and current_status == order_model.STATUS_DELIVERY_ARRIVED:
+        elif image_type == 'delivery':
             driver_service.update_delivery_images_status(order_id, driver['id'])
-            message = 'Toimituskuva lisätty! Voit nyt päättää toimituksen.'
+            message = 'Toimituskuva lisätty! Odottaa admin hyväksyntää.'
             status_updated = True
-        else:
-            image_type_fi = 'Nouto' if image_type == 'pickup' else 'Toimitus'
-            message = f'{image_type_fi}kuva lisätty onnistuneesti'
     else:
         image_type_fi = 'Nouto' if image_type == 'pickup' else 'Toimitus'
         message = f'{image_type_fi}kuva lisätty onnistuneesti'

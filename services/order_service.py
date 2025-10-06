@@ -125,9 +125,9 @@ class OrderService:
 
         if success:
             # Only send customer email for these key statuses
+            # NOTE: ASSIGNED_TO_DRIVER removed - driver acceptance only notifies admin
             CUSTOMER_EMAIL_STATUSES = [
                 "CONFIRMED",           # Order received/confirmed
-                "ASSIGNED_TO_DRIVER",  # Driver assigned
                 "IN_TRANSIT",          # In transit
                 "DELIVERED"            # Delivered
             ]
@@ -387,10 +387,8 @@ class OrderService:
                         # Notify driver about assignment
                         email_service.send_driver_assignment_email(driver['email'], driver['name'], order)
 
-                        # Notify customer that driver has been assigned (ASSIGNED_TO_DRIVER is a key status)
-                        user = user_model.find_by_id(order['user_id'])
-                        if user:
-                            email_service.send_customer_driver_assigned_email(user['email'], user['name'], order, driver)
+                        # NOTE: Customer email removed - only admin should be notified when driver accepts
+                        # Customer will be notified when admin marks status as IN_TRANSIT after verifying pickup photos
                 except Exception as e:
                     print(f"Failed to send assignment emails: {e}")
 

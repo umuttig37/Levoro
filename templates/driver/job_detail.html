@@ -65,8 +65,10 @@
               {% if order.driver_id == driver.id %}
               <p class="text-primary" style="margin: 0; font-size: 0.875rem;">{{ order.pickup_address }}</p>
               {% else %}
-              <p class="text-primary" style="margin: 0; font-size: 0.875rem;">{{ order.pickup_address|extract_city }}</p>
-              <p class="text-xs text-muted" style="margin: 0.125rem 0 0 0; font-size: 0.7rem;">Tarkka osoite näkyy kun otat työn vastaan</p>
+              <p class="text-primary" style="margin: 0; font-size: 0.875rem;">{{ order.pickup_address|extract_city }}
+              </p>
+              <p class="text-xs text-muted" style="margin: 0.125rem 0 0 0; font-size: 0.7rem;">Tarkka osoite näkyy kun
+                otat työn vastaan</p>
               {% endif %}
             </div>
             <div>
@@ -74,18 +76,22 @@
               {% if order.driver_id == driver.id %}
               <p class="text-primary" style="margin: 0; font-size: 0.875rem;">{{ order.dropoff_address }}</p>
               {% else %}
-              <p class="text-primary" style="margin: 0; font-size: 0.875rem;">{{ order.dropoff_address|extract_city }}</p>
-              <p class="text-xs text-muted" style="margin: 0.125rem 0 0 0; font-size: 0.7rem;">Tarkka osoite näkyy kun otat työn vastaan</p>
+              <p class="text-primary" style="margin: 0; font-size: 0.875rem;">{{ order.dropoff_address|extract_city }}
+              </p>
+              <p class="text-xs text-muted" style="margin: 0.125rem 0 0 0; font-size: 0.7rem;">Tarkka osoite näkyy kun
+                otat työn vastaan</p>
               {% endif %}
             </div>
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
               <div>
                 <label class="form-label" style="margin-bottom: 0.125rem; font-size: 0.75rem;">Matka</label>
-                <p class="text-primary" style="margin: 0; font-size: 0.875rem;">{{ order.distance_km|default(0)|round(1) }} km</p>
+                <p class="text-primary" style="margin: 0; font-size: 0.875rem;">{{ order.distance_km|default(0)|round(1)
+                  }} km</p>
               </div>
               <div>
                 <label class="form-label" style="margin-bottom: 0.125rem; font-size: 0.75rem;">Palkkio</label>
-                <p class="text-primary" style="margin: 0; font-size: 1.2em; font-weight: 700; color: #059669;">{% if order.driver_reward %}{{ order.driver_reward|round(2) }}{% else %}0.00{% endif %} €</p>
+                <p class="text-primary" style="margin: 0; font-size: 1.2em; font-weight: 700; color: #059669;">{% if
+                  order.driver_reward %}{{ order.driver_reward|round(2) }}{% else %}0.00{% endif %} €</p>
               </div>
             </div>
           </div>
@@ -102,7 +108,8 @@
           <div style="display: flex; flex-direction: column; gap: 0.5rem;">
             <div>
               <label class="form-label" style="margin-bottom: 0.125rem; font-size: 0.75rem;">Merkki ja malli</label>
-              <p class="text-primary" style="margin: 0; font-size: 0.875rem;">{{ order.car_brand or '' }} {{ order.car_model or '' }}</p>
+              <p class="text-primary" style="margin: 0; font-size: 0.875rem;">{{ order.car_brand or '' }} {{
+                order.car_model or '' }}</p>
             </div>
           </div>
         </div>
@@ -126,7 +133,8 @@
             {% if order.winter_tires is not none %}
             <div>
               <label class="form-label" style="margin-bottom: 0.125rem; font-size: 0.75rem;">Talvirenkaat</label>
-              <p class="text-primary" style="margin: 0; font-size: 0.875rem;">{{ "Kyllä" if order.winter_tires else "Ei" }}</p>
+              <p class="text-primary" style="margin: 0; font-size: 0.875rem;">{{ "Kyllä" if order.winter_tires else "Ei"
+                }}</p>
             </div>
             {% endif %}
           </div>
@@ -150,19 +158,22 @@
               <div style="display: flex; flex-direction: column; gap: 0.5rem;">
                 <div>
                   <label class="form-label" style="margin-bottom: 0.125rem; font-size: 0.75rem;">Nimi</label>
-                  <p class="text-primary" style="margin: 0; font-size: 0.875rem;">{{ order.orderer_name or order.user_name or '-' }}</p>
+                  <p class="text-primary" style="margin: 0; font-size: 0.875rem;">{{ order.orderer_name or
+                    order.user_name or '-' }}</p>
                 </div>
                 <div>
                   <label class="form-label" style="margin-bottom: 0.125rem; font-size: 0.75rem;">Sähköposti</label>
-                  <p class="text-primary" style="margin: 0; font-size: 0.875rem;">{{ order.orderer_email or order.user_email or '-' }}</p>
+                  <p class="text-primary" style="margin: 0; font-size: 0.875rem;">{{ order.orderer_email or
+                    order.user_email or '-' }}</p>
                 </div>
                 <div>
                   <label class="form-label" style="margin-bottom: 0.125rem; font-size: 0.75rem;">Puhelin</label>
                   <p class="text-primary" style="margin: 0; font-size: 0.875rem;">
                     {% if order.orderer_phone %}
-                      <a href="tel:{{ order.orderer_phone }}" style="color: #2563eb; text-decoration: none;">{{ order.orderer_phone }}</a>
+                    <a href="tel:{{ order.orderer_phone }}" style="color: #2563eb; text-decoration: none;">{{
+                      order.orderer_phone }}</a>
                     {% else %}
-                      -
+                    -
                     {% endif %}
                   </p>
                 </div>
@@ -183,9 +194,10 @@
                   <label class="form-label" style="margin-bottom: 0.125rem; font-size: 0.75rem;">Puhelinnumero</label>
                   <p class="text-primary" style="margin: 0; font-size: 0.875rem;">
                     {% if order.customer_phone or order.phone %}
-                      <a href="tel:{{ order.customer_phone or order.phone }}" style="color: #854d0e; text-decoration: none;">{{ order.customer_phone or order.phone }}</a>
+                    <a href="tel:{{ order.customer_phone or order.phone }}"
+                      style="color: #854d0e; text-decoration: none;">{{ order.customer_phone or order.phone }}</a>
                     {% else %}
-                      -
+                    -
                     {% endif %}
                   </p>
                 </div>
@@ -203,7 +215,8 @@
           <h2 class="card-title">Ohjeita kuljettajalle</h2>
         </div>
         <div class="card-body">
-          <p style="white-space: pre-wrap; margin: 0; font-size: 0.875rem; line-height: 1.5;">{{ order.additional_info }}</p>
+          <p style="white-space: pre-wrap; margin: 0; font-size: 0.875rem; line-height: 1.5;">{{ order.additional_info
+            }}</p>
         </div>
       </div>
       {% endif %}
@@ -276,11 +289,12 @@
             <!-- Job is available for assignment -->
             <form method="POST" action="{{ url_for('driver.accept_job', order_id=order.id) }}">
               <button type="submit" class="btn btn-primary w-full"
-                      onclick="return confirm('Haluatko varmasti ottaa tämän työn vastaan?')">
+                onclick="return confirm('Haluatko varmasti ottaa tämän työn vastaan?')">
                 Ota työ vastaan
               </button>
             </form>
-            <p class="text-xs text-muted mt-2">ℹ️ Ajoneuvon tiedot ja tarkat osoitteet tulevat näkyviin kun kuitattu napilla olevan paikalla</p>
+            <p class="text-xs text-muted mt-2">ℹ️ Ajoneuvon tiedot ja tarkat osoitteet tulevat näkyviin kun kuitattu
+              napilla olevan paikalla</p>
 
             {% elif order.driver_id == driver.id %}
             <!-- Job belongs to this driver -->
@@ -295,11 +309,11 @@
             <p class="text-sm text-secondary mb-3">Lisää noutokuvat ennen kuljetuksen aloittamista</p>
 
             {% elif order.status == 'PICKUP_IMAGES_ADDED' %}
-            <form method="POST" action="{{ url_for('driver.start_transport', order_id=order.id) }}">
-              <button type="submit" class="btn btn-primary w-full">
-                🚗 Aloita kuljetus
-              </button>
-            </form>
+            <div class="text-center">
+              <div class="text-4xl mb-2">⏳</div>
+              <p class="text-sm text-secondary">Odottaa admin hyväksyntää</p>
+              <p class="text-xs text-secondary mt-1">Admin vahvistaa noutokuvat ja aloittaa kuljetuksen</p>
+            </div>
 
             {% elif order.status == 'IN_TRANSIT' %}
             <form method="POST" action="{{ url_for('driver.arrive_delivery', order_id=order.id) }}">
@@ -312,12 +326,11 @@
             <p class="text-sm text-secondary mb-3">Lisää toimituskuvat ennen toimituksen päättämistä</p>
 
             {% elif order.status == 'DELIVERY_IMAGES_ADDED' %}
-            <form method="POST" action="{{ url_for('driver.complete_delivery', order_id=order.id) }}">
-              <button type="submit" class="btn btn-primary w-full"
-                      onclick="return confirm('Haluatko varmasti merkitä toimituksen valmiiksi?')">
-                ✅ Päätä toimitus
-              </button>
-            </form>
+            <div class="text-center">
+              <div class="text-4xl mb-2">⏳</div>
+              <p class="text-sm text-secondary">Odottaa admin hyväksyntää</p>
+              <p class="text-xs text-secondary mt-1">Admin vahvistaa toimituskuvat ja päättää toimituksen</p>
+            </div>
 
             {% elif order.status == 'DELIVERED' %}
             <div class="text-center">
