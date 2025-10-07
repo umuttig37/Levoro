@@ -315,11 +315,13 @@ def format_price_with_vat_filter(gross_price):
     net_str = f"{net:.2f}".replace('.', ',')
     gross_str = f"{gross_price:.2f}".replace('.', ',')
 
-    # Return HTML - NET price (ALV 0%) emphasized, gross price muted below
+    # Return HTML with semantic classes (no inline styles)
     return f'''<div class="price-breakdown">
-        <div class="price-main" style="font-size: 1.6em; font-weight: 800; line-height: 1.1; color: var(--color-primary);">{net_str} €</div>
-        <div style="font-size: 0.75em; font-weight: 600; margin-top: 1px; color: var(--color-primary);">ALV 0%</div>
-        <div class="price-vat" style="font-size: 0.65em; opacity: 0.5; margin-top: 4px; color: var(--color-gray-600);">Hinta sis. ALV = {gross_str} €</div>
+        <div class="price-main">
+            <span class="price-amount">{net_str} €</span>
+            <span class="price-vat-label">ALV 0%</span>
+        </div>
+        <div class="price-vat-info">Hinta sis. ALV = {gross_str} €</div>
     </div>'''
 
 def current_user():

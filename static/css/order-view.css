@@ -25,11 +25,10 @@
 .order-hero {
     background: var(--color-white, #fff);
     color: var(--color-gray-900, #111827);
-    padding: 40px 20px;
+    padding: 32px 20px;
     position: relative;
     border-bottom: 1px solid var(--color-gray-200, #e5e7eb);
 }
-
 
 .hero-content {
     max-width: 1000px;
@@ -40,15 +39,16 @@
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
-    margin-bottom: 32px;
+    margin-bottom: 28px;
     gap: 20px;
 }
 
 .order-title {
-    font-size: 3rem;
+    font-size: 2.5rem;
     font-weight: 800;
     margin: 0;
     color: var(--color-gray-900, #111827);
+    line-height: 1.2;
 }
 
 .order-status-main {
@@ -57,14 +57,14 @@
 
 .status-badge {
     display: inline-block;
-    padding: 12px 20px;
-    border-radius: 25px;
-    font-size: 0.95rem;
+    padding: 10px 20px;
+    border-radius: 24px;
+    font-size: 0.9rem;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.05em;
     margin-bottom: 8px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
 }
 
 .status-badge.status-new {
@@ -119,16 +119,17 @@
 
 .status-description {
     color: var(--color-gray-600, #4b5563);
-    font-size: 1rem;
+    font-size: 0.95rem;
     margin: 0;
     font-weight: 400;
+    line-height: 1.5;
 }
 
 /* Route Card */
 .hero-route {
     background: var(--color-gray-50, #f9fafb);
-    border-radius: 16px;
-    padding: 32px;
+    border-radius: 12px;
+    padding: 28px;
     color: var(--color-gray-900, #111827);
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
     border: 1px solid var(--color-gray-200, #e5e7eb);
@@ -137,25 +138,28 @@
 .route-card {
     display: flex;
     align-items: center;
+    justify-content: space-between;
     gap: 24px;
     margin-bottom: 24px;
 }
 
 .route-point {
+    width: 500px;
     display: flex;
     align-items: center;
+    justify-content: center;
     gap: 16px;
-    flex: 1;
     min-width: 200px;
+    font-size: 1.5rem;
 }
 
 .point-icon {
-    font-size: 1.5rem;
+    font-size: 2rem;
     padding: 12px;
     background: var(--color-primary-100, #dbeafe);
     border-radius: 50%;
-    width: 48px;
-    height: 48px;
+    width: auto;
+    height: 96px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -186,7 +190,7 @@
 }
 
 .point-label {
-    font-size: 0.9rem;
+    font-size: 1rem;
     font-weight: 600;
     color: var(--color-gray-600, #4b5563);
     text-transform: uppercase;
@@ -194,7 +198,7 @@
 }
 
 .point-address {
-    font-size: 1.1rem;
+    font-size: 1.05rem;
     font-weight: 500;
     color: var(--color-gray-900, #111827);
     line-height: 1.4;
@@ -206,6 +210,7 @@
     align-items: center;
     gap: 8px;
     padding: 0 16px;
+    width: 500px;
 }
 
 .route-line {
@@ -216,49 +221,92 @@
 
 .route-arrow {
     color: var(--color-primary-600, #2563eb);
-    font-size: 1.5rem;
+    font-size: 4rem;
     font-weight: 700;
 }
 
 /* Hero Metrics */
 .hero-metrics {
-    display: flex;
-    gap: 20px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 16px;
+    align-items: stretch;
 }
 
 .metric-card {
-    flex: 1;
     text-align: center;
-    padding: 20px;
+    padding: 18px 20px;
     background: var(--color-white, #fff);
     border-radius: 12px;
     border: 1px solid var(--color-gray-200, #e5e7eb);
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-evenly;
+    transition: box-shadow 0.2s ease;
+}
+
+.metric-card:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
 }
 
 .metric-card.price-card {
-    background: var(--color-primary-50, #eff6ff);
-    border-color: var(--color-primary-200, #bfdbfe);
+    background: var(--color-gray-50, #f9fafb);
+    border-color: var(--color-gray-300, #d1d5db);
 }
 
 .metric-value {
     display: block;
-    font-size: 1.8rem;
-    font-weight: 800;
+    font-size: 1.6rem;
+    font-weight: 700;
     color: var(--color-gray-900, #111827);
-    margin-bottom: 4px;
+    margin-bottom: 6px;
+    line-height: 1.2;
 }
 
 .price-card .metric-value {
-    color: var(--color-primary-700, #1d4ed8);
+    color: var(--color-gray-900, #111827);
+    font-weight: 700;
 }
 
 .metric-label {
-    font-size: 0.9rem;
+    font-size: 0.875rem;
     font-weight: 600;
     color: var(--color-gray-600, #4b5563);
     text-transform: uppercase;
     letter-spacing: 0.05em;
+}
+
+/* Price breakdown styling */
+.price-breakdown {
+    text-align: center;
+}
+
+.price-main {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.price-amount {
+    font-size: 1.6em;
+    font-weight: 800;
+    color: var(--color-primary);
+}
+
+.price-vat-label {
+    font-size: 0.6em;
+    font-weight: 800;
+    color: var(--color-gray-700, #374151);
+}
+
+.price-vat-info {
+    font-size: 0.65em;
+    opacity: 0.5;
+    margin-top: 8px;
+    color: var(--color-gray-600, #4b5563);
 }
 
 /* Driver phone link styling */
@@ -291,7 +339,7 @@
 /* Progress Section */
 .progress-section {
     background: var(--color-white, #fff);
-    padding: 40px 20px;
+    padding: 36px 20px;
     border-bottom: 1px solid var(--color-gray-200, #e5e7eb);
 }
 
@@ -495,6 +543,11 @@
         top: -20px;
         min-width: 20px;
     }
+
+    .route-point {
+        display: flex;
+        justify-content: flex-start;
+    }
 }
 
 /* Extra small devices - prevent overflow */
@@ -534,43 +587,43 @@
 
 /* Secondary Information */
 .order-details {
-    padding: 40px 20px;
+    padding: 36px 20px;
     max-width: 1000px;
     margin: 0 auto;
 }
 
 .details-grid {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 1fr;
     gap: 24px;
-    margin-bottom: 32px;
+    margin-bottom: 28px;
 }
 
 .detail-card {
     background: var(--color-white, #fff);
-    border-radius: 16px;
-    padding: 28px;
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
     border: 1px solid var(--color-gray-200, #e5e7eb);
     transition: all 0.2s ease;
-    height: fit-content;
+    height: auto;
 }
 
 .detail-card:hover {
     border-color: var(--color-primary-300, #93c5fd);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
 }
 
 .detail-card.full-width {
     grid-column: 1 / -1;
-    margin-top: 16px;
+    margin-top: 0;
 }
 
 .card-title {
     color: var(--color-primary-700, #1d4ed8);
-    font-size: 1.2rem;
+    font-size: 1.15rem;
     font-weight: 700;
-    margin-bottom: 20px;
+    margin-bottom: 18px;
     padding-bottom: 12px;
     border-bottom: 2px solid var(--color-primary-100, #dbeafe);
     display: flex;
@@ -594,6 +647,7 @@
 
 .detail-row:last-child {
     border-bottom: none;
+    padding-bottom: 0;
 }
 
 .detail-label {
@@ -606,6 +660,7 @@
     color: var(--color-gray-900, #111827);
     font-weight: 500;
     text-align: right;
+    font-size: 12px;
 }
 
 /* Empty states and smart content */
@@ -614,13 +669,13 @@
             var(--color-gray-50, #f9fafb) 0%,
             var(--color-gray-100, #f3f4f6) 100%);
     border-radius: 8px;
-    padding: 16px;
+    padding: 14px;
     border: 1px solid var(--color-gray-200, #e5e7eb);
-    margin: 8px 0;
+    margin: 6px 0;
 }
 
 .detail-row.empty-state .detail-label {
-    font-size: 1.2rem;
+    font-size: 1.1rem;
     margin-right: 8px;
 }
 
@@ -629,20 +684,21 @@
     font-style: italic;
     font-weight: 400;
     text-align: left;
+    font-size: 0.875rem;
 }
 
 .images-status {
     text-align: center;
-    padding: 20px;
+    padding: 16px;
     background: var(--color-blue-50, #eff6ff);
-    border-radius: 12px;
+    border-radius: 10px;
     border: 1px solid var(--color-blue-200, #bfdbfe);
-    margin-top: 16px;
+    margin-top: 12px;
 }
 
 .status-info {
     color: var(--color-blue-700, #1d4ed8);
-    font-size: 0.95rem;
+    font-size: 0.9rem;
     font-weight: 500;
     margin: 0;
     display: flex;
@@ -651,23 +707,63 @@
     gap: 8px;
 }
 
+/* Contact sections side-by-side on desktop */
+.contact-sections-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 16px;
+}
+
+.contact-section {
+    padding: 16px;
+    border-radius: 8px;
+    border: 1px solid;
+}
+
+.contact-section.orderer {
+    background: #f0f9ff;
+    border-color: #bfdbfe;
+}
+
+.contact-section.customer {
+    background: #fefce8;
+    border-color: #fde047;
+}
+
+.contact-section-title {
+    margin: 0 0 12px 0;
+    font-size: 0.95rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.contact-section.orderer .contact-section-title {
+    color: #1e40af;
+}
+
+.contact-section.customer .contact-section-title {
+    color: #854d0e;
+}
+
 /* Additional Info */
 .additional-info-text {
     color: var(--color-gray-700, #374151);
-    font-size: 1rem;
-    line-height: 1.6;
+    font-size: 0.95rem;
+    line-height: 1.5;
     margin: 0;
-    padding: 20px;
+    padding: 16px 18px;
     background: var(--color-gray-50, #f9fafb);
-    border-radius: 12px;
-    border-left: 4px solid var(--color-primary, #3b82f6);
+    border-radius: 10px;
+    border-left: 3px solid var(--color-primary, #3b82f6);
 }
 
 /* Images Section */
 .images-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 24px;
+    gap: 20px;
 }
 
 .image-section {
@@ -676,10 +772,10 @@
 
 .image-section-title {
     color: var(--color-gray-700, #374151);
-    font-size: 1rem;
+    font-size: 0.95rem;
     font-weight: 600;
-    margin-bottom: 16px;
-    padding: 8px 16px;
+    margin-bottom: 14px;
+    padding: 6px 14px;
     background: var(--color-gray-100, #f3f4f6);
     border-radius: 8px;
     display: inline-block;
@@ -688,19 +784,21 @@
 /* Order Actions */
 .order-actions {
     background: var(--color-white, #fff);
-    padding: 32px 20px;
+    padding: 24px 20px;
     border-top: 1px solid var(--color-gray-200, #e5e7eb);
     text-align: center;
 }
 
 .order-actions .btn {
-    padding: 16px 32px;
-    font-size: 1.1rem;
+    padding: 14px 28px;
+    font-size: 1rem;
     font-weight: 600;
-    border-radius: 12px;
+    border-radius: 10px;
     transition: all 0.2s ease;
     text-decoration: none;
-    display: inline-block;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
 }
 
 .order-actions .btn-ghost {
@@ -781,7 +879,7 @@
     .route-point {
         min-width: auto;
         width: 100%;
-        justify-content: flex-start;
+        justify-content: center;
         padding: 20px;
         background: var(--color-gray-50, #f9fafb);
         border-radius: 12px;
@@ -796,7 +894,7 @@
 
     .point-icon {
         width: 48px;
-        height: 48px;
+        height: auto;
         font-size: 1.5rem;
         flex-shrink: 0;
     }
@@ -829,7 +927,7 @@
 
     .route-arrow {
         transform: rotate(90deg);
-        font-size: 1.5rem;
+        font-size: 2rem;
         font-weight: 700;
     }
 
@@ -865,8 +963,8 @@
     }
 
     .price-card .metric-value {
-        font-size: 2rem;
-        /* 32px - Larger but controlled */
+        font-size: 1.2rem;
+        /* 24px - Reduced emphasis */
         letter-spacing: -0.02em;
     }
 
@@ -941,7 +1039,6 @@
     .detail-card:hover,
     .detail-card:focus-within {
         border-color: var(--color-primary-300, #93c5fd);
-        transform: translateY(-2px);
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
     }
 
@@ -1125,6 +1222,8 @@
     }
 
     .route-point {
+        display: flex;
+        justify-content: flex-start;
         padding: 16px;
     }
 
@@ -1134,13 +1233,8 @@
     }
 
     .metric-value {
-        font-size: 1.5rem;
+        font-size: 1.7rem;
         /* 24px */
-    }
-
-    .price-card .metric-value {
-        font-size: 1.75rem;
-        /* 28px - Still prominent but fits */
     }
 
     .step-number {
@@ -1182,60 +1276,215 @@
     }
 }
 
-/* Tablet Responsive */
-@media (max-width: 1024px) and (min-width: 769px) {
-    .order-hero {
-        padding: 36px 24px;
+/* Desktop optimizations (769px and up) */
+@media (min-width: 769px) {
+    .order-container {
+        background: var(--color-gray-50, #f9fafb);
     }
 
-    .hero-content {
-        max-width: 900px;
+    /* Desktop layout */
+    .order-hero {
+        padding: 32px;
+    }
+
+    .hero-header {
+        margin-bottom: 24px;
     }
 
     .order-title {
-        font-size: 2.6rem;
+        font-size: 2.25rem;
+    }
+
+    .hero-route {
+        padding: 24px 28px;
     }
 
     .route-card {
         gap: 20px;
+        margin-bottom: 20px;
     }
 
     .route-point {
-        min-width: 180px;
+        min-width: 220px;
     }
 
+    .point-icon {
+        width: 48px;
+        height: 48px;
+    }
+
+    /* Hero metrics - grid layout */
+    .hero-metrics {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 18px;
+    }
+
+    .metric-card {
+        padding: 20px;
+    }
+
+    .metric-value {
+        font-size: 1.5rem;
+    }
+
+    .metric-label {
+        font-size: 0.875rem;
+    }
+
+    /* Progress section */
+    .progress-section {
+        padding: 32px;
+    }
+
+    .simple-progress {
+        max-width: 750px;
+        margin-bottom: 16px;
+    }
+
+    .step-circle {
+        width: 40px;
+        height: 40px;
+        font-size: 1rem;
+    }
+
+    .step-title {
+        font-size: 0.9rem;
+    }
+
+    .current-status-description {
+        font-size: 0.9rem;
+        padding: 12px 20px;
+        margin-top: 16px;
+    }
+
+    /* Order details - Yhteystiedot (66%) and Ajoneuvo (33%) side by side */
     .order-details {
-        padding: 36px 24px;
+        padding: 32px;
     }
 
     .details-grid {
+        grid-template-columns: 2fr 1fr;
         gap: 20px;
+        margin-bottom: 24px;
+    }
+
+    /* Yhteystiedot card comes first (left side) */
+    .detail-card:has(.contact-sections-grid) {
+        order: -1;
     }
 
     .detail-card {
         padding: 24px;
     }
+
+    /* Contact sections stacked vertically in 66% width container */
+    .contact-sections-grid {
+        grid-template-columns: 1fr;
+        gap: 14px;
+    }
+
+    .contact-section {
+        padding: 18px;
+    }
+
+    .contact-section-title {
+        font-size: 1rem;
+        margin-bottom: 14px;
+    }
+
+    .card-title {
+        font-size: 1.1rem;
+        margin-bottom: 16px;
+        padding-bottom: 12px;
+    }
+
+    .detail-row {
+        padding: 12px 0;
+    }
+
+    .detail-label {
+        font-size: 0.95rem;
+    }
+
+    .detail-value {
+        font-size: 0.85rem;
+    }
+
+    /* Images section */
+    .images-grid {
+        gap: 24px;
+    }
+
+    .image-section-title {
+        font-size: 1rem;
+        padding: 8px 16px;
+        margin-bottom: 16px;
+    }
+
+    .additional-info-text {
+        font-size: 1rem;
+        padding: 18px 20px;
+    }
+
+    /* Order actions */
+    .order-actions {
+        padding: 24px 32px;
+    }
+
+    .order-actions .btn {
+        padding: 14px 28px;
+        font-size: 1rem;
+    }
 }
 
 /* Large screen optimizations */
-@media (min-width: 1400px) {
+@media (min-width: 1200px) {
     .order-container {
-        max-width: 1400px;
+        max-width: 1200px;
     }
 
     .hero-content {
-        max-width: 1200px;
+        max-width: 1100px;
     }
 
     .order-details {
-        max-width: 1200px;
+        max-width: 1100px;
     }
 
+    /* Yhteystiedot (66%) and Ajoneuvo (33%) side by side with more spacing */
     .details-grid {
-        grid-template-columns: repeat(3, 1fr);
+        grid-template-columns: 2.5fr 1fr;
+        gap: 24px;
+    }
+
+    /* On very large screens, display contact sections side-by-side */
+    .contact-sections-grid {
+        grid-template-columns: 2fr 1.5fr;
+        gap: 16px;
+    }
+
+    .contact-section {
+        padding: 20px;
     }
 
     .detail-card.full-width {
         grid-column: 1 / -1;
+    }
+
+    /* Slightly more breathing room on large screens */
+    .order-hero {
+        padding: 36px 40px;
+    }
+
+    .progress-section {
+        padding: 36px 40px;
+    }
+
+    .order-details {
+        padding: 36px 40px;
+    }
+
+    .order-actions {
+        padding: 28px 40px;
     }
 }

@@ -35,29 +35,17 @@
         </div>
       </div>
 
-      <div class="user-orders-wrapper" style="width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch;">
-        <table class="user-orders-table"
-          style="width: 100%; border-collapse: collapse; min-width: 800px; background: #ffffff;">
+      <!-- Desktop Table View -->
+      <div class="user-orders-table-wrapper">
+        <table class="user-orders-table">
           <thead>
             <tr>
-              <th
-                style="background: #f9fafb; color: #1f2937; font-weight: 600; font-size: 0.875rem; text-align: left; padding: 1rem; border-bottom: 2px solid #e5e7eb; white-space: nowrap;">
-                ID</th>
-              <th
-                style="background: #f9fafb; color: #1f2937; font-weight: 600; font-size: 0.875rem; text-align: left; padding: 1rem; border-bottom: 2px solid #e5e7eb; white-space: nowrap;">
-                Tila</th>
-              <th
-                style="background: #f9fafb; color: #1f2937; font-weight: 600; font-size: 0.875rem; text-align: left; padding: 1rem; border-bottom: 2px solid #e5e7eb; white-space: nowrap;">
-                Reitti</th>
-              <th
-                style="background: #f9fafb; color: #1f2937; font-weight: 600; font-size: 0.875rem; text-align: left; padding: 1rem; border-bottom: 2px solid #e5e7eb; white-space: nowrap;">
-                Matka</th>
-              <th
-                style="background: #f9fafb; color: #1f2937; font-weight: 600; font-size: 0.875rem; text-align: left; padding: 1rem; border-bottom: 2px solid #e5e7eb; white-space: nowrap;">
-                Hinta</th>
-              <th
-                style="background: #f9fafb; color: #1f2937; font-weight: 600; font-size: 0.875rem; text-align: left; padding: 1rem; border-bottom: 2px solid #e5e7eb; white-space: nowrap;">
-                Toiminnot</th>
+              <th>ID</th>
+              <th>Tila</th>
+              <th>Reitti</th>
+              <th>Matka</th>
+              <th>Hinta</th>
+              <th>Toiminnot</th>
             </tr>
           </thead>
           <tbody>
@@ -91,69 +79,154 @@
             'CANCELLED': 'cancelled'
             }.get(order.status, 'pending') %}
 
-            {% set status_colors = {
-            'pending': 'background: #fef3c7; color: #92400e; border: 1px solid #fde68a;',
-            'confirmed': 'background: #dbeafe; color: #1e40af; border: 1px solid #bfdbfe;',
-            'in-progress': 'background: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd;',
-            'completed': 'background: #dcfce7; color: #166534; border: 1px solid #bbf7d0;',
-            'cancelled': 'background: #fee2e2; color: #991b1b; border: 1px solid #fecaca;'
-            } %}
-
-            <tr style="transition: background-color 0.15s ease-in-out;"
-              onmouseover="this.style.backgroundColor='#f9fafb'" onmouseout="this.style.backgroundColor='transparent'">
-              <td
-                style="padding: 1rem; border-bottom: 1px solid #e5e7eb; color: #2563eb; font-size: 0.875rem; font-weight: 500; background: rgba(255, 255, 255, 0.9); vertical-align: middle;">
-                #{{ order.id }}
+            <tr>
+              <td class="user-orders-id">#{{ order.id }}</td>
+              <td class="user-orders-status">
+                <span class="user-status-badge {{ status_class }}">{{ status_fi }}</span>
               </td>
-              <td
-                style="padding: 1rem; border-bottom: 1px solid #e5e7eb; color: #111827; font-size: 0.875rem; font-weight: 500; background: rgba(255, 255, 255, 0.9); vertical-align: middle; text-align: center;">
-                <span
-                  style="display: inline-flex; align-items: center; padding: 0.25rem 0.75rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 500; text-transform: uppercase; letter-spacing: 0.025em; white-space: nowrap; {{ status_colors[status_class] }}">
-                  {{ status_fi }}
-                </span>
-              </td>
-              <td
-                style="padding: 1rem; border-bottom: 1px solid #e5e7eb; color: #111827; font-size: 0.875rem; font-weight: 500; background: rgba(255, 255, 255, 0.9); vertical-align: middle;">
-                {{ order.pickup_address }} → {{ order.dropoff_address }}
-              </td>
-              <td
-                style="padding: 1rem; border-bottom: 1px solid #e5e7eb; color: #6b7280; font-size: 0.875rem; font-weight: 500; background: rgba(255, 255, 255, 0.9); vertical-align: middle;">
-                {{ "%.1f"|format(order.distance_km|float) }} km
-              </td>
-              <td
-                style="padding: 1rem; border-bottom: 1px solid #e5e7eb; color: #111827; font-size: 0.875rem; font-weight: 600; background: rgba(255, 255, 255, 0.9); vertical-align: middle; text-align: right;">
-                <div style="line-height: 1.2;">
-                  <div style="font-size: 1.3rem; font-weight: 800;">{{ "%.2f"|format((order.price_gross|float) / 1.255)
-                    }} €</div>
-                  <div style="font-size: 0.85rem; font-weight: 700; margin-bottom: 4px;">ALV 0%</div>
-                  <div style="font-size: 0.65rem; color: #6b7280; font-weight: 400; opacity: 0.6;">ALV 25,5%: {{
-                    "%.2f"|format((order.price_gross|float) - ((order.price_gross|float) / 1.255)) }} € | Yhteensä: {{
-                    "%.2f"|format(order.price_gross|float) }} €</div>
+              <td class="user-orders-route">{{ order.pickup_address }} → {{ order.dropoff_address }}</td>
+              <td class="user-orders-distance">{{ "%.1f"|format(order.distance_km|float) }} km</td>
+              <td class="user-orders-price">
+                <div class="price-display">
+                  <div class="price-main">{{ "%.2f"|format((order.price_gross|float) / 1.255) }} €</div>
+                  <div class="price-vat">ALV 0%</div>
+                  <div class="price-details">ALV 25,5%: {{ "%.2f"|format((order.price_gross|float) -
+                    ((order.price_gross|float) / 1.255)) }} € | Yhteensä: {{ "%.2f"|format(order.price_gross|float) }} €
+                  </div>
                 </div>
               </td>
-              <td
-                style="padding: 1rem; border-bottom: 1px solid #e5e7eb; color: #111827; font-size: 0.875rem; font-weight: 500; background: rgba(255, 255, 255, 0.9); vertical-align: middle; text-align: center;">
-                <a style="display: inline-flex; align-items: center; padding: 0.5rem 0.75rem; background: #3b82f6; color: #ffffff; text-decoration: none; border-radius: 0.5rem; font-size: 0.75rem; font-weight: 500; transition: all 0.15s ease-in-out; border: none; cursor: pointer; white-space: nowrap;"
-                  href="/order/{{ order.id }}" onmouseover="this.style.backgroundColor='#2563eb'"
-                  onmouseout="this.style.backgroundColor='#3b82f6'">
-                  Avaa
-                </a>
+              <td class="user-orders-actions">
+                <a class="user-action-btn" href="/order/{{ order.id }}">Avaa</a>
               </td>
             </tr>
             {% endfor %}
             {% else %}
             <tr>
-              <td colspan="6" style="text-align: center; padding: 4rem;">
-                <div style="color: #9ca3af;">
-                  <div style="margin-bottom: 1rem;">{{ icons.package(48, '#94a3b8') }}</div>
-                  <div style="font-weight: 500; margin-bottom: 0.5rem;">Ei tilauksia</div>
-                  <div style="font-size: 0.875rem;">Luo ensimmäinen tilauksesi yllä olevalla napilla</div>
+              <td colspan="6" class="user-orders-empty">
+                <div class="empty-state">
+                  {{ icons.package(48, '#94a3b8') }}
+                  <div class="empty-title">Ei tilauksia</div>
+                  <div class="empty-text">Luo ensimmäinen tilauksesi yllä olevalla napilla</div>
                 </div>
               </td>
             </tr>
             {% endif %}
           </tbody>
         </table>
+      </div>
+
+      <!-- Mobile Card View -->
+      <div class="user-orders-cards">
+        {% if orders %}
+        {% for order in orders %}
+        {% set status_fi = {
+        'NEW': 'Uusi',
+        'CONFIRMED': 'Vahvistettu',
+        'ASSIGNED_TO_DRIVER': 'Kuljettaja osoitettu',
+        'DRIVER_ARRIVED': 'Kuljettaja paikalla',
+        'PICKUP_IMAGES_ADDED': 'Noutokuva lisätty',
+        'IN_TRANSIT': 'Kuljetuksessa',
+        'DELIVERY_ARRIVED': 'Toimitus paikalla',
+        'DELIVERY_IMAGES_ADDED': 'Toimituskuva lisätty',
+        'DELIVERED': 'Toimitettu',
+        'COMPLETED': 'Valmis',
+        'CANCELLED': 'Peruutettu'
+        }.get(order.status, order.status) %}
+
+        {% set status_class = {
+        'NEW': 'pending',
+        'CONFIRMED': 'confirmed',
+        'ASSIGNED_TO_DRIVER': 'confirmed',
+        'DRIVER_ARRIVED': 'in-progress',
+        'PICKUP_IMAGES_ADDED': 'in-progress',
+        'IN_TRANSIT': 'in-progress',
+        'DELIVERY_ARRIVED': 'in-progress',
+        'DELIVERY_IMAGES_ADDED': 'in-progress',
+        'DELIVERED': 'completed',
+        'COMPLETED': 'completed',
+        'CANCELLED': 'cancelled'
+        }.get(order.status, 'pending') %}
+
+        <article class="order-card" role="article" aria-label="Tilaus {{ order.id }}">
+          <!-- Card Header -->
+          <div class="order-card-header">
+            <div class="order-card-id">
+              {{ icons.clipboard(20, '#2563eb') }}
+              <span>#{{ order.id }}</span>
+            </div>
+            <span class="user-status-badge {{ status_class }}" role="status" aria-label="Tilauksen tila">{{ status_fi
+              }}</span>
+          </div>
+
+          <!-- Route Section -->
+          <div class="order-card-route" aria-label="Kuljetusreitti">
+            <div class="route-point">
+              <div class="route-icon pickup">{{ icons.location(20, '#3b82f6') }}</div>
+              <div class="route-text">
+                <div class="route-label">Nouto</div>
+                <div class="route-address">{{ order.pickup_address }}</div>
+              </div>
+            </div>
+            <div class="route-arrow">↓</div>
+            <div class="route-point">
+              <div class="route-icon delivery">{{ icons.location(20, '#10b981') }}</div>
+              <div class="route-text">
+                <div class="route-label">Toimitus</div>
+                <div class="route-address">{{ order.dropoff_address }}</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Info Grid -->
+          <div class="order-card-info">
+            <div class="info-item">
+              <div class="info-label">Matka</div>
+              <div class="info-value">{{ "%.1f"|format(order.distance_km|float) }} km</div>
+            </div>
+            <div class="info-item price-item">
+              <div class="info-label">Hinta</div>
+              <div class="info-value price-value">
+                <div class="price-main-mobile">{{ "%.2f"|format((order.price_gross|float) / 1.255) }} €</div>
+                <div class="price-vat-mobile">ALV 0%</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Price Details (Expandable) -->
+          <details class="price-details-toggle">
+            <summary class="price-details-summary">Näytä hinnan erittely</summary>
+            <div class="price-details-content">
+              <div class="price-detail-row">
+                <span>Hinta (ALV 0%)</span>
+                <span>{{ "%.2f"|format((order.price_gross|float) / 1.255) }} €</span>
+              </div>
+              <div class="price-detail-row">
+                <span>ALV 25,5%</span>
+                <span>{{ "%.2f"|format((order.price_gross|float) - ((order.price_gross|float) / 1.255)) }} €</span>
+              </div>
+              <div class="price-detail-row total">
+                <span>Yhteensä</span>
+                <span>{{ "%.2f"|format(order.price_gross|float) }} €</span>
+              </div>
+            </div>
+          </details>
+
+          <!-- Action Button -->
+          <a href="/order/{{ order.id }}" class="order-card-action" aria-label="Avaa tilaus {{ order.id }}">
+            Avaa tilaus
+            {{ icons.eye(18, '#ffffff') }}
+          </a>
+        </article>
+        {% endfor %}
+        {% else %}
+        <div class="user-orders-empty">
+          <div class="empty-state">
+            {{ icons.package(64, '#94a3b8') }}
+            <div class="empty-title">Ei tilauksia</div>
+            <div class="empty-text">Luo ensimmäinen tilauksesi yllä olevalla napilla</div>
+          </div>
+        </div>
+        {% endif %}
       </div>
     </div>
   </div>
