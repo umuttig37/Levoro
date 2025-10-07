@@ -13,6 +13,78 @@ class UserModel(BaseModel):
 
     collection_name = "users"
 
+    def generate_reset_token(self, email):
+        """Generate password reset token for user"""
+        import secrets
+        from datetime import timedelta
+        
+        user = self.find_by_email(email)
+        if not user:
+            return None, "Käyttäjää ei löytynyt"
+        
+        # Generate secure token
+        reset_token = secrets.token_urlsafe(32)
+        reset_token_expires = datetime.now(timezone.utc) + timedelta(hours=2)
+        
+        # Save token to database
+        success = self.update_one(
+            {"id": user["id"]},
+            {"$set": {
+                "reset_token": reset_token,
+                "reset_token_expires": reset_token_expires,
+                "updated_at": datetime.now(timezone.utc)
+            }}
+        )
+        
+        if not success:
+            return None, "Token luominen epäonnistui"
+        
+        return reset_token, None
+    
+    def validate_reset_token(self, token):
+        """Validate password reset token"""
+        user = self.find_one({"reset_token": token})
+        
+        if not user:
+            return None, "Virheellinen tai vanhentunut linkki"
+        
+        # Check if token has expired
+        if user.get("reset_token_expires"):
+            expires = user["reset_token_expires"]
+            # Ensure timezone awareness for comparison
+            if expires.tzinfo is None:
+                expires = expires.replace(tzinfo=timezone.utc)
+            
+            if expires < datetime.now(timezone.utc):
+                return None, "Linkki on vanhentunut. Pyydä uusi salasanan palautuslinkki."
+        
+        return user, None
+    
+    def reset_password_with_token(self, token, new_password):
+        """Reset password using valid token"""
+        user, error = self.validate_reset_token(token)
+        
+        if error:
+            return False, error
+        
+        # Update password and clear reset token
+        success = self.update_one(
+            {"id": user["id"]},
+            {"$set": {
+                "password_hash": generate_password_hash(new_password),
+                "updated_at": datetime.now(timezone.utc)
+            },
+            "$unset": {
+                "reset_token": "",
+                "reset_token_expires": ""
+            }}
+        )
+        
+        if not success:
+            return False, "Salasanan vaihto epäonnistui"
+        
+        return True, None
+
     def create_user(self, email, password, name, role="user", phone=None):
         """Create a new user"""
         # Check if user already exists

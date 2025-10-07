@@ -144,6 +144,29 @@ class EmailService:
             current_app.logger.error(f"Failed to send account approved email: {str(e)}")
             return False
 
+    def send_password_reset_email(self, user_email: str, user_name: str, reset_url: str, token: str) -> bool:
+        """Send password reset email with reset link"""
+        print(f"🔐 PASSWORD RESET EMAIL:")
+        print(f"   Recipient: {user_name} <{user_email}>")
+        print(f"   Reset URL: {reset_url}")
+        
+        try:
+            html_body = render_template('emails/password_reset.html',
+                                      user_name=user_name,
+                                      reset_url=reset_url,
+                                      token=token)
+
+            return self.send_email(
+                subject="Salasanan palautus - Levoro",
+                recipients=[user_email],
+                html_body=html_body
+            )
+        except Exception as e:
+            error_msg = f"Failed to send password reset email: {str(e)}"
+            current_app.logger.error(error_msg)
+            print(f"   ❌ {error_msg}")
+            return False
+
     def send_order_created_email(self, user_email: str, user_name: str, order_data: Dict) -> bool:
         """Send email when new order is created"""
         print(f"[ORDER] Creating order confirmation email")

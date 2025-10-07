@@ -20,24 +20,29 @@
 
       <div class="card-body">
         {% with messages = get_flashed_messages(with_categories=true) %}
-          {% if messages %}
-            {% for category, message in messages %}
-              <div class="alert alert-{% if category == 'error' %}danger{% else %}{{ category }}{% endif %} mb-4">
-                {{ message }}
-              </div>
-            {% endfor %}
-          {% endif %}
+        {% if messages %}
+        {% for category, message in messages %}
+        <div class="alert alert-{% if category == 'error' %}danger{% else %}{{ category }}{% endif %} mb-4">
+          {{ message }}
+        </div>
+        {% endfor %}
+        {% endif %}
         {% endwith %}
 
         <form method="POST">
           <div class="form-group">
             <label class="form-label">Sähköposti</label>
-            <input type="email" name="email" required class="form-input" placeholder="nimi@yritys.fi" value="{{ request.form.get('email', '') }}">
+            <input type="email" name="email" required class="form-input" placeholder="nimi@yritys.fi"
+              value="{{ request.form.get('email', '') }}">
           </div>
 
           <div class="form-group">
             <label class="form-label">Salasana</label>
             <input type="password" name="password" required class="form-input" placeholder="Salasanasi">
+            <div class="mt-2">
+              <a href="{{ url_for('auth.forgot_password') }}"
+                class="text-primary hover:text-primary-dark text-sm">Unohditko salasanasi?</a>
+            </div>
           </div>
 
           {% if next_url %}

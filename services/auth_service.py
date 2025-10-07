@@ -193,6 +193,50 @@ class AuthService:
 
         # Could add more complexity requirements here
         return True
+    
+    def request_password_reset(self, email: str) -> Tuple[bool, Optional[str]]:
+        """Request password reset - generates token and sends email"""
+        # Generate reset token
+        token, error = self.user_model.generate_reset_token(email)
+        
+        if error:
+            # Don't reveal if email exists or not for security
+            # Always return success message
+            return True, None
+        
+        # Send password reset email
+        try:
+            from services.email_service import email_service
+            from flask import url_for
+            
+            user = self.user_model.find_by_email(email)
+            if user:
+                # Generate reset URL
+                reset_url = url_for('auth.reset_password', token=token, _external=True)
+                email_service.send_password_reset_email(user["email"], user["name"], reset_url, token)
+        except Exception as e:
+            print(f"Failed to send password reset email: {e}")
+            # Don't reveal error to user
+        
+        return True, None
+    
+    def validate_reset_token(self, token: str) -> Tuple[bool, Optional[Dict], Optional[str]]:
+        """Validate password reset token"""
+        user, error = self.user_model.validate_reset_token(token)
+        
+        if error:
+            return False, None, error
+        
+        return True, user, None
+    
+    def reset_password(self, token: str, new_password: str) -> Tuple[bool, Optional[str]]:
+        """Reset password using valid token"""
+        if not self._validate_password(new_password):
+            return False, "Salasana on liian heikko (vähintään 6 merkkiä)"
+        
+        success, error = self.user_model.reset_password_with_token(token, new_password)
+        
+        return success, error
 
 
 # Global instance
