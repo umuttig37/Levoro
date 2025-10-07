@@ -1,4 +1,5 @@
 {% extends "base/layout.html" %}
+{% import 'components/icons.html' as icons %}
 
 {% block title %}Kuljettajan työpöytä{% endblock %}
 
@@ -77,11 +78,13 @@
                 {% if job.additional_info and job.additional_info|length > 0 %}
                 <p style="font-size: 1rem; color: #6b7280; margin-top: 0.75rem; line-height: 1.5;">
                   <strong>Lisätiedot:</strong> {{ job.additional_info[:50] }}{% if job.additional_info|length > 50
-                  %}...{% endif %}</p>
+                  %}...{% endif %}
+                </p>
                 {% endif %}
                 {% if job.car_brand or job.car_model %}
                 <p style="font-size: 1rem; color: #374151; margin-top: 0.75rem; font-weight: 500;">
-                  <strong>Auto:</strong> {{ job.car_brand or '' }} {{ job.car_model or '' }}</p>
+                  <strong>Auto:</strong> {{ job.car_brand or '' }} {{ job.car_model or '' }}
+                </p>
                 {% endif %}
               </div>
               <div class="driver-job-actions">
@@ -108,7 +111,7 @@
       </div>
       {% else %}
       <div class="driver-empty-state">
-        <div class="driver-empty-icon">✅</div>
+        <div class="driver-empty-icon">{{ icons.check_circle(48, '#94a3b8') }}</div>
         <h3 class="driver-empty-title">Ei aktiivisia töitä</h3>
         <p class="driver-empty-message">Kaikki työsi on suoritettu. Hienoa työtä!</p>
       </div>
@@ -135,11 +138,13 @@
                 {% if job.additional_info and job.additional_info|length > 0 %}
                 <p style="font-size: 1rem; color: #6b7280; margin-top: 0.75rem; line-height: 1.5;">
                   <strong>Lisätiedot:</strong> {{ job.additional_info[:50] }}{% if job.additional_info|length > 50
-                  %}...{% endif %}</p>
+                  %}...{% endif %}
+                </p>
                 {% endif %}
                 {% if job.car_brand or job.car_model %}
                 <p style="font-size: 1rem; color: #374151; margin-top: 0.75rem; font-weight: 500;">
-                  <strong>Auto:</strong> {{ job.car_brand or '' }} {{ job.car_model or '' }}</p>
+                  <strong>Auto:</strong> {{ job.car_brand or '' }} {{ job.car_model or '' }}
+                </p>
                 {% endif %}
               </div>
               <div class="driver-job-actions">
@@ -156,7 +161,7 @@
       </div>
       {% else %}
       <div class="driver-empty-state">
-        <div class="driver-empty-icon">📦</div>
+        <div class="driver-empty-icon">{{ icons.package(48, '#94a3b8') }}</div>
         <h3 class="driver-empty-title">Ei saatavilla olevia töitä</h3>
         <p class="driver-empty-message">Tarkista myöhemmin uusien töiden varalta</p>
       </div>
@@ -199,7 +204,7 @@
       </div>
       {% else %}
       <div class="driver-empty-state">
-        <div class="driver-empty-icon">📋</div>
+        <div class="driver-empty-icon">{{ icons.clipboard(48, '#94a3b8') }}</div>
         <h3 class="driver-empty-title">Ei vielä suoritettuja töitä</h3>
         <p class="driver-empty-message">Suoritetut työt näkyvät täällä</p>
       </div>

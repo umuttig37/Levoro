@@ -921,7 +921,7 @@ def order_confirm():
 <form method='POST' class='calculator-form'>
   <div class='calculator-actions'>
     <button type='button' onclick='window.location.href="/order/new/step5"' class='btn btn-ghost'>← Takaisin</button>
-    <button type='submit' class='btn btn-primary'>Lähetä tilaus ✓</button>
+    <button type='submit' class='btn btn-primary'>Lähetä tilaus</button>
   </div>
 </form>
 

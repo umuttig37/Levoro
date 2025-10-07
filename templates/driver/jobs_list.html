@@ -1,4 +1,5 @@
 {% extends "base/layout.html" %}
+{% import 'components/icons.html' as icons %}
 
 {% block title %}Saatavilla olevat työt{% endblock %}
 
@@ -56,7 +57,8 @@
             <div class="space-y-2 text-sm">
               <div>
                 <span class="font-medium">Palkkio:</span>
-                <span class="text-gray-600"><strong style="font-size: 1.15em; color: #059669;">{% if job.driver_reward %}{{ job.driver_reward|round(2) }}{% else %}0.00{% endif %} €</strong></span>
+                <span class="text-gray-600"><strong style="font-size: 1.15em; color: #059669;">{% if job.driver_reward
+                    %}{{ job.driver_reward|round(2) }}{% else %}0.00{% endif %} €</strong></span>
               </div>
               {# Vehicle info hidden until job accepted #}
               {% if job.pickup_date %}
@@ -78,16 +80,17 @@
 
         <div class="mt-6">
           <div class="flex gap-3">
-            <a href="{{ url_for('driver.job_detail', order_id=job.id) }}"
-               class="btn btn-primary">Katso yksityiskohdat</a>
+            <a href="{{ url_for('driver.job_detail', order_id=job.id) }}" class="btn btn-primary">Katso
+              yksityiskohdat</a>
             <form method="POST" action="{{ url_for('driver.accept_job', order_id=job.id) }}" style="display: inline;">
               <button type="submit" class="btn btn-secondary"
-                      onclick="return confirm('Haluatko varmasti ottaa tämän työn vastaan?')">
+                onclick="return confirm('Haluatko varmasti ottaa tämän työn vastaan?')">
                 Ota työ vastaan
               </button>
             </form>
           </div>
-          <p class="text-xs text-muted mt-2">ℹ️ Ajoneuvon tiedot ja tarkat osoitteet tulevat näkyviin kun kuitattu napilla olevan paikalla</p>
+          <p class="text-xs text-muted mt-2">Ajoneuvon tiedot ja tarkat osoitteet tulevat näkyviin kun kuitattu napilla
+            olevan paikalla</p>
         </div>
       </div>
     </div>
@@ -95,7 +98,7 @@
   </div>
   {% else %}
   <div class="text-center py-12">
-    <div style="font-size: 4rem; margin-bottom: 1rem;">📦</div>
+    <div style="margin-bottom: 1rem;">{{ icons.package(64, '#94a3b8') }}</div>
     <h3 style="margin-bottom: 0.5rem;">Ei saatavilla olevia töitä</h3>
     <p style="color: #6b7280;">Kaikki työt on jo otettu vastaan tai tilauksia ei ole saatavilla</p>
     <div class="mt-6">

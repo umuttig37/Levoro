@@ -1,4 +1,5 @@
 <!-- Client Image Section Component -->
+{% import 'components/icons.html' as icons %}
 {% if images_data and images_data|length > 0 %}
 <div class="client-image-section">
     <div class="client-image-counter">
@@ -8,10 +9,10 @@
         {% for img in images_data %}
         <div class="client-image-item">
             <img src="{{ img.file_path }}" alt="{{ 'Nouto kuva' if image_type == 'pickup' else 'Toimitus kuva' }}"
-                 class="client-image-thumbnail"
-                 onclick="openClientImageModal('{{ image_type }}', '{{ img.id }}')">
+                class="client-image-thumbnail" onclick="openClientImageModal('{{ image_type }}', '{{ img.id }}')">
             <div class="client-image-info">
-                <small class="client-image-date">Kuvattu: {{ img.uploaded_at|helsinki_time if img.uploaded_at else 'N/A' }}</small>
+                <small class="client-image-date">Kuvattu: {{ img.uploaded_at|helsinki_time if img.uploaded_at else 'N/A'
+                    }}</small>
             </div>
         </div>
         {% endfor %}
@@ -19,7 +20,7 @@
 </div>
 {% else %}
 <div class="client-image-placeholder">
-    <div class="placeholder-icon">📷</div>
+    <div class="placeholder-icon">{{ icons.camera(48, '#94a3b8') }}</div>
     <div class="placeholder-text">
         <p class="placeholder-title">Ei kuvaa vielä</p>
         <p class="placeholder-subtitle">{{ 'Nouto odottaa' if image_type == 'pickup' else 'Toimitus odottaa' }}</p>

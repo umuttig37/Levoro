@@ -1,4 +1,5 @@
 {% extends "base/layout.html" %}
+{% import 'components/icons.html' as icons %}
 
 {% block title %}Luo yritystili – Autonkuljetus{% endblock %}
 
@@ -20,34 +21,38 @@
 
       <div class="card-body">
         {% with messages = get_flashed_messages(with_categories=true) %}
-          {% if messages %}
-            {% for category, message in messages %}
-              <div class="alert alert-{% if category == 'error' %}danger{% else %}{{ category }}{% endif %} mb-4">
-                {{ message }}
-              </div>
-            {% endfor %}
-          {% endif %}
+        {% if messages %}
+        {% for category, message in messages %}
+        <div class="alert alert-{% if category == 'error' %}danger{% else %}{{ category }}{% endif %} mb-4">
+          {{ message }}
+        </div>
+        {% endfor %}
+        {% endif %}
         {% endwith %}
 
         <form method="POST">
           <div class="form-group">
             <label class="form-label">Nimi *</label>
-            <input name="name" required class="form-input" placeholder="Etunimi Sukunimi" value="{{ request.form.get('name', '') }}">
+            <input name="name" required class="form-input" placeholder="Etunimi Sukunimi"
+              value="{{ request.form.get('name', '') }}">
           </div>
 
           <div class="form-group">
             <label class="form-label">Sähköposti *</label>
-            <input type="email" name="email" required class="form-input" placeholder="nimi@yritys.fi" value="{{ request.form.get('email', '') }}">
+            <input type="email" name="email" required class="form-input" placeholder="nimi@yritys.fi"
+              value="{{ request.form.get('email', '') }}">
           </div>
 
           <div class="form-group">
             <label class="form-label">Puhelinnumero *</label>
-            <input type="tel" name="phone" required class="form-input" maxlength="20" placeholder="+358 40 123 4567" value="{{ request.form.get('phone', '') }}">
+            <input type="tel" name="phone" required class="form-input" maxlength="20" placeholder="+358 40 123 4567"
+              value="{{ request.form.get('phone', '') }}">
           </div>
 
           <div class="form-group">
             <label class="form-label">Salasana *</label>
-            <input type="password" name="password" minlength="6" required class="form-input" placeholder="Vähintään 6 merkkiä">
+            <input type="password" name="password" minlength="6" required class="form-input"
+              placeholder="Vähintään 6 merkkiä">
           </div>
 
           <div class="calculator-actions">
@@ -71,12 +76,13 @@
         <div class="card-body">
           <div class="space-y-4">
             <div>
-              <h4>📋 Tilin hyväksyntä</h4>
-              <p>Ylläpitäjämme tarkistaa tilisi tiedot ja aktivoi sen mahdollisimman pian. Saat sähköpostiviestin kun tili on aktivoitu.</p>
+              <h4>{{ icons.clipboard(20, 'currentColor', 'icon-inline') }} Tilin hyväksyntä</h4>
+              <p>Ylläpitäjämme tarkistaa tilisi tiedot ja aktivoi sen mahdollisimman pian. Saat sähköpostiviestin kun
+                tili on aktivoitu.</p>
             </div>
 
             <div>
-              <h4>🚗 Kuljetusten tilaaminen</h4>
+              <h4>{{ icons.car(20, 'currentColor', 'icon-inline') }} Kuljetusten tilaaminen</h4>
               <p>Hyväksytyn tilin jälkeen voit:</p>
               <ul class="list-disc list-inside space-y-1 ml-4">
                 <li>Laskea kuljetushinnat reaaliajassa</li>

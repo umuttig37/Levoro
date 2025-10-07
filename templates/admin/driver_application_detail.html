@@ -1,229 +1,232 @@
 {% extends "base/layout.html" %}
+{% import 'components/icons.html' as icons %}
+
+{% block title %}Hakemus #{{ application.id }} - Admin{% endblock %}extends "base/layout.html" %}
 
 {% block title %}Hakemus #{{ application.id }} – Admin{% endblock %}
 
 {% block content %}
 <div class="admin-container">
-  <div class="admin-header">
-    <h2>Kuljettajahakemus #{{ application.id }}</h2>
-    <div class="admin-actions">
-      <a class="btn btn-ghost" href="{{ url_for('admin.driver_applications') }}">← Takaisin hakemuksiin</a>
-      <a class="btn btn-secondary" href="{{ url_for('auth.logout') }}">Kirjaudu ulos</a>
-    </div>
+  {{ icons.x(18, 'currentColor', 'icon-inline') }} Hylää hakemusdiv class="admin-header">
+  <h2>Kuljettajahakemus #{{ application.id }}</h2>
+  <div class="admin-actions">
+    <a class="btn btn-ghost" href="{{ url_for('admin.driver_applications') }}">← Takaisin hakemuksiin</a>
+    <a class="btn btn-secondary" href="{{ url_for('auth.logout') }}">Kirjaudu ulos</a>
   </div>
+</div>
 
-  {% with messages = get_flashed_messages(with_categories=true) %}
-  {% if messages %}
-  {% for category, message in messages %}
-  <div class="alert alert-{% if category == 'error' %}danger{% else %}{{ category }}{% endif %} mb-4">
-    {{ message }}
+{% with messages = get_flashed_messages(with_categories=true) %}
+{% if messages %}
+{% for category, message in messages %}
+<div class="alert alert-{% if category == 'error' %}danger{% else %}{{ category }}{% endif %} mb-4">
+  {{ message }}
+</div>
+{% endfor %}
+{% endif %}
+{% endwith %}
+
+<!-- Application Status -->
+<div class="card mb-6">
+  <div class="card-header">
+    <h3 class="card-title">Hakemuksen tila</h3>
   </div>
-  {% endfor %}
-  {% endif %}
-  {% endwith %}
-
-  <!-- Application Status -->
-  <div class="card mb-6">
-    <div class="card-header">
-      <h3 class="card-title">Hakemuksen tila</h3>
-    </div>
-    <div class="card-body">
-      <div class="flex items-center justify-between">
-        {% if application.status == 'pending' %}
-        {% set status_class = 'status-new' %}
-        {% set status_text = '⏳ Odottaa käsittelyä' %}
-        {% elif application.status == 'approved' %}
-        {% set status_class = 'status-confirmed' %}
-        {% set status_text = '✅ Hyväksytty' %}
-        {% elif application.status == 'denied' %}
-        {% set status_class = 'status-cancelled' %}
-        {% set status_text = '❌ Hylätty' %}
-        {% else %}
-        {% set status_class = 'status-new' %}
-        {% set status_text = 'Tuntematon' %}
-        {% endif %}
-
-        <span class="status {{ status_class }}">{{ status_text }}</span>
-
-        {% if application.processed_at %}
-        <span class="text-sm text-muted">
-          Käsitelty: {{ application.processed_at|helsinki_time if application.processed_at else '-' }}
-        </span>
-        {% endif %}
-      </div>
-    </div>
-  </div>
-
-  <!-- Application Details -->
-  <div class="card mb-6">
-    <div class="card-header">
-      <h3 class="card-title">Hakijan tiedot</h3>
-    </div>
-    <div class="card-body">
-      <div class="space-y-4">
-        <div class="grid cols-2 gap-4">
-          <div>
-            <label class="form-label">Etunimi</label>
-            <p class="text-primary">{{ application.first_name or '-' }}</p>
-          </div>
-          <div>
-            <label class="form-label">Sukunimi</label>
-            <p class="text-primary">{{ application.last_name or '-' }}</p>
-          </div>
-        </div>
-
-        <div>
-          <label class="form-label">Koko nimi</label>
-          <p class="text-primary font-semibold">{{ application.name }}</p>
-        </div>
-
-        <div class="grid cols-2 gap-4">
-          <div>
-            <label class="form-label">Sähköposti</label>
-            <p class="text-primary"><a href="mailto:{{ application.email }}">{{ application.email }}</a></p>
-          </div>
-          <div>
-            <label class="form-label">Puhelinnumero</label>
-            <p class="text-primary"><a href="tel:{{ application.phone }}">{{ application.phone }}</a></p>
-          </div>
-        </div>
-
-        <div>
-          <label class="form-label">Hakemus lähetetty</label>
-          <p class="text-primary">{{ application.created_at|helsinki_time if application.created_at else '-' }}</p>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Driver's License Images -->
-  <div class="card mb-6">
-    <div class="card-header">
-      <h3 class="card-title">Ajokortti</h3>
-    </div>
-    <div class="card-body">
-      {% if application.license_images and (application.license_images.front or application.license_images.back) %}
-      <div class="grid cols-2 gap-4">
-        <!-- Front Image -->
-        <div>
-          <label class="form-label">Ajokortin etupuoli</label>
-          {% if application.license_images.front %}
-          <a href="{{ url_for('admin.view_license_image', application_id=application.id, image_type='front') }}"
-            target="_blank" class="btn btn-primary w-full">
-            Näytä etuosa
-          </a>
-          <p class="text-sm text-muted mt-2">Klikkaa nähdäksesi kuva uudessa välilehdessä</p>
-          {% else %}
-          <p class="text-muted">Ei kuvaa</p>
-          {% endif %}
-        </div>
-
-        <!-- Back Image -->
-        <div>
-          <label class="form-label">Ajokortin takapuoli</label>
-          {% if application.license_images.back %}
-          <a href="{{ url_for('admin.view_license_image', application_id=application.id, image_type='back') }}"
-            target="_blank" class="btn btn-primary w-full">
-            🔍 Näytä takaosa
-          </a>
-          <p class="text-sm text-muted mt-2">Klikkaa nähdäksesi kuva uudessa välilehdessä</p>
-          {% else %}
-          <p class="text-muted">Ei kuvaa</p>
-          {% endif %}
-        </div>
-      </div>
+  <div class="card-body">
+    <div class="flex items-center justify-between">
+      {% if application.status == 'pending' %}
+      {% set status_class = 'status-new' %}
+      {% set status_text = '- Odottaa käsittelyä' %}
+      {% elif application.status == 'approved' %}
+      {% set status_class = 'status-confirmed' %}
+      {% set status_text = '✓ Hyväksytty' %}
+      {% elif application.status == 'denied' %}
+      {% set status_class = 'status-cancelled' %}
+      {% set status_text = 'X Hylätty' %}
       {% else %}
-      <div class="p-4 bg-gray-50 rounded-lg border border-gray-200">
-        <p class="text-muted text-center">Ei ajokorttikuvia saatavilla</p>
-      </div>
+      {% set status_class = 'status-new' %}
+      {% set status_text = 'Tuntematon' %}
+      {% endif %}
+
+      <span class="status {{ status_class }}">{{ status_text }}</span>
+
+      {% if application.processed_at %}
+      <span class="text-sm text-muted">
+        Käsitelty: {{ application.processed_at|helsinki_time if application.processed_at else '-' }}
+      </span>
       {% endif %}
     </div>
   </div>
+</div>
 
-  <!-- Actions -->
-  {% if application.status == 'pending' %}
-  <div class="card">
-    <div class="card-header">
-      <h3 class="card-title">Toiminnot</h3>
-    </div>
-    <div class="card-body">
-      <div class="flex gap-4">
-        <form method="POST" action="{{ url_for('admin.approve_driver_application') }}" style="flex: 1;">
-          <input type="hidden" name="application_id" value="{{ application.id }}">
-          <button type="submit" class="btn btn-success w-full"
-            onclick="return confirm('Hyväksy hakemus ja luo kuljettajatili?\n\nHakijalle lähetetään vahvistusviesti sähköpostiin.')">
-            ✅ Hyväksy hakemus
-          </button>
-        </form>
-
-        <form method="POST" action="{{ url_for('admin.deny_driver_application') }}" style="flex: 1;">
-          <input type="hidden" name="application_id" value="{{ application.id }}">
-          <button type="submit" class="btn btn-error w-full"
-            onclick="return confirm('Hylkää hakemus?\n\nHakijalle lähetetään hylkäysviesti sähköpostiin.')">
-            ❌ Hylkää hakemus
-          </button>
-        </form>
+<!-- Application Details -->
+<div class="card mb-6">
+  <div class="card-header">
+    <h3 class="card-title">Hakijan tiedot</h3>
+  </div>
+  <div class="card-body">
+    <div class="space-y-4">
+      <div class="grid cols-2 gap-4">
+        <div>
+          <label class="form-label">Etunimi</label>
+          <p class="text-primary">{{ application.first_name or '-' }}</p>
+        </div>
+        <div>
+          <label class="form-label">Sukunimi</label>
+          <p class="text-primary">{{ application.last_name or '-' }}</p>
+        </div>
       </div>
 
-      <div class="mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
-        <p class="text-sm text-muted">
-          <strong>Huomio:</strong> Hyväksyminen luo automaattisesti kuljettajatilin ja lähettää kirjautumistiedot
-          hakijalle sähköpostitse.
-        </p>
+      <div>
+        <label class="form-label">Koko nimi</label>
+        <p class="text-primary font-semibold">{{ application.name }}</p>
       </div>
-    </div>
-  </div>
-  {% elif application.status == 'approved' %}
-  <div class="card">
-    <div class="card-body text-center">
-      <div class="text-4xl mb-3">✅</div>
-      <h3 class="font-semibold text-lg mb-2">Hakemus hyväksytty</h3>
-      <p class="text-muted">Kuljettajatili on luotu ja hakijalle on lähetetty vahvistusviesti.</p>
-    </div>
-  </div>
-  {% elif application.status == 'denied' %}
-  <div class="card">
-    <div class="card-body text-center">
-      <div class="text-4xl mb-3">❌</div>
-      <h3 class="font-semibold text-lg mb-2">Hakemus hylätty</h3>
-      <p class="text-muted">Hakijalle on lähetetty hylkäysviesti.</p>
-    </div>
-  </div>
-  {% endif %}
 
-  <!-- Delete Section (Available for all statuses) -->
-  <div class="card mt-6" style="border-color: #dc2626;">
-    <div class="card-header" style="background: #fef2f2;">
-      <h3 class="card-title" style="color: #dc2626;">⚠️ Vaarallinen alue</h3>
-    </div>
-    <div class="card-body">
-      <form method="POST" action="{{ url_for('admin.delete_driver_application', application_id=application.id) }}">
-        <button type="submit" class="btn w-full" style="background: #dc2626; color: white;"
-          onclick="return confirmDelete()">
-          🗑️ Poista hakemus ja käyttäjätili
-        </button>
-      </form>
-      <div class="mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
-        <p class="text-sm text-muted">
-          <strong>Varoitus:</strong> Tämä poistaa pysyvästi sekä hakemuksen että liittyvän käyttäjätilin.
-          Tätä toimintoa ei voi peruuttaa.
-        </p>
+      <div class="grid cols-2 gap-4">
+        <div>
+          <label class="form-label">Sähköposti</label>
+          <p class="text-primary"><a href="mailto:{{ application.email }}">{{ application.email }}</a></p>
+        </div>
+        <div>
+          <label class="form-label">Puhelinnumero</label>
+          <p class="text-primary"><a href="tel:{{ application.phone }}">{{ application.phone }}</a></p>
+        </div>
+      </div>
+
+      <div>
+        <label class="form-label">Hakemus lähetetty</label>
+        <p class="text-primary">{{ application.created_at|helsinki_time if application.created_at else '-' }}</p>
       </div>
     </div>
   </div>
 </div>
 
+<!-- Driver's License Images -->
+<div class="card mb-6">
+  <div class="card-header">
+    <h3 class="card-title">Ajokortti</h3>
+  </div>
+  <div class="card-body">
+    {% if application.license_images and (application.license_images.front or application.license_images.back) %}
+    <div class="grid cols-2 gap-4">
+      <!-- Front Image -->
+      <div>
+        <label class="form-label">Ajokortin etupuoli</label>
+        {% if application.license_images.front %}
+        <a href="{{ url_for('admin.view_license_image', application_id=application.id, image_type='front') }}"
+          target="_blank" class="btn btn-primary w-full">
+          Näytä etuosa
+        </a>
+        <p class="text-sm text-muted mt-2">Klikkaa nähdäksesi kuva uudessa välilehdessä</p>
+        {% else %}
+        <p class="text-muted">Ei kuvaa</p>
+        {% endif %}
+      </div>
+
+      <!-- Back Image -->
+      <div>
+        <label class="form-label">Ajokortin takapuoli</label>
+        {% if application.license_images.back %}
+        <a href="{{ url_for('admin.view_license_image', application_id=application.id, image_type='back') }}"
+          target="_blank" class="btn btn-primary w-full">
+          {{ icons.search(18, 'currentColor', 'icon-inline') }} Näytä takaosa
+        </a>
+        <p class="text-sm text-muted mt-2">Klikkaa nähdäksesi kuva uudessa välilehdessä</p>
+        {% else %}
+        <p class="text-muted">Ei kuvaa</p>
+        {% endif %}
+      </div>
+    </div>
+    {% else %}
+    <div class="p-4 bg-gray-50 rounded-lg border border-gray-200">
+      <p class="text-muted text-center">Ei ajokorttikuvia saatavilla</p>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Actions -->
+{% if application.status == 'pending' %}
+<div class="card">
+  <div class="card-header">
+    <h3 class="card-title">Toiminnot</h3>
+  </div>
+  <div class="card-body">
+    <div class="flex gap-4">
+      <form method="POST" action="{{ url_for('admin.approve_driver_application') }}" style="flex: 1;">
+        <input type="hidden" name="application_id" value="{{ application.id }}">
+        <button type="submit" class="btn btn-success w-full"
+          onclick="return confirm('Hyväksy hakemus ja luo kuljettajatili?\n\nHakijalle lähetetään vahvistusviesti sähköpostiin.')">
+          {{ icons.check_circle(18, 'currentColor', 'icon-inline') }} Hyväksy hakemus
+        </button>
+      </form>
+
+      <form method="POST" action="{{ url_for('admin.deny_driver_application') }}" style="flex: 1;">
+        <input type="hidden" name="application_id" value="{{ application.id }}">
+        <button type="submit" class="btn btn-error w-full"
+          onclick="return confirm('Hylkää hakemus?\n\nHakijalle lähetetään hylkäysviesti sähköpostiin.')">
+          {{ icons.x(18, 'currentColor', 'icon-inline') }} Hylkää hakemus
+        </button>
+      </form>
+    </div>
+
+    <div class="mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+      <p class="text-sm text-muted">
+        <strong>Huomio:</strong> Hyväksyminen luo automaattisesti kuljettajatilin ja lähettää kirjautumistiedot
+        hakijalle sähköpostitse.
+      </p>
+    </div>
+  </div>
+</div>
+{% elif application.status == 'approved' %}
+<div class="card">
+  <div class="card-body text-center">
+    <div class="mb-3">{{ icons.check_circle(64, '#16a34a') }}</div>
+    <h3 class="font-semibold text-lg mb-2">Hakemus hyväksytty</h3>
+    <p class="text-muted">Kuljettajatili on luotu ja hakijalle on lähetetty vahvistusviesti.</p>
+  </div>
+</div>
+{% elif application.status == 'denied' %}
+<div class="card">
+  <div class="card-body text-center">
+    <div class="mb-3">{{ icons.x(64, '#dc2626') }}</div>
+    <h3 class="font-semibold text-lg mb-2">Hakemus hylätty</h3>
+    <p class="text-muted">Hakijalle on lähetetty hylkäysviesti.</p>
+  </div>
+</div>
+{% endif %}
+
+<!-- Delete Section (Available for all statuses) -->
+<div class="card mt-6" style="border-color: #dc2626;">
+  <div class="card-header" style="background: #fef2f2;">
+    <h3 class="card-title" style="color: #dc2626;">{{ icons.alert(20, '#dc2626', 'icon-inline') }} Vaarallinen alue</h3>
+  </div>
+  <div class="card-body">
+    <form method="POST" action="{{ url_for('admin.delete_driver_application', application_id=application.id) }}">
+      <button type="submit" class="btn w-full" style="background: #dc2626; color: white;"
+        onclick="return confirmDelete()">
+        {{ icons.x(18, 'currentColor', 'icon-inline') }} Poista hakemus ja käyttäjätili
+      </button>
+    </form>
+    <div class="mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+      <p class="text-sm text-muted">
+        <strong>Varoitus:</strong> Tämä poistaa pysyvästi sekä hakemuksen että liittyvän käyttäjätilin.
+        Tätä toimintoa ei voi peruuttaa.
+      </p>
+    </div>
+  </div>
+</div>
+</div>
+
 <script>
-function confirmDelete() {
-  return confirm(
-    "⚠️ VAROITUS: Tämä toiminto poistaa PYSYVÄSTI:\n\n" +
-    "• Kuljettajahakemuksen #{{ application.id }} ({{ application.name }})\n" +
-    "• Käyttäjätilin (jos olemassa): {{ application.email }}\n" +
-    "• Kaikki liittyvät tiedot\n\n" +
-    "Tätä toimintoa EI VOI PERUUTTAA!\n\n" +
-    "Haluatko varmasti jatkaa?"
-  );
-}
+  function confirmDelete() {
+    return confirm(
+      "VAROITUS: Tämä toiminto poistaa PYSYVÄSTI:\n\n" +
+      "• Kuljettajahakemuksen #{{ application.id }} ({{ application.name }})\n" +
+      "• Käyttäjätilin (jos olemassa): {{ application.email }}\n" +
+      "• Kaikki liittyvät tiedot\n\n" +
+      "Tätä toimintoa EI VOI PERUUTTAA!\n\n" +
+      "Haluatko varmasti jatkaa?"
+    );
+  }
 </script>
 
 {% endblock %}
