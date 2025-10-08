@@ -207,12 +207,13 @@ class AuthService:
         # Send password reset email
         try:
             from services.email_service import email_service
-            from flask import url_for
+            import os
             
             user = self.user_model.find_by_email(email)
             if user:
-                # Generate reset URL
-                reset_url = url_for('auth.reset_password', token=token, _external=True)
+                # Generate reset URL using BASE_URL to ensure correct domain in production
+                base_url = os.getenv("BASE_URL", "http://localhost:8000")
+                reset_url = f"{base_url}/reset-password/{token}"
                 email_service.send_password_reset_email(user["email"], user["name"], reset_url, token)
         except Exception as e:
             print(f"Failed to send password reset email: {e}")
