@@ -224,23 +224,25 @@ def upload_image(order_id):
         flash('Kuvaa ei valittu', 'error')
         return redirect(url_for('driver.job_detail', order_id=order_id))
 
+    # Check current image count BEFORE adding to determine if this will be the first image
+    # This prevents race conditions where multiple simultaneous uploads all think they're first
+    from models.order import order_model
+    order_before = order_model.find_by_id(order_id, projection=order_model.DRIVER_PROJECTION)
+    current_images_before = order_before.get('images', {}).get(image_type, [])
+    
+    # Handle migration from old single image format
+    if not isinstance(current_images_before, list):
+        current_images_before = [current_images_before] if current_images_before else []
+    
+    # Only trigger status update if this will be the FIRST image (count is 0)
+    should_trigger_status_update = len(current_images_before) == 0
+
     # Save and process image using ImageService
     image_info, error = image_service.save_order_image(file, order_id, image_type, driver.get('email', 'driver'))
 
     if error:
         flash(error, 'error')
         return redirect(url_for('driver.job_detail', order_id=order_id))
-
-    # Check current status BEFORE adding image to determine if this is the first image
-    from models.order import order_model
-    order_before = order_model.find_by_id(order_id, projection=order_model.DRIVER_PROJECTION)
-    status_before = order_before.get('status')
-    should_trigger_status_update = False
-    
-    if image_type == 'pickup' and status_before == order_model.STATUS_DRIVER_ARRIVED:
-        should_trigger_status_update = True
-    elif image_type == 'delivery' and status_before == order_model.STATUS_DELIVERY_ARRIVED:
-        should_trigger_status_update = True
 
     # Add image to order using ImageService
     success, add_error = image_service.add_image_to_order(order_id, image_type, image_info)
@@ -294,16 +296,18 @@ def upload_image_ajax(order_id):
     if not can_add:
         return jsonify({'success': False, 'error': limit_error}), 400
 
-    # Check current status BEFORE adding image to determine if this is the first image
+    # Check current image count BEFORE adding to determine if this will be the first image
+    # This prevents race conditions where multiple simultaneous uploads all think they're first
     from models.order import order_model
     order_before = order_model.find_by_id(order_id, projection=order_model.DRIVER_PROJECTION)
-    status_before = order_before.get('status')
-    should_trigger_status_update = False
+    current_images_before = order_before.get('images', {}).get(image_type, [])
     
-    if image_type == 'pickup' and status_before == order_model.STATUS_DRIVER_ARRIVED:
-        should_trigger_status_update = True
-    elif image_type == 'delivery' and status_before == order_model.STATUS_DELIVERY_ARRIVED:
-        should_trigger_status_update = True
+    # Handle migration from old single image format
+    if not isinstance(current_images_before, list):
+        current_images_before = [current_images_before] if current_images_before else []
+    
+    # Only trigger status update if this will be the FIRST image (count is 0)
+    should_trigger_status_update = len(current_images_before) == 0
 
     # Save and process image using ImageService
     image_info, error = image_service.save_order_image(file, order_id, image_type, driver.get('email', 'driver'))

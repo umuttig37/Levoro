@@ -23,86 +23,89 @@
             <div class="order-info-section">
                 <div class="order-info-cards">
                     <!-- Orderer Card -->
-                    <div class="info-card info-card-orderer">
-                        <h3 class="info-card-title">Tilaaja</h3>
-                        <div class="info-card-body">
-                            <div class="info-row">
-                                <span class="info-label">Nimi</span>
-                                <span class="info-value">{{ order.orderer_name or order.user_name or 'Tuntematon'
+                    <div class="admin-info-card admin-info-card-orderer">
+                        <h3 class="admin-info-card-title">Tilaaja</h3>
+                        <div class="admin-info-card-body">
+                            <div class="admin-info-row">
+                                <span class="admin-info-label">Nimi</span>
+                                <span class="admin-info-value">{{ order.orderer_name or order.user_name or 'Tuntematon'
                                     }}</span>
                             </div>
-                            <div class="info-row">
-                                <span class="info-label">Sähköposti</span>
-                                <span class="info-value">{{ order.orderer_email or order.user_email or 'Tuntematon'
+                            <div class="admin-info-row">
+                                <span class="admin-info-label">Sähköposti</span>
+                                <span class="admin-info-value">{{ order.orderer_email or order.user_email or
+                                    'Tuntematon'
                                     }}</span>
                             </div>
-                            <div class="info-row">
-                                <span class="info-label">Puhelin</span>
-                                <span class="info-value">{{ order.orderer_phone or '-' }}</span>
+                            <div class="admin-info-row">
+                                <span class="admin-info-label">Puhelin</span>
+                                <span class="admin-info-value">{{ order.orderer_phone or '-' }}</span>
                             </div>
                         </div>
                     </div>
 
                     <!-- Customer/Recipient Card -->
-                    <div class="info-card info-card-customer">
-                        <h3 class="info-card-title">Vastaanottaja</h3>
-                        <div class="info-card-body">
-                            <div class="info-row">
-                                <span class="info-label">Nimi</span>
-                                <span class="info-value">{{ order.customer_name or 'Tuntematon' }}</span>
+                    <div class="admin-info-card admin-info-card-customer">
+                        <h3 class="admin-info-card-title">Vastaanottaja</h3>
+                        <div class="admin-info-card-body">
+                            <div class="admin-info-row">
+                                <span class="admin-info-label">Nimi</span>
+                                <span class="admin-info-value">{{ order.customer_name or 'Tuntematon' }}</span>
                             </div>
-                            <div class="info-row">
-                                <span class="info-label">Puhelin</span>
-                                <span class="info-value">{{ order.customer_phone or order.phone or '-' }}</span>
+                            <div class="admin-info-row">
+                                <span class="admin-info-label">Puhelin</span>
+                                <span class="admin-info-value">{{ order.customer_phone or order.phone or '-' }}</span>
                             </div>
                         </div>
                     </div>
 
                     <!-- Route & Vehicle Card -->
-                    <div class="info-card info-card-route">
-                        <h3 class="info-card-title">Reitti ja Ajoneuvo</h3>
-                        <div class="info-card-body">
-                            <div class="info-row">
-                                <span class="info-label">Reitti</span>
-                                <span class="info-value">{{ order.pickup_address }} → {{ order.dropoff_address }}</span>
+                    <div class="admin-info-card admin-info-card-route">
+                        <h3 class="admin-info-card-title">Reitti ja Ajoneuvo</h3>
+                        <div class="admin-info-card-body">
+                            <div class="admin-info-row">
+                                <span class="admin-info-label">Reitti</span>
+                                <span class="admin-info-value">{{ order.pickup_address }} → {{ order.dropoff_address
+                                    }}</span>
                             </div>
-                            <div class="info-row">
-                                <span class="info-label">Matka</span>
-                                <span class="info-value">{{ "%.1f"|format(order.distance_km or 0) }} km</span>
+                            <div class="admin-info-row">
+                                <span class="admin-info-label">Matka</span>
+                                <span class="admin-info-value">{{ "%.1f"|format(order.distance_km or 0) }} km</span>
                             </div>
-                            <div class="info-row">
-                                <span class="info-label">Noutopäivä</span>
-                                <span class="info-value">{{ pickup_date_fi }}</span>
+                            <div class="admin-info-row">
+                                <span class="admin-info-label">Noutopäivä</span>
+                                <span class="admin-info-value">{{ pickup_date_fi }}</span>
                             </div>
-                            <div class="info-row">
-                                <span class="info-label">Rekisterinumero</span>
-                                <span class="info-value">{{ order.reg_number or 'Ei tiedossa' }}</span>
+                            <div class="admin-info-row">
+                                <span class="admin-info-label">Rekisterinumero</span>
+                                <span class="admin-info-value">{{ order.reg_number or 'Ei tiedossa' }}</span>
                             </div>
-                            <div class="info-row">
-                                <span class="info-label">Talvirenkaat</span>
-                                <span class="info-value">{{ 'Kyllä' if order.winter_tires else 'Ei' }}</span>
+                            <div class="admin-info-row">
+                                <span class="admin-info-label">Talvirenkaat</span>
+                                <span class="admin-info-value">{{ 'Kyllä' if order.winter_tires else 'Ei' }}</span>
                             </div>
                             {% if order.car_brand or order.car_model %}
-                            <div class="info-row">
-                                <span class="info-label">Auton merkki/malli</span>
-                                <span class="info-value">{{ order.car_brand or '' }} {{ order.car_model or '' }}</span>
+                            <div class="admin-info-row">
+                                <span class="admin-info-label">Auton merkki/malli</span>
+                                <span class="admin-info-value">{{ order.car_brand or '' }} {{ order.car_model or ''
+                                    }}</span>
                             </div>
                             {% endif %}
                         </div>
                     </div>
 
                     <!-- Pricing Card -->
-                    <div class="info-card info-card-pricing">
-                        <h3 class="info-card-title">Hinnoittelu</h3>
-                        <div class="info-card-body">
-                            <div class="info-row">
-                                <span class="info-label">Asiakkaan hinta</span>
-                                <span class="info-value info-value-price-large">{{ (order.price_gross or
+                    <div class="admin-info-card admin-info-card-pricing">
+                        <h3 class="admin-info-card-title">Hinnoittelu</h3>
+                        <div class="admin-info-card-body">
+                            <div class="admin-info-row">
+                                <span class="admin-info-label">Asiakkaan hinta</span>
+                                <span class="admin-info-value admin-info-value-price-large">{{ (order.price_gross or
                                     0)|format_price_with_vat|safe }}</span>
                             </div>
-                            <div class="info-row info-row-highlight">
-                                <span class="info-label">Kuskin palkkio</span>
-                                <span class="info-value-highlight">
+                            <div class="admin-info-row admin-info-row-highlight">
+                                <span class="admin-info-label">Kuskin palkkio</span>
+                                <span class="admin-info-value-highlight">
                                     {% if order.driver_reward %}{{ order.driver_reward|round(2) }} €
                                     {% else %}<span class="text-danger">Ei asetettu</span>{% endif %}
                                 </span>
@@ -178,6 +181,12 @@
                             </div>
                             <form method="POST" action="{{ url_for('admin.confirm_order', order_id=order.id) }}"
                                 class="confirm-order-form">
+                                {% if order.driver_reward and order.driver_reward > 0 %}
+                                <div class="confirm-reward-info">
+                                    <p class="confirm-reward-label">Kuskin palkkio:</p>
+                                    <p class="confirm-reward-value">{{ order.driver_reward|round(2) }} €</p>
+                                </div>
+                                {% endif %}
                                 <button type="submit" class="btn btn-success btn-large" {% if not order.driver_reward or
                                     order.driver_reward <=0 %}disabled{% endif %}>
                                     {{ icons.check_circle(16, 'currentColor', 'icon-inline') }} Vahvista ja julkaise
@@ -200,7 +209,8 @@
                             {% elif order.driver_id %}
                             <div class="alert-box alert-info">
                                 <h4 class="alert-title">{{ icons.user(16, '#3730a3', 'icon-inline') }} Työn alla</h4>
-                                <p>Kuljettaja suorittaa kuljetusta.</p>
+                                <p>Kuljettaja suorittaa kuljetusta{% if order.driver_reward %} (palkkio: {{
+                                    order.driver_reward|round(2) }} €){% endif %}.</p>
                             </div>
                             {% endif %}
 
@@ -250,10 +260,19 @@
             </div>
             <!-- End order-main-grid -->
 
+            <div class="images-section">
+                {% set image_type = 'pickup' %}
+                {% set images_data = order.images.pickup if order.images else [] %}
+                {% include 'components/admin_image_section.html' with context %}
+
+                {% set image_type = 'delivery' %}
+                {% set images_data = order.images.delivery if order.images else [] %}
+                {% include 'components/admin_image_section.html' with context %}
+            </div>
             <!-- Driver Information Section (Full Width) -->
             {% if order.driver_id %}
             <div class="admin-driver-section">
-                <div class="section-header section-header-driver">
+                <div class="section-header section-header-config">
                     {{ icons.user(18, 'currentColor', 'icon-inline') }}
                     <span>Kuljettaja</span>
                 </div>
@@ -272,21 +291,20 @@
                                 </a>
                             </div>
                             {% endif %}
+                            {% if order.driver_reward %}
+                            <div class="driver-info-item">
+                                <span class="driver-info-label">Palkkio</span>
+                                <span class="driver-info-value driver-info-reward">{{ order.driver_reward|round(2) }}
+                                    €</span>
+                            </div>
+                            {% endif %}
                         </div>
                     </div>
                 </div>
             </div>
             {% endif %}
 
-            <div class="images-section">
-                {% set image_type = 'pickup' %}
-                {% set images_data = order.images.pickup if order.images else [] %}
-                {% include 'components/admin_image_section.html' with context %}
 
-                {% set image_type = 'delivery' %}
-                {% set images_data = order.images.delivery if order.images else [] %}
-                {% include 'components/admin_image_section.html' with context %}
-            </div>
         </div>
     </div>
 
