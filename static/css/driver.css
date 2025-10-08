@@ -264,6 +264,13 @@
 .driver-empty-icon {
     font-size: 4rem;
     margin-bottom: var(--space-4);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.driver-empty-icon svg {
+    display: block;
 }
 
 .driver-empty-title {

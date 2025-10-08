@@ -51,14 +51,19 @@ class EmailService:
         Returns:
             bool: True if email was sent successfully, False otherwise
         """
+        # Re-check environment on each send for safety (prevents accidental dev mode in production)
+        flask_env = os.getenv('FLASK_ENV', 'production').lower()
+        is_dev_mode = flask_env == 'development'
+        
         # Log email attempt details
         print(f"[EMAIL] Attempting to send email")
+        print(f"   Environment: {flask_env.upper()}")
         print(f"   From: {sender or current_app.config.get('MAIL_DEFAULT_SENDER', 'N/A')}")
         print(f"   To: {recipients}")
         print(f"   Subject: {subject}")
         
         # In development mode, save email to file instead of sending
-        if self.dev_mode:
+        if is_dev_mode:
             print(f"   [DEV MODE] Saving email to file instead of sending...")
             return self._save_email_to_file(subject, recipients, html_body, sender)
         
