@@ -386,6 +386,18 @@
     margin-top: 0.75rem;
 }
 
+/* Quick action forms (approve pickup/delivery images) */
+.quick-action-form {
+    margin-top: 0.875rem;
+    padding: 0;
+}
+
+.quick-action-form .btn-large {
+    width: 100%;
+    font-weight: 600;
+    text-align: center;
+}
+
 /* Confirm reward info display */
 .confirm-reward-info {
     background: #f0fdf4;

@@ -214,6 +214,39 @@
                             </div>
                             {% endif %}
 
+                            <!-- Quick Action: Approve Pickup Images -->
+                            {% if order.status == 'PICKUP_IMAGES_ADDED' %}
+                            <div class="alert-box alert-success">
+                                <h4 class="alert-title">{{ icons.camera(16, '#166534', 'icon-inline') }} Noutokuvat
+                                    lisätty</h4>
+                                <p>Tarkista kuvat ja hyväksy kuljetus alkamaan.</p>
+                            </div>
+                            <form method="POST" action="{{ url_for('admin.approve_pickup_images', order_id=order.id) }}"
+                                class="quick-action-form">
+                                <button type="submit" class="btn btn-success btn-large">
+                                    {{ icons.check_circle(18, 'currentColor', 'icon-inline') }} Hyväksy noutokuvat ja
+                                    aloita kuljetus
+                                </button>
+                            </form>
+                            {% endif %}
+
+                            <!-- Quick Action: Approve Delivery Images -->
+                            {% if order.status == 'DELIVERY_IMAGES_ADDED' %}
+                            <div class="alert-box alert-success">
+                                <h4 class="alert-title">{{ icons.camera(16, '#166534', 'icon-inline') }} Toimituskuvat
+                                    lisätty</h4>
+                                <p>Tarkista kuvat ja merkitse toimitus valmiiksi.</p>
+                            </div>
+                            <form method="POST"
+                                action="{{ url_for('admin.approve_delivery_images', order_id=order.id) }}"
+                                class="quick-action-form">
+                                <button type="submit" class="btn btn-success btn-large">
+                                    {{ icons.check_circle(18, 'currentColor', 'icon-inline') }} Hyväksy toimituskuvat ja
+                                    merkitse valmiiksi
+                                </button>
+                            </form>
+                            {% endif %}
+
                             <!-- Status Update Form -->
                             <form method="POST" action="/admin/update" class="status-update-form">
                                 <input type="hidden" name="id" value="{{ order.id }}">

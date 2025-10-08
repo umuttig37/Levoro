@@ -689,6 +689,72 @@ def confirm_order(order_id):
     return redirect(url_for("admin.order_detail", order_id=order_id))
 
 
+@admin_bp.route("/order/<int:order_id>/approve-pickup-images", methods=["POST"])
+@admin_required
+def approve_pickup_images(order_id):
+    """Quick action: Approve pickup images and move to IN_TRANSIT status"""
+    from models.order import order_model
+    
+    # Verify current status
+    order = order_model.find_by_id(order_id)
+    if not order:
+        flash('Tilaus ei löytynyt', 'error')
+        return redirect(url_for('main.admin_dashboard'))
+    
+    if order.get('status') != order_model.STATUS_PICKUP_IMAGES_ADDED:
+        flash('Virhe: Tilaus ei ole oikeassa tilassa noutokuvien hyväksymiseen', 'error')
+        return redirect(url_for('admin.order_detail', order_id=order_id))
+    
+    # Check if pickup images exist
+    pickup_images = order.get('images', {}).get('pickup', [])
+    if not pickup_images or len(pickup_images) == 0:
+        flash('Virhe: Noutokuvia ei löytynyt', 'error')
+        return redirect(url_for('admin.order_detail', order_id=order_id))
+    
+    # Update to IN_TRANSIT status (includes customer email notification)
+    success, error = order_service.update_order_status(order_id, order_model.STATUS_IN_TRANSIT)
+    
+    if success:
+        flash(f'Noutokuvat hyväksytty! Kuljetus aloitettu. Asiakas sai ilmoituksen.', 'success')
+    else:
+        flash(f'Virhe: {error}', 'error')
+    
+    return redirect(url_for('admin.order_detail', order_id=order_id))
+
+
+@admin_bp.route("/order/<int:order_id>/approve-delivery-images", methods=["POST"])
+@admin_required
+def approve_delivery_images(order_id):
+    """Quick action: Approve delivery images and move to DELIVERED status"""
+    from models.order import order_model
+    
+    # Verify current status
+    order = order_model.find_by_id(order_id)
+    if not order:
+        flash('Tilaus ei löytynyt', 'error')
+        return redirect(url_for('main.admin_dashboard'))
+    
+    if order.get('status') != order_model.STATUS_DELIVERY_IMAGES_ADDED:
+        flash('Virhe: Tilaus ei ole oikeassa tilassa toimituskuvien hyväksymiseen', 'error')
+        return redirect(url_for('admin.order_detail', order_id=order_id))
+    
+    # Check if delivery images exist
+    delivery_images = order.get('images', {}).get('delivery', [])
+    if not delivery_images or len(delivery_images) == 0:
+        flash('Virhe: Toimituskuvia ei löytynyt', 'error')
+        return redirect(url_for('admin.order_detail', order_id=order_id))
+    
+    # Update to DELIVERED status (includes customer email notification)
+    success, error = order_service.update_order_status(order_id, order_model.STATUS_DELIVERED)
+    
+    if success:
+        flash(f'Toimituskuvat hyväksytty! Toimitus merkitty valmiiksi. Asiakas sai ilmoituksen.', 'success')
+    else:
+        flash(f'Virhe: {error}', 'error')
+    
+    return redirect(url_for('admin.order_detail', order_id=order_id))
+
+
 @admin_bp.route("/order/<int:order_id>/update-details", methods=["POST"])
 @admin_required
 def update_order_details(order_id):

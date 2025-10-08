@@ -224,19 +224,6 @@ def upload_image(order_id):
         flash('Kuvaa ei valittu', 'error')
         return redirect(url_for('driver.job_detail', order_id=order_id))
 
-    # Check current image count BEFORE adding to determine if this will be the first image
-    # This prevents race conditions where multiple simultaneous uploads all think they're first
-    from models.order import order_model
-    order_before = order_model.find_by_id(order_id, projection=order_model.DRIVER_PROJECTION)
-    current_images_before = order_before.get('images', {}).get(image_type, [])
-    
-    # Handle migration from old single image format
-    if not isinstance(current_images_before, list):
-        current_images_before = [current_images_before] if current_images_before else []
-    
-    # Only trigger status update if this will be the FIRST image (count is 0)
-    should_trigger_status_update = len(current_images_before) == 0
-
     # Save and process image using ImageService
     image_info, error = image_service.save_order_image(file, order_id, image_type, driver.get('email', 'driver'))
 
@@ -244,12 +231,25 @@ def upload_image(order_id):
         flash(error, 'error')
         return redirect(url_for('driver.job_detail', order_id=order_id))
 
-    # Add image to order using ImageService
+    # Add image to order using ImageService (atomic MongoDB $push operation)
     success, add_error = image_service.add_image_to_order(order_id, image_type, image_info)
 
     if not success:
         flash(add_error, 'error')
         return redirect(url_for('driver.job_detail', order_id=order_id))
+
+    # Get updated image count AFTER adding (check if this was the first image)
+    # This prevents race conditions - only the upload that results in count=1 will trigger status update
+    from models.order import order_model
+    order_after = order_model.find_by_id(order_id, projection=order_model.DRIVER_PROJECTION)
+    current_images = order_after.get('images', {}).get(image_type, [])
+    
+    # Handle migration from old single image format
+    if not isinstance(current_images, list):
+        current_images = [current_images] if current_images else []
+    
+    # Only trigger status update if this resulted in exactly 1 image (was the first)
+    should_trigger_status_update = len(current_images) == 1
 
     # Update order status ONLY if this was the first image (status transition)
     if should_trigger_status_update:
@@ -296,39 +296,42 @@ def upload_image_ajax(order_id):
     if not can_add:
         return jsonify({'success': False, 'error': limit_error}), 400
 
-    # Check current image count BEFORE adding to determine if this will be the first image
-    # This prevents race conditions where multiple simultaneous uploads all think they're first
-    from models.order import order_model
-    order_before = order_model.find_by_id(order_id, projection=order_model.DRIVER_PROJECTION)
-    current_images_before = order_before.get('images', {}).get(image_type, [])
-    
-    # Handle migration from old single image format
-    if not isinstance(current_images_before, list):
-        current_images_before = [current_images_before] if current_images_before else []
-    
-    # Only trigger status update if this will be the FIRST image (count is 0)
-    should_trigger_status_update = len(current_images_before) == 0
-
     # Save and process image using ImageService
     image_info, error = image_service.save_order_image(file, order_id, image_type, driver.get('email', 'driver'))
 
     if error:
         return jsonify({'success': False, 'error': error}), 400
 
-    # Add image to order using ImageService
+    # Add image to order using ImageService (atomic MongoDB $push operation)
     success, add_error = image_service.add_image_to_order(order_id, image_type, image_info)
 
     if not success:
         return jsonify({'success': False, 'error': add_error}), 500
 
-    # Get updated image count
+    # Get updated order and check if status update should be triggered
+    # The key is: trigger ONLY if status is still at "arrived" state (transition point)
+    from models.order import order_model
     order_after = order_model.find_by_id(order_id, projection=order_model.DRIVER_PROJECTION)
+    current_status = order_after.get('status')
     current_images = order_after.get('images', {}).get(image_type, [])
+    
+    # Handle migration from old single image format
+    if not isinstance(current_images, list):
+        current_images = [current_images] if current_images else []
+    
+    # Trigger status update based on current status, not image count
+    # This handles all scenarios: normal flow, simultaneous uploads, and manual resets
+    # If status is at "arrived" state, this upload should trigger the transition
+    should_trigger_status_update = False
+    if image_type == 'pickup' and current_status == order_model.STATUS_DRIVER_ARRIVED:
+        should_trigger_status_update = True
+    elif image_type == 'delivery' and current_status == order_model.STATUS_DELIVERY_ARRIVED:
+        should_trigger_status_update = True
 
     status_updated = False
     message = ''
 
-    # Update status ONLY if this was the first image (status transition)
+    # Update status ONLY if order is at the transition point
     if should_trigger_status_update:
         if image_type == 'pickup':
             driver_service.update_pickup_images_status(order_id, driver['id'])
