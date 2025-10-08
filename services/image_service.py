@@ -13,19 +13,8 @@ from werkzeug.utils import secure_filename
 from models.order import order_model
 from services.gcs_service import gcs_service
 
-# Environment detection
-IS_DEVELOPMENT = os.getenv("FLASK_ENV", "production") == "development"
-ENV_PREFIX = "dev/" if IS_DEVELOPMENT else ""
-
 # Configuration
-# In development: static/uploads/dev/orders/
-# In production: static/uploads/orders/
-base_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-upload_path_parts = ['static', 'uploads']
-if IS_DEVELOPMENT:
-    upload_path_parts.append('dev')
-upload_path_parts.append('orders')
-UPLOAD_FOLDER = os.path.join(base_path, *upload_path_parts)
+UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'static', 'uploads', 'orders')
 
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'webp'}
 MAX_FILE_SIZE = 5 * 1024 * 1024  # 5MB
@@ -85,24 +74,20 @@ class ImageService:
             file_path_url = None
             if gcs_service.enabled:
                 # Upload to Google Cloud Storage (organized by order ID)
-                # In development: dev/orders/{order_id}/{filename}
-                # In production: orders/{order_id}/{filename}
-                blob_name = f"{ENV_PREFIX}orders/{order_id}/{final_filename}"
+                blob_name = f"orders/{order_id}/{final_filename}"
                 public_url, gcs_error = gcs_service.upload_file(processed_path, blob_name)
 
                 if gcs_error:
                     # Fallback to local storage on GCS error
                     print(f"GCS upload failed, using local storage: {gcs_error}")
-                    file_path_url = f"/static/uploads/{ENV_PREFIX}orders/{final_filename}"
+                    file_path_url = f"/static/uploads/orders/{final_filename}"
                 else:
                     file_path_url = public_url
                     # Clean up local file after successful GCS upload
                     self._cleanup_file(processed_path)
             else:
                 # Use local storage
-                # In development: /static/uploads/dev/orders/{filename}
-                # In production: /static/uploads/orders/{filename}
-                file_path_url = f"/static/uploads/{ENV_PREFIX}orders/{final_filename}"
+                file_path_url = f"/static/uploads/orders/{final_filename}"
 
             # Create image info
             image_info = {

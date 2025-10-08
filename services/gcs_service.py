@@ -10,6 +10,11 @@ import tempfile
 from typing import Optional, Tuple
 from google.cloud import storage
 from google.oauth2 import service_account
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+# This ensures GCS credentials are available regardless of import order
+load_dotenv()
 
 
 class GCSService:
@@ -26,37 +31,54 @@ class GCSService:
 
         if self.enabled:
             self._initialize_client()
-            env_mode = "development" if self.is_development() else "production"
-            env_prefix = self.get_environment_prefix()
-            print(f"GCS enabled in {env_mode} mode - images will use prefix: '{env_prefix}' (blank if production)")
+            print(f"[GCS] Enabled - images will be stored in: orders/{{order_id}}/{{filename}}")
+            print(f"[GCS] Bucket: {self.bucket_name}")
+            print(f"[GCS] Project: {self.project_id}")
         else:
-            print("GCS not configured - image upload will use local storage")
+            # Provide detailed diagnostics about why GCS is disabled
+            missing = []
+            if not self.bucket_name:
+                missing.append('GCS_BUCKET_NAME')
+            if not self.project_id:
+                missing.append('GCS_PROJECT_ID')
+            if not self.credentials_b64:
+                missing.append('GCS_CREDENTIALS_JSON')
 
-    def is_development(self) -> bool:
-        """Check if running in development environment"""
-        return os.getenv("FLASK_ENV", "production") == "development"
-
-    def get_environment_prefix(self) -> str:
-        """Get environment-based folder prefix (dev/ or empty)"""
-        return "dev/" if self.is_development() else ""
+            print("[GCS] Not configured - image upload will use local storage")
+            if missing:
+                print(f"[GCS] Missing environment variables: {', '.join(missing)}")
 
     def _initialize_client(self):
         """Initialize GCS client with credentials"""
         try:
             # Decode base64 credentials
-            credentials_json = base64.b64decode(self.credentials_b64).decode('utf-8')
-            credentials_dict = json.loads(credentials_json)
+            try:
+                credentials_json = base64.b64decode(self.credentials_b64).decode('utf-8')
+            except Exception as e:
+                raise ValueError(f"Failed to decode base64 credentials: {e}")
+
+            # Parse JSON credentials
+            try:
+                credentials_dict = json.loads(credentials_json)
+            except Exception as e:
+                raise ValueError(f"Failed to parse credentials JSON: {e}")
 
             # Create credentials object
-            credentials = service_account.Credentials.from_service_account_info(
-                credentials_dict
-            )
+            try:
+                credentials = service_account.Credentials.from_service_account_info(
+                    credentials_dict
+                )
+            except Exception as e:
+                raise ValueError(f"Failed to create service account credentials: {e}")
 
             # Initialize storage client
-            self.client = storage.Client(
-                credentials=credentials,
-                project=self.project_id
-            )
+            try:
+                self.client = storage.Client(
+                    credentials=credentials,
+                    project=self.project_id
+                )
+            except Exception as e:
+                raise ValueError(f"Failed to initialize GCS client: {e}")
 
             # Get bucket references
             self.bucket = self.client.bucket(self.bucket_name)
@@ -66,10 +88,11 @@ class GCSService:
                 self.private_bucket = self.client.bucket(self.private_bucket_name)
             else:
                 self.private_bucket = self.bucket  # Fallback to public bucket
-                print("⚠️  No private bucket configured - using public bucket for private files")
+                print("[GCS] Warning: No private bucket configured - using public bucket for private files")
 
         except Exception as e:
-            print(f"Failed to initialize GCS client: {e}")
+            print(f"[GCS] Failed to initialize GCS client: {e}")
+            print(f"[GCS] Image uploads will fall back to local storage")
             self.enabled = False
 
     def upload_file(self, local_file_path: str, destination_blob_name: str) -> Tuple[Optional[str], Optional[str]]:
@@ -221,10 +244,8 @@ class GCSService:
         Extract blob name from a GCS public URL
 
         Example:
-            Production: https://storage.googleapis.com/levoro-transport-images/orders/123_pickup_abc.jpg
-                     -> orders/123_pickup_abc.jpg
-            Development: https://storage.googleapis.com/levoro-transport-images/dev/orders/123_pickup_abc.jpg
-                      -> dev/orders/123_pickup_abc.jpg
+            https://storage.googleapis.com/levoro-transport-images/orders/123_pickup_abc.jpg
+            -> orders/123_pickup_abc.jpg
 
         Args:
             public_url: The GCS public URL
@@ -238,7 +259,7 @@ class GCSService:
         try:
             # GCS public URLs have format: https://storage.googleapis.com/bucket-name/blob-name
             if 'storage.googleapis.com' in public_url:
-                # Split by bucket name and get everything after (includes dev/ prefix if present)
+                # Split by bucket name and get everything after
                 parts = public_url.split(f'{self.bucket_name}/')
                 if len(parts) > 1:
                     return parts[1]
