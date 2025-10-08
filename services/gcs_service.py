@@ -26,8 +26,19 @@ class GCSService:
 
         if self.enabled:
             self._initialize_client()
+            env_mode = "development" if self.is_development() else "production"
+            env_prefix = self.get_environment_prefix()
+            print(f"GCS enabled in {env_mode} mode - images will use prefix: '{env_prefix}' (blank if production)")
         else:
             print("GCS not configured - image upload will use local storage")
+
+    def is_development(self) -> bool:
+        """Check if running in development environment"""
+        return os.getenv("FLASK_ENV", "production") == "development"
+
+    def get_environment_prefix(self) -> str:
+        """Get environment-based folder prefix (dev/ or empty)"""
+        return "dev/" if self.is_development() else ""
 
     def _initialize_client(self):
         """Initialize GCS client with credentials"""
@@ -210,8 +221,10 @@ class GCSService:
         Extract blob name from a GCS public URL
 
         Example:
-            https://storage.googleapis.com/levoro-transport-images/orders/123_pickup_abc.jpg
-            -> orders/123_pickup_abc.jpg
+            Production: https://storage.googleapis.com/levoro-transport-images/orders/123_pickup_abc.jpg
+                     -> orders/123_pickup_abc.jpg
+            Development: https://storage.googleapis.com/levoro-transport-images/dev/orders/123_pickup_abc.jpg
+                      -> dev/orders/123_pickup_abc.jpg
 
         Args:
             public_url: The GCS public URL
@@ -225,7 +238,7 @@ class GCSService:
         try:
             # GCS public URLs have format: https://storage.googleapis.com/bucket-name/blob-name
             if 'storage.googleapis.com' in public_url:
-                # Split by bucket name and get everything after
+                # Split by bucket name and get everything after (includes dev/ prefix if present)
                 parts = public_url.split(f'{self.bucket_name}/')
                 if len(parts) > 1:
                     return parts[1]

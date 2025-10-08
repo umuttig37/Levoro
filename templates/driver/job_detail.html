@@ -1,11 +1,16 @@
 {% extends "base/layout.html" %}
+{% import 'components/icons.html' as icons %}
 
 {% block title %}Työ #{{ order.id }}{% endblock %}
 
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/driver-job-detail.css') }}">
+{% endblock %}
+
 {% block content %}
-<div class="container">
+<div class="container driver-job-detail">
   <div class="section-padding">
-    <div class="text-center mb-8">
+    <div class="driver-job-header-section">
       <h1 class="calculator-title">Työ #{{ order.id }}</h1>
       <p class="calculator-subtitle">
         {% if order.status == 'CONFIRMED' and not order.driver_id %}Saatavilla oleva työ
@@ -16,17 +21,20 @@
   </div>
 
   <div class="mb-4">
-    <a href="{{ url_for('driver.dashboard') }}" class="btn btn-ghost">← Takaisin työpöydälle</a>
+    <a href="{{ url_for('driver.dashboard') }}" class="btn btn-ghost driver-back-btn"
+      aria-label="Palaa takaisin työpöydälle">
+      ← Takaisin työpöydälle
+    </a>
   </div>
 
   <!-- Job Status -->
-  <div class="card mb-6">
+  <div class="card driver-detail-card mb-6" role="region" aria-labelledby="status-title">
     <div class="card-header">
-      <h2 class="card-title">Työn tila</h2>
+      <h2 id="status-title" class="card-title">Työn tila</h2>
     </div>
     <div class="card-body">
-      <div class="flex items-center justify-between">
-        <span class="inline-flex items-center px-4 py-2 rounded-full text-sm font-medium
+      <div class="flex items-center justify-center">
+        <span class="driver-status-badge
           {% if order.status == 'CONFIRMED' %}bg-green-100 text-green-800
           {% elif order.status == 'ASSIGNED_TO_DRIVER' %}bg-blue-100 text-blue-800
           {% elif order.status == 'DRIVER_ARRIVED' %}bg-yellow-100 text-yellow-800
@@ -35,7 +43,7 @@
           {% elif order.status == 'DELIVERY_ARRIVED' %}bg-indigo-100 text-indigo-800
           {% elif order.status == 'DELIVERY_IMAGES_ADDED' %}bg-pink-100 text-pink-800
           {% elif order.status == 'DELIVERED' %}bg-emerald-100 text-emerald-800
-          {% else %}bg-gray-100 text-gray-800{% endif %}">
+          {% else %}bg-gray-100 text-gray-800{% endif %}" role="status" aria-label="Työn tila">
           {% if order.status == 'CONFIRMED' %}Saatavilla
           {% elif order.status == 'ASSIGNED_TO_DRIVER' %}Määritetty sinulle
           {% elif order.status == 'DRIVER_ARRIVED' %}Saapunut noutopaikalle
@@ -46,11 +54,6 @@
           {% elif order.status == 'DELIVERED' %}Toimitettu
           {% else %}{{ order.status }}{% endif %}
         </span>
-        {% if order.updated_at %}
-        <span class="text-sm text-muted">
-          Päivitetty: {{ order.updated_at|helsinki_time }}
-        </span>
-        {% endif %}
       </div>
     </div>
   </div>
@@ -59,62 +62,91 @@
   <div class="driver-grid">
     <div>
       <!-- Route Information -->
-      <div class="card mb-6">
+      <div class="card driver-detail-card mb-6" role="region" aria-labelledby="route-title">
         <div class="card-header">
-          <h2 class="card-title">Reittitiedot</h2>
+          <h2 id="route-title" class="card-title">
+            {{ icons.location(20, 'currentColor', 'icon-inline') }}
+            Reittitiedot
+          </h2>
         </div>
         <div class="card-body">
-          <div style="display: flex; flex-direction: column; gap: 0.75rem;">
-            <div>
-              <label class="form-label" style="margin-bottom: 0.125rem; font-size: 0.75rem;">Noutopaikka</label>
+          <div class="driver-form-section">
+            <div class="driver-form-group">
+              <label class="driver-form-label">Noutopaikka</label>
               {% if order.driver_id == driver.id %}
-              <p class="text-primary" style="margin: 0; font-size: 0.875rem;">{{ order.pickup_address }}</p>
+              <p class="driver-form-value">{{ order.pickup_address }}</p>
               {% else %}
-              <p class="text-primary" style="margin: 0; font-size: 0.875rem;">{{ order.pickup_address|extract_city }}</p>
-              <p class="text-xs text-muted" style="margin: 0.125rem 0 0 0; font-size: 0.7rem;">Tarkka osoite näkyy kun otat työn vastaan</p>
+              <p class="driver-form-value">{{ order.pickup_address|extract_city }}</p>
+              <p class="driver-address-hint">Tarkka osoite näkyy kun otat työn vastaan</p>
               {% endif %}
             </div>
-            <div>
-              <label class="form-label" style="margin-bottom: 0.125rem; font-size: 0.75rem;">Toimituspaikka</label>
+            <div class="driver-form-group">
+              <label class="driver-form-label">Toimituspaikka</label>
               {% if order.driver_id == driver.id %}
-              <p class="text-primary" style="margin: 0; font-size: 0.875rem;">{{ order.dropoff_address }}</p>
+              <p class="driver-form-value">{{ order.dropoff_address }}</p>
               {% else %}
-              <p class="text-primary" style="margin: 0; font-size: 0.875rem;">{{ order.dropoff_address|extract_city }}</p>
-              <p class="text-xs text-muted" style="margin: 0.125rem 0 0 0; font-size: 0.7rem;">Tarkka osoite näkyy kun otat työn vastaan</p>
+              <p class="driver-form-value">{{ order.dropoff_address|extract_city }}</p>
+              <p class="driver-address-hint">Tarkka osoite näkyy kun otat työn vastaan</p>
               {% endif %}
             </div>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
-              <div>
-                <label class="form-label" style="margin-bottom: 0.125rem; font-size: 0.75rem;">Matka</label>
-                <p class="text-primary" style="margin: 0; font-size: 0.875rem;">{{ order.distance_km|round(1) }} km</p>
+            <div class="driver-metrics-grid">
+              <div class="driver-form-group">
+                <label class="driver-form-label">Matka</label>
+                <p class="driver-form-value distance">{{ order.distance_km|default(0)|round(1) }} km</p>
               </div>
-              <div>
-                <label class="form-label" style="margin-bottom: 0.125rem; font-size: 0.75rem;">Hinta</label>
-                <p class="text-primary" style="margin: 0; font-size: 0.875rem;">{{ order.price_gross|format_price_with_vat|safe }}</p>
+              <div class="driver-form-group">
+                <label class="driver-form-label">Palkkio</label>
+                <p class="driver-form-value reward"
+                  aria-label="Palkkio {{ order.driver_reward|round(2) if order.driver_reward else 0.00 }} euroa">
+                  {% if order.driver_reward %}{{ order.driver_reward|round(2) }}{% else %}0.00{% endif %} €
+                </p>
               </div>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- Vehicle Information - Only show if job is accepted -->
-      {% if (order.reg_number or order.winter_tires is not none) and order.driver_id == driver.id %}
-      <div class="card mb-6">
+      <!-- Car Information - ALWAYS visible if set by admin -->
+      {% if order.car_brand or order.car_model %}
+      <div class="card driver-detail-card mb-6" role="region" aria-labelledby="car-title">
         <div class="card-header">
-          <h2 class="card-title">Ajoneuvotiedot</h2>
+          <h2 id="car-title" class="card-title">
+            {{ icons.car(20, 'currentColor', 'icon-inline') }}
+            Ajoneuvo
+          </h2>
         </div>
         <div class="card-body">
-          <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+          <div class="driver-form-section">
+            <div class="driver-form-group">
+              <label class="driver-form-label">Merkki ja malli</label>
+              <p class="driver-form-value">{{ order.car_brand or '' }} {{ order.car_model or '' }}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- Vehicle Information - Only show if job is accepted -->
+      {% if (order.reg_number or order.winter_tires is not none) and order.driver_id == driver.id %}
+      <div class="card driver-detail-card mb-6" role="region" aria-labelledby="vehicle-title">
+        <div class="card-header">
+          <h2 id="vehicle-title" class="card-title">
+            {{ icons.id_card(20, 'currentColor', 'icon-inline') }}
+            Ajoneuvotiedot
+          </h2>
+        </div>
+        <div class="card-body">
+          <div class="driver-form-section">
             {% if order.reg_number %}
-            <div>
-              <label class="form-label" style="margin-bottom: 0.125rem; font-size: 0.75rem;">Rekisterinumero</label>
-              <p class="text-primary" style="margin: 0; font-size: 0.875rem;">{{ order.reg_number }}</p>
+            <div class="driver-form-group">
+              <label class="driver-form-label">Rekisterinumero</label>
+              <p class="driver-form-value">{{ order.reg_number }}</p>
             </div>
             {% endif %}
             {% if order.winter_tires is not none %}
-            <div>
-              <label class="form-label" style="margin-bottom: 0.125rem; font-size: 0.75rem;">Talvirenkaat</label>
-              <p class="text-primary" style="margin: 0; font-size: 0.875rem;">{{ "Kyllä" if order.winter_tires else "Ei" }}</p>
+            <div class="driver-form-group">
+              <label class="driver-form-label">Talvirenkaat</label>
+              <p class="driver-form-value">{{ "Kyllä" if order.winter_tires else "Ei" }}</p>
             </div>
             {% endif %}
           </div>
@@ -124,33 +156,39 @@
 
       <!-- Contact Information - Only show if job is accepted -->
       {% if order.driver_id == driver.id and order.status != 'NEW' %}
-      <div class="card mb-6">
+      <div class="card driver-detail-card mb-6" role="region" aria-labelledby="contact-title">
         <div class="card-header">
-          <h2 class="card-title">Yhteystiedot</h2>
+          <h2 id="contact-title" class="card-title">
+            {{ icons.phone(20, 'currentColor', 'icon-inline') }}
+            Yhteystiedot
+          </h2>
         </div>
         <div class="card-body">
-          <div class="space-y-3">
+          <div class="driver-form-section">
             <!-- Orderer Section -->
-            <div style="background: #f0f9ff; padding: 0.75rem; border-radius: 6px; border: 1px solid #bfdbfe;">
-              <h3 style="margin: 0 0 0.5rem 0; color: #1e40af; font-size: 0.875rem; font-weight: 600;">
-                🏢 Tilaaja
+            <div class="driver-contact-section orderer">
+              <h3 class="driver-contact-section-title">
+                {{ icons.building(18, '#1e40af', 'icon-inline') }} Tilaaja
               </h3>
-              <div style="display: flex; flex-direction: column; gap: 0.5rem;">
-                <div>
-                  <label class="form-label" style="margin-bottom: 0.125rem; font-size: 0.75rem;">Nimi</label>
-                  <p class="text-primary" style="margin: 0; font-size: 0.875rem;">{{ order.orderer_name or order.user_name or '-' }}</p>
+              <div class="driver-form-section">
+                <div class="driver-form-group">
+                  <label class="driver-form-label">Nimi</label>
+                  <p class="driver-form-value">{{ order.orderer_name or order.user_name or '-' }}</p>
                 </div>
-                <div>
-                  <label class="form-label" style="margin-bottom: 0.125rem; font-size: 0.75rem;">Sähköposti</label>
-                  <p class="text-primary" style="margin: 0; font-size: 0.875rem;">{{ order.orderer_email or order.user_email or '-' }}</p>
+                <div class="driver-form-group">
+                  <label class="driver-form-label">Sähköposti</label>
+                  <p class="driver-form-value">{{ order.orderer_email or order.user_email or '-' }}</p>
                 </div>
-                <div>
-                  <label class="form-label" style="margin-bottom: 0.125rem; font-size: 0.75rem;">Puhelin</label>
-                  <p class="text-primary" style="margin: 0; font-size: 0.875rem;">
+                <div class="driver-form-group">
+                  <label class="driver-form-label">Puhelin</label>
+                  <p class="driver-form-value">
                     {% if order.orderer_phone %}
-                      <a href="tel:{{ order.orderer_phone }}" style="color: #2563eb; text-decoration: none;">{{ order.orderer_phone }}</a>
+                    <a href="tel:{{ order.orderer_phone }}"
+                      aria-label="Soita tilaajan numeroon {{ order.orderer_phone }}">
+                      {{ order.orderer_phone }}
+                    </a>
                     {% else %}
-                      -
+                    -
                     {% endif %}
                   </p>
                 </div>
@@ -158,34 +196,27 @@
             </div>
 
             <!-- Customer Section -->
-            <div style="background: #fefce8; padding: 0.75rem; border-radius: 6px; border: 1px solid #fde047;">
-              <h3 style="margin: 0 0 0.5rem 0; color: #854d0e; font-size: 0.875rem; font-weight: 600;">
-                👤 Asiakas (vastaanottaja)
+            <div class="driver-contact-section customer">
+              <h3 class="driver-contact-section-title">
+                {{ icons.user(18, '#854d0e', 'icon-inline') }} Asiakas (vastaanottaja)
               </h3>
-              <div style="display: flex; flex-direction: column; gap: 0.5rem;">
-                {% if order.customer_reference %}
-                <div>
-                  <label class="form-label" style="margin-bottom: 0.125rem; font-size: 0.75rem;">Asiakkaan viite</label>
-                  <p class="text-primary" style="margin: 0; font-size: 0.875rem;">{{ order.customer_reference }}</p>
+              <div class="driver-form-section">
+                <div class="driver-form-group">
+                  <label class="driver-form-label">Nimi</label>
+                  <p class="driver-form-value">{{ order.customer_name or '-' }}</p>
                 </div>
-                {% endif %}
-                <div>
-                  <label class="form-label" style="margin-bottom: 0.125rem; font-size: 0.75rem;">Nimi</label>
-                  <p class="text-primary" style="margin: 0; font-size: 0.875rem;">{{ order.customer_name or '-' }}</p>
-                </div>
-                <div>
-                  <label class="form-label" style="margin-bottom: 0.125rem; font-size: 0.75rem;">Puhelinnumero</label>
-                  <p class="text-primary" style="margin: 0; font-size: 0.875rem;">
+                <div class="driver-form-group">
+                  <label class="driver-form-label">Puhelinnumero</label>
+                  <p class="driver-form-value">
                     {% if order.customer_phone or order.phone %}
-                      <a href="tel:{{ order.customer_phone or order.phone }}" style="color: #854d0e; text-decoration: none;">{{ order.customer_phone or order.phone }}</a>
+                    <a href="tel:{{ order.customer_phone or order.phone }}"
+                      aria-label="Soita asiakkaan numeroon {{ order.customer_phone or order.phone }}">
+                      {{ order.customer_phone or order.phone }}
+                    </a>
                     {% else %}
-                      -
+                    -
                     {% endif %}
                   </p>
-                </div>
-                <div>
-                  <label class="form-label" style="margin-bottom: 0.125rem; font-size: 0.75rem;">Sähköposti</label>
-                  <p class="text-primary" style="margin: 0; font-size: 0.875rem;">{{ order.customer_email or order.email or '-' }}</p>
                 </div>
               </div>
             </div>
@@ -194,24 +225,42 @@
       </div>
       {% endif %}
 
-      <!-- Additional Information -->
-      {% if order.extras or order.pickup_date %}
-      <div class="card mb-6">
+      <!-- Admin Notes (Lisätiedot) - Always visible if set by admin -->
+      {% if order.additional_info and order.additional_info|trim %}
+      <div class="card driver-detail-card mb-6" role="region" aria-labelledby="instructions-title">
         <div class="card-header">
-          <h2 class="card-title">Lisätiedot</h2>
+          <h2 id="instructions-title" class="card-title">
+            {{ icons.document(20, 'currentColor', 'icon-inline') }}
+            Ohjeita kuljettajalle
+          </h2>
         </div>
         <div class="card-body">
-          <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+          <p class="driver-admin-notes">{{ order.additional_info }}</p>
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- Additional Information -->
+      {% if order.extras or order.pickup_date %}
+      <div class="card driver-detail-card mb-6" role="region" aria-labelledby="additional-title">
+        <div class="card-header">
+          <h2 id="additional-title" class="card-title">
+            {{ icons.clipboard(20, 'currentColor', 'icon-inline') }}
+            Lisätiedot
+          </h2>
+        </div>
+        <div class="card-body">
+          <div class="driver-form-section">
             {% if order.pickup_date %}
-            <div>
-              <label class="form-label" style="margin-bottom: 0.125rem; font-size: 0.75rem;">Toivottu noutopäivä</label>
-              <p class="text-primary" style="margin: 0; font-size: 0.875rem;">{{ order.pickup_date }}</p>
+            <div class="driver-form-group">
+              <label class="driver-form-label">Toivottu noutopäivä</label>
+              <p class="driver-form-value">{{ order.pickup_date }}</p>
             </div>
             {% endif %}
             {% if order.extras %}
-            <div>
-              <label class="form-label" style="margin-bottom: 0.125rem; font-size: 0.75rem;">Lisätiedot</label>
-              <p class="text-primary" style="margin: 0; font-size: 0.875rem;">{{ order.extras }}</p>
+            <div class="driver-form-group">
+              <label class="driver-form-label">Lisätiedot</label>
+              <p class="driver-form-value">{{ order.extras }}</p>
             </div>
             {% endif %}
           </div>
@@ -221,9 +270,12 @@
 
       <!-- Images Section -->
       {% if order.driver_id == driver.id %}
-      <div class="card mb-6">
+      <div class="card driver-detail-card mb-6" role="region" aria-labelledby="images-title">
         <div class="card-header">
-          <h2 class="card-title">Kuvat</h2>
+          <h2 id="images-title" class="card-title">
+            {{ icons.camera(20, 'currentColor', 'icon-inline') }}
+            Kuvat
+          </h2>
         </div>
         <div class="card-body">
           <div class="driver-images-grid">
@@ -252,9 +304,9 @@
 
     <!-- Actions Panel -->
     <div class="driver-actions-panel">
-      <div class="card">
+      <div class="card driver-detail-card" role="region" aria-labelledby="actions-title">
         <div class="card-header">
-          <h2 class="card-title">Toiminnot</h2>
+          <h2 id="actions-title" class="card-title">Toiminnot</h2>
         </div>
         <div class="card-body">
           <div class="space-y-3">
@@ -262,85 +314,64 @@
             <!-- Job is available for assignment -->
             <form method="POST" action="{{ url_for('driver.accept_job', order_id=order.id) }}">
               <button type="submit" class="btn btn-primary w-full"
-                      onclick="return confirm('Haluatko varmasti ottaa tämän työn vastaan?')">
+                onclick="return confirm('Haluatko varmasti ottaa tämän työn vastaan?')" aria-label="Ota työ vastaan">
                 Ota työ vastaan
               </button>
             </form>
-            <p class="text-xs text-muted mt-2">ℹ️ Ajoneuvon tiedot ja tarkat osoitteet tulevat näkyviin kun kuitattu napilla olevan paikalla</p>
+            <p class="driver-action-hint">Ajoneuvon tiedot ja tarkat osoitteet tulevat näkyviin kun kuitattu
+              napilla olevan paikalla</p>
 
             {% elif order.driver_id == driver.id %}
             <!-- Job belongs to this driver -->
             {% if order.status == 'ASSIGNED_TO_DRIVER' %}
             <form method="POST" action="{{ url_for('driver.mark_arrival', order_id=order.id) }}">
-              <button type="submit" class="btn btn-primary w-full">
-                📍 Saavuin noutopaikalle
+              <button type="submit" class="btn btn-primary w-full" aria-label="Kuittaa saapuminen noutopaikalle">
+                {{ icons.location(18, 'currentColor', 'icon-inline') }} Saavuin noutopaikalle
               </button>
             </form>
 
             {% elif order.status == 'DRIVER_ARRIVED' %}
-            <p class="text-sm text-secondary mb-3">Lisää noutokuvat ennen kuljetuksen aloittamista</p>
+            <p class="driver-action-hint">Lisää noutokuvat ennen kuljetuksen aloittamista</p>
 
             {% elif order.status == 'PICKUP_IMAGES_ADDED' %}
-            <form method="POST" action="{{ url_for('driver.start_transport', order_id=order.id) }}">
-              <button type="submit" class="btn btn-primary w-full">
-                🚗 Aloita kuljetus
-              </button>
-            </form>
+            <div class="driver-waiting-state">
+              <div class="waiting-icon">{{ icons.circle(48, '#94a3b8') }}</div>
+              <p class="waiting-title">Odottaa admin hyväksyntää</p>
+              <p class="waiting-subtitle">Admin vahvistaa noutokuvat ja aloittaa kuljetuksen</p>
+            </div>
 
             {% elif order.status == 'IN_TRANSIT' %}
             <form method="POST" action="{{ url_for('driver.arrive_delivery', order_id=order.id) }}">
-              <button type="submit" class="btn btn-primary w-full">
-                📍 Saavuin toimituspaikalle
+              <button type="submit" class="btn btn-primary w-full" aria-label="Kuittaa saapuminen toimituspaikalle">
+                {{ icons.location(18, 'currentColor', 'icon-inline') }} Saavuin toimituspaikalle
               </button>
             </form>
 
             {% elif order.status == 'DELIVERY_ARRIVED' %}
-            <p class="text-sm text-secondary mb-3">Lisää toimituskuvat ennen toimituksen päättämistä</p>
+            <p class="driver-action-hint">Lisää toimituskuvat ennen toimituksen päättämistä</p>
 
             {% elif order.status == 'DELIVERY_IMAGES_ADDED' %}
-            <form method="POST" action="{{ url_for('driver.complete_delivery', order_id=order.id) }}">
-              <button type="submit" class="btn btn-primary w-full"
-                      onclick="return confirm('Haluatko varmasti merkitä toimituksen valmiiksi?')">
-                ✅ Päätä toimitus
-              </button>
-            </form>
+            <div class="driver-waiting-state">
+              <div class="waiting-icon">{{ icons.circle(48, '#94a3b8') }}</div>
+              <p class="waiting-title">Odottaa admin hyväksyntää</p>
+              <p class="waiting-subtitle">Admin vahvistaa toimituskuvat ja päättää toimituksen</p>
+            </div>
 
             {% elif order.status == 'DELIVERED' %}
-            <div class="text-center">
-              <div class="text-4xl mb-2">✅</div>
-              <p class="font-semibold text-green-600">Toimitus suoritettu!</p>
+            <div class="driver-completed-state">
+              <div class="completed-icon">{{ icons.check_circle(48, '#16a34a') }}</div>
+              <p class="completed-title">Toimitus suoritettu!</p>
             </div>
             {% endif %}
 
             {% else %}
             <!-- Job belongs to another driver -->
-            <div class="text-center">
-              <div class="text-4xl mb-2">👤</div>
-              <p class="text-sm text-secondary">Tämä työ on määritetty toiselle kuljettajalle</p>
+            <div class="driver-other-state">
+              <div class="other-icon">{{ icons.user(48, '#94a3b8') }}</div>
+              <p class="other-message">Tämä työ on määritetty toiselle kuljettajalle</p>
             </div>
             {% endif %}
           </div>
-
-          <!-- Timestamps -->
-          {% if order.driver_id == driver.id %}
-          <div class="mt-6 pt-4 border-t">
-            <h3 class="font-medium mb-3 text-sm">Aikataulutiedot</h3>
-            <div class="space-y-2 text-xs text-secondary">
-              {% if order.assigned_at %}
-              <div>Otettu vastaan: {{ order.assigned_at|helsinki_time }}</div>
-              {% endif %}
-              {% if order.arrival_time %}
-              <div>Saapunut: {{ order.arrival_time|helsinki_time }}</div>
-              {% endif %}
-              {% if order.pickup_started %}
-              <div>Kuljetus aloitettu: {{ order.pickup_started|helsinki_time }}</div>
-              {% endif %}
-              {% if order.delivery_completed %}
-              <div>Toimitettu: {{ order.delivery_completed|helsinki_time }}</div>
-              {% endif %}
-            </div>
-          </div>
-          {% endif %}
         </div>
       </div>
     </div>

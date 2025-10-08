@@ -8,34 +8,46 @@
 {% endblock %}
 
 {% block content %}
-<div class="order-container">
+<article class="order-container" role="main" aria-labelledby="order-title">
   <!-- Hero Section with Key Information -->
-  <div class="order-hero status-{{ order.status.lower() }}">
+  <header class="order-hero status-{{ order.status.lower() }}">
     <div class="hero-content">
       <div class="hero-header">
-        <h1 class="order-title">Tilaus #{{ order.id }}</h1>
+        <h1 id="order-title" class="order-title">Tilaus #{{ order.id }}</h1>
         <div class="order-status-main">
-          <span class="status-badge status-{{ order.status.lower() }}">{{ status_fi }}</span>
+          <span class="status-badge status-{{ order.status.lower() }}" role="status"
+            aria-label="Tilauksen tila: {{ status_fi }}">{{ status_fi }}</span>
           <p class="status-description">{{ status_description }}</p>
         </div>
       </div>
 
       <!-- Route Display - Most Important Information -->
-      <div class="hero-route">
+      <section class="hero-route" aria-label="Kuljetusreitti">
         <div class="route-card">
-          <div class="route-point pickup">
-            <div class="point-icon">📍</div>
+          <div class="route-point pickup" role="group" aria-label="Noudon osoite">
+            <div class="point-icon" aria-hidden="true">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                <circle cx="12" cy="10" r="3"></circle>
+              </svg>
+            </div>
             <div class="point-details">
               <span class="point-label">Nouto</span>
               <span class="point-address">{{ order.pickup_address or '?' }}</span>
             </div>
           </div>
-          <div class="route-connector">
-            <div class="route-line"></div>
+          <div class="route-connector" aria-hidden="true">
             <div class="route-arrow">→</div>
           </div>
-          <div class="route-point delivery">
-            <div class="point-icon">📍</div>
+          <div class="route-point" role="group" aria-label="Toimituksen osoite">
+            <div class="point-icon" aria-hidden="true">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                <circle cx="12" cy="10" r="3"></circle>
+              </svg>
+            </div>
             <div class="point-details">
               <span class="point-label">Toimitus</span>
               <span class="point-address">{{ order.dropoff_address or '?' }}</span>
@@ -44,77 +56,79 @@
         </div>
 
         <!-- Key Metrics -->
-        <div class="hero-metrics">
-          <div class="metric-card">
-            <span class="metric-value">{{ "%.1f"|format(distance_km) }} km</span>
+        <div class="hero-metrics" role="group" aria-label="Tilauksen tiedot">
+          <div class="metric-card" role="group" aria-label="Matkan pituus">
             <span class="metric-label">Matka</span>
+            <span class="metric-value" aria-label="{{ '%.1f'|format(distance_km) }} kilometriä">{{
+              "%.1f"|format(distance_km) }} km</span>
           </div>
-          <div class="metric-card price-card">
-            <span class="metric-value">{{ price_gross|format_price_with_vat|safe }}</span>
+          <div class="metric-card price-card" role="group"
+            aria-label="Tilauksen hinta: {{ '%.2f'|format(price_gross) }} euroa">
             <span class="metric-label">Hinta</span>
+            <span class="metric-value">{{
+              price_gross|format_price_with_vat|safe }}</span>
           </div>
-          {% if order.status in ['ASSIGNED_TO_DRIVER', 'DRIVER_ARRIVED', 'PICKUP_IMAGES_ADDED', 'IN_TRANSIT', 'DELIVERY_ARRIVED', 'DELIVERY_IMAGES_ADDED', 'DELIVERED'] %}
-          <div class="metric-card driver-card">
+          {% if order.status in ['ASSIGNED_TO_DRIVER', 'DRIVER_ARRIVED', 'PICKUP_IMAGES_ADDED', 'IN_TRANSIT',
+          'DELIVERY_ARRIVED', 'DELIVERY_IMAGES_ADDED', 'DELIVERED'] %}
+          <div class="metric-card driver-card" role="group" aria-label="Kuljettajan tiedot">
             <span class="metric-value">
               {% if order.driver_name %}
-                {{ order.driver_name }}
-                {% if order.driver_phone %}
-                  <br><a href="tel:{{ order.driver_phone }}" class="driver-phone-link">📞 {{ order.driver_phone }}</a>
-                {% endif %}
+              {{ order.driver_name }}
+              {% if order.driver_phone %}
+              <br><a href="tel:{{ order.driver_phone }}" class="driver-phone-link"
+                aria-label="Soita kuljettajalle: {{ order.driver_phone }}">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                  stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path
+                    d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z">
+                  </path>
+                </svg>
+                {{ order.driver_phone }}
+              </a>
+              {% endif %}
               {% else %}
-                Kuljettaja
+              Kuljettaja
               {% endif %}
             </span>
             <span class="metric-label">Kuljettaja</span>
           </div>
           {% endif %}
         </div>
-      </div>
+      </section>
     </div>
-  </div>
+  </header>
 
   <!-- Progress Section -->
-  <div class="progress-section">
+  <section class="progress-section" aria-label="Tilauksen eteneminen">
     {{ progress_bar|safe }}
-  </div>
+  </section>
 
   <!-- Secondary Information -->
-  <div class="order-details">
+  <section class="order-details" aria-label="Tilauksen lisätiedot">
     <div class="details-grid">
-      {% if show_vehicle_section or order.status == 'NEW' %}
-      <div class="detail-card">
-        <h3 class="card-title">🚗 Ajoneuvo</h3>
-        <div class="card-content">
-          {% if has_reg_number %}
-          <div class="detail-row">
-            <span class="detail-label">Rekisterinumero</span>
-            <span class="detail-value">{{ order.reg_number or '' }}</span>
-          </div>
-          {% endif %}
-          {% if has_winter_tires %}
-          <div class="detail-row">
-            <span class="detail-label">Talvirenkaat</span>
-            <span class="detail-value">{{ 'Kyllä' if order.winter_tires else 'Ei' }}</span>
-          </div>
-          {% endif %}
-          {% if not show_vehicle_section %}
-          <div class="detail-row empty-state">
-            <span class="detail-label">📝</span>
-            <span class="detail-value">Ajoneuvotiedot täydennetään noudettaessa</span>
-          </div>
-          {% endif %}
-        </div>
-      </div>
-      {% endif %}
-
-      {% if has_customer_info or order.status == 'NEW' %}
-      <div class="detail-card">
-        <h3 class="card-title">👤 Yhteystiedot</h3>
-        <div class="card-content">
+        {% if has_customer_info or order.status == 'NEW' %}
+    <article class="detail-card" role="group" aria-labelledby="contact-title">
+      <h3 id="contact-title" class="card-title">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+          <circle cx="12" cy="7" r="4"></circle>
+        </svg>
+        Yhteystiedot
+      </h3>
+      <div class="card-content">
+        <div class="contact-sections-grid">
           <!-- Orderer Section -->
           {% if order.orderer_name or order.orderer_email or order.orderer_phone %}
-          <div style="background: #f0f9ff; padding: 1rem; border-radius: 8px; border: 1px solid #bfdbfe; margin-bottom: 1rem;">
-            <h4 style="margin: 0 0 0.75rem 0; color: #1e40af; font-size: 0.9rem; font-weight: 600;">🏢 Tilaaja</h4>
+          <div class="contact-section orderer">
+            <h4 class="contact-section-title">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
+                <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
+              </svg>
+              Tilaaja
+            </h4>
             {% if order.orderer_name and order.orderer_name.strip() %}
             <div class="detail-row">
               <span class="detail-label">Nimi</span>
@@ -137,25 +151,20 @@
           {% endif %}
 
           <!-- Customer Section -->
-          {% if order.customer_name or order.customer_email or order.customer_phone or order.customer_reference %}
-          <div style="background: #fefce8; padding: 1rem; border-radius: 8px; border: 1px solid #fde047;">
-            <h4 style="margin: 0 0 0.75rem 0; color: #854d0e; font-size: 0.9rem; font-weight: 600;">👤 Asiakas (vastaanottaja)</h4>
-            {% if order.customer_reference and order.customer_reference.strip() %}
-            <div class="detail-row">
-              <span class="detail-label">Asiakkaan viite</span>
-              <span class="detail-value">{{ order.customer_reference }}</span>
-            </div>
-            {% endif %}
+          {% if order.customer_name or order.customer_phone %}
+          <div class="contact-section customer">
+            <h4 class="contact-section-title">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                <circle cx="12" cy="7" r="4"></circle>
+              </svg>
+              Asiakas (vastaanottaja)
+            </h4>
             {% if order.customer_name and order.customer_name.strip() %}
             <div class="detail-row">
               <span class="detail-label">Nimi</span>
               <span class="detail-value">{{ order.customer_name }}</span>
-            </div>
-            {% endif %}
-            {% if order.customer_email and order.customer_email.strip() %}
-            <div class="detail-row">
-              <span class="detail-label">Sähköposti</span>
-              <span class="detail-value">{{ order.customer_email }}</span>
             </div>
             {% endif %}
             {% if order.customer_phone and order.customer_phone.strip() %}
@@ -166,75 +175,157 @@
             {% endif %}
           </div>
           {% endif %}
-
-          <!-- Fallback for legacy data using old fields -->
-          {% if not (order.orderer_name or order.orderer_email or order.orderer_phone or order.customer_name or order.customer_email or order.customer_phone or order.customer_reference) %}
-            {% if order.email and order.email.strip() %}
-            <div class="detail-row">
-              <span class="detail-label">Sähköposti</span>
-              <span class="detail-value">{{ order.email }}</span>
-            </div>
-            {% endif %}
-            {% if order.phone and order.phone.strip() %}
-            <div class="detail-row">
-              <span class="detail-label">Puhelin</span>
-              <span class="detail-value">{{ order.phone }}</span>
-            </div>
-            {% endif %}
-          {% endif %}
-
-          {% if not has_customer_info %}
-          <div class="detail-row empty-state">
-            <span class="detail-label">📞</span>
-            <span class="detail-value">Yhteystiedot päivitetään tilauksen käsittelyn yhteydessä</span>
-          </div>
-          {% endif %}
         </div>
-      </div>
-      {% endif %}
-    </div>
 
-    {% if order.additional_info %}
-    <div class="detail-card full-width">
-      <h3 class="card-title">📝 Lisätiedot</h3>
-      <div class="card-content">
-        <p class="additional-info-text">{{ order.additional_info or 'Ei lisätietoja' }}</p>
-      </div>
-    </div>
-    {% endif %}
-
-    {% if has_images or order.status in ['NEW', 'CONFIRMED', 'IN_TRANSIT'] %}
-    <div class="detail-card full-width">
-      <h3 class="card-title">📷 Kuljetuskuvat</h3>
-      <div class="card-content">
-        <div class="images-grid">
-          <div class="image-section">
-            <h4 class="image-section-title">Nouto</h4>
-            {% set image_type = 'pickup' %}
-            {% set images_data = order.images.pickup if order.images else [] %}
-            {% include 'components/client_image_section.html' with context %}
-          </div>
-          <div class="image-section">
-            <h4 class="image-section-title">Toimitus</h4>
-            {% set image_type = 'delivery' %}
-            {% set images_data = order.images.delivery if order.images else [] %}
-            {% include 'components/client_image_section.html' with context %}
-          </div>
+        <!-- Fallback for legacy data using old fields -->
+        {% if not (order.orderer_name or order.orderer_email or order.orderer_phone or order.customer_name or
+        order.customer_phone) %}
+        {% if order.email and order.email.strip() %}
+        <div class="detail-row">
+          <span class="detail-label">Sähköposti</span>
+          <span class="detail-value">{{ order.email }}</span>
         </div>
-        {% if not has_images and order.status in ['NEW', 'CONFIRMED'] %}
-        <div class="images-status">
-          <p class="status-info">📸 Kuljetuskuvat lisätään kuljetuksen aikana</p>
+        {% endif %}
+        {% if order.phone and order.phone.strip() %}
+        <div class="detail-row">
+          <span class="detail-label">Puhelin</span>
+          <span class="detail-value">{{ order.phone }}</span>
+        </div>
+        {% endif %}
+        {% endif %}
+
+        {% if not has_customer_info %}
+        <div class="detail-row empty-state">
+          <span class="detail-label" aria-hidden="true">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <path
+                d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z">
+              </path>
+            </svg>
+          </span>
+          <span class="detail-value">Yhteystiedot päivitetään tilauksen käsittelyn yhteydessä</span>
         </div>
         {% endif %}
       </div>
+    </article>
+    {% endif %}
+      {% if show_vehicle_section or order.status == 'NEW' %}
+      <article class="detail-card" role="group" aria-labelledby="vehicle-title">
+        <h3 id="vehicle-title" class="card-title">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path
+              d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2">
+            </path>
+            <circle cx="7" cy="17" r="2"></circle>
+            <path d="M9 17h6"></path>
+            <circle cx="17" cy="17" r="2"></circle>
+          </svg>
+          Ajoneuvo
+        </h3>
+        <div class="card-content">
+          {% if has_reg_number %}
+          <div class="detail-row">
+            <span class="detail-label">Rekisterinumero</span>
+            <span class="detail-value">{{ order.reg_number or '' }}</span>
+          </div>
+          {% endif %}
+          {% if has_winter_tires %}
+          <div class="detail-row">
+            <span class="detail-label">Talvirenkaat</span>
+            <span class="detail-value">{{ 'Kyllä' if order.winter_tires else 'Ei' }}</span>
+          </div>
+          {% endif %}
+          {% if not show_vehicle_section %}
+          <div class="detail-row empty-state">
+            <span class="detail-label" aria-hidden="true">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                <polyline points="14 2 14 8 20 8"></polyline>
+              </svg>
+            </span>
+            <span class="detail-value">Ajoneuvotiedot täydennetään noudettaessa</span>
+          </div>
+          {% endif %}
+        </div>
     </div>
     {% endif %}
-  </div>
+    </div>
 
-  <div class="order-actions">
-    <a href="/dashboard" class="btn btn-ghost">← Takaisin tilauksiin</a>
-  </div>
-</div>
+    {% if order.additional_info %}
+    <article class="detail-card full-width" role="group" aria-labelledby="additional-info-title">
+      <h3 id="additional-info-title" class="card-title">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+          <polyline points="14 2 14 8 20 8"></polyline>
+          <line x1="16" y1="13" x2="8" y2="13"></line>
+          <line x1="16" y1="17" x2="8" y2="17"></line>
+          <polyline points="10 9 9 9 8 9"></polyline>
+        </svg>
+        Lisätiedot
+      </h3>
+      <div class="card-content">
+        <p class="additional-info-text">{{ order.additional_info or 'Ei lisätietoja' }}</p>
+      </div>
+      </div>
+      {% endif %}
+
+      {% if has_images or order.status in ['NEW', 'CONFIRMED', 'IN_TRANSIT'] %}
+      <article class="detail-card full-width" role="group" aria-labelledby="images-title">
+        <h3 id="images-title" class="card-title">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+            <circle cx="12" cy="13" r="4"></circle>
+          </svg>
+          Kuljetuskuvat
+        </h3>
+        <div class="card-content">
+          <div class="images-grid">
+            <div class="image-section">
+              <h4 class="image-section-title">Nouto</h4>
+              {% set image_type = 'pickup' %}
+              {% set images_data = order.images.pickup if order.images else [] %}
+              {% include 'components/client_image_section.html' with context %}
+            </div>
+            <div class="image-section">
+              <h4 class="image-section-title">Toimitus</h4>
+              {% set image_type = 'delivery' %}
+              {% set images_data = order.images.delivery if order.images else [] %}
+              {% include 'components/client_image_section.html' with context %}
+            </div>
+          </div>
+          {% if not has_images and order.status in ['NEW', 'CONFIRMED'] %}
+          <div class="images-status" role="status">
+            <p class="status-info">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+                <circle cx="12" cy="13" r="4"></circle>
+              </svg>
+              Kuljetuskuvat lisätään kuljetuksen aikana
+            </p>
+          </div>
+          {% endif %}
+        </div>
+      </article>
+      {% endif %}
+  </section>
+
+  <footer class="order-actions">
+    <a href="/dashboard" class="btn btn-ghost" aria-label="Palaa takaisin tilausten listaukseen">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+        stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <line x1="19" y1="12" x2="5" y2="12"></line>
+        <polyline points="12 19 5 12 12 5"></polyline>
+      </svg>
+      Takaisin tilauksiin
+    </a>
+  </footer>
+</article>
 
 <!-- Include Image Modal Component -->
 {% include 'components/image_modal.html' %}

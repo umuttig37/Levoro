@@ -63,3 +63,64 @@ def register():
 
     flash("Rekisteröinti onnistui! Odota admin hyväksyntää.", "success")
     return redirect(url_for("auth.login"))
+
+
+@auth_bp.route("/forgot-password", methods=["GET", "POST"])
+def forgot_password():
+    """Request password reset"""
+    if request.method == "GET":
+        if auth_service.is_authenticated():
+            return redirect(url_for("main.dashboard"))
+        
+        return render_template("auth/forgot_password.html")
+    
+    email = request.form.get("email", "").strip().lower()
+    
+    if not email:
+        flash("Sähköposti vaaditaan", "error")
+        return redirect(url_for("auth.forgot_password"))
+    
+    # Request password reset
+    success, error = auth_service.request_password_reset(email)
+    
+    # Always show success message for security (don't reveal if email exists)
+    flash("Jos sähköpostiosoite on rekisteröity, saat pian ohjeet salasanan vaihtoon.", "success")
+    return redirect(url_for("auth.login"))
+
+
+@auth_bp.route("/reset-password/<token>", methods=["GET", "POST"])
+def reset_password(token):
+    """Reset password with token"""
+    if request.method == "GET":
+        if auth_service.is_authenticated():
+            return redirect(url_for("main.dashboard"))
+        
+        # Validate token
+        valid, user, error = auth_service.validate_reset_token(token)
+        
+        if not valid:
+            flash(error, "error")
+            return redirect(url_for("auth.forgot_password"))
+        
+        return render_template("auth/reset_password.html", token=token, user=user)
+    
+    new_password = request.form.get("password", "")
+    confirm_password = request.form.get("confirm_password", "")
+    
+    if not new_password or not confirm_password:
+        flash("Molemmat salasanakentät vaaditaan", "error")
+        return redirect(url_for("auth.reset_password", token=token))
+    
+    if new_password != confirm_password:
+        flash("Salasanat eivät täsmää", "error")
+        return redirect(url_for("auth.reset_password", token=token))
+    
+    # Reset password
+    success, error = auth_service.reset_password(token, new_password)
+    
+    if not success:
+        flash(error, "error")
+        return redirect(url_for("auth.reset_password", token=token))
+    
+    flash("Salasana vaihdettu onnistuneesti! Voit nyt kirjautua sisään.", "success")
+    return redirect(url_for("auth.login"))

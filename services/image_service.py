@@ -13,8 +13,20 @@ from werkzeug.utils import secure_filename
 from models.order import order_model
 from services.gcs_service import gcs_service
 
+# Environment detection
+IS_DEVELOPMENT = os.getenv("FLASK_ENV", "production") == "development"
+ENV_PREFIX = "dev/" if IS_DEVELOPMENT else ""
+
 # Configuration
-UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'static', 'uploads', 'orders')
+# In development: static/uploads/dev/orders/
+# In production: static/uploads/orders/
+base_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+upload_path_parts = ['static', 'uploads']
+if IS_DEVELOPMENT:
+    upload_path_parts.append('dev')
+upload_path_parts.append('orders')
+UPLOAD_FOLDER = os.path.join(base_path, *upload_path_parts)
+
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'webp'}
 MAX_FILE_SIZE = 5 * 1024 * 1024  # 5MB
 MAX_IMAGE_WIDTH = 1200
@@ -73,20 +85,24 @@ class ImageService:
             file_path_url = None
             if gcs_service.enabled:
                 # Upload to Google Cloud Storage (organized by order ID)
-                blob_name = f"orders/{order_id}/{final_filename}"
+                # In development: dev/orders/{order_id}/{filename}
+                # In production: orders/{order_id}/{filename}
+                blob_name = f"{ENV_PREFIX}orders/{order_id}/{final_filename}"
                 public_url, gcs_error = gcs_service.upload_file(processed_path, blob_name)
 
                 if gcs_error:
                     # Fallback to local storage on GCS error
                     print(f"GCS upload failed, using local storage: {gcs_error}")
-                    file_path_url = f"/static/uploads/orders/{final_filename}"
+                    file_path_url = f"/static/uploads/{ENV_PREFIX}orders/{final_filename}"
                 else:
                     file_path_url = public_url
                     # Clean up local file after successful GCS upload
                     self._cleanup_file(processed_path)
             else:
-                # Use local storage (development mode)
-                file_path_url = f"/static/uploads/orders/{final_filename}"
+                # Use local storage
+                # In development: /static/uploads/dev/orders/{filename}
+                # In production: /static/uploads/orders/{filename}
+                file_path_url = f"/static/uploads/{ENV_PREFIX}orders/{final_filename}"
 
             # Create image info
             image_info = {
@@ -285,7 +301,7 @@ class ImageService:
                 img.verify()  # This will raise an exception if the image is corrupted
 
                 # Check if it's actually an image format we can process
-                if img.format not in ['JPEG', 'PNG', 'WEBP', 'MPO']:
+                if img.format not in ['JPEG', 'PNG', 'WEBP']:
                     return f"Kuvaformaatti {img.format or 'tuntematon'} ei ole tuettu"
 
         except Exception as e:
@@ -312,7 +328,7 @@ class ImageService:
             # First validate that PIL can open the image
             with Image.open(file_path) as img:
                 # Validate image format
-                if img.format not in ['JPEG', 'PNG', 'WEBP', 'MPO']:
+                if img.format not in ['JPEG', 'PNG', 'WEBP']:
                     print(f"Image processing error: Unsupported image format {img.format}")
                     return None
 

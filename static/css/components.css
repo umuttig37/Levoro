@@ -185,6 +185,30 @@
     box-shadow: 0 4px 16px rgba(16, 185, 129, 0.3);
 }
 
+.btn-danger {
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    color: var(--text-white);
+    border: none;
+    box-shadow: 0 4px 14px rgba(239, 68, 68, 0.3);
+}
+
+.btn-danger:hover:not(:disabled) {
+    background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+    box-shadow: 0 4px 16px rgba(239, 68, 68, 0.4);
+}
+
+.btn-warning {
+    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+    color: var(--text-white);
+    border: none;
+    box-shadow: 0 4px 14px rgba(245, 158, 11, 0.3);
+}
+
+.btn-warning:hover:not(:disabled) {
+    background: linear-gradient(135deg, #d97706 0%, #b45309 100%);
+    box-shadow: 0 4px 16px rgba(245, 158, 11, 0.4);
+}
+
 /* Button sizes */
 .btn-sm {
     padding: var(--space-2) var(--space-4);
@@ -1499,27 +1523,27 @@ input[type="file"]::file-selector-button {
    ========================================================================== */
 
 /* Spacing utilities - vertical */
-.space-y-1 > * + * {
+.space-y-1>*+* {
     margin-top: var(--space-1);
 }
 
-.space-y-2 > * + * {
+.space-y-2>*+* {
     margin-top: var(--space-2);
 }
 
-.space-y-3 > * + * {
+.space-y-3>*+* {
     margin-top: var(--space-3);
 }
 
-.space-y-4 > * + * {
+.space-y-4>*+* {
     margin-top: var(--space-4);
 }
 
-.space-y-5 > * + * {
+.space-y-5>*+* {
     margin-top: var(--space-5);
 }
 
-.space-y-6 > * + * {
+.space-y-6>*+* {
     margin-top: var(--space-6);
 }
 
@@ -1912,8 +1936,8 @@ input[type="file"]::file-selector-button {
     cursor: help;
 }
 
-[data-tooltip="true"]:hover + .tooltip-content,
-[data-tooltip="true"]:focus + .tooltip-content {
+[data-tooltip="true"]:hover+.tooltip-content,
+[data-tooltip="true"]:focus+.tooltip-content {
     display: block;
 }
 
@@ -1987,10 +2011,11 @@ input[type="file"]::file-selector-button {
 
 /* Touch devices - show tooltip on tap */
 @media (hover: none) and (pointer: coarse) {
-    [data-tooltip="true"]:active + .tooltip-content {
+    [data-tooltip="true"]:active+.tooltip-content {
         display: block;
     }
 }
+
 /* ==========================================================================
    Visibility Badges for Admin Dashboard
    ========================================================================== */

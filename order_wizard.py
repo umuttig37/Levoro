@@ -1,9 +1,19 @@
 # order_wizard.py
 import datetime
+import re
 from flask import request, redirect, url_for, session
 from services.auth_service import auth_service
 from services.order_service import order_service
 from models.database import db_manager
+
+def validate_phone_number(phone):
+    """Validate that phone number contains only digits, spaces, +, -, and ()"""
+    if not phone:
+        return False
+    # Allow: digits, spaces, +, -, (, )
+    # Pattern: optional + at start, then digits/spaces/hyphens/parentheses
+    pattern = r'^[+]?[0-9\s\-()]+$'
+    return bool(re.match(pattern, phone))
 
 # Import app and wrap function - available after app initialization
 def get_app():
@@ -28,7 +38,7 @@ def get_accessible_steps(session_data):
         accessible.append(4)
     # Check for both orderer and customer required fields
     if (session_data.get("orderer_name") and session_data.get("orderer_email") and session_data.get("orderer_phone") and
-        session_data.get("customer_name") and session_data.get("customer_email") and session_data.get("customer_phone")):
+        session_data.get("customer_name") and session_data.get("customer_phone")):
         accessible.append(5)
     if session_data.get("additional_info") is not None:  # Can be empty string
         accessible.append(6)
@@ -110,24 +120,12 @@ def order_step1():
   </div>
   <label>Toivottu noutopäivä</label>
     <div class="date-left">
-      <input type="date" name="pickup_date" id="pickup_date">
+      <input type="date" name="pickup_date" id="pickup_date" aria-label="Valitse noutopäivä">
     </div>
   <div class='calculator-actions mt-2'>
-    <button type='submit' class="btn btn-primary">Jatka →</button>
+    <button type='submit' class="btn btn-primary" aria-label="Jatka seuraavaan vaiheeseen">Jatka →</button>
   </div>
 </form>
-<style>
-  /* tee päivämääräkentästä kapea ja vasempaan */
-  .date-left{ max-width:260px; }
-  .date-left input[type="date"]{ width:100%; }
-
-  /* valinnainen: siirrä kalenteri-ikoni vasemmalle (Chromium/Safari) */
-  .date-left{ position:relative; }
-  .date-left input[type="date"]{ padding-left:40px; }
-  .date-left input[type="date"]::-webkit-calendar-picker-indicator{
-    position:absolute; left:10px; right:auto; opacity:1; cursor:pointer;
-  }
-</style>
 
 <script>
 /* ===== Google Places Autocomplete for Wizard ===== */
@@ -632,12 +630,21 @@ def order_step4():
         d["orderer_email"] = request.form.get("orderer_email","").strip()
         d["orderer_phone"] = request.form.get("orderer_phone","").strip()
         # Customer (Asiakas) fields
-        d["customer_reference"] = request.form.get("customer_reference","").strip()
         d["customer_name"] = request.form.get("customer_name","").strip()
         d["customer_phone"] = request.form.get("customer_phone","").strip()
-        d["customer_email"] = request.form.get("customer_email","").strip()
+        
+        # Validate phone numbers
+        if not validate_phone_number(d["orderer_phone"]):
+            session["error_message"] = "Tilaajan puhelinnumero ei ole kelvollinen. Käytä vain numeroita ja merkkejä +, -, ( )"
+            session["order_draft"] = d
+            return redirect("/order/new/step4")
+        
+        if not validate_phone_number(d["customer_phone"]):
+            session["error_message"] = "Asiakkaan puhelinnumero ei ole kelvollinen. Käytä vain numeroita ja merkkejä +, -, ( )"
+            session["order_draft"] = d
+            return redirect("/order/new/step4")
+        
         # Legacy field for backward compatibility
-        d["email"] = d["customer_email"]
         d["phone"] = d["customer_phone"]
         session["order_draft"] = d
         return redirect("/order/new/step5")
@@ -656,14 +663,12 @@ def order_step4():
     orderer_email_val = (d.get("orderer_email", "") or "").replace('"', '&quot;')
     orderer_phone_val = (d.get("orderer_phone", "") or "").replace('"', '&quot;')
 
-    customer_reference_val = (d.get("customer_reference", "") or "").replace('"', '&quot;')
     customer_name_val = (d.get("customer_name", "") or "").replace('"', '&quot;')
     customer_phone_val = (d.get("customer_phone", "") or "").replace('"', '&quot;')
-    customer_email_val = (d.get("customer_email", "") or "").replace('"', '&quot;')
 
     # Check for error message and display it
     error_msg = session.pop("error_message", None)
-    error_html = f"<div class='error-message' style='margin-bottom: 1rem; padding: 0.75rem; background-color: #fef2f2; border: 1px solid #fca5a5; border-radius: 0.375rem;'>{error_msg}</div>" if error_msg else ""
+    error_html = f"<div class='error-message'>{error_msg}</div>" if error_msg else ""
 
     inner = f"""
 <h2 class='card-title'>Yhteystiedot</h2>
@@ -672,7 +677,7 @@ def order_step4():
   <!-- Orderer Section -->
   <div style='background: #f0f9ff; padding: 1.25rem; border-radius: 8px; margin-bottom: 1.5rem; border: 1px solid #bfdbfe;'>
     <h3 style='margin-top: 0; margin-bottom: 1rem; color: #1e40af; font-size: 1.1rem; display: flex; align-items: center; gap: 0.5rem;'>
-      🏢 Tilaajan tiedot
+      Tilaajan tiedot
       <span style='font-size: 0.8rem; font-weight: normal; color: #64748b;'>(Kuka tilaa kuljetuksen)</span>
     </h3>
     <label class='form-label'>Tilaajan nimi *</label>
@@ -680,30 +685,60 @@ def order_step4():
     <label class='form-label'>Tilaajan sähköposti *</label>
     <input type='email' name='orderer_email' required class='form-input' value="{orderer_email_val}" placeholder="yritys@example.com">
     <label class='form-label'>Tilaajan puhelin *</label>
-    <input name='orderer_phone' required class='form-input' value="{orderer_phone_val}" placeholder="+358...">
+    <input type='tel' name='orderer_phone' required class='form-input' value="{orderer_phone_val}" placeholder="+358..." pattern="[+]?[0-9\s\-()]+" title="Käytä vain numeroita ja merkkejä +, -, ( )" aria-label="Tilaajan puhelinnumero">
   </div>
 
   <!-- Customer Section -->
   <div style='background: #fefce8; padding: 1.25rem; border-radius: 8px; margin-bottom: 1.5rem; border: 1px solid #fde047;'>
     <h3 style='margin-top: 0; margin-bottom: 1rem; color: #854d0e; font-size: 1.1rem; display: flex; align-items: center; gap: 0.5rem;'>
-      👤 Asiakkaan tiedot
-      <span style='font-size: 0.8rem; font-weight: normal; color: #64748b;'>(Kenelle auto toimitetaan)</span>
+      Asiakkaan tiedot
     </h3>
-    <label class='form-label'>Asiakkaan viite / referenssi</label>
-    <input name='customer_reference' class='form-input' value="{customer_reference_val}" placeholder="Esim. tilausnumero, projektikoodi">
     <label class='form-label'>Asiakkaan nimi *</label>
     <input name='customer_name' required class='form-input' value="{customer_name_val}" placeholder="Vastaanottajan nimi">
     <label class='form-label'>Asiakkaan puhelinnumero *</label>
-    <input name='customer_phone' required class='form-input' value="{customer_phone_val}" placeholder="+358...">
-    <label class='form-label'>Asiakkaan sähköposti *</label>
-    <input type='email' name='customer_email' required class='form-input' value="{customer_email_val}" placeholder="asiakas@example.com">
+    <input type='tel' name='customer_phone' required class='form-input' value="{customer_phone_val}" placeholder="+358..." pattern="[+]?[0-9\s\-()]+" title="Käytä vain numeroita ja merkkejä +, -, ( )" aria-label="Asiakkaan puhelinnumero">
   </div>
 
   <div class='row calculator-actions'>
     <button type='button' onclick='window.location.href="/order/new/step3"' class='btn btn-ghost'>← Takaisin</button>
     <button type='submit' class='btn btn-primary'>Jatka →</button>
   </div>
-</form>"""
+</form>
+<script>
+// Phone number validation with real-time feedback
+(function() {{
+    const phoneInputs = document.querySelectorAll('input[type="tel"]');
+    const phonePattern = /^[+]?[0-9\s\-()]+$/;
+    
+    phoneInputs.forEach(input => {{
+        // Create error message element
+        const errorMsg = document.createElement('small');
+        errorMsg.style.cssText = 'color: #dc2626; font-size: 0.875rem; margin-top: -18px; margin-bottom: 12px; display: none;';
+        errorMsg.textContent = 'Käytä vain numeroita ja merkkejä +, -, ( )';
+        input.parentNode.insertBefore(errorMsg, input.nextSibling);
+        
+        // Real-time validation
+        input.addEventListener('input', function() {{
+            const value = this.value.trim();
+            
+            if (value && !phonePattern.test(value)) {{
+                errorMsg.style.display = 'block';
+                this.setCustomValidity('Virheellinen puhelinnumero');
+            }} else {{
+                errorMsg.style.display = 'none';
+                this.setCustomValidity('');
+            }}
+        }});
+        
+        // Validation on blur
+        input.addEventListener('blur', function() {{
+            if (this.value.trim() && !phonePattern.test(this.value.trim())) {{
+                errorMsg.style.display = 'block';
+            }}
+        }});
+    }});
+}})();
+</script>"""
     return get_wrap()(wizard_shell(4, inner, session.get("order_draft", {})), u)
 
 # STEP 5: Notes
@@ -748,7 +783,7 @@ def order_confirm():
     d = session.get("order_draft", {})
     required = ["pickup","dropoff","reg_number",
                 "orderer_name","orderer_email","orderer_phone",
-                "customer_name","customer_email","customer_phone"]
+                "customer_name","customer_phone"]
 
     # Check which fields are missing and redirect to appropriate step
     missing_fields = [k for k in required if not d.get(k)]
@@ -770,12 +805,12 @@ def order_confirm():
             session["error_message"] = "Ajoneuvon rekisterinumero puuttuu. Täytä rekisterinumero."
             return redirect("/order/new/step3")
         elif any(field in missing_fields for field in ["orderer_name", "orderer_email", "orderer_phone",
-                                                        "customer_name", "customer_email", "customer_phone"]):
+                                                        "customer_name", "customer_phone"]):
             missing_contact_fields = [f for f in ["orderer_name", "orderer_email", "orderer_phone",
-                                                   "customer_name", "customer_email", "customer_phone"] if f in missing_fields]
+                                                   "customer_name", "customer_phone"] if f in missing_fields]
             field_names = {
                 "orderer_name": "tilaajan nimi", "orderer_email": "tilaajan sähköposti", "orderer_phone": "tilaajan puhelinnumero",
-                "customer_name": "asiakkaan nimi", "customer_email": "asiakkaan sähköposti", "customer_phone": "asiakkaan puhelinnumero"
+                "customer_name": "asiakkaan nimi", "customer_phone": "asiakkaan puhelinnumero"
             }
             missing_names = [field_names[f] for f in missing_contact_fields]
             session["error_message"] = f"Yhteystiedot puuttuvat: {', '.join(missing_names)}. Täytä puuttuvat tiedot."
@@ -812,13 +847,10 @@ def order_confirm():
             "orderer_phone": d.get("orderer_phone"),
 
             # Customer (Asiakas) information
-            "customer_reference": d.get("customer_reference"),
             "customer_name": d.get("customer_name"),
             "customer_phone": d.get("customer_phone"),
-            "customer_email": d.get("customer_email"),
 
             # Legacy fields for backward compatibility
-            "email": d.get("customer_email"),
             "phone": d.get("customer_phone"),
             "company": d.get("company"),
 
@@ -845,7 +877,7 @@ def order_confirm():
             # Stay on confirmation page to show error
             pass
 
-    price_block = f"<div class='card'><strong style='font-size: 0.9em;'>Arvioitu hinta:</strong> <span style='font-size: 1.5em; font-weight: 800;'>{net:.2f} €</span> <strong style='font-size: 1.1em;'>+ ALV 0%</strong> <span style='opacity: 0.6; font-size: 0.85em;'>({km:.1f} km)</span></div>"
+    price_block = f"<div class='card'><strong style='font-size: 0.9em;'>Hinta:</strong> <span style='font-size: 1.5em; font-weight: 800;'>{net:.2f} €</span> <strong style='font-size: 1.1em;'>ALV 0%</strong> <span style='opacity: 0.6; font-size: 0.85em;'>({km:.1f} km)</span></div>"
     if err: price_block = f"<div class='card'><span class='muted'>{err}</span><br>{price_block}</div>"
 
     # Check for error message in session
@@ -860,26 +892,26 @@ def order_confirm():
     <div class='confirmation-card'><h3 class='confirmation-title'>Nouto</h3><p class='confirmation-text'>{d.get('pickup')}</p><p class='confirmation-meta'>{d.get('pickup_date') or 'Heti'}</p></div>
     <div class='confirmation-card'><h3 class='confirmation-title'>Toimitus</h3><p class='confirmation-text'>{d.get('dropoff')}</p></div>
     <div class='confirmation-card'><h3 class='confirmation-title'>Ajoneuvo</h3><p class='confirmation-text'>Rekisteri: {d.get('reg_number')}</p><p class='confirmation-meta'>Talvirenkaat: {"Kyllä" if d.get('winter_tires') else "Ei"}</p></div>
-    <div class='confirmation-card'><h3 class='confirmation-title'>🏢 Tilaaja</h3><p class='confirmation-text'>{d.get('orderer_name')}</p><p class='confirmation-meta'>{d.get('orderer_email')} / {d.get('orderer_phone')}</p></div>
-    <div class='confirmation-card'><h3 class='confirmation-title'>👤 Asiakas</h3><p class='confirmation-text'>{d.get('customer_name')}</p><p class='confirmation-meta'>Viite: {d.get('customer_reference') or '-'}</p><p class='confirmation-meta'>{d.get('customer_email')} / {d.get('customer_phone')}</p></div>
+    <div class='confirmation-card'><h3 class='confirmation-title'>Tilaajan tiedot</h3><p class='confirmation-text'>{d.get('orderer_name')}</p><p class='confirmation-meta'>{d.get('orderer_email')} / {d.get('orderer_phone')}</p></div>
+    <div class='confirmation-card'><h3 class='confirmation-title'>Asiakkaan tiedot</h3><p class='confirmation-text'>{d.get('customer_name')}</p><p class='confirmation-meta'>{d.get('customer_phone')}</p></div>
     <div class='confirmation-card'><h3 class='confirmation-title'>Lisätiedot</h3><p class='confirmation-text'>{(d.get('additional_info') or '-').replace('<','&lt;')}</p></div>
   </div>
   <div class='confirmation-map-container'>
     <div class='confirmation-card map-card'>
       <h3 class='confirmation-title'>Reitti</h3>
       <div id="confirmation_map" class="confirmation-map"></div>
-      <p class='confirmation-meta'><strong style='font-size: 1.3em; font-weight: 800;'>{net:.2f} €</strong> <strong>+ ALV 0%</strong></p>
+      <p class='confirmation-meta'><strong style='font-size: 1.3em; font-weight: 800;'>{net:.2f} €</strong> <strong>ALV 0%</strong></p>
     </div>
   </div>
 </div>
 <div class='price-summary'>
   <div class='price-card'>
-    <h3 class='price-title'>Arvioitu hinta</h3>
+    <h3 class='price-title'>Hinta</h3>
     <div class='price-details'>
       <span class='distance'>{km:.1f} km</span>
       <div class='price-breakdown-confirm'>
         <div class='price-main-confirm' style="font-size: 2.5em; font-weight: 800; line-height: 1.1; margin-bottom: 4px;">{net:.2f} €</div>
-        <div style="font-size: 1.2em; font-weight: 700; margin-bottom: 12px;">+ ALV 0%</div>
+        <div style="font-size: 1.2em; font-weight: 700; margin-bottom: 12px;">ALV 0%</div>
         <div class='price-vat-confirm' style="font-size: 0.75em; opacity: 0.5; margin-top: 8px;">ALV 25,5%: {vat:.2f} € | Yhteensä sis. ALV: {gross:.2f} €</div>
       </div>
     </div>
@@ -889,7 +921,7 @@ def order_confirm():
 <form method='POST' class='calculator-form'>
   <div class='calculator-actions'>
     <button type='button' onclick='window.location.href="/order/new/step5"' class='btn btn-ghost'>← Takaisin</button>
-    <button type='submit' class='btn btn-primary'>Lähetä tilaus ✓</button>
+    <button type='submit' class='btn btn-primary'>Lähetä tilaus</button>
   </div>
 </form>
 
@@ -924,6 +956,24 @@ def order_confirm():
   height: auto;
 }}
 
+/* Distance label styling for map */
+.distance-label {{
+  background: transparent;
+  border: none;
+}}
+
+.distance-text {{
+  background: rgba(59, 130, 246, 0.95);
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 1.5rem;
+  font-weight: 700;
+  font-size: 0.95rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  white-space: nowrap;
+  text-align: center;
+}}
+
 @media (max-width: 768px) {{
   .confirmation-layout {{
     flex-direction: column;
@@ -931,6 +981,11 @@ def order_confirm():
 
   .confirmation-map {{
     height: 200px;
+  }}
+  
+  .distance-text {{
+    font-size: 0.85rem;
+    padding: 0.4rem 0.8rem;
   }}
 }}
 </style>
@@ -984,18 +1039,27 @@ class RouteMap {{
 document.addEventListener('DOMContentLoaded', function() {{
   const map = new RouteMap('confirmation_map', true);
 
-  // Fetch route data
-  const pickup = encodeURIComponent('{d.get("pickup")}');
-  const dropoff = encodeURIComponent('{d.get("dropoff")}');
+  // Fetch route data using the same endpoint as calculator
+  const pickup = '{d.get("pickup")}';
+  const dropoff = '{d.get("dropoff")}';
 
-  fetch(`/route?from=${{pickup}}&to=${{dropoff}}`)
+  fetch('/api/route_geo', {{
+    method: 'POST',
+    headers: {{
+      'Content-Type': 'application/json'
+    }},
+    body: JSON.stringify({{ pickup: pickup, dropoff: dropoff }})
+  }})
     .then(response => response.json())
     .then(data => {{
       if (data.latlngs && data.start && data.end) {{
         map.draw(data.latlngs, data.start, data.end, {km:.1f});
       }}
     }})
-    .catch(error => {{ /* Could not load route - silently handle */ }});
+    .catch(error => {{ 
+      console.error('Map loading error:', error);
+      /* Could not load route - silently handle */ 
+    }});
 }});
 </script>
 """

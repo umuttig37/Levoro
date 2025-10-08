@@ -14,6 +14,7 @@ class EmailService:
 
     def __init__(self, mail_instance: Mail = None):
         self.mail = mail_instance
+        self.dev_mode = os.getenv('FLASK_ENV', 'production') == 'development'
 
     def configure_mail(self, app):
         """Configure Flask-Mail with Zoho SMTP settings"""
@@ -38,6 +39,7 @@ class EmailService:
                    text_body: str = None, sender: str = None) -> bool:
         """
         Send an email using Flask-Mail and Zoho SMTP
+        In development mode, saves emails as HTML files instead of sending
 
         Args:
             subject: Email subject
@@ -49,11 +51,22 @@ class EmailService:
         Returns:
             bool: True if email was sent successfully, False otherwise
         """
+        # Re-check environment on each send for safety (prevents accidental dev mode in production)
+        flask_env = os.getenv('FLASK_ENV', 'production').lower()
+        is_dev_mode = flask_env == 'development'
+        
         # Log email attempt details
         print(f"[EMAIL] Attempting to send email")
+        print(f"   Environment: {flask_env.upper()}")
         print(f"   From: {sender or current_app.config.get('MAIL_DEFAULT_SENDER', 'N/A')}")
         print(f"   To: {recipients}")
         print(f"   Subject: {subject}")
+        
+        # In development mode, save email to file instead of sending
+        if is_dev_mode:
+            print(f"   [DEV MODE] Saving email to file instead of sending...")
+            return self._save_email_to_file(subject, recipients, html_body, sender)
+        
         print(f"   SMTP Server: {current_app.config.get('MAIL_SERVER', 'N/A')}")
         print(f"   SMTP Port: {current_app.config.get('MAIL_PORT', 'N/A')}")
         print(f"   Use SSL: {current_app.config.get('MAIL_USE_SSL', 'N/A')}")
@@ -134,6 +147,29 @@ class EmailService:
             )
         except Exception as e:
             current_app.logger.error(f"Failed to send account approved email: {str(e)}")
+            return False
+
+    def send_password_reset_email(self, user_email: str, user_name: str, reset_url: str, token: str) -> bool:
+        """Send password reset email with reset link"""
+        print(f"🔐 PASSWORD RESET EMAIL:")
+        print(f"   Recipient: {user_name} <{user_email}>")
+        print(f"   Reset URL: {reset_url}")
+        
+        try:
+            html_body = render_template('emails/password_reset.html',
+                                      user_name=user_name,
+                                      reset_url=reset_url,
+                                      token=token)
+
+            return self.send_email(
+                subject="Salasanan palautus - Levoro",
+                recipients=[user_email],
+                html_body=html_body
+            )
+        except Exception as e:
+            error_msg = f"Failed to send password reset email: {str(e)}"
+            current_app.logger.error(error_msg)
+            print(f"   ❌ {error_msg}")
             return False
 
     def send_order_created_email(self, user_email: str, user_name: str, order_data: Dict) -> bool:
@@ -516,6 +552,362 @@ class EmailService:
             current_app.logger.error(f"Failed to send driver application denial: {str(e)}")
             print(f"   [ERROR] Failed to send driver application denial: {str(e)}")
             return False
+
+    def send_admin_driver_action_notification(self, order_id: int, driver_name: str, action: str, order_data: Dict) -> bool:
+        """Send notification to admin when driver performs an action"""
+        admin_email = os.getenv("ADMIN_EMAIL", "support@levoro.fi")
+
+        print(f"[ADMIN] DRIVER ACTION NOTIFICATION:")
+        print(f"   To: {admin_email}")
+        print(f"   Order ID: #{order_id}")
+        print(f"   Driver: {driver_name}")
+        print(f"   Action: {action}")
+
+        try:
+            # Map action to Finnish description
+            action_descriptions = {
+                "DRIVER_ARRIVED": "Kuljettaja on saapunut noutopaikalle",
+                "PICKUP_IMAGES_ADDED": "Kuljettaja on lisännyt noutokuvat",
+                "IN_TRANSIT": "Kuljettaja on aloittanut kuljetuksen",
+                "DELIVERY_ARRIVED": "Kuljettaja on saapunut toimituspaikalle",
+                "DELIVERY_IMAGES_ADDED": "Kuljettaja on lisännyt toimituskuvat",
+                "DELIVERED": "Kuljettaja on merkinnyt toimituksen valmiiksi"
+            }
+
+            action_finnish = action_descriptions.get(action, action)
+
+            base_url = os.getenv("BASE_URL", "http://localhost:3000")
+            order_detail_url = f"{base_url}/admin/order/{order_id}"
+
+            html_body = f"""
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+                <div style="background: linear-gradient(135deg, #f59e0b, #d97706); color: white; padding: 30px; border-radius: 12px; margin-bottom: 30px; text-align: center;">
+                    <h1 style="margin: 0; font-size: 28px;">Kuljettajan toimenpide</h1>
+                    <p style="margin: 10px 0 0 0; font-size: 16px; opacity: 0.9;">Tilaus #{order_id}</p>
+                </div>
+
+                <div style="padding: 0 20px;">
+                    <div style="background: #fef3c7; border-left: 4px solid #f59e0b; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                        <h3 style="margin-top: 0; color: #92400e;">Toimenpide:</h3>
+                        <p style="font-size: 18px; font-weight: bold; color: #92400e; margin: 5px 0;">{action_finnish}</p>
+                        <p style="margin: 10px 0 0 0; color: #92400e;">Kuljettaja: <strong>{driver_name}</strong></p>
+                    </div>
+
+                    <div style="background: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                        <h3 style="margin-top: 0; color: #1f2937; border-bottom: 2px solid #e5e7eb; padding-bottom: 8px;">Tilauksen tiedot</h3>
+                        <table style="width: 100%; border-collapse: collapse;">
+                            <tr><td style="padding: 8px 0; font-weight: bold; width: 40%;">Tilaus #:</td><td style="padding: 8px 0;">{order_id}</td></tr>
+                            <tr><td style="padding: 8px 0; font-weight: bold;">Nouto:</td><td style="padding: 8px 0;">{order_data.get('pickup_address', 'N/A')}</td></tr>
+                            <tr><td style="padding: 8px 0; font-weight: bold;">Toimitus:</td><td style="padding: 8px 0;">{order_data.get('dropoff_address', 'N/A')}</td></tr>
+                            <tr><td style="padding: 8px 0; font-weight: bold;">Matka:</td><td style="padding: 8px 0;">{order_data.get('distance_km', 0)} km</td></tr>
+                            <tr><td style="padding: 8px 0; font-weight: bold;">Rekisterinumero:</td><td style="padding: 8px 0;">{order_data.get('reg_number', 'N/A')}</td></tr>
+                        </table>
+                    </div>
+
+                    <div style="background: #dbeafe; border: 2px solid #3b82f6; padding: 20px; border-radius: 8px; margin: 25px 0;">
+                        <p style="margin: 0; color: #1e40af; font-size: 14px;">
+                            <strong>Huomio:</strong> Tämä on automaattinen ilmoitus kuljettajan toimenpiteestä.
+                            Voit päivittää tilauksen tilan admin-paneelista tarpeen mukaan.
+                        </p>
+                    </div>
+
+                    <div style="text-align: center; margin: 30px 0;">
+                        <a href="{order_detail_url}"
+                           style="background: #3b82f6; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600; display: inline-block;">
+                            Näytä tilaus admin-paneelissa
+                        </a>
+                    </div>
+
+                    <p style="font-size: 16px; color: #374151;">
+                        Ystävällisin terveisin,<br>
+                        <strong>Levoro järjestelmä</strong>
+                    </p>
+                </div>
+
+                <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb;">
+                    <p style="font-size: 14px; color: #6b7280;">
+                        Levoro - Luotettavaa autokuljetusta<br>
+                        <a href="https://levoro.fi" style="color: #3b82f6;">levoro.fi</a>
+                    </p>
+                </div>
+            </div>
+            """
+
+            return self.send_email(
+                subject=f"[Levoro] Kuljettajan toimenpide tilaus #{order_id} - {action_finnish}",
+                recipients=[admin_email],
+                html_body=html_body
+            )
+        except Exception as e:
+            current_app.logger.error(f"Failed to send admin driver action notification: {str(e)}")
+            print(f"   [ERROR] Failed to send admin driver action notification: {str(e)}")
+            return False
+
+    def _save_email_to_file(self, subject: str, recipients: List[str], html_body: str, sender: str = None) -> bool:
+        """Save email as HTML file for development testing"""
+        try:
+            from datetime import datetime
+            import re
+            
+            # Create dev_emails directory if it doesn't exist
+            emails_dir = os.path.join('static', 'dev_emails')
+            os.makedirs(emails_dir, exist_ok=True)
+            
+            # Generate filename with timestamp
+            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S_%f')
+            # Sanitize subject for filename
+            safe_subject = re.sub(r'[^a-zA-Z0-9_-]', '_', subject)[:50]
+            filename = f"{timestamp}_{safe_subject}.html"
+            filepath = os.path.join(emails_dir, filename)
+            
+            # Create email wrapper with metadata
+            email_html = f"""
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>{subject}</title>
+    <style>
+        body {{ font-family: Arial, sans-serif; margin: 0; padding: 20px; background: #f5f5f5; }}
+        .email-metadata {{
+            background: #2c3e50;
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }}
+        .email-metadata h2 {{ margin-top: 0; color: #3498db; }}
+        .email-metadata p {{ margin: 5px 0; }}
+        .email-metadata strong {{ color: #ecf0f1; }}
+        .email-content {{
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }}
+        .timestamp {{ color: #95a5a6; font-size: 0.9em; }}
+    </style>
+</head>
+<body>
+    <div class="email-metadata">
+        <h2>📧 Development Email Mock</h2>
+        <p><strong>From:</strong> {sender or 'support@levoro.fi'}</p>
+        <p><strong>To:</strong> {', '.join(recipients)}</p>
+        <p><strong>Subject:</strong> {subject}</p>
+        <p class="timestamp"><strong>Timestamp:</strong> {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</p>
+    </div>
+    <div class="email-content">
+        {html_body}
+    </div>
+</body>
+</html>
+"""
+            
+            # Write to file
+            with open(filepath, 'w', encoding='utf-8') as f:
+                f.write(email_html)
+            
+            # Create index.html for easy browsing
+            self._update_email_index(emails_dir)
+            
+            print(f"   ✅ [DEV] Email saved to: {filepath}")
+            print(f"   🌐 [DEV] View at: http://localhost:8000/static/dev_emails/{filename}")
+            print(f"   📋 [DEV] Email index: http://localhost:8000/static/dev_emails/index.html")
+            return True
+            
+        except Exception as e:
+            print(f"   ❌ [DEV] Failed to save email to file: {str(e)}")
+            return False
+    
+    def _update_email_index(self, emails_dir: str):
+        """Update index.html with list of all saved emails"""
+        try:
+            from datetime import datetime
+            import glob
+            
+            # Get all email files
+            email_files = sorted(
+                glob.glob(os.path.join(emails_dir, '*.html')),
+                key=os.path.getmtime,
+                reverse=True
+            )
+            
+            # Remove index.html from list
+            email_files = [f for f in email_files if not f.endswith('index.html')]
+            
+            # Generate index HTML
+            index_html = f"""
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Development Emails - Levoro</title>
+    <style>
+        body {{
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }}
+        .container {{
+            max-width: 1200px;
+            margin: 0 auto;
+        }}
+        h1 {{
+            color: white;
+            text-align: center;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }}
+        .subtitle {{
+            text-align: center;
+            color: rgba(255,255,255,0.9);
+            margin-bottom: 30px;
+        }}
+        .stats {{
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
+            padding: 15px;
+            border-radius: 8px;
+            color: white;
+            text-align: center;
+            margin-bottom: 20px;
+        }}
+        .email-list {{
+            display: grid;
+            gap: 15px;
+        }}
+        .email-card {{
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            transition: transform 0.2s, box-shadow 0.2s;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }}
+        .email-card:hover {{
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+        }}
+        .email-info {{
+            flex: 1;
+        }}
+        .email-filename {{
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 5px;
+            font-size: 1.1em;
+        }}
+        .email-time {{
+            color: #7f8c8d;
+            font-size: 0.9em;
+        }}
+        .email-actions {{
+            display: flex;
+            gap: 10px;
+        }}
+        .btn {{
+            padding: 10px 20px;
+            border-radius: 6px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.2s;
+            display: inline-block;
+        }}
+        .btn-primary {{
+            background: #3498db;
+            color: white;
+        }}
+        .btn-primary:hover {{
+            background: #2980b9;
+        }}
+        .btn-danger {{
+            background: #e74c3c;
+            color: white;
+        }}
+        .btn-danger:hover {{
+            background: #c0392b;
+        }}
+        .no-emails {{
+            background: white;
+            padding: 40px;
+            border-radius: 12px;
+            text-align: center;
+            color: #7f8c8d;
+        }}
+        .clear-all {{
+            text-align: center;
+            margin-top: 20px;
+        }}
+        .icon {{ font-size: 1.2em; margin-right: 5px; }}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📧 Development Email Inbox</h1>
+        <p class="subtitle">All emails are saved here instead of being sent in development mode</p>
+        
+        <div class="stats">
+            <strong>Total Emails:</strong> {len(email_files)} | 
+            <strong>Last Updated:</strong> {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
+        </div>
+        
+        <div class="email-list">
+"""
+            
+            if email_files:
+                for email_file in email_files:
+                    filename = os.path.basename(email_file)
+                    file_time = datetime.fromtimestamp(os.path.getmtime(email_file))
+                    time_str = file_time.strftime('%Y-%m-%d %H:%M:%S')
+                    
+                    # Extract readable subject from filename
+                    parts = filename.split('_', 3)
+                    display_name = parts[3].replace('.html', '').replace('_', ' ') if len(parts) > 3 else filename
+                    
+                    index_html += f"""
+            <div class="email-card">
+                <div class="email-info">
+                    <div class="email-filename"><span class="icon">📨</span>{display_name}</div>
+                    <div class="email-time">🕐 {time_str}</div>
+                </div>
+                <div class="email-actions">
+                    <a href="{filename}" class="btn btn-primary" target="_blank">View Email</a>
+                </div>
+            </div>
+"""
+            else:
+                index_html += """
+            <div class="no-emails">
+                <div style="font-size: 4em; margin-bottom: 20px;">📭</div>
+                <h2>No Emails Yet</h2>
+                <p>Emails will appear here as they are generated in development mode.</p>
+            </div>
+"""
+            
+            index_html += f"""
+        </div>
+        
+        {f'<div class="clear-all"><button class="btn btn-danger" onclick="if(confirm(\'Clear all emails?\')) {{ alert(\'Please delete files manually from static/dev_emails folder\'); }}">🗑️ Clear All Emails</button></div>' if email_files else ''}
+    </div>
+    <script>
+        // Auto-refresh every 5 seconds
+        setTimeout(() => location.reload(), 5000);
+    </script>
+</body>
+</html>
+"""
+            
+            # Write index file
+            index_path = os.path.join(emails_dir, 'index.html')
+            with open(index_path, 'w', encoding='utf-8') as f:
+                f.write(index_html)
+                
+        except Exception as e:
+            print(f"   ⚠️ [DEV] Failed to update email index: {str(e)}")
 
     def _html_to_text(self, html_content: str) -> str:
         """Convert HTML content to plain text (simple implementation)"""

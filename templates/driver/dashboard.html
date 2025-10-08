@@ -1,4 +1,5 @@
 {% extends "base/layout.html" %}
+{% import 'components/icons.html' as icons %}
 
 {% block title %}Kuljettajan työpöytä{% endblock %}
 
@@ -64,18 +65,32 @@
       <div class="driver-section-body">
         <div class="driver-job-list">
           {% for job in active_jobs %}
-          <div class="driver-job-card">
+          <article class="driver-job-card" role="article" aria-label="Tilaus {{ job.id }}">
             <div class="driver-job-header">
               <div class="driver-job-content">
                 <h3 class="driver-job-title">Tilaus #{{ job.id }}</h3>
-                <p class="driver-job-route">{{ job.pickup_address }} → {{ job.dropoff_address }}</p>
+                <p class="driver-job-route" aria-label="Reitti">{{ job.pickup_address }} → {{ job.dropoff_address }}</p>
                 <div class="driver-job-meta">
-                  <span>{{ job.distance_km|round(1) }} km</span>
-                  <span><strong>{{ "%.2f"|format((job.price_gross|float) / 1.255) }} € + ALV 0%</strong></span>
+                  <span aria-label="Matka"><strong>Matka:</strong> {{ job.distance_km|default(0)|round(1) }} km</span>
+                  <span aria-label="Palkkio"><strong>Palkkio: {% if job.driver_reward %}{{ job.driver_reward|round(2)
+                      }}{% else %}0.00{% endif %} €</strong></span>
                 </div>
+                {% if job.additional_info and job.additional_info|length > 0 %}
+                <p style="font-size: 1rem; color: #6b7280; margin-top: 0.75rem; line-height: 1.5;">
+                  <strong>Lisätiedot:</strong> {{ job.additional_info[:50] }}{% if job.additional_info|length > 50
+                  %}...{% endif %}
+                </p>
+                {% endif %}
+                {% if job.car_brand or job.car_model %}
+                <p style="font-size: 1rem; color: #374151; margin-top: 0.75rem; font-weight: 500;">
+                  <strong>Auto:</strong> {{ job.car_brand or '' }} {{ job.car_model or '' }}
+                </p>
+                {% endif %}
               </div>
               <div class="driver-job-actions">
-                <span class="driver-job-status {% if job.status == 'ASSIGNED_TO_DRIVER' %}assigned{% elif job.status == 'DRIVER_ARRIVED' %}arrived{% elif job.status == 'PICKUP_IMAGES_ADDED' %}pickup-images{% elif job.status == 'IN_TRANSIT' %}in-transit{% elif job.status == 'DELIVERY_ARRIVED' %}delivery-arrived{% elif job.status == 'DELIVERY_IMAGES_ADDED' %}delivery-images{% else %}available{% endif %}">
+                <span
+                  class="driver-job-status {% if job.status == 'ASSIGNED_TO_DRIVER' %}assigned{% elif job.status == 'DRIVER_ARRIVED' %}arrived{% elif job.status == 'PICKUP_IMAGES_ADDED' %}pickup-images{% elif job.status == 'IN_TRANSIT' %}in-transit{% elif job.status == 'DELIVERY_ARRIVED' %}delivery-arrived{% elif job.status == 'DELIVERY_IMAGES_ADDED' %}delivery-images{% else %}available{% endif %}"
+                  role="status" aria-label="Tilauksen tila">
                   {% if job.status == 'ASSIGNED_TO_DRIVER' %}Määritetty
                   {% elif job.status == 'DRIVER_ARRIVED' %}Saapunut
                   {% elif job.status == 'PICKUP_IMAGES_ADDED' %}Noutokuvat lisätty
@@ -85,17 +100,18 @@
                   {% else %}{{ job.status }}{% endif %}
                 </span>
                 <div class="mt-2">
-                  <a href="{{ url_for('driver.job_detail', order_id=job.id) }}" class="btn btn-primary btn-sm">Avaa työ</a>
+                  <a href="{{ url_for('driver.job_detail', order_id=job.id) }}" class="btn btn-primary btn-sm"
+                    aria-label="Avaa tilaus {{ job.id }}">Avaa työ</a>
                 </div>
               </div>
             </div>
-          </div>
+          </article>
           {% endfor %}
         </div>
       </div>
       {% else %}
       <div class="driver-empty-state">
-        <div class="driver-empty-icon">✅</div>
+        <div class="driver-empty-icon">{{ icons.check_circle(48, '#94a3b8') }}</div>
         <h3 class="driver-empty-title">Ei aktiivisia töitä</h3>
         <p class="driver-empty-message">Kaikki työsi on suoritettu. Hienoa työtä!</p>
       </div>
@@ -108,31 +124,44 @@
       <div class="driver-section-body">
         <div class="driver-job-list">
           {% for job in available_jobs %}
-          <div class="driver-job-card">
+          <article class="driver-job-card" role="article" aria-label="Tilaus {{ job.id }}">
             <div class="driver-job-header">
               <div class="driver-job-content">
                 <h3 class="driver-job-title">Tilaus #{{ job.id }}</h3>
-                <p class="driver-job-route">{{ job.pickup_address|extract_city }} → {{ job.dropoff_address|extract_city }}</p>
+                <p class="driver-job-route" aria-label="Reitti">{{ job.pickup_address|extract_city }} → {{
+                  job.dropoff_address|extract_city }}</p>
                 <div class="driver-job-meta">
-                  <span>{{ job.distance_km|round(1) }} km</span>
-                  <span><strong>{{ "%.2f"|format((job.price_gross|float) / 1.255) }} € + ALV 0%</strong></span>
-                  <span>Luotu: {{ job.created_at|helsinki_time if job.created_at else 'Tuntematon' }}</span>
+                  <span aria-label="Matka"><strong>Matka:</strong> {{ job.distance_km|default(0)|round(1) }} km</span>
+                  <span aria-label="Palkkio"><strong>Palkkio: {% if job.driver_reward %}{{ job.driver_reward|round(2)
+                      }}{% else %}0.00{% endif %} €</strong></span>
                 </div>
+                {% if job.additional_info and job.additional_info|length > 0 %}
+                <p style="font-size: 1rem; color: #6b7280; margin-top: 0.75rem; line-height: 1.5;">
+                  <strong>Lisätiedot:</strong> {{ job.additional_info[:50] }}{% if job.additional_info|length > 50
+                  %}...{% endif %}
+                </p>
+                {% endif %}
+                {% if job.car_brand or job.car_model %}
+                <p style="font-size: 1rem; color: #374151; margin-top: 0.75rem; font-weight: 500;">
+                  <strong>Auto:</strong> {{ job.car_brand or '' }} {{ job.car_model or '' }}
+                </p>
+                {% endif %}
               </div>
               <div class="driver-job-actions">
-                <span class="driver-job-status available">Saatavilla</span>
+                <span class="driver-job-status available" role="status" aria-label="Tilauksen tila">Saatavilla</span>
                 <div class="mt-2">
-                  <a href="{{ url_for('driver.job_detail', order_id=job.id) }}" class="btn btn-primary btn-sm">Katso työ</a>
+                  <a href="{{ url_for('driver.job_detail', order_id=job.id) }}" class="btn btn-primary btn-sm"
+                    aria-label="Katso tilaus {{ job.id }}">Katso työ</a>
                 </div>
               </div>
             </div>
-          </div>
+          </article>
           {% endfor %}
         </div>
       </div>
       {% else %}
       <div class="driver-empty-state">
-        <div class="driver-empty-icon">📦</div>
+        <div class="driver-empty-icon">{{ icons.package(48, '#94a3b8') }}</div>
         <h3 class="driver-empty-title">Ei saatavilla olevia töitä</h3>
         <p class="driver-empty-message">Tarkista myöhemmin uusien töiden varalta</p>
       </div>
@@ -146,33 +175,36 @@
       <div class="driver-section-body">
         <div class="driver-job-list">
           {% for job in completed_jobs %}
-          <div class="driver-job-card">
+          <article class="driver-job-card" role="article" aria-label="Tilaus {{ job.id }}">
             <div class="driver-job-header">
               <div class="driver-job-content">
                 <h3 class="driver-job-title">Tilaus #{{ job.id }}</h3>
-                <p class="driver-job-route">{{ job.pickup_address }} → {{ job.dropoff_address }}</p>
+                <p class="driver-job-route" aria-label="Reitti">{{ job.pickup_address }} → {{ job.dropoff_address }}</p>
                 <div class="driver-job-meta">
-                  <span>{{ job.distance_km|round(1) }} km</span>
-                  <span><strong>{{ "%.2f"|format((job.price_gross|float) / 1.255) }} € + ALV 0%</strong></span>
-                  {% if job.delivery_completed %}
-                  <span>Valmistunut: {{ job.delivery_completed|helsinki_time if job.delivery_completed else '-' }}</span>
-                  {% endif %}
+                  <span aria-label="Matka"><strong>Matka:</strong> {{ job.distance_km|default(0)|round(1) }} km</span>
+                  <span aria-label="Palkkio"><strong>Palkkio: {% if job.driver_reward %}{{ job.driver_reward|round(2)
+                      }}{% else %}0.00{% endif %} €</strong></span>
                 </div>
+                {% if job.car_brand or job.car_model %}
+                <p style="font-size: 1rem; color: #6b7280; margin-top: 0.75rem; font-weight: 500;">{{ job.car_brand or
+                  '' }} {{ job.car_model or '' }}</p>
+                {% endif %}
               </div>
               <div class="driver-job-actions">
-                <span class="driver-job-status delivered">✅ Toimitettu</span>
+                <span class="driver-job-status delivered" role="status" aria-label="Tilauksen tila">Toimitettu</span>
                 <div class="mt-2">
-                  <a href="{{ url_for('driver.job_detail', order_id=job.id) }}" class="btn btn-ghost btn-sm">Katso tiedot</a>
+                  <a href="{{ url_for('driver.job_detail', order_id=job.id) }}" class="btn btn-ghost btn-sm"
+                    aria-label="Katso tilauksen {{ job.id }} tiedot">Katso tiedot</a>
                 </div>
               </div>
             </div>
-          </div>
+          </article>
           {% endfor %}
         </div>
       </div>
       {% else %}
       <div class="driver-empty-state">
-        <div class="driver-empty-icon">📋</div>
+        <div class="driver-empty-icon">{{ icons.clipboard(48, '#94a3b8') }}</div>
         <h3 class="driver-empty-title">Ei vielä suoritettuja töitä</h3>
         <p class="driver-empty-message">Suoritetut työt näkyvät täällä</p>
       </div>
@@ -182,12 +214,12 @@
 
   <script>
     // Tab switching functionality
-    document.addEventListener('DOMContentLoaded', function() {
+    document.addEventListener('DOMContentLoaded', function () {
       const tabButtons = document.querySelectorAll('.driver-tab-button');
       const tabContents = document.querySelectorAll('.driver-tab-content');
 
       tabButtons.forEach(button => {
-        button.addEventListener('click', function() {
+        button.addEventListener('click', function () {
           const targetTab = this.getAttribute('data-tab');
 
           // Remove active class from all buttons and contents

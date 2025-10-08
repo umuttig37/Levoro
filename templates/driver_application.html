@@ -1,4 +1,5 @@
 {% extends "base/layout.html" %}
+{% import 'components/icons.html' as icons %}
 
 {% block title %}Hae kuljettajaksi – Levoro{% endblock %}
 
@@ -295,7 +296,7 @@
 
         <!-- Driver's License Images -->
         <div class="form-section">
-            <h2 class="form-section-title">📄 Ajokortti</h2>
+            <h2 class="form-section-title">{{ icons.id_card(20, 'currentColor', 'icon-inline') }} Ajokortti</h2>
             <div class="form-help" style="margin-bottom: 20px; font-size: 0.95rem;">
                 Lataa selkeät kuvat ajokortistasi molemmilta puolilta. Varmista, että kaikki tiedot ovat luettavissa.
             </div>
@@ -303,13 +304,13 @@
                 <div class="form-group">
                     <label class="form-label required" for="license_front">Ajokortti (etuosa)</label>
                     <input type="file" id="license_front" name="license_front" class="form-input"
-                           accept=".jpg,.jpeg,.png,.webp" required>
+                        accept=".jpg,.jpeg,.png,.webp" required>
                     <div class="form-help">Ajokortin etupuoli (max 5MB)</div>
                 </div>
                 <div class="form-group">
                     <label class="form-label required" for="license_back">Ajokortti (takaosa)</label>
                     <input type="file" id="license_back" name="license_back" class="form-input"
-                           accept=".jpg,.jpeg,.png,.webp" required>
+                        accept=".jpg,.jpeg,.png,.webp" required>
                     <div class="form-help">Ajokortin takapuoli (max 5MB)</div>
                 </div>
             </div>

@@ -67,66 +67,108 @@
     margin: 0;
 }
 
-/* Driver Job Cards */
+/* Driver Job Cards - Enhanced for Mobile Accessibility */
 .driver-job-card {
-    border: 1px solid var(--border-light);
+    border: 2px solid var(--border-light);
     border-radius: var(--radius-lg);
-    padding: var(--space-4);
+    padding: var(--space-5);
     background: var(--color-white);
     transition: all var(--transition-fast);
-    margin-bottom: var(--space-4);
+    margin-bottom: var(--space-5);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.06);
+    /* Accessibility: Ensure minimum touch target size */
+    min-height: 120px;
 }
 
 .driver-job-card:hover {
     background: var(--color-gray-50);
-    border-color: var(--color-primary-300);
-    box-shadow: var(--shadow-sm);
+    border-color: var(--color-primary);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    transform: translateY(-2px);
+}
+
+.driver-job-card:focus-within {
+    outline: 3px solid var(--color-primary);
+    outline-offset: 2px;
 }
 
 .driver-job-header {
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
+    gap: var(--space-4);
     margin-bottom: var(--space-3);
 }
 
 .driver-job-content {
     flex: 1;
+    min-width: 0;
+    /* Prevent text overflow issues */
 }
 
 .driver-job-title {
-    font-size: var(--font-size-lg);
-    font-weight: var(--font-weight-semibold);
+    font-size: 1.25rem;
+    /* 20px - Larger for better readability */
+    font-weight: var(--font-weight-bold);
     color: var(--text-primary);
-    margin-bottom: var(--space-2);
+    margin-bottom: var(--space-3);
+    line-height: 1.3;
 }
 
 .driver-job-route {
     color: var(--text-secondary);
     margin-bottom: var(--space-3);
+    font-size: 1rem;
+    /* 16px - Base size for good readability */
+    line-height: 1.5;
+    font-weight: var(--font-weight-medium);
 }
 
 .driver-job-meta {
     display: flex;
-    gap: var(--space-4);
-    font-size: var(--font-size-sm);
-    color: var(--text-muted);
+    flex-direction: column;
+    gap: var(--space-2);
+    font-size: 1rem;
+    /* 16px - Increased from sm */
+    color: var(--text-primary);
+    line-height: 1.6;
+}
+
+.driver-job-meta span {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+.driver-job-meta strong {
+    color: var(--color-primary);
+    font-weight: var(--font-weight-bold);
+    font-size: 1.125rem;
+    /* 18px - Reward price prominence */
 }
 
 .driver-job-actions {
     text-align: right;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: var(--space-3);
 }
 
 .driver-job-status {
     display: inline-flex;
     align-items: center;
-    padding: var(--space-1) var(--space-3);
+    justify-content: center;
+    padding: var(--space-2) var(--space-4);
     border-radius: var(--radius-full);
-    font-size: var(--font-size-xs);
-    font-weight: var(--font-weight-medium);
+    font-size: 0.875rem;
+    /* 14px - Increased from xs */
+    font-weight: var(--font-weight-semibold);
     text-transform: uppercase;
     letter-spacing: 0.05em;
-    margin-bottom: var(--space-2);
+    white-space: nowrap;
+    min-height: 32px;
+    /* Accessibility: minimum touch target */
 }
 
 /* Driver Status Badges */
@@ -222,6 +264,13 @@
 .driver-empty-icon {
     font-size: 4rem;
     margin-bottom: var(--space-4);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.driver-empty-icon svg {
+    display: block;
 }
 
 .driver-empty-title {
@@ -249,32 +298,73 @@
     gap: var(--space-4);
 }
 
-/* Responsive Design for Driver Interface */
+/* Responsive Design for Driver Interface - Mobile First Accessibility */
 @media (max-width: 768px) {
     .driver-stats-grid {
         grid-template-columns: 1fr;
         gap: var(--space-4);
     }
 
+    .driver-job-card {
+        padding: var(--space-5);
+        margin-bottom: var(--space-4);
+    }
+
     .driver-job-header {
         flex-direction: column;
-        gap: var(--space-3);
+        gap: var(--space-4);
         align-items: stretch;
+    }
+
+    .driver-job-title {
+        font-size: 1.375rem;
+        /* 22px - Even larger on mobile */
+        margin-bottom: var(--space-3);
+    }
+
+    .driver-job-route {
+        font-size: 1.0625rem;
+        /* 17px */
+        margin-bottom: var(--space-4);
+    }
+
+    .driver-job-meta {
+        gap: var(--space-3);
+        font-size: 1.0625rem;
+        /* 17px */
+        padding: var(--space-3) 0;
+        border-top: 1px solid var(--border-light);
+        border-bottom: 1px solid var(--border-light);
+    }
+
+    .driver-job-meta strong {
+        font-size: 1.25rem;
+        /* 20px - Prominent reward on mobile */
     }
 
     .driver-job-actions {
         text-align: left;
+        align-items: stretch;
+        gap: var(--space-3);
+    }
+
+    .driver-job-status {
+        align-self: flex-start;
+        font-size: 0.9375rem;
+        /* 15px */
+        padding: var(--space-2) var(--space-4);
+        min-height: 36px;
     }
 
     .driver-job-actions .btn {
         width: 100%;
-        min-height: 44px;
-        padding: var(--space-3) var(--space-4);
-    }
-
-    .driver-job-meta {
-        flex-direction: column;
-        gap: var(--space-1);
+        min-height: 48px;
+        /* Accessibility: 48px minimum touch target */
+        padding: var(--space-4) var(--space-5);
+        font-size: 1.0625rem;
+        /* 17px */
+        font-weight: var(--font-weight-semibold);
+        border-radius: var(--radius-lg);
     }
 
     .driver-actions-grid {
@@ -283,9 +373,9 @@
 
     .driver-actions-grid .btn {
         width: 100%;
-        min-height: 48px;
-        padding: var(--space-3) var(--space-5);
-        font-size: var(--font-size-base);
+        min-height: 52px;
+        padding: var(--space-4) var(--space-5);
+        font-size: 1.0625rem;
     }
 
     .driver-section {
@@ -298,13 +388,15 @@
     }
 
     .driver-section-subtitle {
-        font-size: var(--font-size-xs);
+        font-size: var(--font-size-sm);
     }
 
     /* Tab navigation mobile styles */
     .driver-tab-button {
-        padding: var(--space-3) var(--space-4);
-        font-size: var(--font-size-sm);
+        padding: var(--space-4) var(--space-5);
+        font-size: 1rem;
+        /* 16px - Larger for better readability */
+        min-height: 48px;
     }
 
     .driver-tab-content {
@@ -312,14 +404,15 @@
     }
 
     .driver-tabs-header::-webkit-scrollbar {
-        display: none; /* Hide scrollbar for cleaner mobile look */
+        display: none;
+        /* Hide scrollbar for cleaner mobile look */
     }
 
 }
 
 @media (max-width: 480px) {
     .driver-stats-card {
-        padding: var(--space-4);
+        padding: var(--space-5);
     }
 
     .driver-metric-value {
@@ -327,16 +420,40 @@
     }
 
     .driver-job-card {
-        padding: var(--space-3);
+        padding: var(--space-4);
+        border-width: 2px;
     }
 
     .driver-job-title {
-        font-size: var(--font-size-base);
+        font-size: 1.25rem;
+        /* 20px on small mobile */
+    }
+
+    .driver-job-route {
+        font-size: 1rem;
+        /* 16px */
+    }
+
+    .driver-job-meta {
+        font-size: 1rem;
+        gap: var(--space-2);
+    }
+
+    .driver-job-meta strong {
+        font-size: 1.125rem;
+        /* 18px */
     }
 
     .driver-job-status {
-        font-size: 0.7rem;
-        padding: 6px 10px;
+        font-size: 0.875rem;
+        /* 14px */
+        padding: var(--space-2) var(--space-3);
+    }
+
+    .driver-job-actions .btn {
+        min-height: 52px;
+        /* Larger touch target on small screens */
+        font-size: 1rem;
     }
 
     .driver-empty-state {
@@ -349,6 +466,12 @@
 
     .driver-section-title {
         font-size: var(--font-size-lg);
+    }
+
+    .driver-tab-button {
+        padding: var(--space-3) var(--space-4);
+        font-size: 0.9375rem;
+        /* 15px */
     }
 }
 
@@ -434,6 +557,7 @@
         opacity: 0;
         transform: translateY(10px);
     }
+
     to {
         opacity: 1;
         transform: translateY(0);
@@ -474,16 +598,51 @@
     color: var(--color-primary-dark);
 }
 
+/* Accessibility Enhancements */
+.driver-job-card:focus-visible,
+.driver-job-card a:focus-visible,
+.driver-job-card button:focus-visible {
+    outline: 3px solid var(--color-primary);
+    outline-offset: 2px;
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+    .driver-job-card {
+        border-width: 3px;
+    }
+
+    .driver-job-title {
+        font-weight: var(--font-weight-bold);
+    }
+
+    .driver-job-meta strong {
+        text-decoration: underline;
+    }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+
+    .driver-job-card,
+    .driver-tab-content,
+    .driver-job-card:hover {
+        transition: none;
+        animation: none;
+        transform: none;
+    }
+}
+
 /* Driver Utility Classes */
-.driver-space-y-4 > * + * {
+.driver-space-y-4>*+* {
     margin-top: var(--space-4);
 }
 
-.driver-space-y-3 > * + * {
+.driver-space-y-3>*+* {
     margin-top: var(--space-3);
 }
 
-.driver-space-y-2 > * + * {
+.driver-space-y-2>*+* {
     margin-top: var(--space-2);
 }
 
@@ -603,8 +762,15 @@
 }
 
 @keyframes pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.7; }
+
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.7;
+    }
 }
 
 .btn-retry {
@@ -638,6 +804,7 @@ form[data-ajax="true"] input[type="file"] {
         transform: translateX(100%);
         opacity: 0;
     }
+
     to {
         transform: translateX(0);
         opacity: 1;

@@ -1,0 +1,6 @@
+# Development Email Mock Files
+# This folder contains email HTML files saved during development testing
+# These files should not be committed to version control
+
+*.html
+!.gitkeep

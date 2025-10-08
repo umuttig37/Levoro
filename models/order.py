@@ -34,6 +34,14 @@ class OrderModel(BaseModel):
     # All statuses now trigger email notifications for better user experience
     NO_EMAIL_STATUSES = []
 
+    # Driver projection - excludes customer pricing information
+    DRIVER_PROJECTION = {
+        "_id": 0,
+        "price_gross": 0,
+        "price_net": 0,
+        "price_vat": 0
+    }
+
     def create_order(self, user_id: int, order_data: Dict) -> Tuple[Optional[Dict], Optional[str]]:
         """Create a new order"""
         try:
@@ -78,13 +86,13 @@ class OrderModel(BaseModel):
 
             return None, f"Tilauksen luominen epäonnistui: {error_str}"
 
-    def find_by_id(self, order_id: int, user_id: Optional[int] = None) -> Optional[Dict]:
+    def find_by_id(self, order_id: int, user_id: Optional[int] = None, projection: Optional[Dict] = None) -> Optional[Dict]:
         """Find order by ID, optionally filtered by user"""
         filter_dict = {"id": int(order_id)}
         if user_id is not None:
             filter_dict["user_id"] = int(user_id)
 
-        return self.find_one(filter_dict)
+        return self.find_one(filter_dict, projection=projection)
 
     def get_user_orders(self, user_id: int, limit: int = 50) -> List[Dict]:
         """Get all orders for a specific user"""
@@ -305,8 +313,54 @@ class OrderModel(BaseModel):
         except Exception as e:
             return False, f"Kuljettajan määritys epäonnistui: {str(e)}"
 
-    def update_driver_status(self, order_id: int, new_status: str, timestamp_field: Optional[str] = None) -> Tuple[bool, Optional[str]]:
-        """Update order status with optional timestamp field"""
+    def update_driver_reward(self, order_id: int, driver_reward: float) -> Tuple[bool, Optional[str]]:
+        """Update driver reward for an order"""
+        try:
+            if driver_reward <= 0:
+                return False, "Kuskin palkkio tulee olla suurempi kuin 0"
+
+            success = self.update_one(
+                {"id": int(order_id)},
+                {"$set": {
+                    "driver_reward": float(driver_reward),
+                    "updated_at": datetime.now(timezone.utc)
+                }}
+            )
+            return success, None
+        except Exception as e:
+            return False, f"Palkkion päivitys epäonnistui: {str(e)}"
+
+    def update_order_details(self, order_id: int, car_model: Optional[str] = None,
+                            car_brand: Optional[str] = None, additional_info: Optional[str] = None) -> Tuple[bool, Optional[str]]:
+        """Update order details (car model, brand, additional info)"""
+        try:
+            update_fields = {"updated_at": datetime.now(timezone.utc)}
+
+            if car_model is not None:
+                update_fields["car_model"] = car_model.strip()
+            if car_brand is not None:
+                update_fields["car_brand"] = car_brand.strip()
+            if additional_info is not None:
+                update_fields["additional_info"] = additional_info.strip()
+
+            success = self.update_one(
+                {"id": int(order_id)},
+                {"$set": update_fields}
+            )
+            return success, None
+        except Exception as e:
+            return False, f"Tietojen päivitys epäonnistui: {str(e)}"
+
+    def update_driver_status(self, order_id: int, new_status: str, timestamp_field: Optional[str] = None, 
+                            required_current_status: Optional[str] = None) -> Tuple[bool, Optional[str]]:
+        """Update order status with optional timestamp field
+        
+        Args:
+            order_id: Order ID to update
+            new_status: New status to set
+            timestamp_field: Optional timestamp field to update
+            required_current_status: If provided, update only succeeds if current status matches this value (prevents race conditions)
+        """
         if new_status not in self.VALID_STATUSES:
             return False, f"Virheellinen tila: {new_status}"
 
@@ -320,8 +374,13 @@ class OrderModel(BaseModel):
             if timestamp_field:
                 update_data[timestamp_field] = datetime.now(timezone.utc)
 
+            # Build query with optional status condition for atomic update
+            query = {"id": int(order_id)}
+            if required_current_status:
+                query["status"] = required_current_status
+
             success = self.update_one(
-                {"id": int(order_id)},
+                query,
                 {"$set": update_data}
             )
             return success, None
@@ -329,9 +388,14 @@ class OrderModel(BaseModel):
             return False, f"Tilan päivitys epäonnistui: {str(e)}"
 
     def get_available_orders(self, limit: int = 50) -> List[Dict]:
-        """Get orders available for driver assignment"""
+        """Get orders available for driver assignment - requires driver_reward to be set"""
         return self.find(
-            {"status": self.STATUS_CONFIRMED, "driver_id": {"$exists": False}},
+            {
+                "status": self.STATUS_CONFIRMED,
+                "driver_id": {"$exists": False},
+                "driver_reward": {"$exists": True, "$ne": None, "$gt": 0}
+            },
+            projection=self.DRIVER_PROJECTION,
             sort=[("created_at", 1)],  # Oldest first
             limit=limit
         )
@@ -340,6 +404,7 @@ class OrderModel(BaseModel):
         """Get all orders assigned to a specific driver"""
         return self.find(
             {"driver_id": int(driver_id)},
+            projection=self.DRIVER_PROJECTION,
             sort=[("created_at", -1)],
             limit=limit
         )
@@ -357,6 +422,7 @@ class OrderModel(BaseModel):
                 "driver_id": int(driver_id),
                 "status": {"$in": active_statuses}
             },
+            projection=self.DRIVER_PROJECTION,
             sort=[("created_at", -1)]
         )
 

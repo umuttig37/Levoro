@@ -43,7 +43,7 @@ class DriverService:
         return order_model.get_active_driver_orders(driver_id)
 
     def accept_job(self, order_id: int, driver_id: int) -> Tuple[bool, Optional[str]]:
-        """Driver accepts a job"""
+        """Driver accepts a job - customer will be notified when admin updates status"""
         # Check if order exists and is available
         order = order_model.find_by_id(order_id)
         if not order:
@@ -55,32 +55,30 @@ class DriverService:
         if order.get("driver_id"):
             return False, "Tilaus on jo otettu toiselle kuljettajalle"
 
-        # Assign driver to order
+        # Assign driver to order (status changes to ASSIGNED_TO_DRIVER)
         success, error = order_model.assign_driver(order_id, driver_id)
         if not success:
             return False, error
 
-        # Send notification email to customer
+        # Send admin notification about driver accepting job
         try:
             driver = user_model.find_by_id(driver_id)
-            customer = user_model.find_by_id(order["user_id"])
 
-            if customer and driver:
-                email_service.send_status_update_email(
-                    customer["email"],
-                    customer["name"],
+            if driver:
+                email_service.send_admin_driver_action_notification(
                     order_id,
+                    driver["name"],
                     "ASSIGNED_TO_DRIVER",
-                    driver_name=driver["name"]
+                    order
                 )
         except Exception as e:
-            print(f"Email notification failed: {e}")
+            print(f"Admin notification failed: {e}")
 
         return True, None
 
     def update_job_status(self, order_id: int, driver_id: int, new_status: str,
                          timestamp_field: Optional[str] = None) -> Tuple[bool, Optional[str]]:
-        """Update job status by driver"""
+        """Update job status by driver - only notifies admin, not customer"""
         # Verify order belongs to driver
         order = order_model.find_by_id(order_id)
         if not order:
@@ -94,21 +92,19 @@ class DriverService:
         if not success:
             return False, error
 
-        # Send email notification to customer for all status changes
+        # Send admin notification about driver action (NOT customer)
         try:
-            customer = user_model.find_by_id(order["user_id"])
             driver = user_model.find_by_id(driver_id)
 
-            if customer and driver:
-                email_service.send_status_update_email(
-                    customer["email"],
-                    customer["name"],
+            if driver:
+                email_service.send_admin_driver_action_notification(
                     order_id,
+                    driver["name"],
                     new_status,
-                    driver_name=driver["name"]
+                    order
                 )
         except Exception as e:
-            print(f"Email notification failed: {e}")
+            print(f"Admin notification failed: {e}")
 
         return True, None
 
@@ -177,18 +173,78 @@ class DriverService:
         return order.get("status") in [order_model.STATUS_DELIVERY_ARRIVED, order_model.STATUS_DELIVERY_IMAGES_ADDED]
 
     def update_pickup_images_status(self, order_id: int, driver_id: int) -> Tuple[bool, Optional[str]]:
-        """Update status after pickup images are added"""
-        return self.update_job_status(
-            order_id, driver_id,
-            order_model.STATUS_PICKUP_IMAGES_ADDED
+        """Update status after pickup images are added (atomic - only if status is DRIVER_ARRIVED)"""
+        # Verify order belongs to driver
+        order = order_model.find_by_id(order_id)
+        if not order:
+            return False, "Tilaus ei löytynyt"
+
+        if order.get("driver_id") != driver_id:
+            return False, "Tämä tilaus ei ole sinulle määritetty"
+
+        # Atomic update - only succeeds if status is still DRIVER_ARRIVED
+        # This prevents race conditions when multiple images are uploaded simultaneously
+        success, error = order_model.update_driver_status(
+            order_id, 
+            order_model.STATUS_PICKUP_IMAGES_ADDED,
+            required_current_status=order_model.STATUS_DRIVER_ARRIVED
         )
+        
+        if not success:
+            # Status already changed (another upload won the race) - this is OK, not an error
+            return True, None
+
+        # Send admin notification only if we successfully changed the status (first upload)
+        try:
+            driver = user_model.find_by_id(driver_id)
+            if driver:
+                email_service.send_admin_driver_action_notification(
+                    order_id,
+                    driver["name"],
+                    order_model.STATUS_PICKUP_IMAGES_ADDED,
+                    order
+                )
+        except Exception as e:
+            print(f"Admin notification failed: {e}")
+
+        return True, None
 
     def update_delivery_images_status(self, order_id: int, driver_id: int) -> Tuple[bool, Optional[str]]:
-        """Update status after delivery images are added"""
-        return self.update_job_status(
-            order_id, driver_id,
-            order_model.STATUS_DELIVERY_IMAGES_ADDED
+        """Update status after delivery images are added (atomic - only if status is DELIVERY_ARRIVED)"""
+        # Verify order belongs to driver
+        order = order_model.find_by_id(order_id)
+        if not order:
+            return False, "Tilaus ei löytynyt"
+
+        if order.get("driver_id") != driver_id:
+            return False, "Tämä tilaus ei ole sinulle määritetty"
+
+        # Atomic update - only succeeds if status is still DELIVERY_ARRIVED
+        # This prevents race conditions when multiple images are uploaded simultaneously
+        success, error = order_model.update_driver_status(
+            order_id, 
+            order_model.STATUS_DELIVERY_IMAGES_ADDED,
+            required_current_status=order_model.STATUS_DELIVERY_ARRIVED
         )
+        
+        if not success:
+            # Status already changed (another upload won the race) - this is OK, not an error
+            return True, None
+
+        # Send admin notification only if we successfully changed the status (first upload)
+        try:
+            driver = user_model.find_by_id(driver_id)
+            if driver:
+                email_service.send_admin_driver_action_notification(
+                    order_id,
+                    driver["name"],
+                    order_model.STATUS_DELIVERY_IMAGES_ADDED,
+                    order
+                )
+        except Exception as e:
+            print(f"Admin notification failed: {e}")
+
+        return True, None
 
     def get_driver_statistics(self, driver_id: int) -> Dict:
         """Get statistics for a specific driver"""

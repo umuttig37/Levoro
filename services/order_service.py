@@ -115,7 +115,7 @@ class OrderService:
         return self.order_model.find_by_id(order_id, user_id)
 
     def update_order_status(self, order_id: int, new_status: str) -> Tuple[bool, Optional[str]]:
-        """Update order status (admin only)"""
+        """Update order status (admin only) - only sends customer email for key statuses"""
         # Get order and user details before update for email
         order = self.order_model.find_by_id(order_id)
         if not order:
@@ -124,20 +124,37 @@ class OrderService:
         success, error = self.order_model.update_status(order_id, new_status)
 
         if success:
-            # Send status update email
-            try:
-                from services.email_service import email_service
-                from models.user import user_model
+            # Only send customer email for these key statuses
+            # NOTE: ASSIGNED_TO_DRIVER removed - driver acceptance only notifies admin
+            CUSTOMER_EMAIL_STATUSES = [
+                "CONFIRMED",           # Order received/confirmed
+                "IN_TRANSIT",          # In transit
+                "DELIVERED"            # Delivered
+            ]
 
-                # Get user details for email
-                user = user_model.find_by_id(order.get("user_id"))
-                if user:
-                    email_service.send_status_update_email(
-                        user["email"], user["name"], order_id, new_status
-                    )
-            except Exception as e:
-                # Log error but don't fail status update
-                print(f"Failed to send status update email: {e}")
+            # Send status update email only for key statuses
+            if new_status in CUSTOMER_EMAIL_STATUSES:
+                try:
+                    from services.email_service import email_service
+                    from models.user import user_model
+
+                    # Get user and driver details for email
+                    user = user_model.find_by_id(order.get("user_id"))
+                    driver_id = order.get("driver_id")
+                    driver_name = None
+
+                    if driver_id:
+                        driver = user_model.find_by_id(driver_id)
+                        if driver:
+                            driver_name = driver.get("name")
+
+                    if user:
+                        email_service.send_status_update_email(
+                            user["email"], user["name"], order_id, new_status, driver_name=driver_name
+                        )
+                except Exception as e:
+                    # Log error but don't fail status update
+                    print(f"Failed to send status update email: {e}")
 
         return success, error
 
@@ -358,7 +375,7 @@ class OrderService:
             if driver.get('status') != 'active':
                 return False, "Kuljettaja ei ole aktiivinen"
 
-            # Assign driver using order model
+            # Assign driver using order model (this changes status to ASSIGNED_TO_DRIVER)
             success, error = self.order_model.assign_driver(order_id, driver_id)
 
             if success:
@@ -370,10 +387,8 @@ class OrderService:
                         # Notify driver about assignment
                         email_service.send_driver_assignment_email(driver['email'], driver['name'], order)
 
-                        # Notify customer that driver has been assigned
-                        user = user_model.find_by_id(order['user_id'])
-                        if user:
-                            email_service.send_customer_driver_assigned_email(user['email'], user['name'], order, driver)
+                        # NOTE: Customer email removed - only admin should be notified when driver accepts
+                        # Customer will be notified when admin marks status as IN_TRANSIT after verifying pickup photos
                 except Exception as e:
                     print(f"Failed to send assignment emails: {e}")
 

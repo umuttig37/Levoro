@@ -1,0 +1,210 @@
+{# Icon Component Macros - Professional SVG Icons #}
+{# NO EMOJIS - Use these macros instead #}
+
+{# Location/Map Pin Icon #}
+{% macro location(size=20, color='currentColor', class='') %}
+<svg class="icon icon-location {{ class }}" width="{{ size }}" height="{{ size }}" viewBox="0 0 24 24" fill="none"
+    stroke="{{ color }}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+    <circle cx="12" cy="10" r="3"></circle>
+</svg>
+{% endmacro %}
+
+{# Car/Vehicle Icon #}
+{% macro car(size=20, color='currentColor', class='') %}
+<svg class="icon icon-car {{ class }}" width="{{ size }}" height="{{ size }}" viewBox="0 0 24 24" fill="none"
+    stroke="{{ color }}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+    <path
+        d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2">
+    </path>
+    <circle cx="7" cy="17" r="2"></circle>
+    <path d="M9 17h6"></path>
+    <circle cx="17" cy="17" r="2"></circle>
+</svg>
+{% endmacro %}
+
+{# User/Person Icon #}
+{% macro user(size=20, color='currentColor', class='') %}
+<svg class="icon icon-user {{ class }}" width="{{ size }}" height="{{ size }}" viewBox="0 0 24 24" fill="none"
+    stroke="{{ color }}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+    <circle cx="12" cy="7" r="4"></circle>
+</svg>
+{% endmacro %}
+
+{# Document/Notes Icon #}
+{% macro document(size=20, color='currentColor', class='') %}
+<svg class="icon icon-document {{ class }}" width="{{ size }}" height="{{ size }}" viewBox="0 0 24 24" fill="none"
+    stroke="{{ color }}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+    <polyline points="14 2 14 8 20 8"></polyline>
+    <line x1="16" y1="13" x2="8" y2="13"></line>
+    <line x1="16" y1="17" x2="8" y2="17"></line>
+    <polyline points="10 9 9 9 8 9"></polyline>
+</svg>
+{% endmacro %}
+
+{# Camera/Image Icon #}
+{% macro camera(size=20, color='currentColor', class='') %}
+<svg class="icon icon-camera {{ class }}" width="{{ size }}" height="{{ size }}" viewBox="0 0 24 24" fill="none"
+    stroke="{{ color }}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+    <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+    <circle cx="12" cy="13" r="4"></circle>
+</svg>
+{% endmacro %}
+
+{# Phone Icon #}
+{% macro phone(size=20, color='currentColor', class='') %}
+<svg class="icon icon-phone {{ class }}" width="{{ size }}" height="{{ size }}" viewBox="0 0 24 24" fill="none"
+    stroke="{{ color }}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+    <path
+        d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z">
+    </path>
+</svg>
+{% endmacro %}
+
+{# Building/Business Icon #}
+{% macro building(size=20, color='currentColor', class='') %}
+<svg class="icon icon-building {{ class }}" width="{{ size }}" height="{{ size }}" viewBox="0 0 24 24" fill="none"
+    stroke="{{ color }}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+    <rect x="4" y="2" width="16" height="20" rx="2" ry="2"></rect>
+    <path d="M9 22v-4h6v4"></path>
+    <path d="M8 6h.01"></path>
+    <path d="M16 6h.01"></path>
+    <path d="M12 6h.01"></path>
+    <path d="M12 10h.01"></path>
+    <path d="M12 14h.01"></path>
+    <path d="M16 10h.01"></path>
+    <path d="M16 14h.01"></path>
+    <path d="M8 10h.01"></path>
+    <path d="M8 14h.01"></path>
+</svg>
+{% endmacro %}
+
+{# Check/Success Icon #}
+{% macro check(size=20, color='currentColor', class='') %}
+<svg class="icon icon-check {{ class }}" width="{{ size }}" height="{{ size }}" viewBox="0 0 24 24" fill="none"
+    stroke="{{ color }}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+    <polyline points="20 6 9 17 4 12"></polyline>
+</svg>
+{% endmacro %}
+
+{# Check Circle/Success Badge Icon #}
+{% macro check_circle(size=20, color='currentColor', class='') %}
+<svg class="icon icon-check-circle {{ class }}" width="{{ size }}" height="{{ size }}" viewBox="0 0 24 24" fill="none"
+    stroke="{{ color }}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+    <polyline points="22 4 12 14.01 9 11.01"></polyline>
+</svg>
+{% endmacro %}
+
+{# X/Close/Cancel Icon #}
+{% macro x(size=20, color='currentColor', class='') %}
+<svg class="icon icon-x {{ class }}" width="{{ size }}" height="{{ size }}" viewBox="0 0 24 24" fill="none"
+    stroke="{{ color }}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+    <line x1="18" y1="6" x2="6" y2="18"></line>
+    <line x1="6" y1="6" x2="18" y2="18"></line>
+</svg>
+{% endmacro %}
+
+{# Alert/Warning Icon #}
+{% macro alert(size=20, color='currentColor', class='') %}
+<svg class="icon icon-alert {{ class }}" width="{{ size }}" height="{{ size }}" viewBox="0 0 24 24" fill="none"
+    stroke="{{ color }}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+    <line x1="12" y1="9" x2="12" y2="13"></line>
+    <line x1="12" y1="17" x2="12.01" y2="17"></line>
+</svg>
+{% endmacro %}
+
+{# Package/Box Icon #}
+{% macro package(size=20, color='currentColor', class='') %}
+<svg class="icon icon-package {{ class }}" width="{{ size }}" height="{{ size }}" viewBox="0 0 24 24" fill="none"
+    stroke="{{ color }}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+    <line x1="16.5" y1="9.4" x2="7.5" y2="4.21"></line>
+    <path
+        d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z">
+    </path>
+    <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+    <line x1="12" y1="22.08" x2="12" y2="12"></line>
+</svg>
+{% endmacro %}
+
+{# Clipboard/List Icon #}
+{% macro clipboard(size=20, color='currentColor', class='') %}
+<svg class="icon icon-clipboard {{ class }}" width="{{ size }}" height="{{ size }}" viewBox="0 0 24 24" fill="none"
+    stroke="{{ color }}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+    <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
+    <rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect>
+</svg>
+{% endmacro %}
+
+{# Search/Magnifying Glass Icon #}
+{% macro search(size=20, color='currentColor', class='') %}
+<svg class="icon icon-search {{ class }}" width="{{ size }}" height="{{ size }}" viewBox="0 0 24 24" fill="none"
+    stroke="{{ color }}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+    <circle cx="11" cy="11" r="8"></circle>
+    <path d="m21 21-4.35-4.35"></path>
+</svg>
+{% endmacro %}
+
+{# Eye/View Icon #}
+{% macro eye(size=20, color='currentColor', class='') %}
+<svg class="icon icon-eye {{ class }}" width="{{ size }}" height="{{ size }}" viewBox="0 0 24 24" fill="none"
+    stroke="{{ color }}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+    <circle cx="12" cy="12" r="3"></circle>
+</svg>
+{% endmacro %}
+
+{# Lock Icon #}
+{% macro lock(size=20, color='currentColor', class='') %}
+<svg class="icon icon-lock {{ class }}" width="{{ size }}" height="{{ size }}" viewBox="0 0 24 24" fill="none"
+    stroke="{{ color }}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+    <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+</svg>
+{% endmacro %}
+
+{# Circle Icon (for empty/placeholder states) #}
+{% macro circle(size=20, color='currentColor', class='') %}
+<svg class="icon icon-circle {{ class }}" width="{{ size }}" height="{{ size }}" viewBox="0 0 24 24" fill="none"
+    stroke="{{ color }}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+    <circle cx="12" cy="12" r="10"></circle>
+</svg>
+{% endmacro %}
+
+{# Mail/Email Icon #}
+{% macro mail(size=20, color='currentColor', class='') %}
+<svg class="icon icon-mail {{ class }}" width="{{ size }}" height="{{ size }}" viewBox="0 0 24 24" fill="none"
+    stroke="{{ color }}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+    <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+    <polyline points="22,6 12,13 2,6"></polyline>
+</svg>
+{% endmacro %}
+
+{# License/ID Card Icon #}
+{% macro id_card(size=20, color='currentColor', class='') %}
+<svg class="icon icon-id-card {{ class }}" width="{{ size }}" height="{{ size }}" viewBox="0 0 24 24" fill="none"
+    stroke="{{ color }}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+    <rect x="2" y="5" width="20" height="14" rx="2"></rect>
+    <line x1="2" y1="10" x2="22" y2="10"></line>
+</svg>
+{% endmacro %}
+
+{# CSS for icon alignment #}
+<style>
+    .icon {
+        display: inline-block;
+        vertical-align: middle;
+        flex-shrink: 0;
+    }
+
+    .icon-inline {
+        margin-right: 0.25rem;
+    }
+
+    .icon-button {
+        margin-right: 0.5rem;
+    }
+</style>

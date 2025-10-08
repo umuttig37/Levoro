@@ -1,4 +1,5 @@
 {% extends "base/layout.html" %}
+{% import 'components/icons.html' as icons %}
 
 {% block title %}Hakemus #{{ application.id }} – Admin{% endblock %}
 
@@ -31,13 +32,13 @@
       <div class="flex items-center justify-between">
         {% if application.status == 'pending' %}
         {% set status_class = 'status-new' %}
-        {% set status_text = '⏳ Odottaa käsittelyä' %}
+        {% set status_text = '- Odottaa käsittelyä' %}
         {% elif application.status == 'approved' %}
         {% set status_class = 'status-confirmed' %}
-        {% set status_text = '✅ Hyväksytty' %}
+        {% set status_text = '✓ Hyväksytty' %}
         {% elif application.status == 'denied' %}
         {% set status_class = 'status-cancelled' %}
-        {% set status_text = '❌ Hylätty' %}
+        {% set status_text = 'X Hylätty' %}
         {% else %}
         {% set status_class = 'status-new' %}
         {% set status_text = 'Tuntematon' %}
@@ -124,7 +125,7 @@
           {% if application.license_images.back %}
           <a href="{{ url_for('admin.view_license_image', application_id=application.id, image_type='back') }}"
             target="_blank" class="btn btn-primary w-full">
-            🔍 Näytä takaosa
+            {{ icons.search(18, 'currentColor', 'icon-inline') }} Näytä takaosa
           </a>
           <p class="text-sm text-muted mt-2">Klikkaa nähdäksesi kuva uudessa välilehdessä</p>
           {% else %}
@@ -152,7 +153,7 @@
           <input type="hidden" name="application_id" value="{{ application.id }}">
           <button type="submit" class="btn btn-success w-full"
             onclick="return confirm('Hyväksy hakemus ja luo kuljettajatili?\n\nHakijalle lähetetään vahvistusviesti sähköpostiin.')">
-            ✅ Hyväksy hakemus
+            {{ icons.check_circle(18, 'currentColor', 'icon-inline') }} Hyväksy hakemus
           </button>
         </form>
 
@@ -160,7 +161,7 @@
           <input type="hidden" name="application_id" value="{{ application.id }}">
           <button type="submit" class="btn btn-error w-full"
             onclick="return confirm('Hylkää hakemus?\n\nHakijalle lähetetään hylkäysviesti sähköpostiin.')">
-            ❌ Hylkää hakemus
+            {{ icons.x(18, 'currentColor', 'icon-inline') }} Hylkää hakemus
           </button>
         </form>
       </div>
@@ -176,7 +177,7 @@
   {% elif application.status == 'approved' %}
   <div class="card">
     <div class="card-body text-center">
-      <div class="text-4xl mb-3">✅</div>
+      <div class="mb-3">{{ icons.check_circle(64, '#16a34a') }}</div>
       <h3 class="font-semibold text-lg mb-2">Hakemus hyväksytty</h3>
       <p class="text-muted">Kuljettajatili on luotu ja hakijalle on lähetetty vahvistusviesti.</p>
     </div>
@@ -184,7 +185,7 @@
   {% elif application.status == 'denied' %}
   <div class="card">
     <div class="card-body text-center">
-      <div class="text-4xl mb-3">❌</div>
+      <div class="mb-3">{{ icons.x(64, '#dc2626') }}</div>
       <h3 class="font-semibold text-lg mb-2">Hakemus hylätty</h3>
       <p class="text-muted">Hakijalle on lähetetty hylkäysviesti.</p>
     </div>
@@ -194,13 +195,14 @@
   <!-- Delete Section (Available for all statuses) -->
   <div class="card mt-6" style="border-color: #dc2626;">
     <div class="card-header" style="background: #fef2f2;">
-      <h3 class="card-title" style="color: #dc2626;">⚠️ Vaarallinen alue</h3>
+      <h3 class="card-title" style="color: #dc2626;">{{ icons.alert(20, '#dc2626', 'icon-inline') }} Vaarallinen alue
+      </h3>
     </div>
     <div class="card-body">
       <form method="POST" action="{{ url_for('admin.delete_driver_application', application_id=application.id) }}">
         <button type="submit" class="btn w-full" style="background: #dc2626; color: white;"
           onclick="return confirmDelete()">
-          🗑️ Poista hakemus ja käyttäjätili
+          {{ icons.x(18, 'currentColor', 'icon-inline') }} Poista hakemus ja käyttäjätili
         </button>
       </form>
       <div class="mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
@@ -214,16 +216,16 @@
 </div>
 
 <script>
-function confirmDelete() {
-  return confirm(
-    "⚠️ VAROITUS: Tämä toiminto poistaa PYSYVÄSTI:\n\n" +
-    "• Kuljettajahakemuksen #{{ application.id }} ({{ application.name }})\n" +
-    "• Käyttäjätilin (jos olemassa): {{ application.email }}\n" +
-    "• Kaikki liittyvät tiedot\n\n" +
-    "Tätä toimintoa EI VOI PERUUTTAA!\n\n" +
-    "Haluatko varmasti jatkaa?"
-  );
-}
+  function confirmDelete() {
+    return confirm(
+      "VAROITUS: Tämä toiminto poistaa PYSYVÄSTI:\n\n" +
+      "• Kuljettajahakemuksen #{{ application.id }} ({{ application.name }})\n" +
+      "• Käyttäjätilin (jos olemassa): {{ application.email }}\n" +
+      "• Kaikki liittyvät tiedot\n\n" +
+      "Tätä toimintoa EI VOI PERUUTTAA!\n\n" +
+      "Haluatko varmasti jatkaa?"
+    );
+  }
 </script>
 
 {% endblock %}
