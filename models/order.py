@@ -351,8 +351,16 @@ class OrderModel(BaseModel):
         except Exception as e:
             return False, f"Tietojen päivitys epäonnistui: {str(e)}"
 
-    def update_driver_status(self, order_id: int, new_status: str, timestamp_field: Optional[str] = None) -> Tuple[bool, Optional[str]]:
-        """Update order status with optional timestamp field"""
+    def update_driver_status(self, order_id: int, new_status: str, timestamp_field: Optional[str] = None, 
+                            required_current_status: Optional[str] = None) -> Tuple[bool, Optional[str]]:
+        """Update order status with optional timestamp field
+        
+        Args:
+            order_id: Order ID to update
+            new_status: New status to set
+            timestamp_field: Optional timestamp field to update
+            required_current_status: If provided, update only succeeds if current status matches this value (prevents race conditions)
+        """
         if new_status not in self.VALID_STATUSES:
             return False, f"Virheellinen tila: {new_status}"
 
@@ -366,8 +374,13 @@ class OrderModel(BaseModel):
             if timestamp_field:
                 update_data[timestamp_field] = datetime.now(timezone.utc)
 
+            # Build query with optional status condition for atomic update
+            query = {"id": int(order_id)}
+            if required_current_status:
+                query["status"] = required_current_status
+
             success = self.update_one(
-                {"id": int(order_id)},
+                query,
                 {"$set": update_data}
             )
             return success, None
