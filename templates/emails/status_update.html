@@ -42,9 +42,9 @@
     {% endif %}
 </div>
 
-<div class="info-box">
-    <strong>{{ order.status }}</strong>
-    <p>{{ order.status_description }}</p>
+<div class="info-box" style="background-color: #f3f4f6 !important; border-left: 4px solid #3b82f6 !important;">
+    <strong style="color: #1f2937 !important;">{{ order.status }}</strong>
+    <p style="color: #374151 !important;">{{ order.status_description }}</p>
 </div>
 
 <div class="details-card">
@@ -94,19 +94,21 @@
 </div>
 
 {% if new_status == 'CONFIRMED' %}
-<div class="info-box success">
-    <strong>Vahvistettu</strong>
-    <p>Tilauksesi on vahvistettu ylläpidon toimesta ja odottaa noutopäivää.</p>
+<div class="info-box success" style="background-color: #f0fdf4 !important;">
+    <strong style="color: #065f46 !important;">Vahvistettu</strong>
+    <p style="color: #047857 !important;">Tilauksesi on vahvistettu ylläpidon toimesta ja odottaa noutopäivää.</p>
 </div>
 {% elif new_status == 'IN_TRANSIT' %}
-<div class="info-box warning">
-    <strong>Kuljetus käynnissä</strong>
-    <p>Autosi on nyt matkalla määränpäähän. Kuljettaja on yhteydessä kun saapuu toimituspaikkaan.</p>
+<div class="info-box warning" style="background-color: #fffbeb !important;">
+    <strong style="color: #78350f !important;">Kuljetus käynnissä</strong>
+    <p style="color: #92400e !important;">Autosi on nyt matkalla määränpäähän. Kuljettaja on yhteydessä kun saapuu
+        toimituspaikkaan.</p>
 </div>
 {% elif new_status == 'DELIVERED' %}
-<div class="info-box success">
-    <strong>Toimitus valmis!</strong>
-    <p>Kiitos että valitsit Levoro-palvelun. Toivomme että olit tyytyväinen kuljetukseen!</p>
+<div class="info-box success" style="background-color: #f0fdf4 !important;">
+    <strong style="color: #065f46 !important;">Toimitus valmis!</strong>
+    <p style="color: #047857 !important;">Kiitos että valitsit Levoro-palvelun. Toivomme että olit tyytyväinen
+        kuljetukseen!</p>
 </div>
 {% endif %}
 

@@ -183,21 +183,3 @@
     --breakpoint-2xl: 1536px;
 }
 
-/* Dark mode variables (disabled until proper dark mode implementation) */
-/*
-@media (prefers-color-scheme: dark) {
-    :root {
-        --bg-primary: var(--color-gray-900);
-        --bg-secondary: var(--color-gray-800);
-        --bg-accent: var(--color-gray-800);
-
-        --text-primary: var(--color-white);
-        --text-secondary: var(--color-gray-300);
-        --text-muted: var(--color-gray-400);
-
-        --border-light: var(--color-gray-700);
-        --border-medium: var(--color-gray-600);
-        --border-dark: var(--color-gray-500);
-    }
-}
-*/

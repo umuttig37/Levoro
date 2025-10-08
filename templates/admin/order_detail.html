@@ -354,5 +354,34 @@
         // Set global order ID for image modal from data attribute
         const scriptTag = document.querySelector('[data-order-id]');
         window.currentOrderId = parseInt(scriptTag.dataset.orderId, 10);
+
+        // Status update confirmation dialog
+        document.addEventListener('DOMContentLoaded', function () {
+            const statusForm = document.querySelector('.status-update-form');
+            const statusSelect = document.querySelector('.status-select');
+            const currentStatus = '{{ order.status }}';
+
+            if (statusForm && statusSelect) {
+                statusForm.addEventListener('submit', function (e) {
+                    const newStatus = statusSelect.value;
+                    const newStatusText = statusSelect.options[statusSelect.selectedIndex].text;
+
+                    // Only show confirmation if status is actually changing
+                    if (newStatus !== currentStatus) {
+                        e.preventDefault();
+
+                        const confirmMessage = `Haluatko varmasti vaihtaa tilauksen tilan?\n\n` +
+                            `Uusi tila: ${newStatusText}\n\n` +
+                            `Tämä lähettää sähköposti-ilmoituksen asiakkaalle.`;
+
+                        if (confirm(confirmMessage)) {
+                            // User confirmed, submit the form
+                            statusForm.submit();
+                        }
+                    }
+                    // If status hasn't changed, allow form submission without confirmation
+                });
+            }
+        });
     </script>
     {% endblock %}

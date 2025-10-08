@@ -740,8 +740,3 @@
         transform: none;
     }
 }
-
-/* Dark mode support (if needed in future) */
-@media (prefers-color-scheme: dark) {
-    /* Placeholder for dark mode styles */
-}
