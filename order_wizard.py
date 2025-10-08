@@ -685,7 +685,7 @@ def order_step4():
     <label class='form-label'>Tilaajan sähköposti *</label>
     <input type='email' name='orderer_email' required class='form-input' value="{orderer_email_val}" placeholder="yritys@example.com">
     <label class='form-label'>Tilaajan puhelin *</label>
-    <input type='tel' name='orderer_phone' required class='form-input' value="{orderer_phone_val}" placeholder="+358..." pattern="[+]?[0-9\s\-()]+" title="Käytä vain numeroita ja merkkejä +, -, ( )" aria-label="Tilaajan puhelinnumero">
+    <input type='tel' name='orderer_phone' required class='form-input' value="{orderer_phone_val}" placeholder="+358..." pattern="[+]?[0-9\\s\\-()]+" title="Käytä vain numeroita ja merkkejä +, -, ( )" aria-label="Tilaajan puhelinnumero">
   </div>
 
   <!-- Customer Section -->
@@ -696,7 +696,7 @@ def order_step4():
     <label class='form-label'>Asiakkaan nimi *</label>
     <input name='customer_name' required class='form-input' value="{customer_name_val}" placeholder="Vastaanottajan nimi">
     <label class='form-label'>Asiakkaan puhelinnumero *</label>
-    <input type='tel' name='customer_phone' required class='form-input' value="{customer_phone_val}" placeholder="+358..." pattern="[+]?[0-9\s\-()]+" title="Käytä vain numeroita ja merkkejä +, -, ( )" aria-label="Asiakkaan puhelinnumero">
+    <input type='tel' name='customer_phone' required class='form-input' value="{customer_phone_val}" placeholder="+358..." pattern="[+]?[0-9\\s\\-()]+" title="Käytä vain numeroita ja merkkejä +, -, ( )" aria-label="Asiakkaan puhelinnumero">
   </div>
 
   <div class='row calculator-actions'>
@@ -708,7 +708,7 @@ def order_step4():
 // Phone number validation with real-time feedback
 (function() {{
     const phoneInputs = document.querySelectorAll('input[type="tel"]');
-    const phonePattern = /^[+]?[0-9\s\-()]+$/;
+    const phonePattern = /^[+]?[0-9\\s\\-()]+$/;
     
     phoneInputs.forEach(input => {{
         // Create error message element
