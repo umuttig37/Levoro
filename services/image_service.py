@@ -286,7 +286,7 @@ class ImageService:
                 img.verify()  # This will raise an exception if the image is corrupted
 
                 # Check if it's actually an image format we can process
-                if img.format not in ['JPEG', 'PNG', 'WEBP']:
+                if img.format not in ['JPEG', 'PNG', 'WEBP', 'MPO']:
                     return f"Kuvaformaatti {img.format or 'tuntematon'} ei ole tuettu"
 
         except Exception as e:
@@ -313,7 +313,7 @@ class ImageService:
             # First validate that PIL can open the image
             with Image.open(file_path) as img:
                 # Validate image format
-                if img.format not in ['JPEG', 'PNG', 'WEBP']:
+                if img.format not in ['JPEG', 'PNG', 'WEBP', 'MPO']:
                     print(f"Image processing error: Unsupported image format {img.format}")
                     return None
 
