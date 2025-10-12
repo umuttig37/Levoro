@@ -214,39 +214,6 @@
                             </div>
                             {% endif %}
 
-                            <!-- Quick Action: Approve Pickup Images -->
-                            {% if order.status == 'PICKUP_IMAGES_ADDED' %}
-                            <div class="alert-box alert-success">
-                                <h4 class="alert-title">{{ icons.camera(16, '#166534', 'icon-inline') }} Noutokuvat
-                                    lisätty</h4>
-                                <p>Tarkista kuvat ja hyväksy kuljetus alkamaan.</p>
-                            </div>
-                            <form method="POST" action="{{ url_for('admin.approve_pickup_images', order_id=order.id) }}"
-                                class="quick-action-form">
-                                <button type="submit" class="btn btn-success btn-large">
-                                    {{ icons.check_circle(18, 'currentColor', 'icon-inline') }} Hyväksy noutokuvat ja
-                                    aloita kuljetus
-                                </button>
-                            </form>
-                            {% endif %}
-
-                            <!-- Quick Action: Approve Delivery Images -->
-                            {% if order.status == 'DELIVERY_IMAGES_ADDED' %}
-                            <div class="alert-box alert-success">
-                                <h4 class="alert-title">{{ icons.camera(16, '#166534', 'icon-inline') }} Toimituskuvat
-                                    lisätty</h4>
-                                <p>Tarkista kuvat ja merkitse toimitus valmiiksi.</p>
-                            </div>
-                            <form method="POST"
-                                action="{{ url_for('admin.approve_delivery_images', order_id=order.id) }}"
-                                class="quick-action-form">
-                                <button type="submit" class="btn btn-success btn-large">
-                                    {{ icons.check_circle(18, 'currentColor', 'icon-inline') }} Hyväksy toimituskuvat ja
-                                    merkitse valmiiksi
-                                </button>
-                            </form>
-                            {% endif %}
-
                             <!-- Status Update Form -->
                             <form method="POST" action="/admin/update" class="status-update-form">
                                 <input type="hidden" name="id" value="{{ order.id }}">
@@ -262,18 +229,9 @@
                                         <option value="CONFIRMED" {% if order.status=='CONFIRMED' %}selected{% endif %}>
                                             Vahvistettu</option>
                                         <option value="ASSIGNED_TO_DRIVER" {% if order.status=='ASSIGNED_TO_DRIVER'
-                                            %}selected{% endif %}>Kuljettaja määritetty</option>
-                                        <option value="DRIVER_ARRIVED" {% if order.status=='DRIVER_ARRIVED' %}selected{%
-                                            endif %}>Kuljettaja paikalla (nouto)</option>
-                                        <option value="PICKUP_IMAGES_ADDED" {% if order.status=='PICKUP_IMAGES_ADDED'
-                                            %}selected{% endif %}>Noutokuvat lisätty</option>
+                                            %}selected{% endif %}>Noudossa</option>
                                         <option value="IN_TRANSIT" {% if order.status=='IN_TRANSIT' %}selected{% endif
                                             %}>Kuljetuksessa</option>
-                                        <option value="DELIVERY_ARRIVED" {% if order.status=='DELIVERY_ARRIVED'
-                                            %}selected{% endif %}>Kuljettaja paikalla (toimitus)</option>
-                                        <option value="DELIVERY_IMAGES_ADDED" {% if
-                                            order.status=='DELIVERY_IMAGES_ADDED' %}selected{% endif %}>Toimituskuvat
-                                            lisätty</option>
                                         <option value="DELIVERED" {% if order.status=='DELIVERED' %}selected{% endif %}>
                                             Toimitettu</option>
                                         <option value="CANCELLED" {% if order.status=='CANCELLED' %}selected{% endif %}>
@@ -336,7 +294,6 @@
                 </div>
             </div>
             {% endif %}
-
 
         </div>
     </div>

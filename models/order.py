@@ -62,6 +62,10 @@ class OrderModel(BaseModel):
             if "images" not in order_doc:
                 order_doc["images"] = {"pickup": [], "delivery": []}
 
+            # Initialize driver_progress field (empty by default)
+            if "driver_progress" not in order_doc:
+                order_doc["driver_progress"] = {}
+
             self.insert_one(order_doc)
             return order_doc, None
 
@@ -476,6 +480,76 @@ class OrderModel(BaseModel):
             }}
         ]
         return self.aggregate(pipeline)
+
+    def update_driver_progress(self, order_id: int, progress_key: str, metadata: Dict) -> Tuple[bool, Optional[str]]:
+        """
+        Update driver progress field atomically
+
+        Args:
+            order_id: Order ID
+            progress_key: Key in driver_progress (e.g., 'arrived_at_pickup', 'pickup_images_complete')
+            metadata: Dict with timestamp, count, notified, etc.
+
+        Returns:
+            Tuple[bool, Optional[str]]: (success, error_message)
+        """
+        try:
+            # Ensure metadata has timestamp and notified flag
+            if 'timestamp' not in metadata:
+                metadata['timestamp'] = datetime.now(timezone.utc)
+            if 'notified' not in metadata:
+                metadata['notified'] = False
+
+            success = self.update_one(
+                {"id": int(order_id)},
+                {
+                    "$set": {
+                        f"driver_progress.{progress_key}": metadata,
+                        "updated_at": datetime.now(timezone.utc)
+                    }
+                }
+            )
+            return success, None
+        except Exception as e:
+            return False, f"Driver progress päivitys epäonnistui: {str(e)}"
+
+    def get_driver_progress_status(self, order_id: int) -> Dict:
+        """
+        Get current driver progress state
+
+        Returns:
+            Dict with driver_progress data or empty dict if not found
+        """
+        order = self.find_by_id(order_id)
+        if not order:
+            return {}
+        return order.get('driver_progress', {})
+
+    def has_minimum_images(self, order_id: int, image_type: str, minimum: int = 5) -> Tuple[bool, int]:
+        """
+        Check if order has minimum number of images
+
+        Args:
+            order_id: Order ID
+            image_type: 'pickup' or 'delivery'
+            minimum: Minimum number required (default: 5)
+
+        Returns:
+            Tuple[bool, int]: (meets_minimum, current_count)
+        """
+        order = self.find_by_id(order_id)
+        if not order:
+            return False, 0
+
+        images = order.get('images', {})
+        current_images = images.get(image_type, [])
+
+        # Handle migration from old single image format
+        if not isinstance(current_images, list):
+            current_images = [current_images] if current_images else []
+
+        current_count = len(current_images)
+        return current_count >= minimum, current_count
 
 
 # Global instance

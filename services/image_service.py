@@ -215,6 +215,27 @@ class ImageService:
 
         return True, None
 
+    def validate_minimum_images(self, order_id: int, image_type: str, minimum: int = 5) -> Tuple[bool, int, Optional[str]]:
+        """
+        Check if order has minimum number of images
+
+        Args:
+            order_id: Order ID
+            image_type: 'pickup' or 'delivery'
+            minimum: Minimum number required (default: 5)
+
+        Returns:
+            Tuple[bool, int, Optional[str]]: (meets_requirement, current_count, error_message)
+        """
+        images = self.get_order_images(order_id, image_type)
+        current_count = len(images)
+
+        if current_count < minimum:
+            image_type_fi = "nouto" if image_type == "pickup" else "toimitus"
+            return False, current_count, f"Vähintään {minimum} {image_type_fi}kuvaa vaaditaan. Nyt: {current_count}"
+
+        return True, current_count, None
+
     def cleanup_orphaned_images(self) -> int:
         """Clean up image files that are no longer referenced in database"""
         cleaned_count = 0

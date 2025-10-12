@@ -81,23 +81,6 @@ def job_detail(order_id):
         flash('Tilaus ei löytynyt', 'error')
         return redirect(url_for('driver.dashboard'))
 
-    # Auto-fix status if images exist but status not updated (race condition recovery)
-    images = order.get('images', {})
-    pickup_images = images.get('pickup', [])
-    delivery_images = images.get('delivery', [])
-    current_status = order.get('status')
-
-    # Fix pickup status if images exist but status is still DRIVER_ARRIVED
-    if len(pickup_images) > 0 and current_status == order_model.STATUS_DRIVER_ARRIVED:
-        driver_service.update_pickup_images_status(order_id, driver['id'])
-        order = order_model.find_by_id(order_id, projection=order_model.DRIVER_PROJECTION)  # Refresh order
-        current_status = order.get('status')
-
-    # Fix delivery status if images exist but status is still DELIVERY_ARRIVED
-    if len(delivery_images) > 0 and current_status == order_model.STATUS_DELIVERY_ARRIVED:
-        driver_service.update_delivery_images_status(order_id, driver['id'])
-        order = order_model.find_by_id(order_id, projection=order_model.DRIVER_PROJECTION)  # Refresh order
-
     # Check if driver can access this job
     driver_id = order.get('driver_id')
     status = order.get('status')
@@ -131,29 +114,45 @@ def accept_job(order_id):
         return redirect(url_for('driver.jobs'))
 
 
-@driver_bp.route('/job/<int:order_id>/arrive', methods=['POST'])
+@driver_bp.route('/job/<int:order_id>/arrive_pickup', methods=['POST'])
 @driver_required
-def mark_arrival(order_id):
+def arrive_pickup(order_id):
     """Mark arrival at pickup location"""
     driver = auth_service.get_current_user()
 
-    success, error = driver_service.mark_arrival(order_id, driver['id'])
+    success, error = driver_service.driver_arrived_pickup(order_id, driver['id'])
 
     if success:
-        flash('Saapuminen merkitty!', 'success')
+        flash('Saapuminen noutopaikalle merkitty!', 'success')
     else:
         flash(f'Virhe: {error}', 'error')
 
     return redirect(url_for('driver.job_detail', order_id=order_id))
 
 
-@driver_bp.route('/job/<int:order_id>/start', methods=['POST'])
+@driver_bp.route('/job/<int:order_id>/confirm_pickup_images', methods=['POST'])
 @driver_required
-def start_transport(order_id):
-    """Start transport after pickup images"""
+def confirm_pickup_images(order_id):
+    """Confirm pickup images complete (min 5 required)"""
     driver = auth_service.get_current_user()
 
-    success, error = driver_service.start_transport(order_id, driver['id'])
+    success, error = driver_service.driver_complete_pickup_images(order_id, driver['id'])
+
+    if success:
+        flash('Noutokuvat vahvistettu! Voit nyt aloittaa kuljetuksen.', 'success')
+    else:
+        flash(f'Virhe: {error}', 'error')
+
+    return redirect(url_for('driver.job_detail', order_id=order_id))
+
+
+@driver_bp.route('/job/<int:order_id>/start_transit', methods=['POST'])
+@driver_required
+def start_transit(order_id):
+    """Start transit - driver proceeds independently"""
+    driver = auth_service.get_current_user()
+
+    success, error = driver_service.driver_start_transit(order_id, driver['id'])
 
     if success:
         flash('Kuljetus aloitettu!', 'success')
@@ -169,7 +168,7 @@ def arrive_delivery(order_id):
     """Mark arrival at delivery location"""
     driver = auth_service.get_current_user()
 
-    success, error = driver_service.arrive_at_delivery(order_id, driver['id'])
+    success, error = driver_service.driver_arrived_delivery(order_id, driver['id'])
 
     if success:
         flash('Saapuminen toimitusosoitteeseen merkitty!', 'success')
@@ -179,16 +178,32 @@ def arrive_delivery(order_id):
     return redirect(url_for('driver.job_detail', order_id=order_id))
 
 
-@driver_bp.route('/job/<int:order_id>/complete', methods=['POST'])
+@driver_bp.route('/job/<int:order_id>/confirm_delivery_images', methods=['POST'])
 @driver_required
-def complete_delivery(order_id):
-    """Complete delivery after delivery images"""
+def confirm_delivery_images(order_id):
+    """Confirm delivery images complete (min 5 required)"""
     driver = auth_service.get_current_user()
 
-    success, error = driver_service.complete_delivery(order_id, driver['id'])
+    success, error = driver_service.driver_complete_delivery_images(order_id, driver['id'])
 
     if success:
-        flash('Toimitus suoritettu onnistuneesti!', 'success')
+        flash('Toimituskuvat vahvistettu! Voit nyt merkitä toimituksen valmiiksi.', 'success')
+    else:
+        flash(f'Virhe: {error}', 'error')
+
+    return redirect(url_for('driver.job_detail', order_id=order_id))
+
+
+@driver_bp.route('/job/<int:order_id>/mark_complete', methods=['POST'])
+@driver_required
+def mark_complete(order_id):
+    """Mark delivery complete - notifies admin only"""
+    driver = auth_service.get_current_user()
+
+    success, error = driver_service.driver_mark_complete(order_id, driver['id'])
+
+    if success:
+        flash('Toimitus merkitty valmiiksi!', 'success')
     else:
         flash(f'Virhe: {error}', 'error')
 
@@ -238,30 +253,9 @@ def upload_image(order_id):
         flash(add_error, 'error')
         return redirect(url_for('driver.job_detail', order_id=order_id))
 
-    # Get updated image count AFTER adding (check if this was the first image)
-    # This prevents race conditions - only the upload that results in count=1 will trigger status update
-    from models.order import order_model
-    order_after = order_model.find_by_id(order_id, projection=order_model.DRIVER_PROJECTION)
-    current_images = order_after.get('images', {}).get(image_type, [])
-    
-    # Handle migration from old single image format
-    if not isinstance(current_images, list):
-        current_images = [current_images] if current_images else []
-    
-    # Only trigger status update if this resulted in exactly 1 image (was the first)
-    should_trigger_status_update = len(current_images) == 1
-
-    # Update order status ONLY if this was the first image (status transition)
-    if should_trigger_status_update:
-        if image_type == 'pickup':
-            driver_service.update_pickup_images_status(order_id, driver['id'])
-            flash('Noutokuva lisätty! Odottaa admin hyväksyntää.', 'success')
-        elif image_type == 'delivery':
-            driver_service.update_delivery_images_status(order_id, driver['id'])
-            flash('Toimituskuva lisätty! Odottaa admin hyväksyntää.', 'success')
-    else:
-        image_type_fi = 'Nouto' if image_type == 'pickup' else 'Toimitus'
-        flash(f'{image_type_fi}kuva lisätty onnistuneesti', 'success')
+    # Simple success message - no automatic status updates
+    image_type_fi = 'Nouto' if image_type == 'pickup' else 'Toimitus'
+    flash(f'{image_type_fi}kuva lisätty onnistuneesti', 'success')
 
     return redirect(url_for('driver.job_detail', order_id=order_id))
 
@@ -308,49 +302,24 @@ def upload_image_ajax(order_id):
     if not success:
         return jsonify({'success': False, 'error': add_error}), 500
 
-    # Get updated order and check if status update should be triggered
-    # The key is: trigger ONLY if status is still at "arrived" state (transition point)
+    # Get updated image count (no status updates on individual image uploads)
     from models.order import order_model
     order_after = order_model.find_by_id(order_id, projection=order_model.DRIVER_PROJECTION)
-    current_status = order_after.get('status')
     current_images = order_after.get('images', {}).get(image_type, [])
-    
+
     # Handle migration from old single image format
     if not isinstance(current_images, list):
         current_images = [current_images] if current_images else []
-    
-    # Trigger status update based on current status, not image count
-    # This handles all scenarios: normal flow, simultaneous uploads, and manual resets
-    # If status is at "arrived" state, this upload should trigger the transition
-    should_trigger_status_update = False
-    if image_type == 'pickup' and current_status == order_model.STATUS_DRIVER_ARRIVED:
-        should_trigger_status_update = True
-    elif image_type == 'delivery' and current_status == order_model.STATUS_DELIVERY_ARRIVED:
-        should_trigger_status_update = True
 
-    status_updated = False
-    message = ''
-
-    # Update status ONLY if order is at the transition point
-    if should_trigger_status_update:
-        if image_type == 'pickup':
-            driver_service.update_pickup_images_status(order_id, driver['id'])
-            message = 'Noutokuva lisätty! Odottaa admin hyväksyntää.'
-            status_updated = True
-        elif image_type == 'delivery':
-            driver_service.update_delivery_images_status(order_id, driver['id'])
-            message = 'Toimituskuva lisätty! Odottaa admin hyväksyntää.'
-            status_updated = True
-    else:
-        image_type_fi = 'Nouto' if image_type == 'pickup' else 'Toimitus'
-        message = f'{image_type_fi}kuva lisätty onnistuneesti'
+    # Simple success message
+    image_type_fi = 'Nouto' if image_type == 'pickup' else 'Toimitus'
+    message = f'{image_type_fi}kuva lisätty onnistuneesti'
 
     return jsonify({
         'success': True,
         'message': message,
         'image': image_info,
-        'image_count': len(current_images),
-        'status_updated': status_updated
+        'image_count': len(current_images)
     })
 
 

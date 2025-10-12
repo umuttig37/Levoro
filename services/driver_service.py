@@ -43,7 +43,10 @@ class DriverService:
         return order_model.get_active_driver_orders(driver_id)
 
     def accept_job(self, order_id: int, driver_id: int) -> Tuple[bool, Optional[str]]:
-        """Driver accepts a job - customer will be notified when admin updates status"""
+        """
+        Driver accepts a job - only sets driver_id, does NOT change status
+        Status remains CONFIRMED until admin manually changes it
+        """
         # Check if order exists and is available
         order = order_model.find_by_id(order_id)
         if not order:
@@ -55,10 +58,21 @@ class DriverService:
         if order.get("driver_id"):
             return False, "Tilaus on jo otettu toiselle kuljettajalle"
 
-        # Assign driver to order (status changes to ASSIGNED_TO_DRIVER)
-        success, error = order_model.assign_driver(order_id, driver_id)
+        # Assign driver to order WITHOUT changing status (status stays CONFIRMED)
+        success = order_model.update_one(
+            {"id": order_id},
+            {
+                "$set": {
+                    "driver_id": driver_id,
+                    "driver_progress": {},  # Initialize empty progress
+                    "updated_at": datetime.now(timezone.utc)
+                }
+                # NOTE: Status remains CONFIRMED (admin controls customer-visible status)
+            }
+        )
+
         if not success:
-            return False, error
+            return False, "Tilauksen ottaminen epäonnistui"
 
         # Send admin notification about driver accepting job
         try:
@@ -68,7 +82,7 @@ class DriverService:
                 email_service.send_admin_driver_action_notification(
                     order_id,
                     driver["name"],
-                    "ASSIGNED_TO_DRIVER",
+                    "JOB_ACCEPTED",  # Changed from ASSIGNED_TO_DRIVER
                     order
                 )
         except Exception as e:
@@ -108,143 +122,255 @@ class DriverService:
 
         return True, None
 
-    def mark_arrival(self, order_id: int, driver_id: int) -> Tuple[bool, Optional[str]]:
-        """Mark driver arrival at pickup location"""
-        return self.update_job_status(
-            order_id, driver_id,
-            order_model.STATUS_DRIVER_ARRIVED,
-            "arrival_time"
-        )
-
-    def start_transport(self, order_id: int, driver_id: int) -> Tuple[bool, Optional[str]]:
-        """Start transport after pickup images are added"""
-        # Verify pickup images are added
+    def driver_arrived_pickup(self, order_id: int, driver_id: int) -> Tuple[bool, Optional[str]]:
+        """Driver arrived at pickup location - updates progress only, NOT order status"""
+        # Verify order belongs to driver
         order = order_model.find_by_id(order_id)
         if not order:
             return False, "Tilaus ei löytynyt"
 
-        if order.get("status") != order_model.STATUS_PICKUP_IMAGES_ADDED:
-            return False, "Lisää ensin noutokuvat ennen kuljetuksen aloittamista"
+        if order.get("driver_id") != driver_id:
+            return False, "Tämä tilaus ei ole sinulle määritetty"
 
-        return self.update_job_status(
-            order_id, driver_id,
-            order_model.STATUS_IN_TRANSIT,
-            "pickup_started"
+        # Update driver progress
+        success, error = order_model.update_driver_progress(
+            order_id,
+            'arrived_at_pickup',
+            {'timestamp': datetime.now(timezone.utc), 'notified': False}
         )
 
-    def arrive_at_delivery(self, order_id: int, driver_id: int) -> Tuple[bool, Optional[str]]:
-        """Mark arrival at delivery location"""
-        return self.update_job_status(
-            order_id, driver_id,
-            order_model.STATUS_DELIVERY_ARRIVED,
-            "delivery_arrival_time"
-        )
+        if not success:
+            return False, error
 
-    def complete_delivery(self, order_id: int, driver_id: int) -> Tuple[bool, Optional[str]]:
-        """Complete delivery after delivery images are added"""
-        # Verify delivery images are added
+        # Send admin notification (will be implemented in email service)
+        try:
+            driver = user_model.find_by_id(driver_id)
+            if driver:
+                email_service.send_admin_driver_progress_notification(
+                    order_id,
+                    driver["name"],
+                    "ARRIVED_PICKUP",
+                    order
+                )
+        except Exception as e:
+            print(f"Admin notification failed: {e}")
+
+        return True, None
+
+    def driver_complete_pickup_images(self, order_id: int, driver_id: int) -> Tuple[bool, Optional[str]]:
+        """Driver completed 5+ pickup images - updates progress, sends batch email"""
+        # Verify order belongs to driver
         order = order_model.find_by_id(order_id)
         if not order:
             return False, "Tilaus ei löytynyt"
 
-        if order.get("status") != order_model.STATUS_DELIVERY_IMAGES_ADDED:
-            return False, "Lisää ensin toimituskuvat ennen toimituksen päättämistä"
+        if order.get("driver_id") != driver_id:
+            return False, "Tämä tilaus ei ole sinulle määritetty"
 
-        return self.update_job_status(
-            order_id, driver_id,
-            order_model.STATUS_DELIVERED,
-            "delivery_completed"
+        # Validate minimum 5 images
+        meets_min, count = order_model.has_minimum_images(order_id, 'pickup', 5)
+        if not meets_min:
+            return False, f"Vähintään 5 noutokuvaa vaaditaan. Nyt: {count}"
+
+        # Update driver progress
+        success, error = order_model.update_driver_progress(
+            order_id,
+            'pickup_images_complete',
+            {
+                'timestamp': datetime.now(timezone.utc),
+                'count': count,
+                'notified': False
+            }
         )
+
+        if not success:
+            return False, error
+
+        # Send admin batch notification with image count
+        try:
+            driver = user_model.find_by_id(driver_id)
+            if driver:
+                email_service.send_admin_driver_progress_notification(
+                    order_id,
+                    driver["name"],
+                    "PICKUP_IMAGES_COMPLETE",
+                    order,
+                    metadata={'count': count}
+                )
+        except Exception as e:
+            print(f"Admin notification failed: {e}")
+
+        return True, None
+
+    def driver_start_transit(self, order_id: int, driver_id: int) -> Tuple[bool, Optional[str]]:
+        """Driver started transit - updates progress only, NO waiting for admin"""
+        # Verify order belongs to driver
+        order = order_model.find_by_id(order_id)
+        if not order:
+            return False, "Tilaus ei löytynyt"
+
+        if order.get("driver_id") != driver_id:
+            return False, "Tämä tilaus ei ole sinulle määritetty"
+
+        # Update driver progress
+        success, error = order_model.update_driver_progress(
+            order_id,
+            'started_transit',
+            {'timestamp': datetime.now(timezone.utc), 'notified': False}
+        )
+
+        if not success:
+            return False, error
+
+        # Send admin notification
+        try:
+            driver = user_model.find_by_id(driver_id)
+            if driver:
+                email_service.send_admin_driver_progress_notification(
+                    order_id,
+                    driver["name"],
+                    "STARTED_TRANSIT",
+                    order
+                )
+        except Exception as e:
+            print(f"Admin notification failed: {e}")
+
+        return True, None
+
+    def driver_arrived_delivery(self, order_id: int, driver_id: int) -> Tuple[bool, Optional[str]]:
+        """Driver arrived at delivery location - updates progress only"""
+        # Verify order belongs to driver
+        order = order_model.find_by_id(order_id)
+        if not order:
+            return False, "Tilaus ei löytynyt"
+
+        if order.get("driver_id") != driver_id:
+            return False, "Tämä tilaus ei ole sinulle määritetty"
+
+        # Update driver progress
+        success, error = order_model.update_driver_progress(
+            order_id,
+            'arrived_at_delivery',
+            {'timestamp': datetime.now(timezone.utc), 'notified': False}
+        )
+
+        if not success:
+            return False, error
+
+        # Send admin notification
+        try:
+            driver = user_model.find_by_id(driver_id)
+            if driver:
+                email_service.send_admin_driver_progress_notification(
+                    order_id,
+                    driver["name"],
+                    "ARRIVED_DELIVERY",
+                    order
+                )
+        except Exception as e:
+            print(f"Admin notification failed: {e}")
+
+        return True, None
+
+    def driver_complete_delivery_images(self, order_id: int, driver_id: int) -> Tuple[bool, Optional[str]]:
+        """Driver completed 5+ delivery images - updates progress, sends batch email"""
+        # Verify order belongs to driver
+        order = order_model.find_by_id(order_id)
+        if not order:
+            return False, "Tilaus ei löytynyt"
+
+        if order.get("driver_id") != driver_id:
+            return False, "Tämä tilaus ei ole sinulle määritetty"
+
+        # Validate minimum 5 images
+        meets_min, count = order_model.has_minimum_images(order_id, 'delivery', 5)
+        if not meets_min:
+            return False, f"Vähintään 5 toimituskuvaa vaaditaan. Nyt: {count}"
+
+        # Update driver progress
+        success, error = order_model.update_driver_progress(
+            order_id,
+            'delivery_images_complete',
+            {
+                'timestamp': datetime.now(timezone.utc),
+                'count': count,
+                'notified': False
+            }
+        )
+
+        if not success:
+            return False, error
+
+        # Send admin batch notification with image count
+        try:
+            driver = user_model.find_by_id(driver_id)
+            if driver:
+                email_service.send_admin_driver_progress_notification(
+                    order_id,
+                    driver["name"],
+                    "DELIVERY_IMAGES_COMPLETE",
+                    order,
+                    metadata={'count': count}
+                )
+        except Exception as e:
+            print(f"Admin notification failed: {e}")
+
+        return True, None
+
+    def driver_mark_complete(self, order_id: int, driver_id: int) -> Tuple[bool, Optional[str]]:
+        """Driver marked job complete - updates progress only, NO status change"""
+        # Verify order belongs to driver
+        order = order_model.find_by_id(order_id)
+        if not order:
+            return False, "Tilaus ei löytynyt"
+
+        if order.get("driver_id") != driver_id:
+            return False, "Tämä tilaus ei ole sinulle määritetty"
+
+        # Update driver progress
+        success, error = order_model.update_driver_progress(
+            order_id,
+            'marked_complete',
+            {'timestamp': datetime.now(timezone.utc), 'notified': False}
+        )
+
+        if not success:
+            return False, error
+
+        # Send admin notification
+        try:
+            driver = user_model.find_by_id(driver_id)
+            if driver:
+                email_service.send_admin_driver_progress_notification(
+                    order_id,
+                    driver["name"],
+                    "MARKED_COMPLETE",
+                    order
+                )
+        except Exception as e:
+            print(f"Admin notification failed: {e}")
+
+        return True, None
 
     def can_add_pickup_images(self, order_id: int, driver_id: int) -> bool:
-        """Check if driver can add pickup images"""
+        """Check if driver can add pickup images - based on driver_progress, not status"""
         order = order_model.find_by_id(order_id)
         if not order or order.get("driver_id") != driver_id:
             return False
 
-        return order.get("status") in [order_model.STATUS_DRIVER_ARRIVED, order_model.STATUS_PICKUP_IMAGES_ADDED]
+        # Driver can upload pickup images if they've arrived at pickup
+        progress = order.get('driver_progress', {})
+        return progress.get('arrived_at_pickup') is not None
 
     def can_add_delivery_images(self, order_id: int, driver_id: int) -> bool:
-        """Check if driver can add delivery images"""
+        """Check if driver can add delivery images - based on driver_progress, not status"""
         order = order_model.find_by_id(order_id)
         if not order or order.get("driver_id") != driver_id:
             return False
 
-        return order.get("status") in [order_model.STATUS_DELIVERY_ARRIVED, order_model.STATUS_DELIVERY_IMAGES_ADDED]
-
-    def update_pickup_images_status(self, order_id: int, driver_id: int) -> Tuple[bool, Optional[str]]:
-        """Update status after pickup images are added (atomic - only if status is DRIVER_ARRIVED)"""
-        # Verify order belongs to driver
-        order = order_model.find_by_id(order_id)
-        if not order:
-            return False, "Tilaus ei löytynyt"
-
-        if order.get("driver_id") != driver_id:
-            return False, "Tämä tilaus ei ole sinulle määritetty"
-
-        # Atomic update - only succeeds if status is still DRIVER_ARRIVED
-        # This prevents race conditions when multiple images are uploaded simultaneously
-        success, error = order_model.update_driver_status(
-            order_id, 
-            order_model.STATUS_PICKUP_IMAGES_ADDED,
-            required_current_status=order_model.STATUS_DRIVER_ARRIVED
-        )
-        
-        if not success:
-            # Status already changed (another upload won the race) - this is OK, not an error
-            return True, None
-
-        # Send admin notification only if we successfully changed the status (first upload)
-        try:
-            driver = user_model.find_by_id(driver_id)
-            if driver:
-                email_service.send_admin_driver_action_notification(
-                    order_id,
-                    driver["name"],
-                    order_model.STATUS_PICKUP_IMAGES_ADDED,
-                    order
-                )
-        except Exception as e:
-            print(f"Admin notification failed: {e}")
-
-        return True, None
-
-    def update_delivery_images_status(self, order_id: int, driver_id: int) -> Tuple[bool, Optional[str]]:
-        """Update status after delivery images are added (atomic - only if status is DELIVERY_ARRIVED)"""
-        # Verify order belongs to driver
-        order = order_model.find_by_id(order_id)
-        if not order:
-            return False, "Tilaus ei löytynyt"
-
-        if order.get("driver_id") != driver_id:
-            return False, "Tämä tilaus ei ole sinulle määritetty"
-
-        # Atomic update - only succeeds if status is still DELIVERY_ARRIVED
-        # This prevents race conditions when multiple images are uploaded simultaneously
-        success, error = order_model.update_driver_status(
-            order_id, 
-            order_model.STATUS_DELIVERY_IMAGES_ADDED,
-            required_current_status=order_model.STATUS_DELIVERY_ARRIVED
-        )
-        
-        if not success:
-            # Status already changed (another upload won the race) - this is OK, not an error
-            return True, None
-
-        # Send admin notification only if we successfully changed the status (first upload)
-        try:
-            driver = user_model.find_by_id(driver_id)
-            if driver:
-                email_service.send_admin_driver_action_notification(
-                    order_id,
-                    driver["name"],
-                    order_model.STATUS_DELIVERY_IMAGES_ADDED,
-                    order
-                )
-        except Exception as e:
-            print(f"Admin notification failed: {e}")
-
-        return True, None
+        # Driver can upload delivery images ONLY after arriving at delivery location
+        progress = order.get('driver_progress', {})
+        return progress.get('arrived_at_delivery') is not None
 
     def get_driver_statistics(self, driver_id: int) -> Dict:
         """Get statistics for a specific driver"""

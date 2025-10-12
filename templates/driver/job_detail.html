@@ -7,6 +7,10 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='css/driver-job-detail.css') }}">
 {% endblock %}
 
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/driver-image-upload.js') }}"></script>
+{% endblock %}
+
 {% block content %}
 <div class="container driver-job-detail">
   <div class="section-padding">
@@ -34,25 +38,26 @@
     </div>
     <div class="card-body">
       <div class="flex items-center justify-center">
+        {% set progress = order.driver_progress or {} %}
         <span class="driver-status-badge
-          {% if order.status == 'CONFIRMED' %}bg-green-100 text-green-800
-          {% elif order.status == 'ASSIGNED_TO_DRIVER' %}bg-blue-100 text-blue-800
-          {% elif order.status == 'DRIVER_ARRIVED' %}bg-yellow-100 text-yellow-800
-          {% elif order.status == 'PICKUP_IMAGES_ADDED' %}bg-orange-100 text-orange-800
-          {% elif order.status == 'IN_TRANSIT' %}bg-purple-100 text-purple-800
-          {% elif order.status == 'DELIVERY_ARRIVED' %}bg-indigo-100 text-indigo-800
-          {% elif order.status == 'DELIVERY_IMAGES_ADDED' %}bg-pink-100 text-pink-800
-          {% elif order.status == 'DELIVERED' %}bg-emerald-100 text-emerald-800
+          {% if order.status == 'CONFIRMED' and not order.driver_id %}bg-green-100 text-green-800
+          {% elif not progress %}bg-blue-100 text-blue-800
+          {% elif progress.marked_complete %}bg-emerald-100 text-emerald-800
+          {% elif progress.delivery_images_complete %}bg-pink-100 text-pink-800
+          {% elif progress.arrived_at_delivery %}bg-indigo-100 text-indigo-800
+          {% elif progress.started_transit %}bg-purple-100 text-purple-800
+          {% elif progress.pickup_images_complete %}bg-orange-100 text-orange-800
+          {% elif progress.arrived_at_pickup %}bg-yellow-100 text-yellow-800
           {% else %}bg-gray-100 text-gray-800{% endif %}" role="status" aria-label="Työn tila">
-          {% if order.status == 'CONFIRMED' %}Saatavilla
-          {% elif order.status == 'ASSIGNED_TO_DRIVER' %}Määritetty sinulle
-          {% elif order.status == 'DRIVER_ARRIVED' %}Saapunut noutopaikalle
-          {% elif order.status == 'PICKUP_IMAGES_ADDED' %}Noutokuvat lisätty
-          {% elif order.status == 'IN_TRANSIT' %}Kuljetuksessa
-          {% elif order.status == 'DELIVERY_ARRIVED' %}Kuljetus saapunut
-          {% elif order.status == 'DELIVERY_IMAGES_ADDED' %}Toimituskuvat lisätty
-          {% elif order.status == 'DELIVERED' %}Toimitettu
-          {% else %}{{ order.status }}{% endif %}
+          {% if order.status == 'CONFIRMED' and not order.driver_id %}Saatavilla
+          {% elif not progress %}Työ otettu vastaan
+          {% elif progress.marked_complete %}Toimitus merkitty valmiiksi
+          {% elif progress.delivery_images_complete %}Toimituskuvat vahvistettu
+          {% elif progress.arrived_at_delivery %}Saapunut toimituspaikalle
+          {% elif progress.started_transit %}Kuljetus aloitettu
+          {% elif progress.pickup_images_complete %}Noutokuvat vahvistettu
+          {% elif progress.arrived_at_pickup %}Saapunut noutopaikalle
+          {% else %}Määritetty sinulle{% endif %}
         </span>
       </div>
     </div>
@@ -284,8 +289,29 @@
               {% set pickup_images = order.images.pickup if order.images and order.images.pickup else [] %}
               {% set image_type = 'pickup' %}
               {% set images_data = pickup_images %}
-              {% set can_upload = (order.status in ['DRIVER_ARRIVED', 'PICKUP_IMAGES_ADDED']) %}
+              {% set can_upload = (progress.arrived_at_pickup and not progress.started_transit) %}
               {% include 'components/driver_image_section.html' %}
+
+              <!-- Confirm Pickup Images Button -->
+              {% if progress.arrived_at_pickup and not progress.pickup_images_complete %}
+              <form method="POST" action="{{ url_for('driver.confirm_pickup_images', order_id=order.id) }}"
+                    style="margin-top: 1rem;">
+                <button type="submit"
+                        class="btn btn-primary w-full"
+                        id="confirm-pickup-btn"
+                        {% if pickup_images|length < 5 %}disabled{% endif %}
+                        data-min-images="5"
+                        data-current-images="{{ pickup_images|length }}"
+                        aria-label="Vahvista noutokuvat">
+                  Vahvista noutokuvat (min. 5 kuvaa)
+                </button>
+                {% if pickup_images|length < 5 %}
+                <p class="driver-action-hint" style="text-align: center; margin-top: 0.5rem;">
+                  Lataa vielä {{ 5 - pickup_images|length }} kuvaa
+                </p>
+                {% endif %}
+              </form>
+              {% endif %}
             </div>
 
             <!-- Delivery Images -->
@@ -293,8 +319,29 @@
               {% set delivery_images = order.images.delivery if order.images and order.images.delivery else [] %}
               {% set image_type = 'delivery' %}
               {% set images_data = delivery_images %}
-              {% set can_upload = (order.status in ['DELIVERY_ARRIVED', 'DELIVERY_IMAGES_ADDED']) %}
+              {% set can_upload = (progress.arrived_at_delivery and not progress.delivery_images_complete) %}
               {% include 'components/driver_image_section.html' %}
+
+              <!-- Confirm Delivery Images Button -->
+              {% if progress.arrived_at_delivery and not progress.delivery_images_complete %}
+              <form method="POST" action="{{ url_for('driver.confirm_delivery_images', order_id=order.id) }}"
+                    style="margin-top: 1rem;">
+                <button type="submit"
+                        class="btn btn-primary w-full"
+                        id="confirm-delivery-btn"
+                        {% if delivery_images|length < 5 %}disabled{% endif %}
+                        data-min-images="5"
+                        data-current-images="{{ delivery_images|length }}"
+                        aria-label="Vahvista toimituskuvat">
+                  Vahvista toimituskuvat (min. 5 kuvaa)
+                </button>
+                {% if delivery_images|length < 5 %}
+                <p class="driver-action-hint" style="text-align: center; margin-top: 0.5rem;">
+                  Lataa vielä {{ 5 - delivery_images|length }} kuvaa
+                </p>
+                {% endif %}
+              </form>
+              {% endif %}
             </div>
           </div>
         </div>
@@ -318,50 +365,66 @@
                 Ota työ vastaan
               </button>
             </form>
-            <p class="driver-action-hint">Ajoneuvon tiedot ja tarkat osoitteet tulevat näkyviin kun kuitattu
-              napilla olevan paikalla</p>
+            <p class="driver-action-hint">Ajoneuvon tiedot ja tarkat osoitteet tulevat näkyviin työn hyväksynnän jälkeen</p>
 
             {% elif order.driver_id == driver.id %}
-            <!-- Job belongs to this driver -->
-            {% if order.status == 'ASSIGNED_TO_DRIVER' %}
-            <form method="POST" action="{{ url_for('driver.mark_arrival', order_id=order.id) }}">
+            <!-- Job belongs to this driver - use driver_progress -->
+
+            {% if not progress %}
+            <!-- Just accepted, no progress yet -->
+            <form method="POST" action="{{ url_for('driver.arrive_pickup', order_id=order.id) }}">
               <button type="submit" class="btn btn-primary w-full" aria-label="Kuittaa saapuminen noutopaikalle">
                 {{ icons.location(18, 'currentColor', 'icon-inline') }} Saavuin noutopaikalle
               </button>
             </form>
 
-            {% elif order.status == 'DRIVER_ARRIVED' %}
-            <p class="driver-action-hint">Lisää noutokuvat ennen kuljetuksen aloittamista</p>
-
-            {% elif order.status == 'PICKUP_IMAGES_ADDED' %}
-            <div class="driver-waiting-state">
-              <div class="waiting-icon">{{ icons.circle(48, '#94a3b8') }}</div>
-              <p class="waiting-title">Odottaa admin hyväksyntää</p>
-              <p class="waiting-subtitle">Admin vahvistaa noutokuvat ja aloittaa kuljetuksen</p>
+            {% elif progress.marked_complete %}
+            <!-- Driver marked complete, waiting for admin to set DELIVERED -->
+            <div class="driver-completed-state">
+              <div class="completed-icon">{{ icons.check_circle(48, '#16a34a') }}</div>
+              <p class="completed-title">Toimitus merkitty valmiiksi!</p>
             </div>
 
-            {% elif order.status == 'IN_TRANSIT' %}
+            {% elif progress.delivery_images_complete %}
+            <!-- Delivery images confirmed, can mark complete -->
+            <form method="POST" action="{{ url_for('driver.mark_complete', order_id=order.id) }}">
+              <button type="submit" class="btn btn-primary w-full" aria-label="Merkitse toimitus valmiiksi">
+                {{ icons.check_circle(18, 'currentColor', 'icon-inline') }} Toimitettu
+              </button>
+            </form>
+            <p class="driver-action-hint">Merkitsee toimituksen valmiiksi ja ilmoittaa adminille</p>
+
+            {% elif progress.arrived_at_delivery and not progress.delivery_images_complete %}
+            <!-- At delivery, need to upload & confirm images -->
+            <p class="driver-action-hint">
+              {{ icons.camera(18, 'currentColor', 'icon-inline') }}
+              Lisää vähintään 5 toimituskuvaa ja vahvista ne
+            </p>
+
+            {% elif progress.started_transit and not progress.arrived_at_delivery %}
+            <!-- In transit, can mark delivery arrival -->
             <form method="POST" action="{{ url_for('driver.arrive_delivery', order_id=order.id) }}">
               <button type="submit" class="btn btn-primary w-full" aria-label="Kuittaa saapuminen toimituspaikalle">
                 {{ icons.location(18, 'currentColor', 'icon-inline') }} Saavuin toimituspaikalle
               </button>
             </form>
 
-            {% elif order.status == 'DELIVERY_ARRIVED' %}
-            <p class="driver-action-hint">Lisää toimituskuvat ennen toimituksen päättämistä</p>
+            {% elif progress.pickup_images_complete and not progress.started_transit %}
+            <!-- Pickup confirmed, can start transit -->
+            <form method="POST" action="{{ url_for('driver.start_transit', order_id=order.id) }}">
+              <button type="submit" class="btn btn-primary w-full" aria-label="Aloita kuljetus">
+                Aloita ajo
+              </button>
+            </form>
+            <p class="driver-action-hint">Voit aloittaa ajon välittömästi</p>
 
-            {% elif order.status == 'DELIVERY_IMAGES_ADDED' %}
-            <div class="driver-waiting-state">
-              <div class="waiting-icon">{{ icons.circle(48, '#94a3b8') }}</div>
-              <p class="waiting-title">Odottaa admin hyväksyntää</p>
-              <p class="waiting-subtitle">Admin vahvistaa toimituskuvat ja päättää toimituksen</p>
-            </div>
+            {% elif progress.arrived_at_pickup and not progress.pickup_images_complete %}
+            <!-- At pickup, need to upload & confirm images -->
+            <p class="driver-action-hint">
+              {{ icons.camera(18, 'currentColor', 'icon-inline') }}
+              Lisää vähintään 5 noutokuvaa ja vahvista ne
+            </p>
 
-            {% elif order.status == 'DELIVERED' %}
-            <div class="driver-completed-state">
-              <div class="completed-icon">{{ icons.check_circle(48, '#16a34a') }}</div>
-              <p class="completed-title">Toimitus suoritettu!</p>
-            </div>
             {% endif %}
 
             {% else %}

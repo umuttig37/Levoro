@@ -643,6 +643,112 @@ class EmailService:
             print(f"   [ERROR] Failed to send admin driver action notification: {str(e)}")
             return False
 
+    def send_admin_driver_progress_notification(self, order_id: int, driver_name: str, progress_event: str, order_data: Dict, metadata: Dict = None) -> bool:
+        """
+        Send notification to admin about driver progress updates
+        Uses dev email mock system when FLASK_ENV=development
+
+        Args:
+            order_id: Order ID
+            driver_name: Driver's name
+            progress_event: One of: ARRIVED_PICKUP, PICKUP_IMAGES_COMPLETE, STARTED_TRANSIT,
+                          ARRIVED_DELIVERY, DELIVERY_IMAGES_COMPLETE, MARKED_COMPLETE
+            order_data: Order information dict
+            metadata: Optional metadata (e.g., {'count': 5} for image counts)
+
+        Returns:
+            bool: True if email sent/saved successfully
+        """
+        admin_email = os.getenv("ADMIN_EMAIL", "support@levoro.fi")
+
+        print(f"[ADMIN] DRIVER PROGRESS NOTIFICATION:")
+        print(f"   To: {admin_email}")
+        print(f"   Order ID: #{order_id}")
+        print(f"   Driver: {driver_name}")
+        print(f"   Progress Event: {progress_event}")
+        if metadata:
+            print(f"   Metadata: {metadata}")
+
+        try:
+            # Map progress events to Finnish descriptions
+            event_descriptions = {
+                "ARRIVED_PICKUP": f"{driver_name} on saapunut noutopaikalle",
+                "PICKUP_IMAGES_COMPLETE": f"{driver_name} on lisännyt {metadata.get('count', 0) if metadata else 0} noutokuvaa",
+                "STARTED_TRANSIT": f"{driver_name} on aloittanut kuljetuksen",
+                "ARRIVED_DELIVERY": f"{driver_name} on saapunut toimituspaikalle",
+                "DELIVERY_IMAGES_COMPLETE": f"{driver_name} on lisännyt {metadata.get('count', 0) if metadata else 0} toimituskuvaa",
+                "MARKED_COMPLETE": f"{driver_name} on merkinnyt toimituksen valmiiksi"
+            }
+
+            event_finnish = event_descriptions.get(progress_event, progress_event)
+            base_url = os.getenv("BASE_URL", "http://localhost:8000")
+            order_detail_url = f"{base_url}/admin/order/{order_id}"
+
+            # Build HTML email
+            html_body = f"""
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+                <div style="background: linear-gradient(135deg, #f59e0b, #d97706); color: white; padding: 30px; border-radius: 12px; margin-bottom: 30px; text-align: center;">
+                    <h1 style="margin: 0; font-size: 28px;">Kuljettajan eteneminen</h1>
+                    <p style="margin: 10px 0 0 0; font-size: 16px; opacity: 0.9;">Tilaus #{order_id}</p>
+                </div>
+
+                <div style="padding: 0 20px;">
+                    <div style="background: #fef3c7; border-left: 4px solid #f59e0b; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                        <h3 style="margin-top: 0; color: #92400e;">Toimenpide:</h3>
+                        <p style="font-size: 18px; font-weight: bold; color: #92400e; margin: 5px 0;">{event_finnish}</p>
+                    </div>
+
+                    <div style="background: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                        <h3 style="margin-top: 0; color: #1f2937; border-bottom: 2px solid #e5e7eb; padding-bottom: 8px;">Tilauksen tiedot</h3>
+                        <table style="width: 100%; border-collapse: collapse;">
+                            <tr><td style="padding: 8px 0; font-weight: bold; width: 40%;">Tilaus #:</td><td style="padding: 8px 0;">{order_id}</td></tr>
+                            <tr><td style="padding: 8px 0; font-weight: bold;">Nouto:</td><td style="padding: 8px 0;">{order_data.get('pickup_address', 'N/A')}</td></tr>
+                            <tr><td style="padding: 8px 0; font-weight: bold;">Toimitus:</td><td style="padding: 8px 0;">{order_data.get('dropoff_address', 'N/A')}</td></tr>
+                            <tr><td style="padding: 8px 0; font-weight: bold;">Matka:</td><td style="padding: 8px 0;">{order_data.get('distance_km', 0)} km</td></tr>
+                            <tr><td style="padding: 8px 0; font-weight: bold;">Rekisterinumero:</td><td style="padding: 8px 0;">{order_data.get('reg_number', 'N/A')}</td></tr>
+                        </table>
+                    </div>
+
+                    <div style="background: #dbeafe; border: 2px solid #3b82f6; padding: 20px; border-radius: 8px; margin: 25px 0;">
+                        <p style="margin: 0; color: #1e40af; font-size: 14px;">
+                            <strong>Huomio:</strong> Kuljettaja etenee itsenäisesti. Voit päivittää tilauksen tilan admin-paneelista kun haluat ilmoittaa asiakkaalle.
+                        </p>
+                    </div>
+
+                    <div style="text-align: center; margin: 30px 0;">
+                        <a href="{order_detail_url}"
+                           style="background: #3b82f6; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600; display: inline-block;">
+                            Näytä tilaus admin-paneelissa
+                        </a>
+                    </div>
+
+                    <p style="font-size: 16px; color: #374151;">
+                        Ystävällisin terveisin,<br>
+                        <strong>Levoro järjestelmä</strong>
+                    </p>
+                </div>
+
+                <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb;">
+                    <p style="font-size: 14px; color: #6b7280;">
+                        Levoro - Luotettavaa autokuljetusta<br>
+                        <a href="https://levoro.fi" style="color: #3b82f6;">levoro.fi</a>
+                    </p>
+                </div>
+            </div>
+            """
+
+            # Use existing send_email() method - automatically handles dev/prod modes
+            return self.send_email(
+                subject=f"[Levoro] Kuljettajan eteneminen - Tilaus #{order_id}",
+                recipients=[admin_email],
+                html_body=html_body
+            )
+
+        except Exception as e:
+            current_app.logger.error(f"Failed to send admin driver progress notification: {str(e)}")
+            print(f"   [ERROR] Failed to send admin driver progress notification: {str(e)}")
+            return False
+
     def _save_email_to_file(self, subject: str, recipients: List[str], html_body: str, sender: str = None) -> bool:
         """Save email as HTML file for development testing"""
         try:

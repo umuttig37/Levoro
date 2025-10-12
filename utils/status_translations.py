@@ -7,7 +7,7 @@ Centralized status translations for orders
 STATUS_TRANSLATIONS = {
     'NEW': 'Uusi tilaus',
     'CONFIRMED': 'Tilaus vahvistettu',
-    'ASSIGNED_TO_DRIVER': 'Kuljettaja määritetty',
+    'ASSIGNED_TO_DRIVER': 'Noudossa',
     'DRIVER_ARRIVED': 'Kuljettaja saapunut',
     'PICKUP_IMAGES_ADDED': 'Noutokuvat lisätty',
     'IN_TRANSIT': 'Kuljetuksessa',
@@ -21,7 +21,7 @@ STATUS_TRANSLATIONS = {
 STATUS_DESCRIPTIONS = {
     'NEW': 'Tilaus vastaanotettu ja odottaa vahvistusta',
     'CONFIRMED': 'Tilaus vahvistettu! Kuljettaja määritetään pian',
-    'ASSIGNED_TO_DRIVER': 'Kuljettaja määritetty ja matkalla noutopaikalle',
+    'ASSIGNED_TO_DRIVER': 'Ajoneuvosi haetaan pian - kuljettaja on matkalla noutopaikalle',
     'DRIVER_ARRIVED': 'Kuljettaja saapunut noutopaikalle ja aloittaa ajoneuvon tarkastuksen',
     'PICKUP_IMAGES_ADDED': 'Ajoneuvon tila dokumentoitu - kuljetus alkaa pian',
     'IN_TRANSIT': 'Ajoneuvonne on nyt matkalla määränpäähän',

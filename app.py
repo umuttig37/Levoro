@@ -680,7 +680,7 @@ def order_view(order_id: int):
         statuses = [
             {"key": "NEW", "label": "Tilaus luotu", "group": ["NEW"]},
             {"key": "CONFIRMED", "label": "Vahvistettu", "group": ["CONFIRMED"]},
-            {"key": "ASSIGNED_TO_DRIVER", "label": "Kuljettaja määritetty", "group": ["ASSIGNED_TO_DRIVER", "DRIVER_ARRIVED", "PICKUP_IMAGES_ADDED"]},
+            {"key": "ASSIGNED_TO_DRIVER", "label": "Noudossa", "group": ["ASSIGNED_TO_DRIVER", "DRIVER_ARRIVED", "PICKUP_IMAGES_ADDED"]},
             {"key": "IN_TRANSIT", "label": "Kuljetuksessa", "group": ["IN_TRANSIT", "DELIVERY_ARRIVED", "DELIVERY_IMAGES_ADDED"]},
             {"key": "DELIVERED", "label": "Toimitettu", "group": ["DELIVERED"]}
         ]

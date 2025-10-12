@@ -887,3 +887,107 @@ select:focus-visible {
 .text-center {
     text-align: center;
 }
+/* ============================================
+   DRIVER PROGRESS TIMELINE
+   ============================================ */
+
+.admin-driver-progress-section {
+    background: #ffffff;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+    margin-top: 1rem;
+}
+
+.progress-timeline {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    position: relative;
+}
+
+.timeline-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    position: relative;
+    padding-left: 0.5rem;
+}
+
+.timeline-item::before {
+    content: '';
+    position: absolute;
+    left: 0.9375rem;
+    top: 1.5rem;
+    bottom: -0.5rem;
+    width: 2px;
+    background: #e5e7eb;
+}
+
+.timeline-item:last-child::before {
+    display: none;
+}
+
+.timeline-marker {
+    width: 1.25rem;
+    height: 1.25rem;
+    border-radius: 50%;
+    flex-shrink: 0;
+    margin-top: 0.125rem;
+    border: 2px solid #e5e7eb;
+    background: #ffffff;
+    position: relative;
+    z-index: 1;
+}
+
+.timeline-item-complete .timeline-marker {
+    background: #22c55e;
+    border-color: #22c55e;
+}
+
+.timeline-content {
+    flex: 1;
+    padding-bottom: 0.75rem;
+}
+
+.timeline-title {
+    font-weight: 600;
+    font-size: 0.9375rem;
+    color: #111827;
+    margin-bottom: 0.125rem;
+}
+
+.timeline-desc {
+    font-size: 0.8125rem;
+    color: #6b7280;
+    margin-bottom: 0.125rem;
+}
+
+.timeline-timestamp {
+    font-size: 0.75rem;
+    color: #94a3b8;
+    font-style: italic;
+}
+
+.progress-waiting {
+    padding: 0.5rem 0;
+}
+
+/* Responsive adjustments */
+@media (min-width: 769px) {
+    .timeline-item {
+        gap: 1rem;
+    }
+    
+    .timeline-title {
+        font-size: 1rem;
+    }
+    
+    .timeline-desc {
+        font-size: 0.875rem;
+    }
+}
+
+@media (min-width: 1025px) {
+    .admin-driver-progress-section {
+        margin-top: 1.25rem;
+    }
+}

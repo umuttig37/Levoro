@@ -30,6 +30,9 @@
     {% elif new_status == 'CONFIRMED' %}
     <span
         style="background: #10b981; color: white; padding: 12px 24px; border-radius: 8px; font-weight: 600; display: inline-block;">VAHVISTETTU</span>
+    {% elif new_status == 'ASSIGNED_TO_DRIVER' %}
+    <span
+        style="background: #f59e0b; color: white; padding: 12px 24px; border-radius: 8px; font-weight: 600; display: inline-block;">NOUDOSSA</span>
     {% elif new_status == 'IN_TRANSIT' %}
     <span
         style="background: #f59e0b; color: white; padding: 12px 24px; border-radius: 8px; font-weight: 600; display: inline-block;">KULJETUKSESSA</span>
@@ -97,6 +100,11 @@
 <div class="info-box success" style="background-color: #f0fdf4 !important;">
     <strong style="color: #065f46 !important;">Vahvistettu</strong>
     <p style="color: #047857 !important;">Tilauksesi on vahvistettu ylläpidon toimesta ja odottaa noutopäivää.</p>
+</div>
+{% elif new_status == 'ASSIGNED_TO_DRIVER' %}
+<div class="info-box warning" style="background-color: #fffbeb !important;">
+    <strong style="color: #78350f !important;">Noudossa</strong>
+    <p style="color: #92400e !important;">Ajoneuvosi haetaan pian - kuljettaja on matkalla noutopaikalle.</p>
 </div>
 {% elif new_status == 'IN_TRANSIT' %}
 <div class="info-box warning" style="background-color: #fffbeb !important;">
