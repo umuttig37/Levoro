@@ -92,7 +92,7 @@
 
                 {% if job.additional_info and job.additional_info|trim %}
                 <div class="driver-job-subsection driver-job-admin-notes">
-                  <h4 class="driver-job-subsection-title">Asiakkaan kommentti</h4>
+                  <h4 class="driver-job-subsection-title">Tilaajan kommentti</h4>
                   <p class="driver-job-admin-text">{{ job.additional_info[:80] }}{% if job.additional_info|length > 80
                     %}...{% endif %}</p>
                 </div>
@@ -170,7 +170,7 @@
 
                 {% if job.additional_info and job.additional_info|trim %}
                 <div class="driver-job-subsection driver-job-admin-notes">
-                  <h4 class="driver-job-subsection-title">Asiakkaan kommentti</h4>
+                  <h4 class="driver-job-subsection-title">Tilaajan kommentti</h4>
                   <p class="driver-job-admin-text">{{ job.additional_info[:80] }}{% if job.additional_info|length > 80
                     %}...{% endif %}</p>
                 </div>

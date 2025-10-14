@@ -222,9 +222,34 @@
             return;
         }
 
+        // Update counter text
         const counter = section.querySelector('.image-counter-text');
         if (counter) {
             counter.textContent = `${count}/15 kuvaa`;
+        }
+
+        // Update confirm button state
+        const confirmBtn = document.getElementById(`confirm-${imageType}-btn`);
+        if (confirmBtn) {
+            const minImages = 5;
+            const typeFi = imageType === 'pickup' ? 'noutokuvat' : 'toimituskuvat';
+
+            // Update button text with current count
+            confirmBtn.textContent = `Vahvista ${typeFi} (${count}/${minImages})`;
+
+            // Enable/disable button based on count
+            confirmBtn.disabled = count < minImages;
+
+            // Update hint text
+            const hintElement = confirmBtn.parentElement.querySelector('.driver-action-hint');
+            if (hintElement) {
+                if (count < minImages) {
+                    hintElement.textContent = `Lataa vielä ${minImages - count} kuvaa`;
+                    hintElement.style.display = 'block';
+                } else {
+                    hintElement.style.display = 'none';
+                }
+            }
         }
     }
 

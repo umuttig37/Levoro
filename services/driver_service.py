@@ -79,10 +79,10 @@ class DriverService:
             driver = user_model.find_by_id(driver_id)
 
             if driver:
-                email_service.send_admin_driver_action_notification(
+                email_service.send_admin_driver_progress_notification(
                     order_id,
                     driver["name"],
-                    "JOB_ACCEPTED",  # Changed from ASSIGNED_TO_DRIVER
+                    "JOB_ACCEPTED",
                     order
                 )
         except Exception as e:

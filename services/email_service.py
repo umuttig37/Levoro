@@ -278,7 +278,7 @@ class EmailService:
 
         try:
             # Create admin URLs using configured base URL
-            base_url = os.getenv("BASE_URL", "http://localhost:3000")
+            base_url = os.getenv("BASE_URL", "http://localhost:8000")
             admin_url = f"{base_url}/admin"
             order_detail_url = f"{base_url}/admin/order/{order_data.get('id')}"
 
@@ -311,7 +311,7 @@ class EmailService:
 
         try:
             # Create admin URLs using configured base URL
-            base_url = os.getenv("BASE_URL", "http://localhost:3000")
+            base_url = os.getenv("BASE_URL", "http://localhost:8000")
             admin_users_url = f"{base_url}/admin/users"
             user_detail_url = f"{base_url}/admin/user/{user_data.get('id')}"
 
@@ -369,7 +369,7 @@ class EmailService:
                 filter(None, [application.get("first_name"), application.get("last_name")])
             ).strip()
 
-            base_url = os.getenv('BASE_URL', 'http://localhost:3000')
+            base_url = os.getenv('BASE_URL', 'http://localhost:8000')
             application_url = f"{base_url}/admin/driver-applications/{application['id']}"
 
             html_body = render_template('emails/admin_driver_application.html',
@@ -437,7 +437,7 @@ class EmailService:
                     </div>
 
                     <div style="text-align: center; margin: 30px 0;">
-                        <a href="{os.getenv('BASE_URL', 'http://localhost:3000')}/driver/job/{order_data.get('id')}"
+                        <a href="{os.getenv('BASE_URL', 'http://localhost:8000')}/driver/job/{order_data.get('id')}"
                            style="background: #3b82f6; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600; display: inline-block;">
                             Näytä tehtävä
                         </a>
@@ -504,7 +504,7 @@ class EmailService:
                     </div>
 
                     <div style="text-align: center; margin: 30px 0;">
-                        <a href="{os.getenv('BASE_URL', 'http://localhost:3000')}/order/{order_data.get('id')}"
+                        <a href="{os.getenv('BASE_URL', 'http://localhost:8000')}/order/{order_data.get('id')}"
                            style="background: #3b82f6; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600; display: inline-block;">
                             Seuraa tilausta
                         </a>
@@ -576,7 +576,7 @@ class EmailService:
 
             action_finnish = action_descriptions.get(action, action)
 
-            base_url = os.getenv("BASE_URL", "http://localhost:3000")
+            base_url = os.getenv("BASE_URL", "http://localhost:8000")
             order_detail_url = f"{base_url}/admin/order/{order_id}"
 
             html_body = f"""
@@ -672,6 +672,7 @@ class EmailService:
         try:
             # Map progress events to Finnish descriptions
             event_descriptions = {
+                "JOB_ACCEPTED": f"{driver_name} on ottanut työn vastaan",
                 "ARRIVED_PICKUP": f"{driver_name} on saapunut noutopaikalle",
                 "PICKUP_IMAGES_COMPLETE": f"{driver_name} on lisännyt {metadata.get('count', 0) if metadata else 0} noutokuvaa",
                 "STARTED_TRANSIT": f"{driver_name} on aloittanut kuljetuksen",
