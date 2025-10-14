@@ -710,16 +710,14 @@ def confirm_order(order_id):
 @admin_bp.route("/order/<int:order_id>/update-details", methods=["POST"])
 @admin_required
 def update_order_details(order_id):
-    """Update order details (driver reward, car info, driver notes)
-
-    Note: additional_info is customer-provided and read-only, not editable by admin
-    """
+    """Update order details (driver reward, car info, additional info, driver notes)"""
     from models.order import order_model
 
     # Get form data
     driver_reward = request.form.get('driver_reward')
     car_brand = request.form.get('car_brand', '').strip()
     car_model = request.form.get('car_model', '').strip()
+    additional_info = request.form.get('additional_info', '').strip()
     driver_notes = request.form.get('driver_notes', '').strip()
 
     # Validate and update driver reward
@@ -738,11 +736,12 @@ def update_order_details(order_id):
             flash('Virhe: Virheellinen palkkion arvo', 'error')
             return redirect(url_for('admin.order_detail', order_id=order_id))
 
-    # Update order details (excluding additional_info which is customer-provided and read-only)
+    # Update order details (including additional_info which is now admin-editable)
     success, error = order_model.update_order_details(
         order_id,
         car_model=car_model if car_model else None,
         car_brand=car_brand if car_brand else None,
+        additional_info=additional_info if additional_info else None,
         driver_notes=driver_notes if driver_notes else None
     )
 

@@ -331,6 +331,11 @@
     font-weight: 600;
 }
 
+.field-hint-info {
+    color: #1e40af;
+    font-weight: 600;
+}
+
 .field-grid-2col {
     display: grid;
     grid-template-columns: 1fr;
@@ -700,6 +705,7 @@
    ============================================ */
 
 @media (max-width: 768px) {
+
     /* Increase header size on mobile */
     .order-header h2 {
         font-size: 1.5rem;
@@ -1051,6 +1057,7 @@ select:focus-visible {
 .text-center {
     text-align: center;
 }
+
 /* ============================================
    DRIVER PROGRESS TIMELINE
    ============================================ */
@@ -1140,11 +1147,11 @@ select:focus-visible {
     .timeline-item {
         gap: 1rem;
     }
-    
+
     .timeline-title {
         font-size: 1rem;
     }
-    
+
     .timeline-desc {
         font-size: 0.875rem;
     }

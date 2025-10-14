@@ -239,6 +239,17 @@ def get_status_description(status):
     from utils.status_translations import get_status_description as get_desc
     return get_desc(status)
 
+# Register status translation filters
+@app.template_filter('translate_status')
+def translate_status_filter(status):
+    """Template filter to translate order status to Finnish"""
+    return translate_status(status)
+
+@app.template_filter('get_status_description')
+def get_status_description_filter(status):
+    """Template filter to get status description"""
+    return get_status_description(status)
+
 def format_helsinki_time(dt):
     """Format datetime to Helsinki timezone string"""
     if dt is None:

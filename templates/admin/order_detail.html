@@ -166,6 +166,14 @@
                             </div>
 
                             <div>
+                                <label>Lisätiedot (näkyy kaikille kuljettajille)</label>
+                                <textarea name="additional_info" rows="3"
+                                    placeholder="Esim. erikoisohjeet, varoitukset, yhteydenotot...">{{- order.additional_info or '' -}}</textarea>
+                                <p class="field-hint field-hint-info">{{ icons.alert(14, '#1e40af', 'icon-inline') }}
+                                    Näkyy kaikille kuljettajille työlistan kortissa (myös ennen hyväksymistä)</p>
+                            </div>
+
+                            <div>
                                 <label>Lisätiedot kuskille</label>
                                 <textarea name="driver_notes" rows="3"
                                     placeholder="Esim. liikkeen nimi, erityisohjeet...">{{- order.driver_notes or '' -}}</textarea>
