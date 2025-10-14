@@ -419,6 +419,7 @@ class OrderModel(BaseModel):
     def get_active_driver_orders(self, driver_id: int) -> List[Dict]:
         """Get active orders for a driver (not completed/cancelled)"""
         active_statuses = [
+            self.STATUS_CONFIRMED,  # Include CONFIRMED for newly accepted jobs
             self.STATUS_ASSIGNED_TO_DRIVER, self.STATUS_DRIVER_ARRIVED,
             self.STATUS_PICKUP_IMAGES_ADDED, self.STATUS_IN_TRANSIT,
             self.STATUS_DELIVERY_ARRIVED, self.STATUS_DELIVERY_IMAGES_ADDED
