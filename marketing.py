@@ -525,15 +525,32 @@ function demo(){
 }
 
 // --- Google Places Autocomplete bindings ---
-const fromAutocomplete = new GooglePlacesAutocomplete(
-  document.getElementById('from'),
-  document.getElementById('ac_from')
-);
+// Initialize after a short delay to ensure navigation.js has initialized first
+// This prevents conflicts with the mobile menu toggle
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initCalculatorAutocomplete);
+} else {
+  // DOM already loaded, initialize immediately
+  initCalculatorAutocomplete();
+}
 
-const toAutocomplete = new GooglePlacesAutocomplete(
-  document.getElementById('to'),
-  document.getElementById('ac_to')
-);
+function initCalculatorAutocomplete() {
+  // Small delay to ensure navigation.js has set up mobile menu first
+  setTimeout(function() {
+    const fromInput = document.getElementById('from');
+    const toInput = document.getElementById('to');
+    const acFrom = document.getElementById('ac_from');
+    const acTo = document.getElementById('ac_to');
+
+    if (fromInput && acFrom) {
+      const fromAutocomplete = new GooglePlacesAutocomplete(fromInput, acFrom);
+    }
+
+    if (toInput && acTo) {
+      const toAutocomplete = new GooglePlacesAutocomplete(toInput, acTo);
+    }
+  }, 50);
+}
 </script>
 """
     return get_wrap()(body, u)

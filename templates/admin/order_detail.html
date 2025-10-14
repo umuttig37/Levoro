@@ -128,7 +128,8 @@
                     <div class="section-body">
                         <div class="readonly-content">
                             <p class="readonly-text">{{ order.additional_info }}</p>
-                            <p class="readonly-hint">{{ icons.eye(14, '#6b7280', 'icon-inline') }} Näkyy kuskeille ennen työn vastaanottoa</p>
+                            <p class="readonly-hint">{{ icons.eye(14, '#6b7280', 'icon-inline') }} Näkyy kuskeille ennen
+                                työn vastaanottoa</p>
                         </div>
                     </div>
                 </div>
@@ -167,7 +168,7 @@
                             <div>
                                 <label>Lisätiedot kuskille</label>
                                 <textarea name="driver_notes" rows="3"
-                                    placeholder="Esim. liikkeen nimi, erityisohjeet...">{{ order.driver_notes or '' }}</textarea>
+                                    placeholder="Esim. liikkeen nimi, erityisohjeet...">{{- order.driver_notes or '' -}}</textarea>
                                 <p class="field-hint field-hint-success">{{ icons.alert(14, '#166534', 'icon-inline') }}
                                     Näkyy vain hyväksyneelle kuljettajalle</p>
                             </div>

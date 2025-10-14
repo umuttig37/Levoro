@@ -254,19 +254,16 @@
     color: #065f46;
 }
 
-/* Actions Panels - Top and Bottom */
-.driver-actions-panel-top,
+/* Actions Panel - Bottom Only */
 .driver-actions-panel-bottom {
     width: 100%;
     max-width: 100%;
 }
 
-.driver-actions-panel-top .card-body,
 .driver-actions-panel-bottom .card-body {
     padding: 1.5rem;
 }
 
-.driver-actions-panel-top .btn,
 .driver-actions-panel-bottom .btn {
     width: 100%;
     min-height: 52px;
@@ -282,13 +279,11 @@
     transition: all 0.2s ease;
 }
 
-.driver-actions-panel-top .btn:focus-visible,
 .driver-actions-panel-bottom .btn:focus-visible {
     outline: 3px solid var(--color-primary);
     outline-offset: 2px;
 }
 
-.driver-actions-panel-top .btn:hover,
 .driver-actions-panel-bottom .btn:hover {
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
@@ -397,7 +392,6 @@
     }
 
     /* Actions panels full width on tablet */
-    .driver-actions-panel-top,
     .driver-actions-panel-bottom {
         width: 100%;
     }
@@ -505,12 +499,10 @@
     }
 
     /* Actions panels mobile */
-    .driver-actions-panel-top .card-body,
     .driver-actions-panel-bottom .card-body {
         padding: 1.25rem;
     }
 
-    .driver-actions-panel-top .btn,
     .driver-actions-panel-bottom .btn {
         min-height: 52px;
         font-size: 1.0625rem;
@@ -644,14 +636,12 @@
 /* Reduced motion support */
 @media (prefers-reduced-motion: reduce) {
 
-    .driver-actions-panel-top .btn,
     .driver-actions-panel-bottom .btn,
     .driver-back-btn {
         transition: none;
         transform: none !important;
     }
 
-    .driver-actions-panel-top .btn:hover,
     .driver-actions-panel-bottom .btn:hover {
         transform: none;
     }
@@ -660,7 +650,6 @@
 /* Print styles */
 @media print {
 
-    .driver-actions-panel-top,
     .driver-actions-panel-bottom,
     .driver-back-btn {
         display: none;

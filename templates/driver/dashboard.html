@@ -72,20 +72,29 @@
                 <p class="driver-job-route" aria-label="Reitti">{{ job.pickup_address }} → {{ job.dropoff_address }}</p>
 
                 <div class="driver-job-meta">
+                  {% if job.pickup_date %}
+                  <div class="driver-job-info-row">
+                    <span class="driver-job-info-label">Noutopäivä</span>
+                    <span class="driver-job-info-value" style="font-weight: 700; color: #1f2937;">{{
+                      job.pickup_date|finnish_date }}</span>
+                  </div>
+                  {% endif %}
                   <div class="driver-job-info-row">
                     <span class="driver-job-info-label">Matka</span>
                     <span class="driver-job-info-value">{{ job.distance_km|default(0)|round(1) }} km</span>
                   </div>
                   <div class="driver-job-info-row">
                     <span class="driver-job-info-label">Palkkio</span>
-                    <span class="driver-job-info-value large">{% if job.driver_reward %}{{ job.driver_reward|round(2) }}{% else %}0.00{% endif %} €</span>
+                    <span class="driver-job-info-value large">{% if job.driver_reward %}{{ job.driver_reward|round(2)
+                      }}{% else %}0.00{% endif %} €</span>
                   </div>
                 </div>
 
                 {% if job.additional_info and job.additional_info|trim %}
                 <div class="driver-job-subsection driver-job-admin-notes">
                   <h4 class="driver-job-subsection-title">Asiakkaan kommentti</h4>
-                  <p class="driver-job-admin-text">{{ job.additional_info[:80] }}{% if job.additional_info|length > 80 %}...{% endif %}</p>
+                  <p class="driver-job-admin-text">{{ job.additional_info[:80] }}{% if job.additional_info|length > 80
+                    %}...{% endif %}</p>
                 </div>
                 {% endif %}
 
@@ -141,20 +150,29 @@
                   job.dropoff_address|extract_city }}</p>
 
                 <div class="driver-job-meta">
+                  {% if job.pickup_date %}
+                  <div class="driver-job-info-row">
+                    <span class="driver-job-info-label">Noutopäivä</span>
+                    <span class="driver-job-info-value" style="font-weight: 700; color: #1f2937;">{{
+                      job.pickup_date|finnish_date }}</span>
+                  </div>
+                  {% endif %}
                   <div class="driver-job-info-row">
                     <span class="driver-job-info-label">Matka</span>
                     <span class="driver-job-info-value">{{ job.distance_km|default(0)|round(1) }} km</span>
                   </div>
                   <div class="driver-job-info-row">
                     <span class="driver-job-info-label">Palkkio</span>
-                    <span class="driver-job-info-value large">{% if job.driver_reward %}{{ job.driver_reward|round(2) }}{% else %}0.00{% endif %} €</span>
+                    <span class="driver-job-info-value large">{% if job.driver_reward %}{{ job.driver_reward|round(2)
+                      }}{% else %}0.00{% endif %} €</span>
                   </div>
                 </div>
 
                 {% if job.additional_info and job.additional_info|trim %}
                 <div class="driver-job-subsection driver-job-admin-notes">
                   <h4 class="driver-job-subsection-title">Asiakkaan kommentti</h4>
-                  <p class="driver-job-admin-text">{{ job.additional_info[:80] }}{% if job.additional_info|length > 80 %}...{% endif %}</p>
+                  <p class="driver-job-admin-text">{{ job.additional_info[:80] }}{% if job.additional_info|length > 80
+                    %}...{% endif %}</p>
                 </div>
                 {% endif %}
 
@@ -200,13 +218,21 @@
                 <p class="driver-job-route" aria-label="Reitti">{{ job.pickup_address }} → {{ job.dropoff_address }}</p>
 
                 <div class="driver-job-meta">
+                  {% if job.pickup_date %}
+                  <div class="driver-job-info-row">
+                    <span class="driver-job-info-label">Noutopäivä</span>
+                    <span class="driver-job-info-value" style="font-weight: 700; color: #1f2937;">{{
+                      job.pickup_date|finnish_date }}</span>
+                  </div>
+                  {% endif %}
                   <div class="driver-job-info-row">
                     <span class="driver-job-info-label">Matka</span>
                     <span class="driver-job-info-value">{{ job.distance_km|default(0)|round(1) }} km</span>
                   </div>
                   <div class="driver-job-info-row">
                     <span class="driver-job-info-label">Palkkio</span>
-                    <span class="driver-job-info-value large">{% if job.driver_reward %}{{ job.driver_reward|round(2) }}{% else %}0.00{% endif %} €</span>
+                    <span class="driver-job-info-value large">{% if job.driver_reward %}{{ job.driver_reward|round(2)
+                      }}{% else %}0.00{% endif %} €</span>
                   </div>
                 </div>
 

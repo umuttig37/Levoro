@@ -275,6 +275,37 @@ def helsinki_time_filter(dt):
     """Template filter to convert datetime to Helsinki timezone"""
     return format_helsinki_time(dt)
 
+@app.template_filter('finnish_date')
+def finnish_date_filter(date_str):
+    """Format date string to Finnish style DD.MM.YYYY"""
+    if not date_str:
+        return ''
+    
+    # Handle different input formats
+    try:
+        from datetime import datetime
+        
+        # If it's already a string in DD.MM.YYYY format, return it
+        if isinstance(date_str, str) and '.' in date_str and len(date_str.split('.')) == 3:
+            return date_str
+        
+        # If it's a datetime object
+        if hasattr(date_str, 'strftime'):
+            return date_str.strftime('%d.%m.%Y')
+        
+        # Try to parse various date formats
+        for fmt in ['%Y-%m-%d', '%d.%m.%Y', '%d/%m/%Y', '%Y/%m/%d']:
+            try:
+                dt = datetime.strptime(str(date_str), fmt)
+                return dt.strftime('%d.%m.%Y')
+            except ValueError:
+                continue
+        
+        # If all else fails, return the original string
+        return str(date_str)
+    except Exception as e:
+        return str(date_str) if date_str else ''
+
 @app.template_filter('extract_city')
 def extract_city_filter(address):
     """Extract city name from full address"""
@@ -365,7 +396,7 @@ __GOOGLE_MAPS_SCRIPT__
           <img src="__LOGO__" alt="" class="brand-logo">
         </a>
       </div>
-      <button class="mobile-menu-toggle" aria-label="Avaa menu" onclick="toggleMobileMenu()">
+      <button class="mobile-menu-toggle" aria-label="Avaa menu" id="mobile-menu-toggle">
         <span></span>
         <span></span>
         <span></span>

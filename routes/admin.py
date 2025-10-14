@@ -413,7 +413,7 @@ def order_detail(order_id):
             "extras": 1, "images": 1,
             "orderer_name": 1, "orderer_email": 1, "orderer_phone": 1,
             "customer_name": 1, "customer_phone": 1,
-            "driver_reward": 1, "car_brand": 1, "car_model": 1, "additional_info": 1,
+            "driver_reward": 1, "car_brand": 1, "car_model": 1, "additional_info": 1, "driver_notes": 1,
             "user_name": "$user.name",
             "user_email": "$user.email",
             "driver_name": "$driver.name",

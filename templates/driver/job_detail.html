@@ -63,96 +63,6 @@
     </div>
   </div>
 
-  <!-- Actions Panel - Top Position -->
-  <div class="driver-actions-panel-top mb-6">
-    <div class="card driver-detail-card" role="region" aria-labelledby="actions-title-top">
-      <div class="card-header">
-        <h2 id="actions-title-top" class="card-title">Toiminnot</h2>
-      </div>
-      <div class="card-body">
-        <div class="space-y-3">
-          {% if order.status == 'CONFIRMED' and not order.driver_id %}
-          <!-- Job is available for assignment -->
-          <form method="POST" action="{{ url_for('driver.accept_job', order_id=order.id) }}">
-            <button type="submit" class="btn btn-primary w-full"
-              onclick="return confirm('Haluatko varmasti ottaa tämän työn vastaan?')" aria-label="Ota työ vastaan">
-              Ota työ vastaan
-            </button>
-          </form>
-          <p class="driver-action-hint">Ajoneuvon tiedot ja tarkat osoitteet tulevat näkyviin työn hyväksynnän jälkeen</p>
-
-          {% elif order.driver_id == driver.id %}
-          <!-- Job belongs to this driver - use driver_progress -->
-
-          {% if not progress %}
-          <!-- Just accepted, no progress yet -->
-          <form method="POST" action="{{ url_for('driver.arrive_pickup', order_id=order.id) }}">
-            <button type="submit" class="btn btn-primary w-full" aria-label="Kuittaa saapuminen noutopaikalle">
-              {{ icons.location(18, 'currentColor', 'icon-inline') }} Saavuin noutopaikalle
-            </button>
-          </form>
-
-          {% elif progress.marked_complete %}
-          <!-- Driver marked complete, waiting for admin to set DELIVERED -->
-          <div class="driver-completed-state">
-            <div class="completed-icon">{{ icons.check_circle(48, '#16a34a') }}</div>
-            <p class="completed-title">Toimitus merkitty valmiiksi!</p>
-          </div>
-
-          {% elif progress.delivery_images_complete %}
-          <!-- Delivery images confirmed, can mark complete -->
-          <form method="POST" action="{{ url_for('driver.mark_complete', order_id=order.id) }}">
-            <button type="submit" class="btn btn-primary w-full" aria-label="Merkitse toimitus valmiiksi">
-              {{ icons.check_circle(18, 'currentColor', 'icon-inline') }} Toimitettu
-            </button>
-          </form>
-          <p class="driver-action-hint">Merkitsee toimituksen valmiiksi ja ilmoittaa adminille</p>
-
-          {% elif progress.arrived_at_delivery and not progress.delivery_images_complete %}
-          <!-- At delivery, need to upload & confirm images -->
-          <button type="button" class="btn btn-primary w-full scroll-to-images-btn" data-scroll-target="images-title">
-            {{ icons.camera(18, 'currentColor', 'icon-inline') }} Lisää toimituskuvat
-          </button>
-          <p class="driver-action-hint">Lisää vähintään 5 toimituskuvaa ja vahvista ne</p>
-
-          {% elif progress.started_transit and not progress.arrived_at_delivery %}
-          <!-- In transit, can mark delivery arrival -->
-          <form method="POST" action="{{ url_for('driver.arrive_delivery', order_id=order.id) }}">
-            <button type="submit" class="btn btn-primary w-full" aria-label="Kuittaa saapuminen toimituspaikalle">
-              {{ icons.location(18, 'currentColor', 'icon-inline') }} Saavuin toimituspaikalle
-            </button>
-          </form>
-
-          {% elif progress.pickup_images_complete and not progress.started_transit %}
-          <!-- Pickup confirmed, can start transit -->
-          <form method="POST" action="{{ url_for('driver.start_transit', order_id=order.id) }}">
-            <button type="submit" class="btn btn-primary w-full" aria-label="Aloita kuljetus">
-              Aloita ajo
-            </button>
-          </form>
-          <p class="driver-action-hint">Voit aloittaa ajon välittömästi</p>
-
-          {% elif progress.arrived_at_pickup and not progress.pickup_images_complete %}
-          <!-- At pickup, need to upload & confirm images -->
-          <button type="button" class="btn btn-primary w-full scroll-to-images-btn" data-scroll-target="images-title">
-            {{ icons.camera(18, 'currentColor', 'icon-inline') }} Lisää noutokuvat
-          </button>
-          <p class="driver-action-hint">Lisää vähintään 5 noutokuvaa ja vahvista ne</p>
-
-          {% endif %}
-
-          {% else %}
-          <!-- Job belongs to another driver -->
-          <div class="driver-other-state">
-            <div class="other-icon">{{ icons.user(48, '#94a3b8') }}</div>
-            <p class="other-message">Tämä työ on määritetty toiselle kuljettajalle</p>
-          </div>
-          {% endif %}
-        </div>
-      </div>
-    </div>
-  </div>
-
   <!-- Job Details -->
   <div class="driver-grid">
     <div>
@@ -207,7 +117,8 @@
             {% if order.pickup_date %}
             <div class="driver-form-group">
               <label class="driver-form-label">Toivottu noutopäivä</label>
-              <p class="driver-form-value">{{ order.pickup_date }}</p>
+              <p class="driver-form-value" style="font-weight: 700; color: #1f2937;">{{ order.pickup_date|finnish_date
+                }}</p>
             </div>
             {% endif %}
 
@@ -221,18 +132,18 @@
 
             <!-- Vehicle Details - Only for assigned driver -->
             {% if order.driver_id == driver.id %}
-              {% if order.reg_number %}
-              <div class="driver-form-group">
-                <label class="driver-form-label">Rekisterinumero</label>
-                <p class="driver-form-value">{{ order.reg_number }}</p>
-              </div>
-              {% endif %}
-              {% if order.winter_tires is not none %}
-              <div class="driver-form-group">
-                <label class="driver-form-label">Talvirenkaat</label>
-                <p class="driver-form-value">{{ "Kyllä" if order.winter_tires else "Ei" }}</p>
-              </div>
-              {% endif %}
+            {% if order.reg_number %}
+            <div class="driver-form-group">
+              <label class="driver-form-label">Rekisterinumero</label>
+              <p class="driver-form-value">{{ order.reg_number }}</p>
+            </div>
+            {% endif %}
+            {% if order.winter_tires is not none %}
+            <div class="driver-form-group">
+              <label class="driver-form-label">Talvirenkaat</label>
+              <p class="driver-form-value">{{ "Kyllä" if order.winter_tires else "Ei" }}</p>
+            </div>
+            {% endif %}
             {% endif %}
           </div>
         </div>
@@ -377,21 +288,17 @@
               <!-- Confirm Pickup Images Button -->
               {% if progress.arrived_at_pickup and not progress.pickup_images_complete %}
               <form method="POST" action="{{ url_for('driver.confirm_pickup_images', order_id=order.id) }}"
-                    style="margin-top: 1rem;">
-                <button type="submit"
-                        class="btn btn-primary w-full"
-                        id="confirm-pickup-btn"
-                        {% if pickup_images|length < 5 %}disabled{% endif %}
-                        data-min-images="5"
-                        data-current-images="{{ pickup_images|length }}"
-                        aria-label="Vahvista noutokuvat">
+                style="margin-top: 1rem;">
+                <button type="submit" class="btn btn-primary w-full" id="confirm-pickup-btn" {% if pickup_images|length
+                  < 5 %}disabled{% endif %} data-min-images="5" data-current-images="{{ pickup_images|length }}"
+                  aria-label="Vahvista noutokuvat">
                   Vahvista noutokuvat (min. 5 kuvaa)
                 </button>
-                {% if pickup_images|length < 5 %}
-                <p class="driver-action-hint" style="text-align: center; margin-top: 0.5rem;">
+                {% if pickup_images|length < 5 %} <p class="driver-action-hint"
+                  style="text-align: center; margin-top: 0.5rem;">
                   Lataa vielä {{ 5 - pickup_images|length }} kuvaa
-                </p>
-                {% endif %}
+                  </p>
+                  {% endif %}
               </form>
               {% endif %}
             </div>
@@ -407,21 +314,17 @@
               <!-- Confirm Delivery Images Button -->
               {% if progress.arrived_at_delivery and not progress.delivery_images_complete %}
               <form method="POST" action="{{ url_for('driver.confirm_delivery_images', order_id=order.id) }}"
-                    style="margin-top: 1rem;">
-                <button type="submit"
-                        class="btn btn-primary w-full"
-                        id="confirm-delivery-btn"
-                        {% if delivery_images|length < 5 %}disabled{% endif %}
-                        data-min-images="5"
-                        data-current-images="{{ delivery_images|length }}"
-                        aria-label="Vahvista toimituskuvat">
+                style="margin-top: 1rem;">
+                <button type="submit" class="btn btn-primary w-full" id="confirm-delivery-btn" {% if
+                  delivery_images|length < 5 %}disabled{% endif %} data-min-images="5"
+                  data-current-images="{{ delivery_images|length }}" aria-label="Vahvista toimituskuvat">
                   Vahvista toimituskuvat (min. 5 kuvaa)
                 </button>
-                {% if delivery_images|length < 5 %}
-                <p class="driver-action-hint" style="text-align: center; margin-top: 0.5rem;">
+                {% if delivery_images|length < 5 %} <p class="driver-action-hint"
+                  style="text-align: center; margin-top: 0.5rem;">
                   Lataa vielä {{ 5 - delivery_images|length }} kuvaa
-                </p>
-                {% endif %}
+                  </p>
+                  {% endif %}
               </form>
               {% endif %}
             </div>
@@ -519,34 +422,34 @@
 </div>
 
 <script>
-// Scroll to images section when button is clicked
-document.addEventListener('DOMContentLoaded', function() {
-  const scrollButtons = document.querySelectorAll('.scroll-to-images-btn');
+  // Scroll to images section when button is clicked
+  document.addEventListener('DOMContentLoaded', function () {
+    const scrollButtons = document.querySelectorAll('.scroll-to-images-btn');
 
-  scrollButtons.forEach(button => {
-    button.addEventListener('click', function() {
-      const targetId = this.dataset.scrollTarget;
-      const targetElement = document.getElementById(targetId);
+    scrollButtons.forEach(button => {
+      button.addEventListener('click', function () {
+        const targetId = this.dataset.scrollTarget;
+        const targetElement = document.getElementById(targetId);
 
-      if (targetElement) {
-        targetElement.scrollIntoView({
-          behavior: 'smooth',
-          block: 'start'
-        });
+        if (targetElement) {
+          targetElement.scrollIntoView({
+            behavior: 'smooth',
+            block: 'start'
+          });
 
-        // Flash the target element to draw attention
-        const card = targetElement.closest('.card');
-        if (card) {
-          card.style.transition = 'box-shadow 0.3s ease';
-          card.style.boxShadow = '0 0 0 4px rgba(59, 130, 246, 0.5)';
-          setTimeout(() => {
-            card.style.boxShadow = '';
-          }, 1500);
+          // Flash the target element to draw attention
+          const card = targetElement.closest('.card');
+          if (card) {
+            card.style.transition = 'box-shadow 0.3s ease';
+            card.style.boxShadow = '0 0 0 4px rgba(59, 130, 246, 0.5)';
+            setTimeout(() => {
+              card.style.boxShadow = '';
+            }, 1500);
+          }
         }
-      }
+      });
     });
   });
-});
 </script>
 
 {% endblock %}
