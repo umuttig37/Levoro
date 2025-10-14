@@ -134,26 +134,26 @@
 }
 
 .admin-info-row .admin-info-label {
-    font-size: 0.75rem;
-    font-weight: 600;
+    font-size: 0.8125rem;
+    font-weight: 700;
     color: #6b7280;
     text-transform: uppercase;
     letter-spacing: 0.03em;
 }
 
 .admin-info-row .admin-info-value {
-    font-size: 0.875rem;
-    font-weight: 500;
-    color: #4c5870;
+    font-size: 1rem;
+    font-weight: 600;
+    color: #374151;
     word-break: break-word;
-    line-height: 1.4;
+    line-height: 1.5;
 }
 
 /* Pricing emphasis - Match user order view style */
 .admin-info-value-price-large {
-    font-size: 1rem;
+    font-size: 1.125rem;
     font-weight: 700;
-    color: #273452;
+    color: #1f2937;
 }
 
 .admin-info-row-highlight {
@@ -212,6 +212,50 @@
 }
 
 /* ============================================
+   READ-ONLY SECTION - Customer Comments
+   ============================================ */
+
+.admin-readonly-section {
+    background: #ffffff;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+    margin-bottom: 1rem;
+    opacity: 0.85;
+}
+
+.section-header-readonly {
+    color: #6b7280;
+    border-color: #d1d5db;
+    background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%);
+}
+
+.readonly-content {
+    background: #f9fafb;
+    border-radius: 0.375rem;
+    padding: 1rem;
+}
+
+.readonly-text {
+    margin: 0 0 0.5rem 0;
+    font-size: 1rem;
+    font-weight: 600;
+    color: #374151;
+    line-height: 1.6;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.readonly-hint {
+    margin: 0;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: #6b7280;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-style: italic;
+}
+
+/* ============================================
    MANAGEMENT SECTION - Green Themed
    ============================================ */
 
@@ -235,9 +279,9 @@
 
 .admin-config-section label {
     display: block;
-    font-weight: 600;
+    font-weight: 700;
     margin: 0;
-    color: #374151;
+    color: #1f2937;
     font-size: 1rem;
     text-transform: uppercase;
     letter-spacing: 0.03em;
@@ -247,41 +291,44 @@
 .admin-config-section input[type="text"],
 .admin-config-section textarea {
     width: 100%;
-    padding: 0.75rem 0.875rem;
-    font-size: 0.9375rem;
-    border: 1px solid #d1d5db;
+    padding: 0.875rem 1rem;
+    font-size: 1rem;
+    font-weight: 500;
+    border: 2px solid #d1d5db;
     border-radius: 0.375rem;
     background: #ffffff;
     transition: all 0.2s ease;
-    min-height: 60px;
+    min-height: 48px;
+    color: #1f2937;
 }
 
 .admin-config-section input:focus,
 .admin-config-section textarea:focus {
     outline: none;
     border-color: #3b82f6;
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
 }
 
 .admin-config-section textarea {
     resize: vertical;
-    min-height: 80px;
-    line-height: 1.5;
+    min-height: 96px;
+    line-height: 1.6;
 }
 
 .field-hint {
     margin: 0;
-    font-size: 0.75rem;
+    font-size: 0.875rem;
+    font-weight: 600;
     color: #6b7280;
-    line-height: 1.4;
+    line-height: 1.5;
     display: flex;
     align-items: center;
     gap: 0.25rem;
 }
 
 .field-hint-success {
-    color: #059669;
-    font-weight: 500;
+    color: #047857;
+    font-weight: 600;
 }
 
 .field-grid-2col {
@@ -310,12 +357,13 @@
     padding: 1rem;
     margin-bottom: 0;
     background: #f9fafb;
+    border: 2px solid transparent;
 }
 
 .alert-title {
-    margin: 0 0 0.25rem 0;
-    font-weight: 600;
-    font-size: 0.875rem;
+    margin: 0 0 0.375rem 0;
+    font-weight: 700;
+    font-size: 1rem;
     display: flex;
     align-items: center;
     gap: 0.375rem;
@@ -323,8 +371,9 @@
 
 .alert-box p {
     margin: 0;
-    font-size: 0.75rem;
-    line-height: 1.4;
+    font-size: 0.875rem;
+    font-weight: 500;
+    line-height: 1.5;
 }
 
 .alert-warning {
@@ -518,23 +567,23 @@
 }
 
 .driver-info-label {
-    font-size: 0.75rem;
+    font-size: 0.8125rem;
     color: #6b7280;
-    font-weight: 600;
+    font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.03em;
 }
 
 .driver-info-value {
-    font-size: 0.9375rem;
+    font-size: 1rem;
     font-weight: 600;
-    color: #111827;
+    color: #1f2937;
 }
 
 .driver-info-reward {
     color: #15803d;
     font-weight: 700;
-    font-size: 1rem;
+    font-size: 1.125rem;
 }
 
 .driver-info-link {
@@ -647,6 +696,121 @@
 }
 
 /* ============================================
+   MOBILE ENHANCEMENTS (max-width: 768px)
+   ============================================ */
+
+@media (max-width: 768px) {
+    /* Increase header size on mobile */
+    .order-header h2 {
+        font-size: 1.5rem;
+        font-weight: 800;
+    }
+
+    /* Card title more prominent */
+    .admin-info-card-title {
+        font-size: 1.0625rem;
+        font-weight: 800;
+    }
+
+    /* Info labels and values larger on mobile */
+    .admin-info-row .admin-info-label {
+        font-size: 0.875rem;
+        font-weight: 700;
+    }
+
+    .admin-info-row .admin-info-value {
+        font-size: 1.0625rem;
+        font-weight: 600;
+    }
+
+    /* Section headers larger on mobile */
+    .section-header {
+        font-size: 1.0625rem;
+        font-weight: 800;
+        padding: 1rem 1.125rem;
+    }
+
+    /* Form labels more prominent */
+    .admin-config-section label {
+        font-size: 1.0625rem;
+        font-weight: 700;
+    }
+
+    /* Inputs larger text */
+    .admin-config-section input[type="number"],
+    .admin-config-section input[type="text"],
+    .admin-config-section textarea {
+        font-size: 1.0625rem;
+        font-weight: 500;
+        padding: 1rem;
+        min-height: 52px;
+    }
+
+    /* Field hints more readable */
+    .field-hint {
+        font-size: 0.9375rem;
+        font-weight: 600;
+    }
+
+    /* Alert text larger */
+    .alert-title {
+        font-size: 1.0625rem;
+        font-weight: 700;
+    }
+
+    .alert-box p {
+        font-size: 0.9375rem;
+        font-weight: 500;
+    }
+
+    /* Driver info larger */
+    .driver-info-label {
+        font-size: 0.875rem;
+        font-weight: 700;
+    }
+
+    .driver-info-value {
+        font-size: 1.0625rem;
+        font-weight: 600;
+    }
+
+    .driver-info-reward {
+        font-size: 1.25rem;
+        font-weight: 700;
+    }
+
+    /* Buttons larger text */
+    .btn {
+        font-size: 1rem;
+        font-weight: 700;
+        min-height: 48px;
+    }
+
+    .btn-large {
+        font-size: 1.0625rem;
+        min-height: 52px;
+    }
+
+    /* Readonly section */
+    .readonly-text {
+        font-size: 1.0625rem;
+        font-weight: 600;
+    }
+
+    .readonly-hint {
+        font-size: 0.875rem;
+        font-weight: 600;
+    }
+
+    /* Status select larger */
+    .status-select {
+        font-size: 1rem;
+        font-weight: 600;
+        min-height: 52px;
+    }
+}
+
+/* ============================================
    TABLET BREAKPOINT (769px+)
    ============================================ */
 
@@ -682,7 +846,7 @@
 
     /* 2-column layout for car brand/model */
     .field-grid-2col {
-        grid-template-columns: 1fr fr;
+        grid-template-columns: 1fr 1fr;
     }
 
     .driver-info-grid {

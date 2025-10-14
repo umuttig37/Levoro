@@ -147,6 +147,81 @@
     /* 18px - Reward price prominence */
 }
 
+/* Job Card Subsections - Consolidated Information Display */
+.driver-job-subsection {
+    padding: var(--space-3);
+    border-radius: var(--radius-md);
+    background: #f8fafc;
+    margin-top: var(--space-3);
+    border: 1px solid #e2e8f0;
+}
+
+.driver-job-subsection-title {
+    font-size: 0.875rem;
+    /* 14px */
+    font-weight: 700;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin: 0 0 var(--space-2) 0;
+}
+
+.driver-job-info-row {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    margin-bottom: var(--space-2);
+}
+
+.driver-job-info-row:last-child {
+    margin-bottom: 0;
+}
+
+.driver-job-info-label {
+    font-size: 0.875rem;
+    /* 14px */
+    font-weight: 600;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.025em;
+}
+
+.driver-job-info-value {
+    font-size: 1rem;
+    /* 16px */
+    font-weight: 600;
+    color: #1f2937;
+    line-height: 1.5;
+    word-break: break-word;
+}
+
+.driver-job-info-value.large {
+    font-size: 1.25rem;
+    /* 20px */
+    font-weight: 700;
+    color: #059669;
+}
+
+/* Admin Instructions Subsection */
+.driver-job-admin-notes {
+    background: #f0f9ff;
+    border-color: #bfdbfe;
+}
+
+.driver-job-admin-notes .driver-job-subsection-title {
+    color: #1e40af;
+}
+
+.driver-job-admin-text {
+    font-size: 1rem;
+    /* 16px */
+    font-weight: 500;
+    color: #1e3a8a;
+    line-height: 1.6;
+    margin: 0;
+    white-space: pre-wrap;
+}
+
 .driver-job-actions {
     text-align: right;
     display: flex;
@@ -408,6 +483,42 @@
         /* Hide scrollbar for cleaner mobile look */
     }
 
+    /* Job card subsections mobile enhancements */
+    .driver-job-subsection {
+        padding: var(--space-3);
+        margin-top: var(--space-3);
+    }
+
+    .driver-job-subsection-title {
+        font-size: 0.9375rem;
+        /* 15px - Larger on mobile */
+        font-weight: 800;
+    }
+
+    .driver-job-info-label {
+        font-size: 0.9375rem;
+        /* 15px */
+        font-weight: 700;
+    }
+
+    .driver-job-info-value {
+        font-size: 1.0625rem;
+        /* 17px - Larger on mobile */
+        font-weight: 600;
+    }
+
+    .driver-job-info-value.large {
+        font-size: 1.375rem;
+        /* 22px */
+        font-weight: 800;
+    }
+
+    .driver-job-admin-text {
+        font-size: 1.0625rem;
+        /* 17px */
+        font-weight: 500;
+    }
+
 }
 
 @media (max-width: 480px) {
@@ -472,6 +583,36 @@
         padding: var(--space-3) var(--space-4);
         font-size: 0.9375rem;
         /* 15px */
+    }
+
+    /* Job card subsections small mobile */
+    .driver-job-subsection {
+        padding: var(--space-2);
+    }
+
+    .driver-job-subsection-title {
+        font-size: 0.875rem;
+        /* 14px */
+    }
+
+    .driver-job-info-label {
+        font-size: 0.875rem;
+        /* 14px */
+    }
+
+    .driver-job-info-value {
+        font-size: 1rem;
+        /* 16px */
+    }
+
+    .driver-job-info-value.large {
+        font-size: 1.25rem;
+        /* 20px */
+    }
+
+    .driver-job-admin-text {
+        font-size: 1rem;
+        /* 16px */
     }
 }
 

@@ -70,21 +70,30 @@
               <div class="driver-job-content">
                 <h3 class="driver-job-title">Tilaus #{{ job.id }}</h3>
                 <p class="driver-job-route" aria-label="Reitti">{{ job.pickup_address }} → {{ job.dropoff_address }}</p>
+
                 <div class="driver-job-meta">
-                  <span aria-label="Matka"><strong>Matka:</strong> {{ job.distance_km|default(0)|round(1) }} km</span>
-                  <span aria-label="Palkkio"><strong>Palkkio: {% if job.driver_reward %}{{ job.driver_reward|round(2)
-                      }}{% else %}0.00{% endif %} €</strong></span>
+                  <div class="driver-job-info-row">
+                    <span class="driver-job-info-label">Matka</span>
+                    <span class="driver-job-info-value">{{ job.distance_km|default(0)|round(1) }} km</span>
+                  </div>
+                  <div class="driver-job-info-row">
+                    <span class="driver-job-info-label">Palkkio</span>
+                    <span class="driver-job-info-value large">{% if job.driver_reward %}{{ job.driver_reward|round(2) }}{% else %}0.00{% endif %} €</span>
+                  </div>
                 </div>
-                {% if job.additional_info and job.additional_info|length > 0 %}
-                <p style="font-size: 1rem; color: #6b7280; margin-top: 0.75rem; line-height: 1.5;">
-                  <strong>Lisätiedot:</strong> {{ job.additional_info[:50] }}{% if job.additional_info|length > 50
-                  %}...{% endif %}
-                </p>
+
+                {% if job.additional_info and job.additional_info|trim %}
+                <div class="driver-job-subsection driver-job-admin-notes">
+                  <h4 class="driver-job-subsection-title">Asiakkaan kommentti</h4>
+                  <p class="driver-job-admin-text">{{ job.additional_info[:80] }}{% if job.additional_info|length > 80 %}...{% endif %}</p>
+                </div>
                 {% endif %}
+
                 {% if job.car_brand or job.car_model %}
-                <p style="font-size: 1rem; color: #374151; margin-top: 0.75rem; font-weight: 500;">
-                  <strong>Auto:</strong> {{ job.car_brand or '' }} {{ job.car_model or '' }}
-                </p>
+                <div class="driver-job-subsection">
+                  <h4 class="driver-job-subsection-title">Ajoneuvo</h4>
+                  <p class="driver-job-info-value">{{ job.car_brand or '' }} {{ job.car_model or '' }}</p>
+                </div>
                 {% endif %}
               </div>
               <div class="driver-job-actions">
@@ -130,21 +139,30 @@
                 <h3 class="driver-job-title">Tilaus #{{ job.id }}</h3>
                 <p class="driver-job-route" aria-label="Reitti">{{ job.pickup_address|extract_city }} → {{
                   job.dropoff_address|extract_city }}</p>
+
                 <div class="driver-job-meta">
-                  <span aria-label="Matka"><strong>Matka:</strong> {{ job.distance_km|default(0)|round(1) }} km</span>
-                  <span aria-label="Palkkio"><strong>Palkkio: {% if job.driver_reward %}{{ job.driver_reward|round(2)
-                      }}{% else %}0.00{% endif %} €</strong></span>
+                  <div class="driver-job-info-row">
+                    <span class="driver-job-info-label">Matka</span>
+                    <span class="driver-job-info-value">{{ job.distance_km|default(0)|round(1) }} km</span>
+                  </div>
+                  <div class="driver-job-info-row">
+                    <span class="driver-job-info-label">Palkkio</span>
+                    <span class="driver-job-info-value large">{% if job.driver_reward %}{{ job.driver_reward|round(2) }}{% else %}0.00{% endif %} €</span>
+                  </div>
                 </div>
-                {% if job.additional_info and job.additional_info|length > 0 %}
-                <p style="font-size: 1rem; color: #6b7280; margin-top: 0.75rem; line-height: 1.5;">
-                  <strong>Lisätiedot:</strong> {{ job.additional_info[:50] }}{% if job.additional_info|length > 50
-                  %}...{% endif %}
-                </p>
+
+                {% if job.additional_info and job.additional_info|trim %}
+                <div class="driver-job-subsection driver-job-admin-notes">
+                  <h4 class="driver-job-subsection-title">Asiakkaan kommentti</h4>
+                  <p class="driver-job-admin-text">{{ job.additional_info[:80] }}{% if job.additional_info|length > 80 %}...{% endif %}</p>
+                </div>
                 {% endif %}
+
                 {% if job.car_brand or job.car_model %}
-                <p style="font-size: 1rem; color: #374151; margin-top: 0.75rem; font-weight: 500;">
-                  <strong>Auto:</strong> {{ job.car_brand or '' }} {{ job.car_model or '' }}
-                </p>
+                <div class="driver-job-subsection">
+                  <h4 class="driver-job-subsection-title">Ajoneuvo</h4>
+                  <p class="driver-job-info-value">{{ job.car_brand or '' }} {{ job.car_model or '' }}</p>
+                </div>
                 {% endif %}
               </div>
               <div class="driver-job-actions">
@@ -180,14 +198,23 @@
               <div class="driver-job-content">
                 <h3 class="driver-job-title">Tilaus #{{ job.id }}</h3>
                 <p class="driver-job-route" aria-label="Reitti">{{ job.pickup_address }} → {{ job.dropoff_address }}</p>
+
                 <div class="driver-job-meta">
-                  <span aria-label="Matka"><strong>Matka:</strong> {{ job.distance_km|default(0)|round(1) }} km</span>
-                  <span aria-label="Palkkio"><strong>Palkkio: {% if job.driver_reward %}{{ job.driver_reward|round(2)
-                      }}{% else %}0.00{% endif %} €</strong></span>
+                  <div class="driver-job-info-row">
+                    <span class="driver-job-info-label">Matka</span>
+                    <span class="driver-job-info-value">{{ job.distance_km|default(0)|round(1) }} km</span>
+                  </div>
+                  <div class="driver-job-info-row">
+                    <span class="driver-job-info-label">Palkkio</span>
+                    <span class="driver-job-info-value large">{% if job.driver_reward %}{{ job.driver_reward|round(2) }}{% else %}0.00{% endif %} €</span>
+                  </div>
                 </div>
+
                 {% if job.car_brand or job.car_model %}
-                <p style="font-size: 1rem; color: #6b7280; margin-top: 0.75rem; font-weight: 500;">{{ job.car_brand or
-                  '' }} {{ job.car_model or '' }}</p>
+                <div class="driver-job-subsection">
+                  <h4 class="driver-job-subsection-title">Ajoneuvo</h4>
+                  <p class="driver-job-info-value">{{ job.car_brand or '' }} {{ job.car_model or '' }}</p>
+                </div>
                 {% endif %}
               </div>
               <div class="driver-job-actions">

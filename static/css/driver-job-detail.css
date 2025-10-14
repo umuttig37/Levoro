@@ -212,17 +212,62 @@
     color: var(--text-primary);
 }
 
-/* Actions Panel */
-.driver-actions-panel {
-    position: sticky;
-    top: 1rem;
+/* Subsections within cards */
+.driver-subsection {
+    padding-bottom: 1rem;
+    border-bottom: 1px solid #e2e8f0;
+    margin-bottom: 1rem;
 }
 
-.driver-actions-panel .card-body {
+.driver-subsection:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+    padding-bottom: 0;
+}
+
+.driver-info-subsection {
+    padding: 1rem;
+    border-radius: var(--radius-md);
+    background: #f8fafc;
+    margin-bottom: 1rem;
+}
+
+.driver-info-subsection:last-child {
+    margin-bottom: 0;
+}
+
+/* Driver Notes Subsection - Special styling for private driver info */
+.driver-notes-subsection {
+    background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%);
+    border: 2px solid #10b981;
+}
+
+.driver-notes-label {
+    color: #065f46;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.driver-notes-content {
+    margin-top: 0.5rem;
+    color: #065f46;
+}
+
+/* Actions Panels - Top and Bottom */
+.driver-actions-panel-top,
+.driver-actions-panel-bottom {
+    width: 100%;
+    max-width: 100%;
+}
+
+.driver-actions-panel-top .card-body,
+.driver-actions-panel-bottom .card-body {
     padding: 1.5rem;
 }
 
-.driver-actions-panel .btn {
+.driver-actions-panel-top .btn,
+.driver-actions-panel-bottom .btn {
     width: 100%;
     min-height: 52px;
     padding: 1rem 1.5rem;
@@ -237,14 +282,28 @@
     transition: all 0.2s ease;
 }
 
-.driver-actions-panel .btn:focus-visible {
+.driver-actions-panel-top .btn:focus-visible,
+.driver-actions-panel-bottom .btn:focus-visible {
     outline: 3px solid var(--color-primary);
     outline-offset: 2px;
 }
 
-.driver-actions-panel .btn:hover {
+.driver-actions-panel-top .btn:hover,
+.driver-actions-panel-bottom .btn:hover {
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* Scroll to Images Button */
+.scroll-to-images-btn {
+    cursor: pointer;
+    background-color: var(--color-primary);
+    color: white;
+    border: none;
+}
+
+.scroll-to-images-btn:hover {
+    background-color: var(--color-primary-600);
 }
 
 /* Waiting State */
@@ -337,9 +396,10 @@
         gap: 1.5rem;
     }
 
-    .driver-actions-panel {
-        position: static;
-        margin-top: 0;
+    /* Actions panels full width on tablet */
+    .driver-actions-panel-top,
+    .driver-actions-panel-bottom {
+        width: 100%;
     }
 }
 
@@ -444,12 +504,14 @@
         /* 16px */
     }
 
-    /* Actions panel mobile */
-    .driver-actions-panel .card-body {
+    /* Actions panels mobile */
+    .driver-actions-panel-top .card-body,
+    .driver-actions-panel-bottom .card-body {
         padding: 1.25rem;
     }
 
-    .driver-actions-panel .btn {
+    .driver-actions-panel-top .btn,
+    .driver-actions-panel-bottom .btn {
         min-height: 52px;
         font-size: 1.0625rem;
         padding: 1rem;
@@ -480,6 +542,16 @@
 
     .driver-action-hint {
         font-size: 0.875rem;
+    }
+
+    /* Subsection adjustments for mobile */
+    .driver-info-subsection {
+        padding: 0.875rem;
+    }
+
+    .driver-subsection {
+        padding-bottom: 0.875rem;
+        margin-bottom: 0.875rem;
     }
 }
 
@@ -527,6 +599,16 @@
         font-size: 1rem;
         padding: 0.875rem;
     }
+
+    /* Further reduce subsection padding on small screens */
+    .driver-info-subsection {
+        padding: 0.75rem;
+    }
+
+    .driver-subsection {
+        padding-bottom: 0.75rem;
+        margin-bottom: 0.75rem;
+    }
 }
 
 /* Accessibility Enhancements */
@@ -562,13 +644,15 @@
 /* Reduced motion support */
 @media (prefers-reduced-motion: reduce) {
 
-    .driver-actions-panel .btn,
+    .driver-actions-panel-top .btn,
+    .driver-actions-panel-bottom .btn,
     .driver-back-btn {
         transition: none;
         transform: none !important;
     }
 
-    .driver-actions-panel .btn:hover {
+    .driver-actions-panel-top .btn:hover,
+    .driver-actions-panel-bottom .btn:hover {
         transform: none;
     }
 }
@@ -576,7 +660,8 @@
 /* Print styles */
 @media print {
 
-    .driver-actions-panel,
+    .driver-actions-panel-top,
+    .driver-actions-panel-bottom,
     .driver-back-btn {
         display: none;
     }

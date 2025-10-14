@@ -118,6 +118,22 @@
 
             <!-- RIGHT: Admin Actions & Configuration -->
             <div class="order-admin-section">
+                <!-- Customer Comments (Read-only) -->
+                {% if order.additional_info and order.additional_info|trim %}
+                <div class="admin-readonly-section">
+                    <div class="section-header section-header-readonly">
+                        {{ icons.document(18, 'currentColor', 'icon-inline') }}
+                        <span>Asiakkaan kommentti</span>
+                    </div>
+                    <div class="section-body">
+                        <div class="readonly-content">
+                            <p class="readonly-text">{{ order.additional_info }}</p>
+                            <p class="readonly-hint">{{ icons.eye(14, '#6b7280', 'icon-inline') }} Näkyy kuskeille ennen työn vastaanottoa</p>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+
                 <!-- Configuration Section -->
                 <div class="admin-config-section">
                     <div class="section-header section-header-config">
@@ -149,10 +165,11 @@
                             </div>
 
                             <div>
-                                <label>Lisätiedot</label>
-                                <textarea name="additional_info" rows="3"
-                                    placeholder="Ohjeita kuljettajalle...">{{ order.additional_info or '' }}</textarea>
-                                <p class="field-hint">Näkyy kuljettajalle</p>
+                                <label>Lisätiedot kuskille</label>
+                                <textarea name="driver_notes" rows="3"
+                                    placeholder="Esim. liikkeen nimi, erityisohjeet...">{{ order.driver_notes or '' }}</textarea>
+                                <p class="field-hint field-hint-success">{{ icons.alert(14, '#166534', 'icon-inline') }}
+                                    Näkyy vain hyväksyneelle kuljettajalle</p>
                             </div>
 
                             <button type="submit" class="btn btn-success btn-large">

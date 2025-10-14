@@ -335,8 +335,9 @@ class OrderModel(BaseModel):
             return False, f"Palkkion päivitys epäonnistui: {str(e)}"
 
     def update_order_details(self, order_id: int, car_model: Optional[str] = None,
-                            car_brand: Optional[str] = None, additional_info: Optional[str] = None) -> Tuple[bool, Optional[str]]:
-        """Update order details (car model, brand, additional info)"""
+                            car_brand: Optional[str] = None, additional_info: Optional[str] = None,
+                            driver_notes: Optional[str] = None) -> Tuple[bool, Optional[str]]:
+        """Update order details (car model, brand, additional info, driver notes)"""
         try:
             update_fields = {"updated_at": datetime.now(timezone.utc)}
 
@@ -346,6 +347,8 @@ class OrderModel(BaseModel):
                 update_fields["car_brand"] = car_brand.strip()
             if additional_info is not None:
                 update_fields["additional_info"] = additional_info.strip()
+            if driver_notes is not None:
+                update_fields["driver_notes"] = driver_notes.strip()
 
             success = self.update_one(
                 {"id": int(order_id)},
