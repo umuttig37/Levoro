@@ -38,6 +38,7 @@
           <th>Suoritettu</th>
           <th>Aktiivisia</th>
           <th>Luotu</th>
+          <th>Toiminnot</th>
         </tr>
       </thead>
       <tbody>
@@ -54,11 +55,25 @@
           <td>{{ driver.completed_jobs }}</td>
           <td>{{ driver.active_jobs }}</td>
           <td>{{ driver.created_at | helsinki_time if driver.created_at else '-' }}</td>
+          <td>
+            <form method="POST" action="{{ url_for('admin.delete_driver', driver_id=driver.id) }}"
+                  onsubmit="return confirm('Haluatko varmasti poistaa kuljettajan {{ driver.name }}? Tätä toimintoa ei voi peruuttaa.');"
+                  style="display: inline;">
+              <button type="submit"
+                      class="btn btn-sm btn-danger"
+                      {% if driver.active_jobs > 0 %}
+                      title="Kuljettajalla on aktiivisia tilauksia, ei voi poistaa"
+                      disabled
+                      {% endif %}>
+                {{ icons.alert(16, '#fff', 'icon-inline') }} Poista
+              </button>
+            </form>
+          </td>
         </tr>
         {% endfor %}
         {% else %}
         <tr>
-          <td colspan="8" class="muted">Ei kuljettajia</td>
+          <td colspan="9" class="muted">Ei kuljettajia</td>
         </tr>
         {% endif %}
       </tbody>

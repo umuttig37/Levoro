@@ -159,6 +159,60 @@ def assign_driver():
         flash(f"Virhe kuljettajan määrityksessä: {error}", "error")
 
     return redirect(url_for("admin.drivers"))
+
+
+@admin_bp.route("/drivers/<int:driver_id>/delete", methods=["POST"])
+@admin_required
+def delete_driver(driver_id):
+    """Delete a driver user account (preserves orders and driver applications)"""
+    from app import users_col
+    from models.user import user_model
+    from models.order import order_model
+
+    # Get driver details before deletion
+    driver = user_model.find_by_id(driver_id)
+
+    if not driver:
+        flash("Kuljettajaa ei löytynyt", "error")
+        return redirect(url_for("admin.drivers"))
+
+    # SAFETY: Ensure this is actually a driver
+    if driver.get('role') != 'driver':
+        flash("Tämä käyttäjä ei ole kuljettaja", "error")
+        return redirect(url_for("admin.drivers"))
+
+    driver_name = driver.get('name', 'Tuntematon')
+
+    # Check if driver has active orders assigned
+    active_orders = order_model.find(
+        {"driver_id": driver_id, "status": {"$nin": ["DELIVERED", "CANCELLED"]}},
+        limit=1
+    )
+
+    if active_orders:
+        flash(f"Virhe: Kuljettajalla {driver_name} on aktiivisia tilauksia. Poista ensin tilausten määritykset tai merkitse ne valmiiksi.", "error")
+        return redirect(url_for("admin.drivers"))
+
+    # NOTE: Orders and driver applications are preserved for record keeping
+    # Only the driver user account is deleted
+
+    # Delete the driver user account
+    deletion_successful = True
+    try:
+        result = users_col().delete_one({"id": driver_id})
+        if result.deleted_count == 0:
+            deletion_successful = False
+    except Exception as e:
+        deletion_successful = False
+        print(f"Error deleting driver {driver_id}: {str(e)}")
+
+    # Provide appropriate feedback
+    if deletion_successful:
+        flash(f"Kuljettaja {driver_name} poistettu onnistuneesti. Tilaukset ja hakemustiedot säilytetty.", "success")
+    else:
+        flash("Kuljettajan poistaminen epäonnistui", "error")
+
+    return redirect(url_for("admin.drivers"))
 @admin_bp.route("/driver-applications")
 @admin_required
 def driver_applications():

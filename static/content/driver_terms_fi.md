@@ -1,111 +1,109 @@
-# Kuljettajan säännöt ja ehdot - Levoro
+# Kuljettajan säännöt ja ehdot – Levoro
 
 ## 1. Yleistä
 
-Tervetuloa Levoro-kuljettajaksi! Nämä säännöt ja ehdot koskevat kaikkia kuljettajia, jotka suorittavat autonkuljetuspalveluita Levoro-alustan kautta. Lukemalla ja hyväksymällä nämä ehdot sitoudut noudattamaan kaikkia alla olevia sääntöjä ja ohjeita.
+Tervetuloa mukaan Levoron kuljettajaverkostoon!
+
+Nämä säännöt ja ehdot koskevat kaikkia kuljettajia, jotka suorittavat autonkuljetuksia Levoron kautta.
+
+Hyväksymällä nämä ehdot sitoudut noudattamaan alla olevia ohjeita. Tavoitteena on varmistaa turvallinen, laadukas ja luotettava palvelu kaikille osapuolille.
 
 ## 2. Kuljettajan velvollisuudet
 
-### 2.1 Ammattimaisuus
-- Kuljettajan tulee toimia ammattimaisesti ja kohteliaasti kaikissa tilanteissa
-- Asiakkaiden omaisuutta tulee käsitellä huolellisesti ja kunnioittavasti
-- Kuljettajan tulee ylläpitää siistiä ja edustavaa ulkoasua työvuorojen aikana
+### 2.1 Ammattimaisuus ja edustus
 
-### 2.2 Ajoneuvon hoito
-- Kuljetettava ajoneuvo tulee tarkastaa ennen kuljetuksen aloittamista
-- Mahdolliset vauriot tai puutteet tulee dokumentoida välittömästi noutokuvin
-- Ajoneuvo tulee kuljettaa turvallisesti ja liikennesääntöjä noudattaen
-- Polttoainetaso tulee tarkistaa ja dokumentoida sekä noudossa että toimituksessa
+- Toimi aina kohteliaasti ja ammattimaisesti asiakkaita ja Levoron henkilökuntaa kohtaan.
+- Käsittele asiakkaiden autoja ja omaisuutta huolellisesti ja kunnioittavasti.
+- Pidä siisti ja edustava ulkoasu työtehtävien aikana.
+- Pidä asiakkaat ajan tasalla kuljetuksen etenemisestä (nouto, matkan aloitus, mahdolliset viiveet, toimitus).
 
-### 2.3 Dokumentointi
-- **PAKOLLISET KUVAT**: Kuljettajan TULEE ottaa vähintään 1 kuva sekä noudossa että toimituksessa
-- Kuvien tulee olla selkeitä ja näyttää ajoneuvon kunto kaikista kulmista
-- Mahdolliset vauriot tulee kuvata tarkasti ja raportoida välittömästi
-- Kaikki dokumentit ja asiakaspaperit tulee säilyttää turvallisesti kuljetuksen ajan
+### 2.2 Ajoneuvon käsittely ja käyttö
 
-### 2.4 Aikataulut
-- Kuljettajan tulee noudattaa sovittuja aikatauluja
-- Myöhästymisistä tulee ilmoittaa välittömäst asiakkaalle ja Levoron yhteyshenkilölle
-- Kuljettajan tulee päivittää tilaus järjestelmässä jokaisen vaiheen yhteydessä
+- Kuljetettava ajoneuvo on asiakkaan omaisuutta, ja sitä saa käyttää vain sovittuun kuljetukseen.
+- Autoa ei saa käyttää yksityisiin ajoihin tai poiketa reitiltä ilman hyväksyttävää syytä.
+- Kuljettaja ei saa antaa auton ajo-oikeutta muille henkilöille.
+- Rike voi johtaa yhteistyön päättymiseen ja tarvittaessa rikosilmoitukseen.
+- Kuljettajan vastuulla on, että auto viedään aina suorinta ja turvallisinta reittiä toimituspisteelle.
+
+### 2.3 Dokumentointi ja valokuvaus
+
+- **Pakolliset kuvat**: vähintään 5 kuvaa sekä noudossa että toimituksessa (yhteensä vähintään 10 kuvaa).
+- Kuvien tulee kattaa:
+  - auton ulkopuoli kaikesta kulmista,
+  - rekisterikilpi,
+  - sisätila ja kuljettajan alue,
+  - mittaristo (kun auto on aktiivinen/käynnissä) jossa selvästi näkyy total kilometrit, polttoaine, mahdolliset vikavalot.
+- Kaikki mahdolliset vauriot tai poikkeamat tulee kuvata ja ilmoittaa heti Levorolle.
+- Kuvia ei saa käyttää muuhun tarkoitukseen kuin kuljetuksen dokumentointiin.
+
+### 2.4 Aikataulut ja yhteydenpito
+
+- Noudata aina sovittuja aikatauluja ja reittejä.
+- Jos aikataulussa tapahtuu muutos, ilmoita siitä heti asiakkaalle ja Levoron yhteyshenkilölle.
+- Päivitä työn tila järjestelmään jokaisessa vaiheessa (nouto, kuljetus, toimitus).
+- Työtä ei saa keskeyttää, siirtää tai perua ilman Levoron lupaa.
 
 ## 3. Turvallisuus
 
-### 3.1 Ajotapa
-- Noudatat kaikkia liikennesääntöjä ja -rajoituksia
-- Ajonopeuden tulee olla turvallinen kaikissa olosuhteissa
-- Et saa käyttää puhelinta ajon aikana ilman hands-free-laitetta
-- Taukojen pitäminen pidemmillä matkoilla on pakollista
+### 3.1 Ajotapa ja liikennekäyttäytyminen
 
-### 3.2 Tapaturmat ja vahingot
-- Kaikista onnettomuuksista tulee ilmoittaa välittömästi Levorolle
-- Poliisin tulee aina olla mukana onnettomuustilanteissa
-- Kuljettajan tulee täyttää vahinkoilmoitus mahdollisimman pian
-- Asiakkaan omaisuutta ei saa jättää ilman valvontaa
+- Noudata aina liikennesääntöjä ja nopeusrajoituksia.
+- Ylinopeus, vaarallinen ohittaminen tai muu riskialtis ajotapa on kielletty.
+- Älä käytä puhelinta ilman hands-free-laitetta.
+- Aja vain levänneenä ja selvin päin.
+- Jos ajoneuvo tuntuu epäkunnossa, pysähdy turvallisesti ja ilmoita Levorolle välittömästi.
+
+### 3.2 Poikkeustilanteet ja ongelmatilanteet
+
+- Ilmoita Levorolle heti, jos:
+  - auton vikavalo syttyy,
+  - ilmenee tekninen vika, vaurio, onnettomuus tai viive,
+  - asiakas tekee reklamaation.
+- Tarvittaessa ota yhteys myös poliisiin ja dokumentoi tilanne kuvilla.
+- Yhteys otetaan aina puhelimitse Levoron päivystysnumeroon:
+  - 044 978 2446
+  - 044 982 6974
 
 ## 4. Yksityisyys ja tietosuoja
 
-### 4.1 Asiakastiedot
-- **TÄRKEÄÄ**: Noutoosoitteet ja toimitusosoitteet näkyvät vasta kun otat työn vastaan
-- Asiakkaiden yhteystietoja ei saa jakaa kolmansille osapuolille
-- Kaikki kuljetukseen liittyvät tiedot ovat luottamuksellisia
-- Asiakkaiden omaisuudesta ei saa ottaa kuvia henkilökohtaiseen käyttöön
-
-### 4.2 Tietojen käsittely
-- Asiakastiedot tulee käsitellä voimassa olevan tietosuojalainsäädännön mukaisesti
-- Kuljettajan tulee säilyttää asiakkaiden tiedot turvallisesti
-- Tietoja ei saa käyttää muuhun kuin kuljetuksen suorittamiseen
+- Asiakkaiden tiedot ja osoitteet ovat luottamuksellisia.
+- Nouto- ja toimitusosoitteet näkyvät vasta, kun työ on otettu vastaan.
+- Tietoja ei saa luovuttaa tai käyttää muuhun tarkoitukseen.
+- Asiakkaiden omaisuudesta otettuja kuvia ei saa jakaa henkilökohtaisesti, tai säilytää.
 
 ## 5. Palkkiot ja maksut
 
-### 5.1 Korvaukset
-- Kuljettajat saavat sovitun palkkion suoritetuista kuljetuksista
-- Palkkiot maksetaan sovitun maksukauden mukaisesti
-- Lisäkulut (esim. polttoaine, tietullit) korvataan erillisen sopimuksen mukaan
+- Kuljettaja saa sovitun palkkion suoritetuista kuljetuksista.
+- Maksut maksetaan sovitun aikataulun mukaisesti.
+- Mahdolliset lisäkulut (tietullit, polttoaineet) korvataan erikseen.
+- Kaikki kulut tulee dokumentoida kuiteilla.
 
-### 5.2 Laskutus
-- Kuljettajan tulee toimittaa asianmukaiset laskut sovitun aikataulun mukaisesti
-- Kaikki kulut tulee dokumentoida asianmukaisesti kuittien avulla
+## 6. Vakuutukset ja vastuu
 
-## 6. Vastuu ja vakuutukset
-
-### 6.1 Vakuutukset
-- Kuljettajalla tulee olla voimassa oleva ajolupa
-- Kuljettajalla tulee olla riittävä vastuuvakuutus
-- Levoro voi vaatia todistuksen vakuutusturvasta
-
-### 6.2 Vahingonkorvaus
-- Kuljettaja on vastuussa tahallisesti tai huolimattomuudesta aiheutuneista vahingoista
-- Vakuutusyhtiö käsittelee vakuutuskorvaukset tavanomaiseen tapaan
-- Kuljettajan tulee ilmoittaa välittömästi kaikista vahinkotapahtumista
+- Kuljettajalla tulee olla voimassa oleva ajokortti ja hyväksyy kolaritilanteessa maksamaan omavastuun, jos kuljettaja on viallinen.
+- Kuljettaja vastaa vahingoista, jotka aiheutuvat huolimattomuudesta, ohjeiden rikkomisesta tai luvattomasta käytöstä.
+- Tahallinen väärinkäyttö tai ohjeiden laiminlyönti voi johtaa yhteistyön päättymiseen ja tarvittaessa rikosilmoitukseen.
 
 ## 7. Sopimuksen päättäminen
 
-### 7.1 Levoro voi päättää sopimuksen
-- Jos kuljettaja rikkoo näitä sääntöjä vakavasti tai toistuvasti
-- Jos kuljettaja ei täytä ammattitaitovaatimuksia
-- Jos kuljettaja aiheuttaa mainhaittaa Levorolle
-- Jos kuljettajan vakuutukset tai ajolupa eivät ole voimassa
+Levoro voi päättää yhteistyön välittömästi, jos:
 
-### 7.2 Kuljettaja voi päättää sopimuksen
-- Ilmoittamalla asiasta kirjallisesti vähintään 14 päivää etukäteen
-- Välittömästi, jos Levoro rikkoo sopimuksen ehtoja olennaisesti
+- kuljettaja rikkoo sääntöjä vakavasti tai toistuvasti,
+- kuljettaja toimii epäasiallisesti asiakkaita tai henkilökuntaa kohtaan,
+- kuljettajalla ei ole voimassa ajolupaa
+- havaitaan tietojen väärinkäyttöä tai luvattomia ajoja.
 
 ## 8. Yhteystiedot
 
-Jos sinulla on kysymyksiä näistä säännöistä ja ehdoista, ota yhteyttä:
-
 **Levoro Oy**
-Sähköposti: support@levoro.fi
 
----
+- support@levoro.fi
+- 044 978 2446
+- 044 982 6974
 
 ## Hyväksyntä
 
-Hyväksymällä nämä säännöt ja ehdot vahvistan, että:
-- Olen lukenut ja ymmärtänyt kaikki yllä olevat kohdat
-- Sitoudun noudattamaan kaikkia sääntöjä ja ohjeita
-- Ymmärrän, että näiden sääntöjen rikkominen voi johtaa sopimuksen päättämiseen
-- Hyväksyn, että osoitteet näkyvät vasta työn vastaanottamisen jälkeen
+Hyväksymällä nämä ehdot kuljettaja vahvistaa, että:
 
-**Päivitetty viimeksi:** 30.9.2025
-**Versio:** 1.0
+- Olen lukenut ja ymmärtänyt kaikki kohdat.
+- Sitoudun noudattamaan näitä sääntöjä.
