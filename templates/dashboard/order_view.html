@@ -35,6 +35,9 @@
             <div class="point-details">
               <span class="point-label">Nouto</span>
               <span class="point-address">{{ order.pickup_address or '?' }}</span>
+              {% if pickup_date_fi %}
+              <span class="point-meta">Nouto: {{ pickup_date_fi }}</span>
+              {% endif %}
             </div>
           </div>
           <div class="route-connector" aria-hidden="true">
@@ -51,6 +54,9 @@
             <div class="point-details">
               <span class="point-label">Toimitus</span>
               <span class="point-address">{{ order.dropoff_address or '?' }}</span>
+              {% if last_delivery_date_fi %}
+              <span class="point-meta">Viimeinen toimituspäivä: {{ last_delivery_date_fi }}</span>
+              {% endif %}
             </div>
           </div>
         </div>

@@ -690,7 +690,7 @@ def order_view(order_id: int):
             "id": 1, "status": 1, "user_id": 1,
             "pickup_address": 1, "dropoff_address": 1,
             "distance_km": 1, "price_gross": 1,
-            "reg_number": 1, "winter_tires": 1, "pickup_date": 1,
+            "reg_number": 1, "winter_tires": 1, "pickup_date": 1, "last_delivery_date": 1,
             "extras": 1, "images": 1, "customer_name": 1,
             "email": 1, "phone": 1,
             "orderer_name": 1, "orderer_email": 1, "orderer_phone": 1,
@@ -768,6 +768,16 @@ def order_view(order_id: int):
 
     status_fi = translate_status(r.get('status', 'NEW'))
     status_description = get_status_description(r.get('status', 'NEW'))
+    
+    # Format dates to Finnish format
+    pickup_date_fi = r.get('pickup_date', None)
+    last_delivery_date_fi = r.get('last_delivery_date', None)
+    
+    if pickup_date_fi and hasattr(pickup_date_fi, 'strftime'):
+        pickup_date_fi = pickup_date_fi.strftime('%d.%m.%Y')
+    
+    if last_delivery_date_fi and hasattr(last_delivery_date_fi, 'strftime'):
+        last_delivery_date_fi = last_delivery_date_fi.strftime('%d.%m.%Y')
 
     # Smart content logic
     has_reg_number = bool(r.get('reg_number', '').strip())
@@ -789,6 +799,8 @@ def order_view(order_id: int):
         progress_bar=progress_bar,
         status_fi=status_fi,
         status_description=status_description,
+        pickup_date_fi=pickup_date_fi,
+        last_delivery_date_fi=last_delivery_date_fi,
         has_reg_number=has_reg_number,
         has_winter_tires=has_winter_tires,
         has_customer_info=has_customer_info,
