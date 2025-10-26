@@ -36,9 +36,8 @@ def get_accessible_steps(session_data):
         accessible.append(3)
     if session_data.get("reg_number"):
         accessible.append(4)
-    # Check for both orderer and customer required fields
-    if (session_data.get("orderer_name") and session_data.get("orderer_email") and session_data.get("orderer_phone") and
-        session_data.get("customer_name") and session_data.get("customer_phone")):
+    # Check for orderer required fields only (customer fields are now optional)
+    if (session_data.get("orderer_name") and session_data.get("orderer_email") and session_data.get("orderer_phone")):
         accessible.append(5)
     if session_data.get("additional_info") is not None:  # Can be empty string
         accessible.append(6)
@@ -118,10 +117,13 @@ def order_step1():
     <input id="from_step" name="pickup" required value="__PICKUP_VAL__" placeholder="Katu, kaupunki">
     <div id="ac_from_step" class="ac-list"></div>
   </div>
-  <label>Toivottu noutopäivä</label>
-    <div class="date-left">
-      <input type="date" name="pickup_date" id="pickup_date" aria-label="Valitse noutopäivä">
-    </div>
+  
+  <label for="pickup_date">Toivottu noutopäivä</label>
+  <input type="date" name="pickup_date" id="pickup_date" required class="form-input">
+  
+  <label for="last_delivery_date">Viimeinen toimituspäivä</label>
+  <input type="date" name="last_delivery_date" id="last_delivery_date" class="form-input">
+  
   <div class='calculator-actions mt-2'>
     <button type='submit' class="btn btn-primary" aria-label="Jatka seuraavaan vaiheeseen">Jatka →</button>
   </div>
@@ -337,6 +339,40 @@ const step1Autocomplete = new WizardGooglePlacesAutocomplete(
   document.getElementById('from_step'),
   document.getElementById('ac_from_step')
 );
+
+/* Date validation for Step 1 */
+(function() {
+  const pickupDateInput = document.getElementById('pickup_date');
+  const lastDeliveryDateInput = document.getElementById('last_delivery_date');
+  
+  if (pickupDateInput && lastDeliveryDateInput) {
+    // Set minimum date for pickup to today
+    const today = new Date().toISOString().split('T')[0];
+    pickupDateInput.min = today;
+    
+    // Function to update last delivery date minimum
+    function updateLastDeliveryMin() {
+      const pickupDate = pickupDateInput.value;
+      if (pickupDate) {
+        const minDeliveryDate = new Date(pickupDate);
+        minDeliveryDate.setDate(minDeliveryDate.getDate() + 1);
+        lastDeliveryDateInput.min = minDeliveryDate.toISOString().split('T')[0];
+        
+        // Auto-adjust if last delivery is before pickup
+        const lastDeliveryValue = lastDeliveryDateInput.value;
+        if (lastDeliveryValue && lastDeliveryValue <= pickupDate) {
+          lastDeliveryDateInput.value = lastDeliveryDateInput.min;
+        }
+      }
+    }
+    
+    // Update on pickup date change
+    pickupDateInput.addEventListener('change', updateLastDeliveryMin);
+    
+    // Initial update
+    updateLastDeliveryMin();
+  }
+})();
 </script>
 """
         inner = inner.replace("__PICKUP_VAL__", pickup_val)
@@ -346,6 +382,7 @@ const step1Autocomplete = new WizardGooglePlacesAutocomplete(
     d = session.get("order_draft", {})
     d["pickup"] = request.form.get("pickup", "").strip()
     d["pickup_date"] = request.form.get("pickup_date", "").strip()
+    d["last_delivery_date"] = request.form.get("last_delivery_date") or None
     session["order_draft"] = d
     return redirect("/order/new/step2")
 
@@ -367,6 +404,7 @@ def order_step2():
     if request.method == "POST":
         d = session.get("order_draft", {})
         d["dropoff"] = request.form.get("dropoff", "").strip()
+        d["last_delivery_date"] = request.form.get("last_delivery_date") or None
         session["order_draft"] = d
         return redirect("/order/new/step3")
 
@@ -374,17 +412,25 @@ def order_step2():
     d = session.get("order_draft", {})
     drop_val = (d.get('dropoff', '') or '').replace('"', '&quot;')
     pick_val = (d.get('pickup', '') or '').replace('"', '&quot;')  # piilotettuun from_stepiin
+    pickup_date_val = d.get('pickup_date', '')
+    last_delivery_date_val = d.get('last_delivery_date', '')
 
     inner = """
 <h2>Auton toimitus</h2>
 <form method='POST' class='calculator-form'>
   <!-- piilotettu nouto, jotta kartta voi piirtyä (from_step löytyy DOMista) -->
   <input type="hidden" id="from_step" value="__PICK_VAL__">
+  <input type="hidden" id="pickup_date_step2" value="__PICKUP_DATE_VAL__">
+  
   <label class='form-label'>Toimitusosoite *</label>
   <div class="autocomplete">
     <input id="to_step" name="dropoff" required value="__DROP_VAL__" placeholder="Katu, kaupunki" class="form-input">
     <div id="ac_to_step" class="ac-list"></div>
   </div>
+  
+  <label for="last_delivery_date_step2">Viimeinen toimituspäivä</label>
+  <input type="date" name="last_delivery_date" id="last_delivery_date_step2" value="__LAST_DELIVERY_DATE_VAL__" class="form-input">
+  
   <div class='calculator-actions mt-2'>
     <button type='button' onclick='window.location.href="/order/new/step1"' class="btn btn-ghost">← Takaisin</button>
     <button type='submit' class="btn btn-primary">Jatka →</button>
@@ -556,9 +602,31 @@ const step2Autocomplete = new WizardGooglePlacesAutocomplete(
   document.getElementById('to_step'),
   document.getElementById('ac_to_step')
 );
+
+/* Date validation for Step 2 */
+(function() {
+  const pickupDateStep2 = document.getElementById('pickup_date_step2');
+  const lastDeliveryDateStep2 = document.getElementById('last_delivery_date_step2');
+  
+  if (pickupDateStep2 && lastDeliveryDateStep2) {
+    const pickupDate = pickupDateStep2.value;
+    
+    if (pickupDate) {
+      const minDeliveryDate = new Date(pickupDate);
+      minDeliveryDate.setDate(minDeliveryDate.getDate() + 1);
+      lastDeliveryDateStep2.min = minDeliveryDate.toISOString().split('T')[0];
+      
+      // Auto-adjust if last delivery is before pickup
+      const lastDeliveryValue = lastDeliveryDateStep2.value;
+      if (lastDeliveryValue && lastDeliveryValue <= pickupDate) {
+        lastDeliveryDateStep2.value = lastDeliveryDateStep2.min;
+      }
+    }
+  }
+})();
 </script>
 """
-    inner = inner.replace("__DROP_VAL__", drop_val).replace("__PICK_VAL__", pick_val)
+    inner = inner.replace("__DROP_VAL__", drop_val).replace("__PICK_VAL__", pick_val).replace("__PICKUP_DATE_VAL__", pickup_date_val).replace("__LAST_DELIVERY_DATE_VAL__", last_delivery_date_val)
     return get_wrap()(wizard_shell(2, inner, session.get("order_draft", {})), u)
 
 
@@ -639,7 +707,8 @@ def order_step4():
             session["order_draft"] = d
             return redirect("/order/new/step4")
         
-        if not validate_phone_number(d["customer_phone"]):
+        # Validate customer phone only if provided
+        if d["customer_phone"] and not validate_phone_number(d["customer_phone"]):
             session["error_message"] = "Asiakkaan puhelinnumero ei ole kelvollinen. Käytä vain numeroita ja merkkejä +, -, ( )"
             session["order_draft"] = d
             return redirect("/order/new/step4")
@@ -692,11 +761,12 @@ def order_step4():
   <div style='background: #fefce8; padding: 1.25rem; border-radius: 8px; margin-bottom: 1.5rem; border: 1px solid #fde047;'>
     <h3 style='margin-top: 0; margin-bottom: 1rem; color: #854d0e; font-size: 1.1rem; display: flex; align-items: center; gap: 0.5rem;'>
       Asiakkaan tiedot
+      <span style='font-size: 0.8rem; font-weight: normal; color: #64748b;'>(Valinnainen)</span>
     </h3>
-    <label class='form-label'>Asiakkaan nimi *</label>
-    <input name='customer_name' required class='form-input' value="{customer_name_val}" placeholder="Vastaanottajan nimi">
-    <label class='form-label'>Asiakkaan puhelinnumero *</label>
-    <input type='tel' name='customer_phone' required class='form-input' value="{customer_phone_val}" placeholder="+358..." pattern="[+]?[0-9\\s\\-()]+" title="Käytä vain numeroita ja merkkejä +, -, ( )" aria-label="Asiakkaan puhelinnumero">
+    <label class='form-label'>Asiakkaan nimi </label>
+    <input name='customer_name'  class='form-input' value="{customer_name_val}" placeholder="Vastaanottajan nimi">
+    <label class='form-label'>Asiakkaan puhelinnumero </label>
+    <input type='tel' name='customer_phone'  class='form-input' value="{customer_phone_val}" placeholder="+358..." pattern="[+]?[0-9\\s\\-()]+" title="Käytä vain numeroita ja merkkejä +, -, ( )" aria-label="Asiakkaan puhelinnumero">
   </div>
 
   <div class='row calculator-actions'>
@@ -782,8 +852,7 @@ def order_confirm():
         return access_check
     d = session.get("order_draft", {})
     required = ["pickup","dropoff","reg_number",
-                "orderer_name","orderer_email","orderer_phone",
-                "customer_name","customer_phone"]
+                "orderer_name","orderer_email","orderer_phone"]
 
     # Check which fields are missing and redirect to appropriate step
     missing_fields = [k for k in required if not d.get(k)]
@@ -804,16 +873,13 @@ def order_confirm():
         elif "reg_number" in missing_fields:
             session["error_message"] = "Ajoneuvon rekisterinumero puuttuu. Täytä rekisterinumero."
             return redirect("/order/new/step3")
-        elif any(field in missing_fields for field in ["orderer_name", "orderer_email", "orderer_phone",
-                                                        "customer_name", "customer_phone"]):
-            missing_contact_fields = [f for f in ["orderer_name", "orderer_email", "orderer_phone",
-                                                   "customer_name", "customer_phone"] if f in missing_fields]
+        elif any(field in missing_fields for field in ["orderer_name", "orderer_email", "orderer_phone"]):
+            missing_contact_fields = [f for f in ["orderer_name", "orderer_email", "orderer_phone"] if f in missing_fields]
             field_names = {
-                "orderer_name": "tilaajan nimi", "orderer_email": "tilaajan sähköposti", "orderer_phone": "tilaajan puhelinnumero",
-                "customer_name": "asiakkaan nimi", "customer_phone": "asiakkaan puhelinnumero"
+                "orderer_name": "tilaajan nimi", "orderer_email": "tilaajan sähköposti", "orderer_phone": "tilaajan puhelinnumero"
             }
             missing_names = [field_names[f] for f in missing_contact_fields]
-            session["error_message"] = f"Yhteystiedot puuttuvat: {', '.join(missing_names)}. Täytä puuttuvat tiedot."
+            session["error_message"] = f"Tilaajan yhteystiedot puuttuvat: {', '.join(missing_names)}. Täytä puuttuvat tiedot."
             return redirect("/order/new/step4")
 
     km = 0.0
@@ -840,6 +906,7 @@ def order_confirm():
             "dropoff_address": d.get("dropoff"),
             "reg_number": d.get("reg_number"),
             "pickup_date": d.get("pickup_date") or None,
+            "last_delivery_date": d.get("last_delivery_date") or None,
 
             # Orderer (Tilaaja) information
             "orderer_name": d.get("orderer_name"),
@@ -890,7 +957,7 @@ def order_confirm():
 <div class='confirmation-layout'>
   <div class='confirmation-grid'>
     <div class='confirmation-card'><h3 class='confirmation-title'>Nouto</h3><p class='confirmation-text'>{d.get('pickup')}</p><p class='confirmation-meta'>{d.get('pickup_date') or 'Heti'}</p></div>
-    <div class='confirmation-card'><h3 class='confirmation-title'>Toimitus</h3><p class='confirmation-text'>{d.get('dropoff')}</p></div>
+    <div class='confirmation-card'><h3 class='confirmation-title'>Toimitus</h3><p class='confirmation-text'>{d.get('dropoff')}</p><p class='confirmation-meta'>{d.get('last_delivery_date') or '-'}</p></div>
     <div class='confirmation-card'><h3 class='confirmation-title'>Ajoneuvo</h3><p class='confirmation-text'>Rekisteri: {d.get('reg_number')}</p><p class='confirmation-meta'>Talvirenkaat: {"Kyllä" if d.get('winter_tires') else "Ei"}</p></div>
     <div class='confirmation-card'><h3 class='confirmation-title'>Tilaajan tiedot</h3><p class='confirmation-text'>{d.get('orderer_name')}</p><p class='confirmation-meta'>{d.get('orderer_email')} / {d.get('orderer_phone')}</p></div>
     <div class='confirmation-card'><h3 class='confirmation-title'>Asiakkaan tiedot</h3><p class='confirmation-text'>{d.get('customer_name')}</p><p class='confirmation-meta'>{d.get('customer_phone')}</p></div>

@@ -463,7 +463,7 @@ def order_detail(order_id):
             "id": 1, "status": 1, "driver_id": 1,
             "pickup_address": 1, "dropoff_address": 1,
             "distance_km": 1, "price_gross": 1,
-            "reg_number": 1, "winter_tires": 1, "pickup_date": 1,
+            "reg_number": 1, "winter_tires": 1, "pickup_date": 1, "last_delivery_date": 1,
             "extras": 1, "images": 1,
             "orderer_name": 1, "orderer_email": 1, "orderer_phone": 1,
             "customer_name": 1, "customer_phone": 1,
@@ -496,6 +496,15 @@ def order_detail(order_id):
                 pickup_date_fi = pickup_date_fi.strftime('%d.%m.%Y')
         except:
             pass
+    
+    # Format last delivery date
+    last_delivery_date_fi = order.get('last_delivery_date', None)
+    if last_delivery_date_fi:
+        try:
+            if hasattr(last_delivery_date_fi, 'strftime'):
+                last_delivery_date_fi = last_delivery_date_fi.strftime('%d.%m.%Y')
+        except Exception:
+            pass
 
     # Get current user for navbar
     user = auth_service.get_current_user()
@@ -504,6 +513,7 @@ def order_detail(order_id):
         order=order,
         status_fi=status_fi,
         pickup_date_fi=pickup_date_fi,
+        last_delivery_date_fi=last_delivery_date_fi,
         available_drivers=available_drivers,
         current_user=user
     )
