@@ -69,8 +69,28 @@ def calculator():
             </div>
           </div>
 
+          <!-- Saved Addresses Section -->
+          <div style="margin-top: 1.5rem; padding: 1.25rem; border: 1px solid #e0e0e0; border-radius: 8px; background: #fafafa;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+              <h3 style="margin: 0; font-size: 1.1rem; font-weight: 600; color: #333;">Tallennetut osoitteet</h3>
+              <button onclick="openAddressModal()" class="btn btn-primary btn-sm" style="font-size: 0.875rem;">
+                + Lisää uusi osoite
+              </button>
+            </div>
+            
+            <button id="toggleAddresses" onclick="toggleSavedAddresses()" class="btn btn-ghost btn-sm" style="width: 100%; margin-bottom: 0.75rem;">
+              Näytä tallennetut osoitteet
+            </button>
+            
+            <div id="savedAddressesList" style="display: none;">
+              <div id="addressesContainer" style="max-height: 300px; overflow-y: auto;">
+                <!-- Addresses will be loaded here -->
+              </div>
+            </div>
+          </div>
+
           <div class="calculator-actions">
-            <button class="btn btn-primary btn-lg" onclick="calc()">Laske hinta ja reitti</button>
+            <button id="calcBtn" class="btn btn-primary btn-lg" onclick="calc()">Laske hinta ja reitti</button>
             <button class="btn btn-ghost" onclick="demo()">Täytä esimerkki</button>
           </div>
           
@@ -139,6 +159,23 @@ def calculator():
 function euro(n){ return (Number(n).toFixed(2)+' €').replace('.',','); }
 function kmfmt(n){ return Number(n).toFixed(1).replace('.',',')+' km'; }
 
+// Add custom styles for saved addresses in autocomplete
+const style = document.createElement('style');
+style.textContent = `
+  .ac-item.saved-address {
+    padding: 0.75rem !important;
+    border-left: 3px solid var(--color-primary, #007bff);
+    background: #f8f9fa;
+  }
+  .ac-item.saved-address:hover {
+    background: #e9ecef;
+  }
+  .menu-item:hover {
+    background: #f3f4f6;
+  }
+`;
+document.head.appendChild(style);
+
 // ====== Google Places Autocomplete ======
 class GooglePlacesAutocomplete {
   constructor(input, listEl){
@@ -158,14 +195,62 @@ class GooglePlacesAutocomplete {
     input.setAttribute('spellcheck','false');
 
     input.addEventListener('input', ()=> this.onInput());
+    input.addEventListener('focus', ()=> this.onFocus());
     input.addEventListener('keydown', (e)=> this.onKey(e));
     document.addEventListener('click', (e)=>{ if(!this.list.contains(e.target) && e.target!==this.input){ this.hide() }});
+  }
+
+  onFocus(){
+    // Show saved addresses when input is focused
+    const q = this.input.value.trim();
+    if (!q) {
+      this.showSavedAddresses();
+    }
+  }
+
+  showSavedAddresses(){
+    if (!window.savedAddresses || window.savedAddresses.length === 0) {
+      return;
+    }
+    
+    let html = '<div style="padding: 0.5rem; font-weight: 600; font-size: 0.875rem; color: #666; border-bottom: 1px solid #e0e0e0;">Tallennetut osoitteet</div>';
+    
+    window.savedAddresses.slice(0, 8).forEach((addr, i) => {
+      html += `<div class="ac-item saved-address" data-type="saved" data-i="${i}">
+        <div style="font-weight: 600; color: #333;">${addr.displayName}</div>
+        <div style="font-size: 0.875rem; color: #666;">${addr.fullAddress}</div>
+      </div>`;
+    });
+    
+    this.list.innerHTML = html;
+    this.show();
+    
+    Array.from(this.list.querySelectorAll('.ac-item')).forEach(el=>{
+      el.onclick = ()=> {
+        const type = el.getAttribute('data-type');
+        const index = +el.getAttribute('data-i');
+        if (type === 'saved') {
+          this.pickSaved(index);
+        }
+      };
+    });
+  }
+
+  pickSaved(index){
+    const addr = window.savedAddresses[index];
+    if (!addr) return;
+    this.input.value = addr.fullAddress;
+    this.hide();
+    this.input.dispatchEvent(new Event('change'));
   }
 
   onInput(){
     clearTimeout(this.timer);
     const q = this.input.value.trim();
-    if(!q){ this.hide(); this.list.innerHTML=''; return; }
+    if(!q){ 
+      this.showSavedAddresses();
+      return; 
+    }
 
     // Check cache first
     const cacheKey = q.toLowerCase();
@@ -273,20 +358,60 @@ class GooglePlacesAutocomplete {
 
 
   render(){
-    if(!this.items.length){
+    const q = this.input.value.trim().toLowerCase();
+    
+    // Filter saved addresses that match the query
+    let filteredSaved = [];
+    if (q && window.savedAddresses) {
+      filteredSaved = window.savedAddresses.filter(addr => 
+        addr.displayName.toLowerCase().includes(q) || 
+        addr.fullAddress.toLowerCase().includes(q)
+      ).slice(0, 5);
+    }
+    
+    let html = '';
+    
+    // Show saved addresses section if there are matches
+    if (filteredSaved.length > 0) {
+      html += '<div style="padding: 0.5rem; font-weight: 600; font-size: 0.875rem; color: #666; border-bottom: 1px solid #e0e0e0;">Tallennetut osoitteet</div>';
+      filteredSaved.forEach((addr, i) => {
+        html += `<div class="ac-item saved-address" data-type="saved" data-i="${window.savedAddresses.indexOf(addr)}">
+          <div style="font-weight: 600; color: #333;">${addr.displayName}</div>
+          <div style="font-size: 0.875rem; color: #666;">${addr.fullAddress}</div>
+        </div>`;
+      });
+    }
+    
+    // Show map search results
+    if (this.items.length > 0) {
+      if (filteredSaved.length > 0) {
+        html += '<div style="padding: 0.5rem; font-weight: 600; font-size: 0.875rem; color: #666; border-bottom: 1px solid #e0e0e0; margin-top: 0.5rem;">Karttahaku</div>';
+      }
+      html += this.items.slice(0, 8).map((item, i) =>
+        `<div class="ac-item" data-type="map" data-i="${i}">${item.description}</div>`
+      ).join('');
+    }
+    
+    if (!html) {
       this.list.innerHTML = '<div class="ac-empty">Ei ehdotuksia</div>';
       this.show();
       return;
     }
-
-    this.list.innerHTML = this.items.slice(0, 8).map((item, i) =>
-      `<div class="ac-item" data-i="${i}">${item.description}</div>`
-    ).join('');
+    
+    this.list.innerHTML = html;
     this.show();
 
     Array.from(this.list.children).forEach(el=>{
       if (el.classList.contains('ac-item')) {
-        el.onclick = ()=> this.pick(+el.getAttribute('data-i'));
+        const type = el.getAttribute('data-type');
+        const index = +el.getAttribute('data-i');
+        el.onclick = ()=> {
+          if (type === 'saved') {
+            this.pickSaved(index);
+          } else {
+            this.pick(index);
+          }
+        };
       }
     });
     this.activeIndex = -1;
@@ -449,11 +574,16 @@ async function calc(){
   // Set loading state
   isCalculating = true;
   lastCalculationTime = now;
-  const calcBtn = document.querySelector('button[onclick="calc()"]');
-  const originalText = calcBtn.textContent;
-  calcBtn.disabled = true;
-  calcBtn.textContent = 'Lasketaan...';
-  calcBtn.classList.add('btn-loading');
+  // Prefer button with id (more robust), fall back to onclick selector
+  let calcBtn = document.getElementById('calcBtn');
+  if (!calcBtn) calcBtn = document.querySelector('button[onclick="calc()"]');
+  let originalText = '';
+  if (calcBtn) {
+    originalText = calcBtn.textContent;
+    calcBtn.disabled = true;
+    calcBtn.textContent = 'Lasketaan...';
+    calcBtn.classList.add('btn-loading');
+  }
 
   try {
     initMap();
@@ -513,9 +643,11 @@ async function calc(){
   } finally {
     // Reset loading state
     isCalculating = false;
-    calcBtn.disabled = false;
-    calcBtn.textContent = originalText;
-    calcBtn.classList.remove('btn-loading');
+    if (calcBtn) {
+      calcBtn.disabled = false;
+      calcBtn.textContent = originalText;
+      calcBtn.classList.remove('btn-loading');
+    }
   }
 }
 
@@ -525,6 +657,9 @@ function demo(){
 }
 
 // --- Google Places Autocomplete bindings ---
+// Load saved addresses first, then initialize autocomplete
+loadSavedAddresses();
+
 // Initialize after a short delay to ensure navigation.js has initialized first
 // This prevents conflicts with the mobile menu toggle
 if (document.readyState === 'loading') {
@@ -543,14 +678,362 @@ function initCalculatorAutocomplete() {
     const acTo = document.getElementById('ac_to');
 
     if (fromInput && acFrom) {
-      const fromAutocomplete = new GooglePlacesAutocomplete(fromInput, acFrom);
+      window.fromAutocomplete = new GooglePlacesAutocomplete(fromInput, acFrom);
     }
 
     if (toInput && acTo) {
-      const toAutocomplete = new GooglePlacesAutocomplete(toInput, acTo);
+      window.toAutocomplete = new GooglePlacesAutocomplete(toInput, acTo);
     }
   }, 50);
 }
+
+// ====== Saved Addresses Functionality ======
+// Storage keys (use namespaced key to avoid collisions)
+const STORAGE_KEY = 'levoro.savedAddresses.v1';
+const LEGACY_STORAGE_KEY = 'savedAddresses';
+const COOKIE_KEY = 'levoro_saved_addresses';
+
+// Declare globally so autocomplete can access it
+window.savedAddresses = [];
+let isAddressesVisible = false;
+let editingAddressId = null;
+
+// ----- Server API helpers for saved addresses -----
+async function apiCall(url, options = {}){
+  const res = await fetch(url, options);
+  let data = null;
+  try { data = await res.json(); } catch {}
+  if (!res.ok) {
+    const msg = (data && (data.error || data.message)) || (`HTTP ${res.status}`);
+    throw new Error(msg);
+  }
+  return data;
+}
+
+async function fetchServerAddresses(){
+  const data = await apiCall('/api/saved_addresses', { method: 'GET' });
+  return Array.isArray(data.items) ? data.items : [];
+}
+
+async function createServerAddress(displayName, fullAddress){
+  const data = await apiCall('/api/saved_addresses', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ displayName, fullAddress })
+  });
+  return data.item;
+}
+
+async function updateServerAddress(id, displayName, fullAddress){
+  const data = await apiCall(`/api/saved_addresses/${encodeURIComponent(id)}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ displayName, fullAddress })
+  });
+  return data.item;
+}
+
+async function deleteServerAddress(id){
+  await apiCall(`/api/saved_addresses/${encodeURIComponent(id)}`, { method: 'DELETE' });
+}
+
+function quickLocalLoad() {
+  let arr = [];
+  let source = 'none';
+  // Try namespaced key first
+  try {
+    const v1 = localStorage.getItem(STORAGE_KEY);
+    if (v1) {
+      const parsed = JSON.parse(v1);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        arr = parsed;
+        source = 'localStorage-v1';
+      }
+    }
+  } catch (e) {
+    console.warn('[SavedAddresses] localStorage v1 read failed:', e);
+  }
+  // Fallback to legacy key
+  if (arr.length === 0) {
+    try {
+      const legacy = localStorage.getItem(LEGACY_STORAGE_KEY);
+      if (legacy) {
+        const parsedLegacy = JSON.parse(legacy);
+        if (Array.isArray(parsedLegacy) && parsedLegacy.length > 0) {
+          arr = parsedLegacy;
+          source = 'localStorage-legacy';
+          try { localStorage.setItem(STORAGE_KEY, JSON.stringify(arr)); } catch {}
+        }
+      }
+    } catch (e) {
+      console.warn('[SavedAddresses] localStorage legacy read failed:', e);
+    }
+  }
+  // Cookie fallback
+  if (arr.length === 0) {
+    try {
+      const cookieVal = getCookie(COOKIE_KEY);
+      if (cookieVal) {
+        const parsedCookie = JSON.parse(decodeURIComponent(cookieVal));
+        if (Array.isArray(parsedCookie) && parsedCookie.length > 0) {
+          arr = parsedCookie;
+          source = 'cookie';
+        }
+      }
+    } catch (e) {
+      console.warn('[SavedAddresses] cookie read failed:', e);
+    }
+  }
+  // Validate
+  arr = (arr || []).filter(x => x && typeof x === 'object' && typeof x.displayName === 'string' && typeof x.fullAddress === 'string');
+  return { arr, source };
+}
+
+function refreshAutocompleteSavedIfFocus(){
+  const ae = document.activeElement;
+  if (ae && (ae.id === 'from' || ae.id === 'to') && !ae.value.trim()){
+    if (ae.id === 'from' && window.fromAutocomplete){ window.fromAutocomplete.showSavedAddresses(); }
+    if (ae.id === 'to' && window.toAutocomplete){ window.toAutocomplete.showSavedAddresses(); }
+  }
+}
+
+async function loadSavedAddresses() {
+  console.log('[SavedAddresses] Fast-loading local cache, then refreshing from server...');
+  // Phase 1: instant local render
+  try {
+    const { arr, source } = quickLocalLoad();
+    window.savedAddresses = arr;
+    console.log(`[SavedAddresses] Quick-loaded ${arr.length} from ${source}`);
+    window.savedAddresses.sort((a, b) => a.displayName.localeCompare(b.displayName, 'fi', { sensitivity: 'base' }));
+    renderAddresses();
+    refreshAutocompleteSavedIfFocus();
+  } catch (e) {
+    console.warn('[SavedAddresses] Quick-load failed:', e);
+  }
+
+  // Phase 2: server refresh (non-blocking)
+  try {
+    const serverItems = await fetchServerAddresses();
+    if (Array.isArray(serverItems)) {
+      window.savedAddresses = serverItems;
+      console.log(`[SavedAddresses] Refreshed ${serverItems.length} from server`);
+      saveToStorage();
+      window.savedAddresses.sort((a, b) => a.displayName.localeCompare(b.displayName, 'fi', { sensitivity: 'base' }));
+      renderAddresses();
+      refreshAutocompleteSavedIfFocus();
+    }
+  } catch (e) {
+    console.warn('[SavedAddresses] Server refresh failed:', e.message || e);
+  }
+}
+
+function saveToStorage() {
+  console.log(`[SavedAddresses] Saving ${(window.savedAddresses || []).length} addresses...`);
+  let savedToLocal = false;
+  let savedToCookie = false;
+  
+  try {
+    const payload = JSON.stringify(window.savedAddresses || []);
+    
+    // Try localStorage first
+    try {
+      localStorage.setItem(STORAGE_KEY, payload);
+      localStorage.setItem(LEGACY_STORAGE_KEY, payload);
+      savedToLocal = true;
+      console.log('[SavedAddresses] Saved to localStorage');
+    } catch (e) {
+      console.warn('[SavedAddresses] localStorage write failed:', e);
+    }
+    
+    // Always save to cookie as backup (90 days)
+    try {
+      setCookie(COOKIE_KEY, encodeURIComponent(payload), 90);
+      savedToCookie = true;
+      console.log('[SavedAddresses] Saved to cookie');
+    } catch (e) {
+      console.warn('[SavedAddresses] cookie write failed:', e);
+    }
+    
+    if (!savedToLocal && !savedToCookie) {
+      console.error('[SavedAddresses] CRITICAL: Failed to save to any storage!');
+    }
+  } catch (e) {
+    console.error('[SavedAddresses] Error saving:', e);
+  }
+}
+
+function setCookie(name, value, days) {
+  try {
+    const d = new Date();
+    d.setTime(d.getTime() + (days*24*60*60*1000));
+    const expires = 'expires=' + d.toUTCString();
+    document.cookie = name + '=' + value + ';' + expires + ';path=/;SameSite=Lax';
+  } catch (e) {
+    console.error('[SavedAddresses] setCookie error:', e);
+  }
+}
+
+function getCookie(name) {
+  try {
+    const cname = name + '=';
+    const ca = document.cookie.split(';');
+    for (let i=0; i<ca.length; i++) {
+      let c = ca[i].trim();
+      if (c.indexOf(cname) === 0) return c.substring(cname.length, c.length);
+    }
+  } catch (e) {
+    console.error('[SavedAddresses] getCookie error:', e);
+  }
+  return '';
+}
+
+function toggleSavedAddresses() {
+  isAddressesVisible = !isAddressesVisible;
+  const list = document.getElementById('savedAddressesList');
+  const btn = document.getElementById('toggleAddresses');
+  
+  if (isAddressesVisible) {
+    list.style.display = 'block';
+    btn.textContent = 'Piilota tallennetut osoitteet';
+  } else {
+    list.style.display = 'none';
+    btn.textContent = 'Näytä tallennetut osoitteet';
+  }
+}
+
+function renderAddresses() {
+  const container = document.getElementById('addressesContainer');
+  
+  if (window.savedAddresses.length === 0) {
+    container.innerHTML = '<p style="color: #999; padding: 1rem; text-align: center; font-size: 0.875rem;">Ei vielä tallennettuja osoitteita.</p>';
+    return;
+  }
+  
+  let html = '';
+  window.savedAddresses.forEach((addr, index) => {
+    html += `
+      <div style="padding: 0.75rem; border: 1px solid #e0e0e0; border-radius: 6px; margin-bottom: 0.5rem; background: white; position: relative;">
+        <div style="display: flex; justify-content: space-between; align-items: start;">
+          <div style="flex: 1; cursor: pointer;" onclick="editAddress(${index})">
+            <div style="font-weight: 600; color: #333; margin-bottom: 0.25rem;">${addr.displayName}</div>
+            <div style="font-size: 0.875rem; color: #666;">${addr.fullAddress}</div>
+          </div>
+          <button onclick="deleteAddressDirectly(${index})" class="btn-delete-address" style="border: none; background: none; cursor: pointer; padding: 0.25rem 0.5rem; font-size: 1.25rem; line-height: 1; color: #999; transition: color 0.2s;" onmouseover="this.style.color='#dc2626'" onmouseout="this.style.color='#999'" title="Poista">×</button>
+        </div>
+      </div>
+    `;
+  });
+  container.innerHTML = html;
+}
+
+async function deleteAddressDirectly(index) {
+  try {
+    const item = window.savedAddresses[index];
+    if (!item) return;
+    if (item.id) {
+      try { await deleteServerAddress(item.id); } catch (e) { console.warn('[SavedAddresses] server delete failed:', e.message || e); }
+    }
+  } finally {
+    window.savedAddresses.splice(index, 1);
+    saveToStorage();
+    renderAddresses();
+  }
+}
+
+function toggleAddressMenu(index, event) {
+  // Not needed anymore, keeping for compatibility
+}
+
+function closeAllMenus() {
+  // Not needed anymore, keeping for compatibility
+}
+
+
+function openAddressModal(editIndex = null) {
+  editingAddressId = editIndex;
+  const addr = editIndex !== null ? window.savedAddresses[editIndex] : null;
+  
+  const modalHtml = `
+    <div id="addressModal" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 9999;">
+      <div style="background: white; padding: 2rem; border-radius: 12px; max-width: 500px; width: 90%;">
+        <h3 style="margin: 0 0 1.5rem 0; font-size: 1.25rem; font-weight: 600;">${editIndex !== null ? 'Muokkaa osoitetta' : 'Lisää uusi osoite'}</h3>
+        
+        <div style="margin-bottom: 1rem;">
+          <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Nimi *</label>
+          <input id="addrName" type="text" class="form-input" placeholder="Esim. Koti, Toimisto, Varasto" value="${addr ? addr.displayName : ''}" style="width: 100%;">
+        </div>
+        
+        <div style="margin-bottom: 1.5rem;">
+          <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Osoite *</label>
+          <input id="addrFull" type="text" class="form-input" placeholder="Esim. Mannerheimintie 1, Helsinki" value="${addr ? addr.fullAddress : ''}" style="width: 100%;">
+        </div>
+        
+        <div style="display: flex; gap: 0.75rem; justify-content: flex-end;">
+          <button onclick="closeAddressModal()" class="btn btn-ghost">Peruuta</button>
+          <button onclick="saveAddress()" class="btn btn-primary">Tallenna</button>
+        </div>
+      </div>
+    </div>
+  `;
+  
+  document.body.insertAdjacentHTML('beforeend', modalHtml);
+  document.getElementById('addrName').focus();
+}
+
+function closeAddressModal() {
+  const modal = document.getElementById('addressModal');
+  if (modal) modal.remove();
+  editingAddressId = null;
+}
+
+async function saveAddress() {
+  const name = document.getElementById('addrName').value.trim();
+  const address = document.getElementById('addrFull').value.trim();
+  
+  if (!name || !address) {
+    alert('Täytä molemmat kentät');
+    return;
+  }
+  
+  try {
+    if (editingAddressId !== null) {
+      // Update existing
+      const current = window.savedAddresses[editingAddressId];
+      let updated = null;
+      if (current && current.id) {
+        try {
+          updated = await updateServerAddress(current.id, name, address);
+        } catch (e) {
+          console.warn('[SavedAddresses] server update failed, falling back to local:', e.message || e);
+        }
+      }
+      const newAddr = updated || { id: current && current.id || Date.now(), displayName: name, fullAddress: address };
+      window.savedAddresses[editingAddressId] = newAddr;
+    } else {
+      // Create new
+      let created = null;
+      try {
+        created = await createServerAddress(name, address);
+      } catch (e) {
+        console.warn('[SavedAddresses] server create failed, storing locally:', e.message || e);
+      }
+      const newAddr = created || { id: Date.now(), displayName: name, fullAddress: address };
+      window.savedAddresses.push(newAddr);
+    }
+  } finally {
+    saveToStorage();
+    loadSavedAddresses();
+    closeAddressModal();
+  }
+}
+
+function editAddress(index) {
+  openAddressModal(index);
+}
+
 </script>
+
+<!-- Load React Saved Addresses Component from Vite Dev Server -->
+<script type="module" src="http://localhost:5173/src/savedAddresses.tsx"></script>
 """
     return get_wrap()(body, u)
