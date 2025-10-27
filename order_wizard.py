@@ -218,9 +218,24 @@ class WizardGooglePlacesAutocomplete {
 
     input.addEventListener('input', ()=> this.onInput());
     input.addEventListener('focus', ()=> this.onFocus());
-  input.addEventListener('keydown', (e)=> this.onKey(e));
+    input.addEventListener('keydown', (e)=> this.onKey(e));
   // Use closest to avoid accidental hides and ensure clicks inside list work
   document.addEventListener('mousedown', (e)=>{ if(!e.target.closest || !e.target.closest('#'+this.list.id)) { if(e.target!==this.input) this.hide(); } });
+    // Event delegation: handle selection on the list itself
+    this.list.addEventListener('mousedown', (e)=>{
+      const el = e.target.closest ? e.target.closest('.ac-item') : null;
+      if (!el) return;
+      e.preventDefault();
+      const type = el.getAttribute('data-type');
+      if (type === 'saved') {
+        const id = el.getAttribute('data-id');
+        this.pickSaved(id);
+      } else {
+        const idxAttr = el.getAttribute('data-i');
+        const i = idxAttr ? +idxAttr : -1;
+        if (i >= 0) this.pick(i);
+      }
+    });
 
     // Initialize Google Maps API when available
     this.initGoogleMaps();
@@ -401,18 +416,7 @@ class WizardGooglePlacesAutocomplete {
     this.list.innerHTML = html;
     this.show();
 
-    Array.from(this.list.querySelectorAll('.ac-item')).forEach(el=>{
-      el.onmousedown = (ev)=>{
-        ev.preventDefault(); // prevent input blur before we handle selection
-        const type = el.getAttribute('data-type');
-        if (type === 'saved') {
-          const id = el.getAttribute('data-id');
-          this.pickSaved(id);
-        } else {
-          this.pick(+el.getAttribute('data-i'));
-        }
-      };
-    });
+    // No per-item handlers needed; handled by delegated listener above
     this.activeIndex = -1;
   }
 
