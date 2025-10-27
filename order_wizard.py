@@ -54,32 +54,32 @@ def validate_step_access(required_step, session_data):
     return None
 
 def wizard_shell(active: int, inner_html: str, session_data: dict = None) -> str:
-    steps = ["Nouto", "Toimitus", "Ajoneuvo", "Yhteystiedot", "Lisätiedot", "Vahvistus"]
-    accessible_steps = get_accessible_steps(session_data or {})
+  steps = ["Nouto", "Toimitus", "Ajoneuvo", "Yhteystiedot", "Lisätiedot", "Vahvistus"]
+  accessible_steps = get_accessible_steps(session_data or {})
 
-    nav = "<div class='stepnav'>"
-    for i, s in enumerate(steps, start=1):
-        if i == active:
-            cls = "item active"
-            nav += f"<div class='{cls}'>{i}. {s}</div>"
-        elif i in accessible_steps:
-            cls = "item clickable"
-            step_url = "/order/new/confirm" if i == 6 else f"/order/new/step{i}"
-            nav += f"<a href='{step_url}' class='{cls}'>{i}. {s}</a>"
-        else:
-            cls = "item disabled"
-            nav += f"<div class='{cls}'>{i}. {s}</div>"
-    nav += "</div>"
-    css_link = "<link rel='stylesheet' href='/static/css/stepnav.css'>"
-    wizard_css = "<link rel='stylesheet' href='/static/css/wizard.css'>"
-    # Two-column layout for wizard
-    layout = f"""
-    <div class='wizard-row'>
-      <div class='wizard-col wizard-steps'>{nav}</div>
-      <div class='wizard-col wizard-form'><div class='card'>{inner_html}</div></div>
-    </div>
-    """
-    return f"{css_link}{wizard_css}{layout}"
+  nav = "<div class='stepnav'>"
+  for i, s in enumerate(steps, start=1):
+    if i == active:
+      cls = "item active"
+      nav += f"<div class='{cls}'>{i}. {s}</div>"
+    elif i in accessible_steps:
+      cls = "item clickable"
+      step_url = "/order/new/confirm" if i == 6 else f"/order/new/step{i}"
+      nav += f"<a href='{step_url}' class='{cls}'>{i}. {s}</a>"
+    else:
+      cls = "item disabled"
+      nav += f"<div class='{cls}'>{i}. {s}</div>"
+  nav += "</div>"
+  css_link = "<link rel='stylesheet' href='/static/css/stepnav.css'>"
+  wizard_css = "<link rel='stylesheet' href='/static/css/wizard.css'>"
+  # Two-column layout for wizard
+  layout = f"""
+  <div class='wizard-row'>
+    <div class='wizard-col wizard-steps'>{nav}</div>
+    <div class='wizard-col wizard-form'><div class='card'>{inner_html}</div></div>
+  </div>
+  """
+  return f"{css_link}{wizard_css}{layout}"
 
 # STEP 1: Pickup
 # order_wizard.py -> order_step1()
@@ -117,17 +117,59 @@ def order_step1():
     <input id="from_step" name="pickup" required value="__PICKUP_VAL__" placeholder="Katu, kaupunki">
     <div id="ac_from_step" class="ac-list"></div>
   </div>
-  
-  <label for="pickup_date">Toivottu noutopäivä</label>
-  <input type="date" name="pickup_date" id="pickup_date" required class="form-input">
-  
-  <label for="last_delivery_date">Viimeinen toimituspäivä</label>
-  <input type="date" name="last_delivery_date" id="last_delivery_date" class="form-input">
-  
-  <div class='calculator-actions mt-2'>
+
+  <div class="date-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 12px;">
+    <div class="date-field">
+      <label for="pickup_date">Toivottu noutopäivä</label>
+      <div class="date-input-wrap" style="position: relative;">
+        <svg class="calendar-icon-svg" width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); z-index: 1;">
+          <rect x="3" y="4" width="18" height="18" rx="2" stroke="#64748b" stroke-width="2"/>
+          <line x1="8" y1="2.5" x2="8" y2="6" stroke="#64748b" stroke-width="2"/>
+          <line x1="16" y1="2.5" x2="16" y2="6" stroke="#64748b" stroke-width="2"/>
+          <line x1="3" y1="10" x2="21" y2="10" stroke="#64748b" stroke-width="2"/>
+        </svg>
+        <input type="date" name="pickup_date" id="pickup_date" required class="form-input date-input" style="padding-left: 40px; height: 44px; font-size: 0.95rem; width: 100%;">
+      </div>
+    </div>
+    <div class="date-field">
+      <label for="last_delivery_date">Viimeinen toimituspäivä</label>
+      <div class="date-input-wrap" style="position: relative;">
+        <svg class="calendar-icon-svg" width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); z-index: 1;">
+          <rect x="3" y="4" width="18" height="18" rx="2" stroke="#64748b" stroke-width="2"/>
+          <line x1="8" y1="2.5" x2="8" y2="6" stroke="#64748b" stroke-width="2"/>
+          <line x1="16" y1="2.5" x2="16" y2="6" stroke="#64748b" stroke-width="2"/>
+          <line x1="3" y1="10" x2="21" y2="10" stroke="#64748b" stroke-width="2"/>
+        </svg>
+        <input type="date" name="last_delivery_date" id="last_delivery_date" class="form-input date-input" style="padding-left: 40px; height: 44px; font-size: 0.95rem; width: 100%;">
+      </div>
+    </div>
+  </div>
+
+  <div class='calculator-actions mt-2' style="margin-top: 16px;">
     <button type='submit' class="btn btn-primary" aria-label="Jatka seuraavaan vaiheeseen">Jatka →</button>
   </div>
 </form>
+
+<style>
+/* Keep date inputs compact and icons centered */
+.date-input-wrap { position: relative; display: grid; align-items: center; }
+.date-input { padding-left: 40px; height: 44px; line-height: 44px; box-sizing: border-box; -webkit-appearance: none; appearance: none; }
+.date-input:focus { outline: none; }
+.calendar-icon-svg { pointer-events: none; transition: transform 120ms ease-out; }
+/* Move native date picker icon to the left visually (keep it clickable) */
+.date-input::-webkit-calendar-picker-indicator {
+  position: absolute;
+  left: 0;
+  right: auto;
+  width: 44px;
+  height: 44px;
+  opacity: 0; /* hide default icon */
+  cursor: pointer;
+}
+@media (max-width: 640px) {
+  .date-grid { grid-template-columns: 1fr !important; }
+}
+</style>
 
 <script>
 /* ===== Google Places Autocomplete for Wizard ===== */
@@ -350,17 +392,17 @@ const step1Autocomplete = new WizardGooglePlacesAutocomplete(
     const today = new Date().toISOString().split('T')[0];
     pickupDateInput.min = today;
     
-    // Function to update last delivery date minimum
+    // Function to update last delivery date minimum (allow same-day delivery)
     function updateLastDeliveryMin() {
       const pickupDate = pickupDateInput.value;
       if (pickupDate) {
+        // Same day allowed: min = pickupDate (no +1)
         const minDeliveryDate = new Date(pickupDate);
-        minDeliveryDate.setDate(minDeliveryDate.getDate() + 1);
         lastDeliveryDateInput.min = minDeliveryDate.toISOString().split('T')[0];
         
-        // Auto-adjust if last delivery is before pickup
+        // Auto-adjust only if last delivery is before pickup (same day allowed)
         const lastDeliveryValue = lastDeliveryDateInput.value;
-        if (lastDeliveryValue && lastDeliveryValue <= pickupDate) {
+        if (lastDeliveryValue && lastDeliveryValue < pickupDate) {
           lastDeliveryDateInput.value = lastDeliveryDateInput.min;
         }
       }
@@ -428,14 +470,42 @@ def order_step2():
     <div id="ac_to_step" class="ac-list"></div>
   </div>
   
-  <label for="last_delivery_date_step2">Viimeinen toimituspäivä</label>
-  <input type="date" name="last_delivery_date" id="last_delivery_date_step2" value="__LAST_DELIVERY_DATE_VAL__" class="form-input">
+  <div style="margin-top: 12px;">
+    <label for="last_delivery_date_step2">Viimeinen toimituspäivä</label>
+    <div class="date-input-wrap" style="position: relative;">
+      <svg class="calendar-icon-svg" width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); z-index: 1;">
+        <rect x="3" y="4" width="18" height="18" rx="2" stroke="#64748b" stroke-width="2"/>
+        <line x1="8" y1="2.5" x2="8" y2="6" stroke="#64748b" stroke-width="2"/>
+        <line x1="16" y1="2.5" x2="16" y2="6" stroke="#64748b" stroke-width="2"/>
+        <line x1="3" y1="10" x2="21" y2="10" stroke="#64748b" stroke-width="2"/>
+      </svg>
+      <input type="date" name="last_delivery_date" id="last_delivery_date_step2" value="__LAST_DELIVERY_DATE_VAL__" class="form-input date-input" style="padding-left: 40px; height: 44px; font-size: 0.95rem; width: 100%;">
+    </div>
+  </div>
   
-  <div class='calculator-actions mt-2'>
+  <div class='calculator-actions mt-2' style="margin-top: 16px;">
     <button type='button' onclick='window.location.href="/order/new/step1"' class="btn btn-ghost">← Takaisin</button>
     <button type='submit' class="btn btn-primary">Jatka →</button>
   </div>
 </form>
+
+<style>
+/* Keep date inputs compact and icons centered */
+.date-input-wrap { position: relative; display: grid; align-items: center; }
+.date-input { padding-left: 40px; height: 44px; line-height: 44px; box-sizing: border-box; -webkit-appearance: none; appearance: none; }
+.date-input:focus { outline: none; }
+.calendar-icon-svg { pointer-events: none; transition: transform 120ms ease-out; }
+/* Move native date picker icon to the left visually (keep it clickable) */
+.date-input::-webkit-calendar-picker-indicator {
+  position: absolute;
+  left: 0;
+  right: auto;
+  width: 44px;
+  height: 44px;
+  opacity: 0; /* hide default icon */
+  cursor: pointer;
+}
+</style>
 
 <script>
 /* ===== Google Places Autocomplete for Wizard Step 2 ===== */
@@ -612,13 +682,13 @@ const step2Autocomplete = new WizardGooglePlacesAutocomplete(
     const pickupDate = pickupDateStep2.value;
     
     if (pickupDate) {
+      // Same day allowed: min = pickupDate (no +1)
       const minDeliveryDate = new Date(pickupDate);
-      minDeliveryDate.setDate(minDeliveryDate.getDate() + 1);
       lastDeliveryDateStep2.min = minDeliveryDate.toISOString().split('T')[0];
       
-      // Auto-adjust if last delivery is before pickup
+      // Auto-adjust only if last delivery is before pickup (same day allowed)
       const lastDeliveryValue = lastDeliveryDateStep2.value;
-      if (lastDeliveryValue && lastDeliveryValue <= pickupDate) {
+      if (lastDeliveryValue && lastDeliveryValue < pickupDate) {
         lastDeliveryDateStep2.value = lastDeliveryDateStep2.min;
       }
     }
@@ -951,13 +1021,29 @@ def order_confirm():
     error_msg = session.pop("error_message", None)
     error_html = f"<div class='alert alert-error' style='margin-bottom: 1rem; padding: 1rem; background: #fee; border: 1px solid #fcc; border-radius: 4px; color: #c00;'>{error_msg}</div>" if error_msg else ""
 
+    # Format dates for display under addresses
+    def _fmt_date(s: str):
+        try:
+            if not s:
+                return None
+            dt = datetime.datetime.strptime(s, "%Y-%m-%d")
+            return dt.strftime("%d.%m.%Y")
+        except Exception:
+            return s
+
+    pickup_date_str = _fmt_date(d.get("pickup_date"))
+    last_delivery_date_str = _fmt_date(d.get("last_delivery_date"))
+
+    pickup_date_html = f"<p class='confirmation-meta'>Toivottu noutopäivä: {pickup_date_str}</p>" if pickup_date_str else ""
+    delivery_date_html = f"<p class='confirmation-meta'>Viimeinen toimituspäivä: {last_delivery_date_str}</p>" if last_delivery_date_str else ""
+
     inner = f"""
 <h2 class='card-title'>Vahvista tilaus</h2>
 {error_html}
 <div class='confirmation-layout'>
   <div class='confirmation-grid'>
-    <div class='confirmation-card'><h3 class='confirmation-title'>Nouto</h3><p class='confirmation-text'>{d.get('pickup')}</p><p class='confirmation-meta'>{d.get('pickup_date') or 'Heti'}</p></div>
-    <div class='confirmation-card'><h3 class='confirmation-title'>Toimitus</h3><p class='confirmation-text'>{d.get('dropoff')}</p><p class='confirmation-meta'>{d.get('last_delivery_date') or '-'}</p></div>
+    <div class='confirmation-card'><h3 class='confirmation-title'>Nouto</h3><p class='confirmation-text'>{d.get('pickup')}</p>{pickup_date_html}</div>
+    <div class='confirmation-card'><h3 class='confirmation-title'>Toimitus</h3><p class='confirmation-text'>{d.get('dropoff')}</p>{delivery_date_html}</div>
     <div class='confirmation-card'><h3 class='confirmation-title'>Ajoneuvo</h3><p class='confirmation-text'>Rekisteri: {d.get('reg_number')}</p><p class='confirmation-meta'>Talvirenkaat: {"Kyllä" if d.get('winter_tires') else "Ei"}</p></div>
     <div class='confirmation-card'><h3 class='confirmation-title'>Tilaajan tiedot</h3><p class='confirmation-text'>{d.get('orderer_name')}</p><p class='confirmation-meta'>{d.get('orderer_email')} / {d.get('orderer_phone')}</p></div>
     <div class='confirmation-card'><h3 class='confirmation-title'>Asiakkaan tiedot</h3><p class='confirmation-text'>{d.get('customer_name')}</p><p class='confirmation-meta'>{d.get('customer_phone')}</p></div>

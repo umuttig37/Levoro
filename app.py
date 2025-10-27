@@ -894,6 +894,84 @@ def api_quote():
     return jsonify({"net": net, "vat": vat, "gross": gross})
 
 
+# ----------------- SAVED ADDRESSES (server-side persistence) -----------------
+def _get_user_required():
+    u = current_user()
+    if not u:
+        abort(401)
+    return u
+
+@app.get("/api/saved_addresses")
+def api_saved_addresses_list():
+    u = _get_user_required()
+    user_doc = users_col().find_one({"id": int(u["id"])}, {"_id": 0, "saved_addresses": 1}) or {}
+    addrs = user_doc.get("saved_addresses") or []
+    # Normalize
+    for a in addrs:
+        a["id"] = str(a.get("id"))
+        a["displayName"] = a.get("displayName") or a.get("name") or ""
+        a["fullAddress"] = a.get("fullAddress") or a.get("address") or ""
+    return jsonify({"items": addrs})
+
+@app.post("/api/saved_addresses")
+def api_saved_addresses_create():
+    u = _get_user_required()
+    data = request.get_json(force=True, silent=True) or {}
+    display = (data.get("displayName") or "").strip()
+    full = (data.get("fullAddress") or "").strip()
+    if not display or not full:
+        return jsonify({"error": "displayName and fullAddress required"}), 400
+
+    import uuid, datetime as _dt
+    item = {
+        "id": str(uuid.uuid4()),
+        "displayName": display,
+        "fullAddress": full,
+        "created_at": _dt.datetime.now(_dt.timezone.utc).isoformat()
+    }
+
+    # Upsert array on user
+    doc = users_col().find_one({"id": int(u["id"])}, {"_id": 0, "saved_addresses": 1}) or {}
+    arr = list(doc.get("saved_addresses") or [])
+    arr.append(item)
+    users_col().update_one({"id": int(u["id"])}, {"$set": {"saved_addresses": arr}})
+    return jsonify({"item": item})
+
+@app.put("/api/saved_addresses/<addr_id>")
+def api_saved_addresses_update(addr_id: str):
+    u = _get_user_required()
+    data = request.get_json(force=True, silent=True) or {}
+    display = (data.get("displayName") or "").strip()
+    full = (data.get("fullAddress") or "").strip()
+    if not display or not full:
+        return jsonify({"error": "displayName and fullAddress required"}), 400
+
+    doc = users_col().find_one({"id": int(u["id"])}, {"_id": 0, "saved_addresses": 1}) or {}
+    arr = list(doc.get("saved_addresses") or [])
+    found = False
+    for a in arr:
+        if str(a.get("id")) == str(addr_id):
+            a["displayName"] = display
+            a["fullAddress"] = full
+            found = True
+            break
+    if not found:
+        return jsonify({"error": "not found"}), 404
+    users_col().update_one({"id": int(u["id"])}, {"$set": {"saved_addresses": arr}})
+    return jsonify({"item": next(a for a in arr if str(a.get("id")) == str(addr_id))})
+
+@app.delete("/api/saved_addresses/<addr_id>")
+def api_saved_addresses_delete(addr_id: str):
+    u = _get_user_required()
+    doc = users_col().find_one({"id": int(u["id"])}, {"_id": 0, "saved_addresses": 1}) or {}
+    arr = list(doc.get("saved_addresses") or [])
+    new_arr = [a for a in arr if str(a.get("id")) != str(addr_id)]
+    if len(new_arr) == len(arr):
+        return jsonify({"error": "not found"}), 404
+    users_col().update_one({"id": int(u["id"])}, {"$set": {"saved_addresses": new_arr}})
+    return jsonify({"ok": True})
+
+
 # ----------------- DRIVER APPLICATION ROUTES -----------------
 
 @app.get("/hae-kuljettajaksi")
