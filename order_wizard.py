@@ -184,6 +184,12 @@ def order_step1():
 .ac-item.saved-address { padding: 0.75rem !important; border-left: 3px solid var(--color-primary, #2563eb); background: #f8fafc; }
 .ac-item.saved-address:hover { background: #eef2ff; }
 .menu-item:hover { background: #f3f4f6; }
+/* Autocomplete dropdown: ensure clickability and on-top rendering */
+.autocomplete { position: relative; }
+.ac-list { position: absolute; top: 100%; left: 0; right: 0; z-index: 9999; background: #ffffff; border: 1px solid #e5e7eb; border-radius: 8px; box-shadow: 0 8px 16px rgba(0,0,0,0.06); }
+.ac-item { padding: 10px 12px; cursor: pointer; }
+.ac-item.active { background: #eef2ff; }
+.ac-empty, .ac-error { padding: 10px 12px; }
 @media (max-width: 640px) {
   .date-grid { grid-template-columns: 1fr !important; }
 }
@@ -212,8 +218,9 @@ class WizardGooglePlacesAutocomplete {
 
     input.addEventListener('input', ()=> this.onInput());
     input.addEventListener('focus', ()=> this.onFocus());
-    input.addEventListener('keydown', (e)=> this.onKey(e));
-    document.addEventListener('click', (e)=>{ if(!this.list.contains(e.target) && e.target!==this.input){ this.hide() }});
+  input.addEventListener('keydown', (e)=> this.onKey(e));
+  // Use closest to avoid accidental hides and ensure clicks inside list work
+  document.addEventListener('mousedown', (e)=>{ if(!e.target.closest || !e.target.closest('#'+this.list.id)) { if(e.target!==this.input) this.hide(); } });
 
     // Initialize Google Maps API when available
     this.initGoogleMaps();
@@ -395,7 +402,8 @@ class WizardGooglePlacesAutocomplete {
     this.show();
 
     Array.from(this.list.querySelectorAll('.ac-item')).forEach(el=>{
-      el.onclick = ()=>{
+      el.onmousedown = (ev)=>{
+        ev.preventDefault(); // prevent input blur before we handle selection
         const type = el.getAttribute('data-type');
         if (type === 'saved') {
           const id = el.getAttribute('data-id');
