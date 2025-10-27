@@ -685,6 +685,20 @@ def order_step2():
     <div id="ac_to_step" class="ac-list"></div>
   </div>
   
+  <!-- Saved Addresses Section (Step 2) -->
+  <div style="margin-top: 16px; padding: 1rem; border: 1px solid #e5e7eb; border-radius: 8px; background: #fafafa;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+      <h3 style="margin: 0; font-size: 1rem; font-weight: 600; color: #374151;">Tallennetut osoitteet</h3>
+      <button type="button" onclick="openAddressModal()" class="btn btn-primary btn-sm" style="font-size: 0.875rem;">+ Lisää uusi osoite</button>
+    </div>
+
+    <button id="toggleAddresses" type="button" onclick="toggleSavedAddresses()" class="btn btn-ghost btn-sm" style="width: 100%; margin-bottom: 0.75rem;">Näytä tallennetut osoitteet</button>
+
+    <div id="savedAddressesList" style="display: none;">
+      <div id="addressesContainer" style="max-height: 260px; overflow-y: auto;"></div>
+    </div>
+  </div>
+  
   <div style="margin-top: 12px;">
     <label for="last_delivery_date_step2">Viimeinen toimituspäivä</label>
     <div class="date-input-wrap" style="position: relative;">
@@ -720,6 +734,15 @@ def order_step2():
   opacity: 0; /* hide default icon */
   cursor: pointer;
 }
+/* Saved addresses styling and autocomplete dropdown */
+.ac-item.saved-address { padding: 0.75rem !important; border-left: 3px solid var(--color-primary, #2563eb); background: #f8fafc; }
+.ac-item.saved-address:hover { background: #eef2ff; }
+.menu-item:hover { background: #f3f4f6; }
+.autocomplete { position: relative; }
+.ac-list { position: absolute; top: 100%; left: 0; right: 0; z-index: 9999; background: #ffffff; border: 1px solid #e5e7eb; border-radius: 8px; box-shadow: 0 8px 16px rgba(0,0,0,0.06); }
+.ac-item { padding: 10px 12px; cursor: pointer; }
+.ac-item.active { background: #eef2ff; }
+.ac-empty, .ac-error { padding: 10px 12px; }
 </style>
 
 <script>
@@ -742,14 +765,34 @@ class WizardGooglePlacesAutocomplete {
     input.setAttribute('spellcheck','false');
 
     input.addEventListener('input', ()=> this.onInput());
+    input.addEventListener('focus', ()=> this.onFocus());
     input.addEventListener('keydown', (e)=> this.onKey(e));
-    document.addEventListener('click', (e)=>{ if(!this.list.contains(e.target) && e.target!==this.input){ this.hide() }});
+    document.addEventListener('mousedown', (e)=>{ if(!e.target.closest || !e.target.closest('#'+this.list.id)) { if(e.target!==this.input) this.hide(); } });
+    this.list.addEventListener('mousedown', (e)=>{
+      const el = e.target.closest ? e.target.closest('.ac-item') : null;
+      if (!el) return;
+      e.preventDefault();
+      const type = el.getAttribute('data-type');
+      if (type === 'saved') {
+        const id = el.getAttribute('data-id');
+        this.pickSaved(id);
+      } else {
+        const idxAttr = el.getAttribute('data-i');
+        const i = idxAttr ? +idxAttr : -1;
+        if (i >= 0) this.pick(i);
+      }
+    });
+  }
+
+  onFocus(){
+    const q = this.input.value.trim();
+    if (!q) { this.showSavedAddresses(); }
   }
 
   onInput(){
     clearTimeout(this.timer);
     const q = this.input.value.trim();
-    if(!q){ this.hide(); this.list.innerHTML=''; return; }
+    if(!q){ this.showSavedAddresses(); return; }
 
     // Check cache first
     const cacheKey = q.toLowerCase();
@@ -837,23 +880,64 @@ class WizardGooglePlacesAutocomplete {
   }
 
   render(){
-    if(!this.items.length){
+    const q = this.input.value.trim().toLowerCase();
+    let html = '';
+
+    // Saved addresses filtered by query
+    let filteredSaved = [];
+    if (q && window.savedAddresses) {
+      filteredSaved = window.savedAddresses.filter(a =>
+        a.displayName?.toLowerCase().includes(q) || a.fullAddress?.toLowerCase().includes(q)
+      ).slice(0,5);
+    }
+
+    if (filteredSaved.length > 0) {
+      html += '<div style="padding: 0.5rem; font-weight: 600; font-size: 0.875rem; color: #666; border-bottom: 1px solid #e5e7eb;">Tallennetut osoitteet</div>';
+      html += filteredSaved.map(a =>
+        `<div class="ac-item saved-address" data-type="saved" data-id="${a.id}">\
+           <div style=\"font-weight:600; color:#111827;\">${a.displayName}</div>\
+           <div style=\"font-size:0.875rem; color:#6b7280;\">${a.fullAddress}</div>\
+         </div>`
+      ).join('');
+    }
+
+    if (this.items.length > 0) {
+      if (filteredSaved.length > 0) {
+        html += '<div style="padding: 0.5rem; font-weight: 600; font-size: 0.875rem; color: #666; border-bottom: 1px solid #e5e7eb; margin-top: 0.5rem;">Karttahaku</div>';
+      }
+      html += this.items.slice(0,8).map((item,i)=>`<div class=\"ac-item\" data-type=\"map\" data-i=\"${i}\">${item.description}</div>`).join('');
+    }
+
+    if (!html) {
       this.list.innerHTML = '<div class="ac-empty">Ei ehdotuksia</div>';
       this.show();
       return;
     }
 
-    this.list.innerHTML = this.items.slice(0, 8).map((item, i) =>
-      `<div class="ac-item" data-i="${i}">${item.description}</div>`
-    ).join('');
+    this.list.innerHTML = html;
     this.show();
-
-    Array.from(this.list.children).forEach(el=>{
-      if (el.classList.contains('ac-item')) {
-        el.onclick = ()=> this.pick(+el.getAttribute('data-i'));
-      }
-    });
     this.activeIndex = -1;
+  }
+
+  showSavedAddresses(){
+    if (!window.savedAddresses || window.savedAddresses.length === 0) return;
+    let html = '<div style="padding: 0.5rem; font-weight: 600; font-size: 0.875rem; color: #666; border-bottom: 1px solid #e5e7eb;">Tallennetut osoitteet</div>';
+    html += window.savedAddresses.slice(0,8).map(a=>
+      `<div class="ac-item saved-address" data-type="saved" data-id="${a.id}">\
+         <div style=\"font-weight:600; color:#111827;\">${a.displayName}</div>\
+         <div style=\"font-size:0.875rem; color:#6b7280;\">${a.fullAddress}</div>\
+       </div>`
+    ).join('');
+    this.list.innerHTML = html;
+    this.show();
+  }
+
+  pickSaved(id){
+    const addr = (window.savedAddresses||[]).find(a=>String(a.id)===String(id));
+    if (!addr) return;
+    this.input.value = addr.fullAddress;
+    this.hide();
+    this.input.dispatchEvent(new Event('change'));
   }
 
   onKey(e){
@@ -882,11 +966,43 @@ class WizardGooglePlacesAutocomplete {
   hide(){ this.list.style.display='none'; }
 }
 
-/* Initialize autocomplete for Step 2 */
+/* ===== Saved Addresses (Step 2 page) ===== */
+const STORAGE_KEY = 'levoro.savedAddresses.v1';
+const LEGACY_STORAGE_KEY = 'savedAddresses';
+const COOKIE_KEY = 'levoro_saved_addresses';
+window.savedAddresses = [];
+
+async function apiCall(url, options={}){ const res=await fetch(url, options); let data=null; try{ data=await res.json(); }catch{} if(!res.ok) throw new Error((data&&(data.error||data.message))||('HTTP '+res.status)); return data; }
+async function fetchServerAddresses(){ const d=await apiCall('/api/saved_addresses',{method:'GET'}); return Array.isArray(d.items)?d.items:[]; }
+async function createServerAddress(displayName, fullAddress){ const d=await apiCall('/api/saved_addresses',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({displayName, fullAddress})}); return d.item; }
+async function deleteServerAddress(id){ await apiCall(`/api/saved_addresses/${encodeURIComponent(id)}`, { method:'DELETE' }); }
+function setCookie(name, value, days){ try{ const d=new Date(); d.setTime(d.getTime()+days*864e5); document.cookie=name+'='+value+';expires='+d.toUTCString()+';path=/;SameSite=Lax'; }catch(e){} }
+function getCookie(name){ try{ const cname=name+'='; return document.cookie.split(';').map(s=>s.trim()).find(c=>c.indexOf(cname)===0)?.substring(cname.length)||''; }catch(e){return '';} }
+function quickLocalLoad(){ let arr=[]; try{ const v1=localStorage.getItem(STORAGE_KEY); if(v1){ const p=JSON.parse(v1); if(Array.isArray(p)&&p.length) arr=p; } }catch(e){} if(!arr.length){ try{ const legacy=localStorage.getItem(LEGACY_STORAGE_KEY); if(legacy){ const p=JSON.parse(legacy); if(Array.isArray(p)&&p.length){ arr=p; localStorage.setItem(STORAGE_KEY, JSON.stringify(arr)); } } }catch(e){} } if(!arr.length){ try{ const cv=getCookie(COOKIE_KEY); if(cv){ const p=JSON.parse(decodeURIComponent(cv)); if(Array.isArray(p)&&p.length) arr=p; } }catch(e){} } return arr.filter(x=>x&&typeof x==='object'&&typeof x.displayName==='string'&&typeof x.fullAddress==='string'); }
+function saveToStorage(){ try{ const payload=JSON.stringify(window.savedAddresses||[]); try{ localStorage.setItem(STORAGE_KEY, payload); localStorage.setItem(LEGACY_STORAGE_KEY, payload);}catch(e){} try{ setCookie(COOKIE_KEY, encodeURIComponent(payload), 90);}catch(e){} }catch(e){} }
+function renderAddresses(){ const container=document.getElementById('addressesContainer'); if(!container) return; const list=window.savedAddresses||[]; if(!list.length){ container.innerHTML='<p style="color:#9ca3af; padding: 0.5rem; text-align:center; font-size:0.875rem;">Ei vielä tallennettuja osoitteita.</p>'; return;} container.innerHTML=list.map((a,i)=>`\
+    <div style="padding: 0.75rem; border:1px solid #e5e7eb; border-radius:6px; margin-bottom:0.5rem; background:white; display:flex; justify-content:space-between; align-items:start;">\
+      <div style="flex:1; cursor:pointer;" onclick="useAddress('${a.id}')">\
+        <div style="font-weight:600; color:#111827; margin-bottom:0.25rem;">${a.displayName}</div>\
+        <div style="font-size:0.875rem; color:#6b7280;">${a.fullAddress}</div>\
+      </div>\
+      <button type="button" onclick="deleteAddressDirectly(${i})" class="btn btn-ghost" title="Poista">×</button>\
+    </div>`).join(''); }
+function toggleSavedAddresses(){ const list=document.getElementById('savedAddressesList'); const btn=document.getElementById('toggleAddresses'); if(!list||!btn) return; const show=list.style.display!=='block'; list.style.display=show?'block':'none'; btn.textContent=show?'Piilota tallennetut osoitteet':'Näytä tallennetut osoitteet'; }
+function useAddress(id){ const a=(window.savedAddresses||[]).find(x=>String(x.id)===String(id)); if(!a) return; const inp=document.getElementById('to_step'); if(inp){ inp.value=a.fullAddress; inp.dispatchEvent(new Event('change')); } }
+async function deleteAddressDirectly(index){ const item=(window.savedAddresses||[])[index]; if(!item) return; try{ if(item.id) await deleteServerAddress(item.id);}catch(e){} window.savedAddresses.splice(index,1); saveToStorage(); renderAddresses(); }
+function openAddressModal(){ const html=`<div id=\"addressModal\" style=\"position:fixed; inset:0; background:rgba(0,0,0,0.5); display:flex; align-items:center; justify-content:center; z-index:9999;\"><div style=\"background:white; padding:1.25rem; border-radius:12px; width:90%; max-width:480px;\"><h3 style=\"margin:0 0 1rem 0; font-size:1.1rem; font-weight:600;\">Lisää uusi osoite</h3><div style=\"margin-bottom:0.75rem;\"><label style=\"display:block; margin-bottom:0.25rem;\">Nimi *</label><input id=\"addrName\" class=\"form-input\" placeholder=\"Esim. Koti, Toimisto\" style=\"width:100%;\"></div><div style=\"margin-bottom:1rem;\"><label style=\"display:block; margin-bottom:0.25rem;\">Osoite *</label><input id=\"addrFull\" class=\"form-input\" placeholder=\"Esim. Mannerheimintie 1, Helsinki\" style=\"width:100%;\"></div><div style=\"display:flex; gap:0.5rem; justify-content:flex-end;\"><button type=\"button\" class=\"btn btn-ghost\" onclick=\"closeAddressModal()\">Peruuta</button><button type=\"button\" class=\"btn btn-primary\" onclick=\"saveAddress()\">Tallenna</button></div></div></div>`; document.body.insertAdjacentHTML('beforeend', html); document.getElementById('addrName').focus(); }
+function closeAddressModal(){ const m=document.getElementById('addressModal'); if(m) m.remove(); }
+async function saveAddress(){ const name=document.getElementById('addrName').value.trim(); const addr=document.getElementById('addrFull').value.trim(); if(!name||!addr){ alert('Täytä molemmat kentät'); return;} let created=null; try{ created=await createServerAddress(name, addr);}catch(e){} const item=created||{ id: Date.now(), displayName:name, fullAddress:addr }; window.savedAddresses.push(item); saveToStorage(); renderAddresses(); closeAddressModal(); }
+async function loadSavedAddresses(){ try{ window.savedAddresses=quickLocalLoad(); renderAddresses(); }catch(e){} try{ const server=await fetchServerAddresses(); if(Array.isArray(server)){ window.savedAddresses=server; saveToStorage(); renderAddresses(); } }catch(e){} }
+
+/* Initialize saved addresses + autocomplete for Step 2 */
+loadSavedAddresses();
 const step2Autocomplete = new WizardGooglePlacesAutocomplete(
   document.getElementById('to_step'),
   document.getElementById('ac_to_step')
 );
+window.toAutocomplete = step2Autocomplete;
 
 /* Date validation for Step 2 */
 (function() {
