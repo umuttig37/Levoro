@@ -103,6 +103,8 @@ def order_step1():
 
         d = session.get("order_draft", {})
         pickup_val = (d.get("pickup", "") or "").replace('"', '&quot;')
+        pickup_date_val = d.get('pickup_date', '')
+        last_delivery_date_val = d.get('last_delivery_date', '')
 
         # Check for error message and display it
         error_msg = session.pop("error_message", None)
@@ -122,37 +124,37 @@ def order_step1():
     <div class="date-field">
       <label for="pickup_date">Toivottu noutopäivä</label>
       <div class="date-input-wrap" style="position: relative;">
-        <svg class="calendar-icon-svg" width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); z-index: 1;">
+        <svg class="calendar-icon-svg" width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="position: absolute; left: 12px; top: 12px; z-index: 1;"> 
           <rect x="3" y="4" width="18" height="18" rx="2" stroke="#64748b" stroke-width="2"/>
           <line x1="8" y1="2.5" x2="8" y2="6" stroke="#64748b" stroke-width="2"/>
           <line x1="16" y1="2.5" x2="16" y2="6" stroke="#64748b" stroke-width="2"/>
           <line x1="3" y1="10" x2="21" y2="10" stroke="#64748b" stroke-width="2"/>
         </svg>
-        <input type="date" name="pickup_date" id="pickup_date" required class="form-input date-input" style="padding-left: 40px; height: 44px; font-size: 0.95rem; width: 100%;">
+        <input type="date" name="pickup_date" id="pickup_date" required class="form-input date-input" style="padding-left: 40px; height: 44px; font-size: 0.95rem; width: 100%;" value="__PICKUP_DATE_VAL__">
       </div>
     </div>
     <div class="date-field">
       <label for="last_delivery_date">Viimeinen toimituspäivä</label>
       <div class="date-input-wrap" style="position: relative;">
-        <svg class="calendar-icon-svg" width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); z-index: 1;">
+        <svg class="calendar-icon-svg" width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="position: absolute; left: 12px; top: 12px; z-index: 1;"> 
           <rect x="3" y="4" width="18" height="18" rx="2" stroke="#64748b" stroke-width="2"/>
           <line x1="8" y1="2.5" x2="8" y2="6" stroke="#64748b" stroke-width="2"/>
           <line x1="16" y1="2.5" x2="16" y2="6" stroke="#64748b" stroke-width="2"/>
           <line x1="3" y1="10" x2="21" y2="10" stroke="#64748b" stroke-width="2"/>
         </svg>
-        <input type="date" name="last_delivery_date" id="last_delivery_date" class="form-input date-input" style="padding-left: 40px; height: 44px; font-size: 0.95rem; width: 100%;">
+        <input type="date" name="last_delivery_date" id="last_delivery_date" class="form-input date-input" style="padding-left: 40px; height: 44px; font-size: 0.95rem; width: 100%;" value="__LAST_DELIVERY_DATE_VAL__">
       </div>
     </div>
   </div>
 
   <!-- Saved Addresses Section -->
-  <div style="margin-top: 16px; padding: 1rem; border: 1px solid #e5e7eb; border-radius: 8px; background: #fafafa;">
+  <div style="margin-top: 10px; padding: 1rem; border: 1px solid #e5e7eb; border-radius: 8px; background: #fafafa;">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
-      <h3 style="margin: 0; font-size: 1rem; font-weight: 600; color: #374151;">Tallennetut osoitteet</h3>
-      <button type="button" onclick="openAddressModal()" class="btn btn-primary btn-sm" style="font-size: 0.875rem;">+ Lisää uusi osoite</button>
+      <h3 style="margin: 0; font-size: 1rem; font-weight: 450; color: #374151;">Tallennetut osoitteet</h3>
+      <button type="button" onclick="openAddressModal()" class="btn btn-primary btn-sm" style="font-size: 0.875rem; padding: 0.375rem 0.75rem;">+ Lisää uusi osoite</button>
     </div>
 
-    <button id="toggleAddresses" type="button" onclick="toggleSavedAddresses()" class="btn btn-ghost btn-sm" style="width: 100%; margin-bottom: 0.75rem;">Näytä tallennetut osoitteet</button>
+    <button id="toggleAddresses" type="button" onclick="toggleSavedAddresses()" class="btn btn-ghost btn-sm" style="width: 100%; margin-bottom: 0.75rem; padding: 0.375rem 0.75rem;">Näytä tallennetut osoitteet</button>
 
     <div id="savedAddressesList" style="display: none;">
       <div id="addressesContainer" style="max-height: 260px; overflow-y: auto;"></div>
@@ -514,11 +516,11 @@ function renderAddresses(){
   if (!list.length){ container.innerHTML = '<p style="color:#9ca3af; padding: 0.5rem; text-align:center; font-size:0.875rem;">Ei vielä tallennettuja osoitteita.</p>'; return; }
   container.innerHTML = list.map((a,i)=>`
     <div style="padding: 0.75rem; border:1px solid #e5e7eb; border-radius:6px; margin-bottom:0.5rem; background:white; display:flex; justify-content:space-between; align-items:start;">
-      <div style="flex:1; cursor:pointer;" onclick="useAddress('${a.id}')">
+      <div style="flex:1;">
         <div style="font-weight:600; color:#111827; margin-bottom:0.25rem;">${a.displayName}</div>
         <div style="font-size:0.875rem; color:#6b7280;">${a.fullAddress}</div>
       </div>
-      <button type="button" onclick="deleteAddressDirectly(${i})" class="btn btn-ghost" title="Poista">×</button>
+      <button type="button" onclick="deleteAddressDirectly(${i})" class="btn-delete-address" style="border: 2px solid #2563eb; background: white; cursor: pointer; padding: 0.25rem 0.5rem; font-size: 1.25rem; line-height: 1; color: #2563eb; transition: all 0.2s; border-radius: 6px; min-width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;" onmouseover="this.style.background='#2563eb'; this.style.color='white'" onmouseout="this.style.background='white'; this.style.color='#2563eb'" title="Poista">×</button>
     </div>`).join('');
 }
 
@@ -632,7 +634,7 @@ window.fromAutocomplete = step1Autocomplete;
 })();
 </script>
 """
-        inner = inner.replace("__PICKUP_VAL__", pickup_val)
+        inner = inner.replace("__PICKUP_VAL__", pickup_val).replace("__PICKUP_DATE_VAL__", pickup_date_val).replace("__LAST_DELIVERY_DATE_VAL__", last_delivery_date_val)
         return get_wrap()(wizard_shell(1, inner, session.get("order_draft", {})), u)
 
     # POST → talteen ja seuraavaan steppiin
@@ -661,9 +663,14 @@ def order_step2():
     if request.method == "POST":
         d = session.get("order_draft", {})
         d["dropoff"] = request.form.get("dropoff", "").strip()
-        d["last_delivery_date"] = request.form.get("last_delivery_date") or None
+        # Note: last_delivery_date is now handled in step 1, not step 2
         session["order_draft"] = d
-        return redirect("/order/new/step3")
+        
+        action = request.form.get("action")
+        if action == "back":
+            return redirect("/order/new/step1")
+        else:
+            return redirect("/order/new/step3")
 
     # GET → esitäyttö draftista
     d = session.get("order_draft", {})
@@ -686,35 +693,22 @@ def order_step2():
   </div>
   
   <!-- Saved Addresses Section (Step 2) -->
-  <div style="margin-top: 16px; padding: 1rem; border: 1px solid #e5e7eb; border-radius: 8px; background: #fafafa;">
+  <div style="margin-top: 10px; padding: 1rem; border: 1px solid #e5e7eb; border-radius: 8px; background: #fafafa;">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
-      <h3 style="margin: 0; font-size: 1rem; font-weight: 600; color: #374151;">Tallennetut osoitteet</h3>
-      <button type="button" onclick="openAddressModal()" class="btn btn-primary btn-sm" style="font-size: 0.875rem;">+ Lisää uusi osoite</button>
+      <h3 style="margin: 0; font-size: 1rem; font-weight: 450; color: #374151;">Tallennetut osoitteet</h3>
+      <button type="button" onclick="openAddressModal()" class="btn btn-primary btn-sm" style="font-size: 0.875rem; padding: 0.375rem 0.75rem;">+ Lisää uusi osoite</button>
     </div>
 
-    <button id="toggleAddresses" type="button" onclick="toggleSavedAddresses()" class="btn btn-ghost btn-sm" style="width: 100%; margin-bottom: 0.75rem;">Näytä tallennetut osoitteet</button>
+    <button id="toggleAddresses" type="button" onclick="toggleSavedAddresses()" class="btn btn-ghost btn-sm" style="width: 100%; margin-bottom: 0.75rem; padding: 0.375rem 0.75rem;">Näytä tallennetut osoitteet</button>
 
     <div id="savedAddressesList" style="display: none;">
       <div id="addressesContainer" style="max-height: 260px; overflow-y: auto;"></div>
     </div>
   </div>
   
-  <div style="margin-top: 12px;">
-    <label for="last_delivery_date_step2">Viimeinen toimituspäivä</label>
-    <div class="date-input-wrap" style="position: relative;">
-      <svg class="calendar-icon-svg" width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); z-index: 1;">
-        <rect x="3" y="4" width="18" height="18" rx="2" stroke="#64748b" stroke-width="2"/>
-        <line x1="8" y1="2.5" x2="8" y2="6" stroke="#64748b" stroke-width="2"/>
-        <line x1="16" y1="2.5" x2="16" y2="6" stroke="#64748b" stroke-width="2"/>
-        <line x1="3" y1="10" x2="21" y2="10" stroke="#64748b" stroke-width="2"/>
-      </svg>
-      <input type="date" name="last_delivery_date" id="last_delivery_date_step2" value="__LAST_DELIVERY_DATE_VAL__" class="form-input date-input" style="padding-left: 40px; height: 44px; font-size: 0.95rem; width: 100%;">
-    </div>
-  </div>
-  
   <div class='calculator-actions mt-2' style="margin-top: 16px;">
-    <button type='button' onclick='window.location.href="/order/new/step1"' class="btn btn-ghost">← Takaisin</button>
-    <button type='submit' class="btn btn-primary">Jatka →</button>
+    <button type='submit' name='action' value='back' class="btn btn-ghost">← Takaisin</button>
+    <button type='submit' name='action' value='continue' class="btn btn-primary">Jatka →</button>
   </div>
 </form>
 
@@ -1007,22 +1001,12 @@ window.toAutocomplete = step2Autocomplete;
 /* Date validation for Step 2 */
 (function() {
   const pickupDateStep2 = document.getElementById('pickup_date_step2');
-  const lastDeliveryDateStep2 = document.getElementById('last_delivery_date_step2');
   
-  if (pickupDateStep2 && lastDeliveryDateStep2) {
-    const pickupDate = pickupDateStep2.value;
-    
-    if (pickupDate) {
-      // Same day allowed: min = pickupDate (no +1)
-      const minDeliveryDate = new Date(pickupDate);
-      lastDeliveryDateStep2.min = minDeliveryDate.toISOString().split('T')[0];
-      
-      // Auto-adjust only if last delivery is before pickup (same day allowed)
-      const lastDeliveryValue = lastDeliveryDateStep2.value;
-      if (lastDeliveryValue && lastDeliveryValue < pickupDate) {
-        lastDeliveryDateStep2.value = lastDeliveryDateStep2.min;
-      }
-    }
+  // Note: last_delivery_date_step2 field was removed from step 2
+  // Date validation is now handled in step 1
+  if (pickupDateStep2) {
+    // Any pickup date validation can be added here if needed
+    console.log('Step 2 pickup date:', pickupDateStep2.value);
   }
 })();
 </script>
@@ -1048,7 +1032,12 @@ def order_step3():
         d["reg_number"] = request.form.get("reg_number","").strip()
         d["winter_tires"] = bool(request.form.get("winter_tires"))
         session["order_draft"] = d
-        return redirect("/order/new/step4")
+        
+        action = request.form.get("action")
+        if action == "back":
+            return redirect("/order/new/step2")
+        else:
+            return redirect("/order/new/step4")
     
     # GET - pre-fill form with existing values
     d = session.get("order_draft", {})
@@ -1074,8 +1063,8 @@ def order_step3():
   </div>
   
   <div class='calculator-actions'>
-    <button type='button' onclick='window.location.href="/order/new/step2"' class='btn btn-ghost'>← Takaisin</button>
-    <button type='submit' class='btn btn-primary'>Jatka →</button>
+    <button type='submit' name='action' value='back' class='btn btn-ghost'>← Takaisin</button>
+    <button type='submit' name='action' value='continue' class='btn btn-primary'>Jatka →</button>
   </div>
 </form>"""
     return get_wrap()(wizard_shell(3, inner, session.get("order_draft", {})), u)
@@ -1117,7 +1106,12 @@ def order_step4():
         # Legacy field for backward compatibility
         d["phone"] = d["customer_phone"]
         session["order_draft"] = d
-        return redirect("/order/new/step5")
+        
+        action = request.form.get("action")
+        if action == "back":
+            return redirect("/order/new/step3")
+        else:
+            return redirect("/order/new/step5")
 
     # Get form values from session for pre-filling
     d = session.get("order_draft", {})
@@ -1171,8 +1165,8 @@ def order_step4():
   </div>
 
   <div class='row calculator-actions'>
-    <button type='button' onclick='window.location.href="/order/new/step3"' class='btn btn-ghost'>← Takaisin</button>
-    <button type='submit' class='btn btn-primary'>Jatka →</button>
+    <button type='submit' name='action' value='back' class='btn btn-ghost'>← Takaisin</button>
+    <button type='submit' name='action' value='continue' class='btn btn-primary'>Jatka →</button>
   </div>
 </form>
 <script>
@@ -1227,15 +1221,25 @@ def order_step5():
         d = session.get("order_draft", {})
         d["additional_info"] = request.form.get("additional_info","").strip()
         session["order_draft"] = d
-        return redirect("/order/new/confirm")
-    inner = """
+        
+        action = request.form.get("action")
+        if action == "back":
+            return redirect("/order/new/step4")
+        else:
+            return redirect("/order/new/confirm")
+    
+    # GET - pre-fill form with existing values
+    d = session.get("order_draft", {})
+    additional_info_val = (d.get("additional_info", "") or "").replace('"', '&quot;')
+    
+    inner = f"""
 <h2 class='card-title'>Lisätiedot tai erityistoiveet</h2>
 <form method='POST' class='calculator-form'>
   <label class='form-label'>Kirjoita toiveet</label>
-  <textarea name='additional_info' rows='5' placeholder='Esim. Autossa on talvirenkaat mukana, toimitus kiireellinen' class='form-input'></textarea>
+  <textarea name='additional_info' rows='5' placeholder='Esim. Autossa on talvirenkaat mukana, toimitus kiireellinen' class='form-input'>{additional_info_val}</textarea>
   <div class='row calculator-actions'>
-    <button type='button' onclick='window.location.href="/order/new/step4"' class='btn btn-ghost'>← Takaisin</button>
-    <button type='submit' class='btn btn-primary'>Jatka →</button>
+    <button type='submit' name='action' value='back' class='btn btn-ghost'>← Takaisin</button>
+    <button type='submit' name='action' value='continue' class='btn btn-primary'>Jatka →</button>
   </div>
 </form>"""
     return get_wrap()(wizard_shell(5, inner, session.get("order_draft", {})), u)
