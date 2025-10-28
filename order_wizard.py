@@ -122,7 +122,7 @@ def order_step1():
     <div class="date-field">
       <label for="pickup_date">Toivottu noutopäivä</label>
       <div class="date-input-wrap" style="position: relative;">
-        <svg class="calendar-icon-svg" width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); z-index: 1;">
+        <svg class="calendar-icon-svg" width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="position: absolute; left: 12px; top: 12px ; z-index: 1;"> 
           <rect x="3" y="4" width="18" height="18" rx="2" stroke="#64748b" stroke-width="2"/>
           <line x1="8" y1="2.5" x2="8" y2="6" stroke="#64748b" stroke-width="2"/>
           <line x1="16" y1="2.5" x2="16" y2="6" stroke="#64748b" stroke-width="2"/>
@@ -134,7 +134,7 @@ def order_step1():
     <div class="date-field">
       <label for="last_delivery_date">Viimeinen toimituspäivä</label>
       <div class="date-input-wrap" style="position: relative;">
-        <svg class="calendar-icon-svg" width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); z-index: 1;">
+        <svg class="calendar-icon-svg" width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="position: absolute; left: 12px; top: 12px ; z-index: 1;"> 
           <rect x="3" y="4" width="18" height="18" rx="2" stroke="#64748b" stroke-width="2"/>
           <line x1="8" y1="2.5" x2="8" y2="6" stroke="#64748b" stroke-width="2"/>
           <line x1="16" y1="2.5" x2="16" y2="6" stroke="#64748b" stroke-width="2"/>
@@ -696,19 +696,6 @@ def order_step2():
 
     <div id="savedAddressesList" style="display: none;">
       <div id="addressesContainer" style="max-height: 260px; overflow-y: auto;"></div>
-    </div>
-  </div>
-  
-  <div style="margin-top: 12px;">
-    <label for="last_delivery_date_step2">Viimeinen toimituspäivä</label>
-    <div class="date-input-wrap" style="position: relative;">
-      <svg class="calendar-icon-svg" width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); z-index: 1;">
-        <rect x="3" y="4" width="18" height="18" rx="2" stroke="#64748b" stroke-width="2"/>
-        <line x1="8" y1="2.5" x2="8" y2="6" stroke="#64748b" stroke-width="2"/>
-        <line x1="16" y1="2.5" x2="16" y2="6" stroke="#64748b" stroke-width="2"/>
-        <line x1="3" y1="10" x2="21" y2="10" stroke="#64748b" stroke-width="2"/>
-      </svg>
-      <input type="date" name="last_delivery_date" id="last_delivery_date_step2" value="__LAST_DELIVERY_DATE_VAL__" class="form-input date-input" style="padding-left: 40px; height: 44px; font-size: 0.95rem; width: 100%;">
     </div>
   </div>
   
