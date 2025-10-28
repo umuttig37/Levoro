@@ -516,11 +516,11 @@ function renderAddresses(){
   if (!list.length){ container.innerHTML = '<p style="color:#9ca3af; padding: 0.5rem; text-align:center; font-size:0.875rem;">Ei vielä tallennettuja osoitteita.</p>'; return; }
   container.innerHTML = list.map((a,i)=>`
     <div style="padding: 0.75rem; border:1px solid #e5e7eb; border-radius:6px; margin-bottom:0.5rem; background:white; display:flex; justify-content:space-between; align-items:start;">
-      <div style="flex:1; cursor:pointer;" onclick="useAddress('${a.id}')">
+      <div style="flex:1;">
         <div style="font-weight:600; color:#111827; margin-bottom:0.25rem;">${a.displayName}</div>
         <div style="font-size:0.875rem; color:#6b7280;">${a.fullAddress}</div>
       </div>
-      <button type="button" onclick="deleteAddressDirectly(${i})" class="btn btn-ghost" title="Poista">×</button>
+      <button type="button" onclick="deleteAddressDirectly(${i})" class="btn-delete-address" style="border: 2px solid #2563eb; background: white; cursor: pointer; padding: 0.25rem 0.5rem; font-size: 1.25rem; line-height: 1; color: #2563eb; transition: all 0.2s; border-radius: 6px; min-width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;" onmouseover="this.style.background='#2563eb'; this.style.color='white'" onmouseout="this.style.background='white'; this.style.color='#2563eb'" title="Poista">×</button>
     </div>`).join('');
 }
 

@@ -914,11 +914,11 @@ function renderAddresses() {
     html += `
       <div style="padding: 0.75rem; border: 1px solid #e0e0e0; border-radius: 6px; margin-bottom: 0.5rem; background: white; position: relative;">
         <div style="display: flex; justify-content: space-between; align-items: start;">
-          <div style="flex: 1; cursor: pointer;" onclick="editAddress(${index})">
+          <div style="flex: 1;">
             <div style="font-weight: 600; color: #333; margin-bottom: 0.25rem;">${addr.displayName}</div>
             <div style="font-size: 0.875rem; color: #666;">${addr.fullAddress}</div>
           </div>
-          <button onclick="deleteAddressDirectly(${index})" class="btn-delete-address" style="border: none; background: none; cursor: pointer; padding: 0.25rem 0.5rem; font-size: 1.25rem; line-height: 1; color: #999; transition: color 0.2s;" onmouseover="this.style.color='#dc2626'" onmouseout="this.style.color='#999'" title="Poista">×</button>
+          <button onclick="deleteAddressDirectly(${index})" class="btn-delete-address" style="border: 2px solid #2563eb; background: white; cursor: pointer; padding: 0.25rem 0.5rem; font-size: 1.25rem; line-height: 1; color: #2563eb; transition: all 0.2s; border-radius: 6px; min-width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;" onmouseover="this.style.background='#2563eb'; this.style.color='white'" onmouseout="this.style.background='white'; this.style.color='#2563eb'" title="Poista">×</button>
         </div>
       </div>
     `;
