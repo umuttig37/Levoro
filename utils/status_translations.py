@@ -5,7 +5,7 @@ Centralized status translations for orders
 
 # Status translations (English to Finnish) - Friendly text for emails
 STATUS_TRANSLATIONS = {
-    'NEW': 'Uusi tilaus',
+    'NEW': 'Uusi',
     'CONFIRMED': 'Tilaus vahvistettu',
     'ASSIGNED_TO_DRIVER': 'Noudossa',
     'DRIVER_ARRIVED': 'Kuljettaja saapunut',
