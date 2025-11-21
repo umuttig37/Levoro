@@ -122,7 +122,7 @@ def order_step1():
 
   <div class="date-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 12px;">
     <div class="date-field">
-      <label for="pickup_date">Toivottu noutopäivä</label>
+      <label for="pickup_date">Viimeinen noutopäivä</label>
       <div class="date-input-wrap" style="position: relative;">
         <svg class="calendar-icon-svg" width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="position: absolute; left: 12px; top: 12px; z-index: 1;"> 
           <rect x="3" y="4" width="18" height="18" rx="2" stroke="#64748b" stroke-width="2"/>
@@ -1369,7 +1369,7 @@ def order_confirm():
     pickup_date_str = _fmt_date(d.get("pickup_date"))
     last_delivery_date_str = _fmt_date(d.get("last_delivery_date"))
 
-    pickup_date_html = f"<p class='confirmation-meta'>Toivottu noutopäivä: {pickup_date_str}</p>" if pickup_date_str else ""
+    pickup_date_html = f"<p class='confirmation-meta'>Viimeinen noutopäivä: {pickup_date_str}</p>" if pickup_date_str else ""
     delivery_date_html = f"<p class='confirmation-meta'>Viimeinen toimituspäivä: {last_delivery_date_str}</p>" if last_delivery_date_str else ""
 
     inner = f"""
