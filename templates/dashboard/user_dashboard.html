@@ -12,7 +12,7 @@
     </div>
   </div>
 
-  <div style="max-width: 1200px; margin: 0 auto;">
+  <div class="user-dashboard-wrapper">
     <div class="user-orders-section">
       <div class="user-orders-header">
         <h2 class="user-orders-title">
@@ -21,7 +21,7 @@
         </h2>
       </div>
 
-      <div style="padding: var(--space-6);">
+      <div class="user-dashboard-inner">
         {% set current_tab = request.args.get('tab', 'active') %}
         <div class="tabs mb-4">
           <a href="/dashboard?tab=active"
@@ -80,7 +80,12 @@
             }.get(order.status, 'pending') %}
 
             <tr>
-              <td class="user-orders-id">#{{ order.id }}</td>
+              <td class="user-orders-id">
+                #{{ order.id }}
+                {% if order.trip_type %}
+                  <span class="trip-type-badge trip-type-{{ order.trip_type.lower() }}">{{ order.trip_type }}</span>
+                {% endif %}
+              </td>
               <td class="user-orders-status">
                 <span class="user-status-badge {{ status_class }}">{{ status_fi }}</span>
               </td>
@@ -153,6 +158,9 @@
             <div class="order-card-id">
               {{ icons.clipboard(20, '#2563eb') }}
               <span>#{{ order.id }}</span>
+              {% if order.trip_type %}
+                <span class="trip-type-badge trip-type-{{ order.trip_type.lower() }}">{{ order.trip_type }}</span>
+              {% endif %}
             </div>
             <span class="user-status-badge {{ status_class }}" role="status" aria-label="Tilauksen tila">{{ status_fi
               }}</span>

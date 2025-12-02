@@ -42,6 +42,10 @@ class OrderModel(BaseModel):
         "price_vat": 0
     }
 
+    # Trip type constants for Paluu auto feature
+    TRIP_TYPE_OUTBOUND = "MENO"
+    TRIP_TYPE_RETURN = "PALUU"
+
     def create_order(self, user_id: int, order_data: Dict) -> Tuple[Optional[Dict], Optional[str]]:
         """Create a new order"""
         try:
@@ -65,6 +69,14 @@ class OrderModel(BaseModel):
             # Initialize driver_progress field (empty by default)
             if "driver_progress" not in order_doc:
                 order_doc["driver_progress"] = {}
+
+            # Initialize Paluu auto fields (defaults)
+            if "trip_type" not in order_doc:
+                order_doc["trip_type"] = None  # None for regular orders, MENO/PALUU for return trips
+            if "parent_order_id" not in order_doc:
+                order_doc["parent_order_id"] = None  # Only set for return orders
+            if "return_order_id" not in order_doc:
+                order_doc["return_order_id"] = None  # Only set for outbound orders with return
 
             self.insert_one(order_doc)
             return order_doc, None
@@ -125,6 +137,7 @@ class OrderModel(BaseModel):
                 "distance_km": 1, "price_gross": 1,
                 "created_at": 1, "updated_at": 1,
                 "images": 1,
+                "trip_type": 1, "parent_order_id": 1, "return_order_id": 1,
                 "user_name": "$user.name",
                 "user_email": "$user.email"
             }}
@@ -464,6 +477,7 @@ class OrderModel(BaseModel):
                 "images": 1,
                 "reg_number": 1, "winter_tires": 1,
                 "pickup_date": 1, "additional_info": 1,
+                "trip_type": 1, "parent_order_id": 1, "return_order_id": 1,
                 # Orderer (Tilaaja) fields - from order document
                 "orderer_name": 1,
                 "orderer_email": 1,

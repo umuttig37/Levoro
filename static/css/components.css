@@ -1081,6 +1081,30 @@ input[type="file"]::file-selector-button {
     box-shadow: var(--shadow-sm);
 }
 
+.admin-customer-phone {
+    font-size: 0.85em;
+    opacity: 0.7;
+}
+
+.admin-price-net {
+    font-size: 1.1em;
+}
+
+.admin-price-vat {
+    font-size: 0.85em;
+    opacity: 0.7;
+}
+
+.admin-table-actions {
+    text-align: center;
+}
+
+.admin-table-manage-btn {
+    display: inline-block;
+    padding: 0.5rem 1rem;
+    text-decoration: none;
+}
+
 /* Admin inline forms */
 .admin-inline-form {
     display: flex;
