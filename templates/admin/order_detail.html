@@ -13,7 +13,12 @@
     <div class="admin-order-detail">
         <!-- Header -->
         <div class="order-header">
-            <h2>Tilaus #{{ order.id }} - {{ status_fi }}</h2>
+            <h2>
+              Tilaus #{{ order.id }} - {{ status_fi }}
+              {% if order.trip_type %}
+                <span class="trip-type-badge trip-type-{{ order.trip_type.lower() }}">{{ order.trip_type }}</span>
+              {% endif %}
+            </h2>
             <a href="/admin" class="btn btn-secondary">Takaisin tilauksiin</a>
         </div>
 
@@ -252,8 +257,8 @@
                                         Vaihda tilauksen tila</h4>
                                     <p class="status-update-warning">Muutos lähettää ilmoituksen asiakkaalle.</p>
 
-                                    <label>Valitse tila:</label>
-                                    <select name="status" class="status-select">
+                                    <label for="order-status-select">Valitse tila:</label>
+                                    <select name="status" id="order-status-select" class="status-select">
                                         <option value="NEW" {% if order.status=='NEW' %}selected{% endif %}>Uusi
                                         </option>
                                         <option value="CONFIRMED" {% if order.status=='CONFIRMED' %}selected{% endif %}>

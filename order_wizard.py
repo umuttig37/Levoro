@@ -5,6 +5,7 @@ from flask import request, redirect, url_for, session
 from services.auth_service import auth_service
 from services.order_service import order_service
 from models.database import db_manager
+from models.order import order_model
 
 def validate_phone_number(phone):
     """Validate that phone number contains only digits, spaces, +, -, and ()"""
@@ -102,9 +103,24 @@ def order_step1():
             session["order_draft"] = d
 
         d = session.get("order_draft", {})
+
+        def _parse_iso_date(value):
+            try:
+                return datetime.datetime.strptime(value, "%Y-%m-%d").date()
+            except Exception:
+                return None
+
+        today = datetime.date.today()
+        default_pickup_date = today + datetime.timedelta(days=1)
+        pickup_date_obj = _parse_iso_date(d.get("pickup_date")) or default_pickup_date
+        pickup_date_val = pickup_date_obj.isoformat()
+
+        last_delivery_obj = _parse_iso_date(d.get("last_delivery_date")) or (pickup_date_obj + datetime.timedelta(days=1))
+        last_delivery_date_val = last_delivery_obj.isoformat()
+
         pickup_val = (d.get("pickup", "") or "").replace('"', '&quot;')
-        pickup_date_val = d.get('pickup_date', '')
-        last_delivery_date_val = d.get('last_delivery_date', '')
+        paluu_auto_checked = "checked" if d.get("paluu_auto") else ""
+        return_delivery_date_val = str(d.get('return_delivery_date') or '')
 
         # Check for error message and display it
         error_msg = session.pop("error_message", None)
@@ -147,17 +163,46 @@ def order_step1():
     </div>
   </div>
 
-  <!-- Saved Addresses Section -->
-  <div style="margin-top: 10px; padding: 1rem; border: 1px solid #e5e7eb; border-radius: 8px; background: #fafafa;">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
-      <h3 style="margin: 0; font-size: 1rem; font-weight: 450; color: #374151;">Tallennetut osoitteet</h3>
-      <button type="button" onclick="openAddressModal()" class="btn btn-primary btn-sm" style="font-size: 0.875rem; padding: 0.375rem 0.75rem;">+ Lisää uusi osoite</button>
+  <!-- Saved Addresses - Compact -->
+  <details class="saved-addresses-details" style="margin-top: 12px; padding: 0.5rem 0.75rem; border: 1px solid #e5e7eb; border-radius: 6px; background: #fafafa;">
+    <summary style="display: flex; align-items: center; justify-content: space-between; padding: 0.25rem 0; cursor: pointer; font-size: 0.85rem; color: #64748b; list-style: none;">
+      <span style="display: flex; align-items: center; gap: 6px;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+        Tallennetut osoitteet
+      </span>
+      <span style="display: flex; align-items: center; gap: 8px;">
+        <button type="button" onclick="event.stopPropagation(); openAddressModal();" class="btn-link" style="font-size: 0.8rem; color: #2563eb; background: none; border: none; cursor: pointer; padding: 0;">+ Lisää</button>
+        <svg class="chevron-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+      </span>
+    </summary>
+    <div id="savedAddressesList" style="padding: 0.5rem 0;">
+      <div id="addressesContainer" style="max-height: 180px; overflow-y: auto;"></div>
     </div>
+  </details>
 
-    <button id="toggleAddresses" type="button" onclick="toggleSavedAddresses()" class="btn btn-ghost btn-sm" style="width: 100%; margin-bottom: 0.75rem; padding: 0.375rem 0.75rem;">Näytä tallennetut osoitteet</button>
-
-    <div id="savedAddressesList" style="display: none;">
-      <div id="addressesContainer" style="max-height: 260px; overflow-y: auto;"></div>
+  <!-- Paluu auto -->
+  <div class='form-group' style="margin-top: 20px; padding: 14px 16px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px;">
+    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 6px;">
+      <label class='form-checkbox' style="margin: 0;">
+        <input type='checkbox' id='paluu_auto_checkbox' name='paluu_auto' value='1' __PALUU_AUTO_CHECKED__>
+        <span class='form-checkbox-label' style="font-weight: 600; font-size: 1.05rem; color: #1e293b; margin-left: 10px;">Paluu auto</span>
+      </label>
+      <span style="background: #f97316; color: white; font-weight: 600; font-size: 0.8rem; padding: 5px 12px; border-radius: 6px; white-space: nowrap;">-30% Alennus</span>
+    </div>
+    <p style="margin: 0; padding-left: 0; font-size: 0.875rem; color: #64748b; line-height: 1.5;">Säästä 30% paluukuljetuksesta</p>
+    <div id="return_delivery_date_section" style="margin-top: 16px; display: __RETURN_DATE_DISPLAY__;">
+      <div class="date-field">
+        <label for="return_delivery_date">Paluuauton viimeinen toimituspäivä *</label>
+        <div class="date-input-wrap" style="position: relative; max-width: 280px;">
+          <svg class="calendar-icon-svg" width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="position: absolute; left: 12px; top: 12px; z-index: 1;"> 
+            <rect x="3" y="4" width="18" height="18" rx="2" stroke="#64748b" stroke-width="2"/>
+            <line x1="8" y1="2.5" x2="8" y2="6" stroke="#64748b" stroke-width="2"/>
+            <line x1="16" y1="2.5" x2="16" y2="6" stroke="#64748b" stroke-width="2"/>
+            <line x1="3" y1="10" x2="21" y2="10" stroke="#64748b" stroke-width="2"/>
+          </svg>
+          <input type="date" name="return_delivery_date" id="return_delivery_date" class="form-input date-input" style="padding-left: 40px; height: 44px; font-size: 0.95rem; width: 100%;" value="__RETURN_DELIVERY_DATE_VAL__">
+        </div>
+      </div>
     </div>
   </div>
 
@@ -182,8 +227,12 @@ def order_step1():
   opacity: 0; /* hide default icon */
   cursor: pointer;
 }
-/* Saved addresses styling */
-.ac-item.saved-address { padding: 0.75rem !important; border-left: 3px solid var(--color-primary, #2563eb); background: #f8fafc; }
+/* Saved addresses compact styling */
+.saved-addresses-details summary::-webkit-details-marker { display: none; }
+.saved-addresses-details[open] .chevron-icon { transform: rotate(180deg); }
+.chevron-icon { transition: transform 0.2s ease; }
+.saved-addresses-details { border-bottom: 1px solid #e5e7eb; }
+.ac-item.saved-address { padding: 0.5rem 0.75rem !important; border-left: 2px solid #2563eb; background: #f8fafc; margin-bottom: 4px; border-radius: 4px; font-size: 0.9rem; }
 .ac-item.saved-address:hover { background: #eef2ff; }
 .menu-item:hover { background: #f3f4f6; }
 /* Autocomplete dropdown: ensure clickability and on-top rendering */
@@ -603,38 +652,133 @@ window.fromAutocomplete = step1Autocomplete;
 (function() {
   const pickupDateInput = document.getElementById('pickup_date');
   const lastDeliveryDateInput = document.getElementById('last_delivery_date');
-  
-  if (pickupDateInput && lastDeliveryDateInput) {
-    // Set minimum date for pickup to today
-    const today = new Date().toISOString().split('T')[0];
-    pickupDateInput.min = today;
-    
-    // Function to update last delivery date minimum (allow same-day delivery)
-    function updateLastDeliveryMin() {
-      const pickupDate = pickupDateInput.value;
-      if (pickupDate) {
-        // Same day allowed: min = pickupDate (no +1)
-        const minDeliveryDate = new Date(pickupDate);
-        lastDeliveryDateInput.min = minDeliveryDate.toISOString().split('T')[0];
-        
-        // Auto-adjust only if last delivery is before pickup (same day allowed)
+  const paluuAutoCheckbox = document.getElementById('paluu_auto_checkbox');
+  const returnDeliveryDateSection = document.getElementById('return_delivery_date_section');
+  const returnDeliveryDateInput = document.getElementById('return_delivery_date');
+  const returnPickupHint = document.getElementById('return_pickup_hint');
+  const returnPickupHintValue = document.getElementById('return_pickup_hint_value');
+
+  function formatISODate(dateObj) {
+    const year = dateObj.getFullYear();
+    const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+    const day = String(dateObj.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }
+
+  function parseISODate(value) {
+    if (!value || typeof value !== 'string') return null;
+    const parts = value.split('-');
+    if (parts.length !== 3) return null;
+    const year = Number(parts[0]);
+    const monthIndex = Number(parts[1]) - 1;
+    const day = Number(parts[2]);
+    const date = new Date(year, monthIndex, day);
+    return Number.isNaN(date.getTime()) ? null : date;
+  }
+
+  function addDaysToISO(value, days) {
+    const date = parseISODate(value);
+    if (!date) return null;
+    date.setDate(date.getDate() + days);
+    return formatISODate(date);
+  }
+
+  function formatFinnishDate(isoValue) {
+    const date = parseISODate(isoValue);
+    if (!date) return '';
+    return `${String(date.getDate()).padStart(2, '0')}.${String(date.getMonth() + 1).padStart(2, '0')}.${date.getFullYear()}`;
+  }
+
+  function ensurePickupDefault() {
+    if (!pickupDateInput) return;
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const tomorrowStr = formatISODate(tomorrow);
+    pickupDateInput.min = tomorrowStr;
+    if (!pickupDateInput.value || pickupDateInput.value < tomorrowStr) {
+      pickupDateInput.value = tomorrowStr;
+    }
+  }
+
+  function updateReturnPickupHint(pickupISO) {
+    if (!returnPickupHint || !returnPickupHintValue) return;
+    if (!pickupISO) {
+      returnPickupHint.style.display = 'none';
+      return;
+    }
+    returnPickupHintValue.textContent = formatFinnishDate(pickupISO);
+    returnPickupHint.style.display = 'block';
+  }
+
+  function updateReturnDeliveryMin() {
+    if (!paluuAutoCheckbox || !returnDeliveryDateInput || !lastDeliveryDateInput) return;
+    if (!paluuAutoCheckbox.checked) {
+      updateReturnPickupHint(null);
+      return;
+    }
+
+    const lastDeliveryDate = lastDeliveryDateInput.value;
+    if (lastDeliveryDate) {
+      returnDeliveryDateInput.min = lastDeliveryDate;
+      const returnDeliveryValue = returnDeliveryDateInput.value;
+      if (!returnDeliveryValue || returnDeliveryValue < lastDeliveryDate) {
+        returnDeliveryDateInput.value = lastDeliveryDate;
+      }
+      updateReturnPickupHint(lastDeliveryDate);
+    }
+  }
+
+  function toggleReturnDeliverySection() {
+    if (!paluuAutoCheckbox || !returnDeliveryDateSection || !returnDeliveryDateInput) return;
+    if (paluuAutoCheckbox.checked) {
+      returnDeliveryDateSection.style.display = 'block';
+      returnDeliveryDateInput.required = true;
+      updateReturnDeliveryMin();
+    } else {
+      returnDeliveryDateSection.style.display = 'none';
+      returnDeliveryDateInput.required = false;
+      returnDeliveryDateInput.value = '';
+      updateReturnPickupHint(null);
+    }
+  }
+
+  function updateLastDeliveryMin() {
+    if (!pickupDateInput || !lastDeliveryDateInput) return;
+    const pickupDate = pickupDateInput.value;
+    if (pickupDate) {
+      const minDeliveryDate = addDaysToISO(pickupDate, 1);
+      if (minDeliveryDate) {
+        lastDeliveryDateInput.min = minDeliveryDate;
         const lastDeliveryValue = lastDeliveryDateInput.value;
-        if (lastDeliveryValue && lastDeliveryValue < pickupDate) {
-          lastDeliveryDateInput.value = lastDeliveryDateInput.min;
+        if (!lastDeliveryValue || lastDeliveryValue < minDeliveryDate) {
+          lastDeliveryDateInput.value = minDeliveryDate;
         }
       }
     }
-    
-    // Update on pickup date change
+    updateReturnDeliveryMin();
+  }
+
+  if (pickupDateInput && lastDeliveryDateInput) {
+    ensurePickupDefault();
     pickupDateInput.addEventListener('change', updateLastDeliveryMin);
-    
-    // Initial update
+    pickupDateInput.addEventListener('input', updateLastDeliveryMin);
     updateLastDeliveryMin();
+  }
+
+  if (paluuAutoCheckbox && returnDeliveryDateSection && returnDeliveryDateInput) {
+    paluuAutoCheckbox.addEventListener('change', toggleReturnDeliverySection);
+    paluuAutoCheckbox.addEventListener('input', toggleReturnDeliverySection);
+    if (lastDeliveryDateInput) {
+      lastDeliveryDateInput.addEventListener('change', updateReturnDeliveryMin);
+      lastDeliveryDateInput.addEventListener('input', updateReturnDeliveryMin);
+    }
+    toggleReturnDeliverySection();
   }
 })();
 </script>
 """
-        inner = inner.replace("__PICKUP_VAL__", pickup_val).replace("__PICKUP_DATE_VAL__", pickup_date_val).replace("__LAST_DELIVERY_DATE_VAL__", last_delivery_date_val)
+        return_date_display = "block" if d.get("paluu_auto") else "none"
+        inner = inner.replace("__PICKUP_VAL__", pickup_val).replace("__PICKUP_DATE_VAL__", pickup_date_val).replace("__LAST_DELIVERY_DATE_VAL__", last_delivery_date_val).replace("__PALUU_AUTO_CHECKED__", paluu_auto_checked).replace("__RETURN_DELIVERY_DATE_VAL__", return_delivery_date_val).replace("__RETURN_DATE_DISPLAY__", return_date_display)
         return get_wrap()(wizard_shell(1, inner, session.get("order_draft", {})), u)
 
     # POST → talteen ja seuraavaan steppiin
@@ -642,6 +786,8 @@ window.fromAutocomplete = step1Autocomplete;
     d["pickup"] = request.form.get("pickup", "").strip()
     d["pickup_date"] = request.form.get("pickup_date", "").strip()
     d["last_delivery_date"] = request.form.get("last_delivery_date") or None
+    d["paluu_auto"] = bool(request.form.get("paluu_auto"))
+    d["return_delivery_date"] = request.form.get("return_delivery_date") or None if d["paluu_auto"] else None
     session["order_draft"] = d
     return redirect("/order/new/step2")
 
@@ -692,19 +838,22 @@ def order_step2():
     <div id="ac_to_step" class="ac-list"></div>
   </div>
   
-  <!-- Saved Addresses Section (Step 2) -->
-  <div style="margin-top: 10px; padding: 1rem; border: 1px solid #e5e7eb; border-radius: 8px; background: #fafafa;">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
-      <h3 style="margin: 0; font-size: 1rem; font-weight: 450; color: #374151;">Tallennetut osoitteet</h3>
-      <button type="button" onclick="openAddressModal()" class="btn btn-primary btn-sm" style="font-size: 0.875rem; padding: 0.375rem 0.75rem;">+ Lisää uusi osoite</button>
+  <!-- Saved Addresses - Compact -->
+  <details class="saved-addresses-details" style="margin-top: 12px; padding: 0.5rem 0.75rem; border: 1px solid #e5e7eb; border-radius: 6px; background: #fafafa;">
+    <summary style="display: flex; align-items: center; justify-content: space-between; padding: 0.25rem 0; cursor: pointer; font-size: 0.85rem; color: #64748b; list-style: none;">
+      <span style="display: flex; align-items: center; gap: 6px;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+        Tallennetut osoitteet
+      </span>
+      <span style="display: flex; align-items: center; gap: 8px;">
+        <button type="button" onclick="event.stopPropagation(); openAddressModal();" class="btn-link" style="font-size: 0.8rem; color: #2563eb; background: none; border: none; cursor: pointer; padding: 0;">+ Lisää</button>
+        <svg class="chevron-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+      </span>
+    </summary>
+    <div id="savedAddressesList" style="padding: 0.5rem 0;">
+      <div id="addressesContainer" style="max-height: 180px; overflow-y: auto;"></div>
     </div>
-
-    <button id="toggleAddresses" type="button" onclick="toggleSavedAddresses()" class="btn btn-ghost btn-sm" style="width: 100%; margin-bottom: 0.75rem; padding: 0.375rem 0.75rem;">Näytä tallennetut osoitteet</button>
-
-    <div id="savedAddressesList" style="display: none;">
-      <div id="addressesContainer" style="max-height: 260px; overflow-y: auto;"></div>
-    </div>
-  </div>
+  </details>
   
   <div class='calculator-actions mt-2' style="margin-top: 16px;">
     <button type='submit' name='action' value='back' class="btn btn-ghost">← Takaisin</button>
@@ -713,23 +862,11 @@ def order_step2():
 </form>
 
 <style>
-/* Keep date inputs compact and icons centered */
-.date-input-wrap { position: relative; display: grid; align-items: center; }
-.date-input { padding-left: 40px; height: 44px; line-height: 44px; box-sizing: border-box; -webkit-appearance: none; appearance: none; }
-.date-input:focus { outline: none; }
-.calendar-icon-svg { pointer-events: none; transition: transform 120ms ease-out; }
-/* Move native date picker icon to the left visually (keep it clickable) */
-.date-input::-webkit-calendar-picker-indicator {
-  position: absolute;
-  left: 0;
-  right: auto;
-  width: 44px;
-  height: 44px;
-  opacity: 0; /* hide default icon */
-  cursor: pointer;
-}
-/* Saved addresses styling and autocomplete dropdown */
-.ac-item.saved-address { padding: 0.75rem !important; border-left: 3px solid var(--color-primary, #2563eb); background: #f8fafc; }
+/* Saved addresses compact styling */
+.saved-addresses-details summary::-webkit-details-marker { display: none; }
+.saved-addresses-details[open] .chevron-icon { transform: rotate(180deg); }
+.chevron-icon { transition: transform 0.2s ease; }
+.ac-item.saved-address { padding: 0.5rem 0.75rem !important; border-left: 2px solid #2563eb; background: #f8fafc; margin-bottom: 4px; border-radius: 4px; font-size: 0.9rem; }
 .ac-item.saved-address:hover { background: #eef2ff; }
 .menu-item:hover { background: #f3f4f6; }
 .autocomplete { position: relative; }
@@ -980,7 +1117,7 @@ function renderAddresses(){ const container=document.getElementById('addressesCo
         <div style="font-weight:600; color:#111827; margin-bottom:0.25rem;">${a.displayName}</div>\
         <div style="font-size:0.875rem; color:#6b7280;">${a.fullAddress}</div>\
       </div>\
-      <button type="button" onclick="deleteAddressDirectly(${i})" class="btn btn-ghost" title="Poista">×</button>\
+      <button type="button" onclick="deleteAddressDirectly(${i})" class="btn-delete-address" style="border: 2px solid #2563eb; background: white; cursor: pointer; padding: 0.25rem 0.5rem; font-size: 1.25rem; line-height: 1; color: #2563eb; transition: all 0.2s; border-radius: 6px; min-width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;" onmouseover="this.style.background='#2563eb'; this.style.color='white'" onmouseout="this.style.background='white'; this.style.color='#2563eb'" title="Poista">×</button>\
     </div>`).join(''); }
 function toggleSavedAddresses(){ const list=document.getElementById('savedAddressesList'); const btn=document.getElementById('toggleAddresses'); if(!list||!btn) return; const show=list.style.display!=='block'; list.style.display=show?'block':'none'; btn.textContent=show?'Piilota tallennetut osoitteet':'Näytä tallennetut osoitteet'; }
 function useAddress(id){ const a=(window.savedAddresses||[]).find(x=>String(x.id)===String(id)); if(!a) return; const inp=document.getElementById('to_step'); if(inp){ inp.value=a.fullAddress; inp.dispatchEvent(new Event('change')); } }
@@ -1031,6 +1168,16 @@ def order_step3():
         d = session.get("order_draft", {})
         d["reg_number"] = request.form.get("reg_number","").strip()
         d["winter_tires"] = bool(request.form.get("winter_tires"))
+        
+        # Handle return car details if Paluu auto is checked
+        if d.get("paluu_auto"):
+            d["return_reg_number"] = request.form.get("return_reg_number","").strip()
+            d["return_winter_tires"] = bool(request.form.get("return_winter_tires"))
+        else:
+            # Clear return car fields if Paluu auto is not checked
+            d["return_reg_number"] = None
+            d["return_winter_tires"] = False
+        
         session["order_draft"] = d
         
         action = request.form.get("action")
@@ -1043,6 +1190,12 @@ def order_step3():
     d = session.get("order_draft", {})
     reg_val = (d.get("reg_number", "") or "").replace('"', '&quot;')
     winter_checked = "checked" if d.get("winter_tires") else ""
+    
+    # Return car details
+    return_reg_val = (d.get("return_reg_number", "") or "").replace('"', '&quot;')
+    return_winter_checked = "checked" if d.get("return_winter_tires") else ""
+    paluu_auto = d.get("paluu_auto", False)
+    return_section_display = "block" if paluu_auto else "none"
 
     # Check for error message and display it
     error_msg = session.pop("error_message", None)
@@ -1052,14 +1205,30 @@ def order_step3():
 <h2 class='card-title'>Ajoneuvon tiedot</h2>
 {error_html}
 <form method='POST' class='calculator-form'>
-  <label class='form-label'>Rekisterinumero *</label>
-  <input name='reg_number' required placeholder='ABC-123' class='form-input' value="{reg_val}">
+  <div style='padding: 1rem; border: 2px solid #e5e7eb; border-radius: 8px; background: #fafafa; margin-bottom: 1.5rem;'>
+    <h3 style='margin: 0 0 1rem 0; font-size: 1.1rem; font-weight: 600; color: #374151;'>Menomatkan ajoneuvo</h3>
+    <label class='form-label'>Rekisterinumero *</label>
+    <input name='reg_number' required placeholder='ABC-123' class='form-input' value="{reg_val}">
+    
+    <div class='form-group mt-4'>
+      <label class='form-checkbox'>
+        <input type='checkbox' name='winter_tires' value='1' {winter_checked}>
+        <span class='form-checkbox-label'>Autossa on talvirenkaat</span>
+      </label>
+    </div>
+  </div>
   
-  <div class='form-group mt-4'>
-    <label class='form-checkbox'>
-      <input type='checkbox' name='winter_tires' value='1' {winter_checked}>
-      <span class='form-checkbox-label'>Autossa on talvirenkaat</span>
-    </label>
+  <div id='return_car_section' style='display: {return_section_display}; padding: 1rem; border: 2px solid #dbeafe; border-radius: 8px; background: linear-gradient(to bottom, #eff6ff, #ffffff); margin-bottom: 1.5rem;'>
+    <h3 style='margin: 0 0 1rem 0; font-size: 1.1rem; font-weight: 600; color: #1e40af;'>Paluuauton tiedot</h3>
+    <label class='form-label'>Rekisterinumero (paluuauto) *</label>
+    <input name='return_reg_number' id='return_reg_number' placeholder='XYZ-456' class='form-input' value="{return_reg_val}" {("required" if paluu_auto else "")}>
+    
+    <div class='form-group mt-4'>
+      <label class='form-checkbox'>
+        <input type='checkbox' name='return_winter_tires' value='1' {return_winter_checked}>
+        <span class='form-checkbox-label'>Autossa on talvirenkaat (paluuauto)</span>
+      </label>
+    </div>
   </div>
   
   <div class='calculator-actions'>
@@ -1287,31 +1456,94 @@ def order_confirm():
             session["error_message"] = f"Tilaajan yhteystiedot puuttuvat: {', '.join(missing_names)}. Täytä puuttuvat tiedot."
             return redirect("/order/new/step4")
 
+    def _parse_iso_date(value: str):
+        try:
+            if not value:
+                return None
+            return datetime.datetime.strptime(value, "%Y-%m-%d").date()
+        except Exception:
+            return None
+
+    # Calculate outbound km and pricing
     km = 0.0
     err = None
     try:
         km = order_service.route_km(d["pickup"], d["dropoff"])
     except Exception as e:
         err = f"Hinnanlaskenta epäonnistui: {e}"
+    
     u = auth_service.get_current_user()
-    # esim. otetaan joustava nouto jos käyttäjä EI antanut noutopäivää:
     time_window = "flex" if not d.get("pickup_date") else "exact"
-    return_leg = False  # if you later add a checkbox for round-trip, set True accordingly
+    return_leg = False
     net, vat, gross, _ = order_service.price_from_km(
         km,
         pickup_addr=d.get("pickup"),
         dropoff_addr=d.get("dropoff"),
         return_leg=return_leg
     )
+    
+    # Calculate return leg if Paluu auto is checked
+    paluu_auto = d.get("paluu_auto", False)
+    return_km = 0.0
+    return_net = 0.0
+    return_vat = 0.0
+    return_gross = 0.0
+    return_discount = 0.0
+    return_net_discounted = 0.0
+    total_km = km
+    total_net = net
+    total_vat = vat
+    total_gross = gross
+    
+    if paluu_auto:
+        try:
+            # Return trip is reversed: dropoff becomes pickup, pickup becomes dropoff
+            return_km = order_service.route_km(d["dropoff"], d["pickup"])
+            total_km = km + return_km
+            
+            # Calculate return pricing (30% discount)
+            return_net_full, return_vat_full, return_gross_full, _ = order_service.price_from_km(
+                return_km,
+                pickup_addr=d.get("dropoff"),
+                dropoff_addr=d.get("pickup"),
+                return_leg=True  # This will apply 30% discount
+            )
+            
+            # The return_leg=True already applies 30% discount in order_service
+            return_net = return_net_full
+            return_vat = return_vat_full
+            return_gross = return_gross_full
+            
+            # Calculate what the discount amount is (for display)
+            return_net_before_discount, _, _, _ = order_service.price_from_km(
+                return_km,
+                pickup_addr=d.get("dropoff"),
+                dropoff_addr=d.get("pickup"),
+                return_leg=False
+            )
+            return_discount = return_net_before_discount - return_net
+            
+            # Total pricing
+            total_net = net + return_net
+            total_vat = vat + return_vat
+            total_gross = gross + return_gross
+            
+        except Exception as e:
+            err = f"Paluumatkan hinnanlaskenta epäonnistui: {e}"
+
+    pickup_date_iso = d.get("pickup_date") or None
+    last_delivery_date_iso = d.get("last_delivery_date") or None
+    return_delivery_date_iso = d.get("return_delivery_date") or None
+    computed_return_pickup_iso = last_delivery_date_iso or pickup_date_iso
 
     if request.method == "POST":
-        # Prepare order data for service layer (excludes id, user_id, created_at, status - handled by service)
+        # Prepare outbound order data
         order_data = {
             "pickup_address": d.get("pickup"),
             "dropoff_address": d.get("dropoff"),
             "reg_number": d.get("reg_number"),
-            "pickup_date": d.get("pickup_date") or None,
-            "last_delivery_date": d.get("last_delivery_date") or None,
+            "pickup_date": pickup_date_iso,
+            "last_delivery_date": last_delivery_date_iso,
 
             # Orderer (Tilaaja) information
             "orderer_name": d.get("orderer_name"),
@@ -1333,16 +1565,73 @@ def order_confirm():
             "price_vat": float(vat),
             "price_gross": float(gross),
 
-            "winter_tires": bool(d.get("winter_tires")) if "winter_tires" in d else False
+            "winter_tires": bool(d.get("winter_tires")) if "winter_tires" in d else False,
+            
+            # Paluu auto fields
+            "trip_type": order_model.TRIP_TYPE_OUTBOUND if paluu_auto else None
         }
 
-        # Use service layer to create order (includes automatic email sending)
+        # Create outbound order
         success, order, error = order_service.create_order(int(u["id"]), order_data)
 
         if success and order:
-            # Clear session and redirect to order view
+            outbound_order_id = order['id']
+            
+            # If Paluu auto is checked, create return order
+            if paluu_auto:
+                return_order_data = {
+                    "pickup_address": d.get("dropoff"),  # Reversed
+                    "dropoff_address": d.get("pickup"),  # Reversed
+                    "reg_number": d.get("return_reg_number"),
+                    "pickup_date": computed_return_pickup_iso or last_delivery_date_iso or pickup_date_iso,  # Paluuauton nouto tapahtuu viimeisen toimituspäivän kanssa samana päivänä
+                    "last_delivery_date": return_delivery_date_iso,
+
+                    # Orderer (Tilaaja) information - same as outbound
+                    "orderer_name": d.get("orderer_name"),
+                    "orderer_email": d.get("orderer_email"),
+                    "orderer_phone": d.get("orderer_phone"),
+
+                    # Customer (Asiakas) information - same as outbound
+                    "customer_name": d.get("customer_name"),
+                    "customer_phone": d.get("customer_phone"),
+
+                    # Legacy fields
+                    "phone": d.get("customer_phone"),
+                    "company": d.get("company"),
+
+                    "additional_info": d.get("additional_info"),
+
+                    "distance_km": float(round(return_km, 2)),
+                    "price_net": float(return_net),
+                    "price_vat": float(return_vat),
+                    "price_gross": float(return_gross),
+
+                    "winter_tires": bool(d.get("return_winter_tires")) if "return_winter_tires" in d else False,
+                    
+                    # Paluu auto fields
+                    "trip_type": order_model.TRIP_TYPE_RETURN,
+                    "parent_order_id": outbound_order_id,
+                    "return_leg": True  # Ensure backend recalculations keep the -30% discount
+                }
+                
+                # Create return order
+                return_success, return_order, return_error = order_service.create_order(int(u["id"]), return_order_data)
+                
+                if return_success and return_order:
+                    # Link outbound order to return order
+                    from models.database import db_manager
+                    db_manager.get_collection("orders").update_one(
+                        {"id": outbound_order_id},
+                        {"$set": {"return_order_id": return_order['id']}}
+                    )
+                else:
+                    # Return order creation failed - show error but keep outbound order
+                    session["error_message"] = f"Paluutilauksen luominen epäonnistui: {return_error or 'Tuntematon virhe'}. Menomatkan tilaus luotiin onnistuneesti (ID: {outbound_order_id})."
+                    return redirect(f"/order/{outbound_order_id}")
+            
+            # Clear session and redirect to outbound order view
             session.pop("order_draft", None)
-            return redirect(f"/order/{order['id']}")
+            return redirect(f"/order/{outbound_order_id}")
         else:
             # Handle error case
             session["error_message"] = f"Tilauksen luominen epäonnistui: {error or 'Tuntematon virhe'}"
@@ -1366,85 +1655,660 @@ def order_confirm():
         except Exception:
             return s
 
-    pickup_date_str = _fmt_date(d.get("pickup_date"))
-    last_delivery_date_str = _fmt_date(d.get("last_delivery_date"))
+    pickup_date_str = _fmt_date(pickup_date_iso)
+    last_delivery_date_str = _fmt_date(last_delivery_date_iso)
+    return_delivery_date_str = _fmt_date(return_delivery_date_iso)
+    return_pickup_str = _fmt_date(computed_return_pickup_iso)
 
-    pickup_date_html = f"<p class='confirmation-meta'>Viimeinen noutopäivä: {pickup_date_str}</p>" if pickup_date_str else ""
-    delivery_date_html = f"<p class='confirmation-meta'>Viimeinen toimituspäivä: {last_delivery_date_str}</p>" if last_delivery_date_str else ""
+    date_fallback = "Ei asetettu"
+    pickup_date_display = pickup_date_str or date_fallback
+    last_delivery_display = last_delivery_date_str or date_fallback
+    return_delivery_display = return_delivery_date_str or date_fallback
+    return_pickup_display = return_pickup_str or date_fallback
+
+    pickup_address = d.get("pickup") or ""
+    dropoff_address = d.get("dropoff") or ""
+
+    # Build simple, clean outbound section
+    meno_section_html = f"""
+<div class='trip-card trip-card--outbound'>
+  <div class='trip-card__header'>
+    <span class='trip-card__title'>Menomatka</span>
+    <span class='trip-card__distance'>{km:.1f} km</span>
+  </div>
+  <div class='trip-card__route'>
+    <div class='route-point route-point--start'>
+      <div class='route-point__marker'></div>
+      <div class='route-point__content'>
+        <span class='route-point__label'>Nouto</span>
+        <span class='route-point__address'>{pickup_address}</span>
+        {f"<span class='route-point__date'>{pickup_date_display}</span>" if pickup_date_str else ""}
+      </div>
+    </div>
+    <div class='route-line'></div>
+    <div class='route-point route-point--end'>
+      <div class='route-point__marker'></div>
+      <div class='route-point__content'>
+        <span class='route-point__label'>Toimitus</span>
+        <span class='route-point__address'>{dropoff_address}</span>
+        {f"<span class='route-point__date'>Viimeistään {last_delivery_display}</span>" if last_delivery_date_str else ""}
+      </div>
+    </div>
+  </div>
+  <div class='trip-card__footer'>
+    <div class='trip-meta'>
+      <span class='trip-meta__label'>Rekisterinumero</span>
+      <span class='trip-meta__value'>{d.get('reg_number')}</span>
+    </div>
+    <div class='trip-meta'>
+      <span class='trip-meta__label'>Talvirenkaat</span>
+      <span class='trip-meta__value'>{"Kyllä" if d.get('winter_tires') else "Ei"}</span>
+    </div>
+  </div>
+</div>
+"""
+
+    paluu_section_html = ""
+    if paluu_auto:
+        paluu_section_html = f"""
+<div class='trip-card trip-card--return'>
+  <div class='trip-card__header'>
+    <span class='trip-card__title'>Paluumatka</span>
+    <div class='trip-card__header-right'>
+      <span class='trip-card__discount'>-30%</span>
+      <span class='trip-card__distance'>{return_km:.1f} km</span>
+    </div>
+  </div>
+  <div class='trip-card__route'>
+    <div class='route-point route-point--start'>
+      <div class='route-point__marker'></div>
+      <div class='route-point__content'>
+        <span class='route-point__label'>Nouto</span>
+        <span class='route-point__address'>{dropoff_address}</span>
+        {f"<span class='route-point__date'>{return_pickup_display}</span>" if return_pickup_str else ""}
+      </div>
+    </div>
+    <div class='route-line'></div>
+    <div class='route-point route-point--end'>
+      <div class='route-point__marker'></div>
+      <div class='route-point__content'>
+        <span class='route-point__label'>Toimitus</span>
+        <span class='route-point__address'>{pickup_address}</span>
+        <span class='route-point__date'>Viimeistään {return_delivery_display}</span>
+      </div>
+    </div>
+  </div>
+  <div class='trip-card__footer'>
+    <div class='trip-meta'>
+      <span class='trip-meta__label'>Rekisterinumero</span>
+      <span class='trip-meta__value'>{d.get('return_reg_number') or 'Ei asetettu'}</span>
+    </div>
+    <div class='trip-meta'>
+      <span class='trip-meta__label'>Talvirenkaat</span>
+      <span class='trip-meta__value'>{"Kyllä" if d.get('return_winter_tires') else "Ei"}</span>
+    </div>
+  </div>
+</div>
+"""
+
+    customer_name = (d.get("customer_name") or "").strip()
+    customer_phone = (d.get("customer_phone") or "").strip()
+    company_name = (d.get("company") or "").strip()
+    additional_info_text = (d.get("additional_info") or "").strip()
+
+    # Build contact info section
+    contact_section_html = f"""
+<div class='contact-section'>
+  <h3 class='section-title'>Yhteystiedot</h3>
+  <div class='contact-grid'>
+    <div class='contact-item'>
+      <div class='contact-label'>Tilaaja</div>
+      <div class='contact-name'>{d.get('orderer_name')}</div>
+      <div class='contact-details'>{d.get('orderer_email')}</div>
+      <div class='contact-details'>{d.get('orderer_phone')}</div>
+    </div>
+"""
+    
+    if customer_name or company_name or customer_phone:
+        contact_section_html += f"""
+    <div class='contact-item'>
+      <div class='contact-label'>Asiakas</div>
+      {f"<div class='contact-name'>{customer_name}</div>" if customer_name else ""}
+      {f"<div class='contact-details'>{company_name}</div>" if company_name else ""}
+      {f"<div class='contact-details'>{customer_phone}</div>" if customer_phone else ""}
+    </div>
+"""
+    
+    contact_section_html += """  </div>
+</div>
+"""
+
+    additional_info_html = ""
+    if additional_info_text:
+        safe_additional = additional_info_text.replace('<','&lt;').replace('\n','<br>')
+        additional_info_html = f"""
+<div class='additional-info-section'>
+  <h3 class='section-title'>Lisätiedot</h3>
+  <div class='additional-info-content'>{safe_additional}</div>
+</div>
+"""
+
+    leg_sections_html = f"{meno_section_html}{paluu_section_html}{contact_section_html}{additional_info_html}"
+    
+    # Build pricing summary
+    if paluu_auto:
+        pricing_html = f"""
+<div class='price-card'>
+  <h3 class='price-title'>Yhteenveto</h3>
+  <div class='price-details'>
+    <div style='text-align: left; margin-bottom: 1.5rem; padding-bottom: 1.5rem; border-bottom: 2px solid #e5e7eb;'>
+      <div style='display: flex; justify-content: space-between; margin-bottom: 0.75rem; font-size: 0.95rem; gap: 1rem;'>
+        <span style='color: #64748b; flex-shrink: 0;'>Menomatka</span>
+        <span style='font-weight: 600; color: #1e293b; text-align: right;'>{km:.1f} km · {net:.2f} €</span>
+      </div>
+      <div style='display: flex; justify-content: space-between; margin-bottom: 0.75rem; font-size: 0.95rem; gap: 1rem;'>
+        <span style='color: #64748b; flex-shrink: 0;'>Paluumatka</span>
+        <span style='font-weight: 600; color: #1e293b; text-align: right;'>{return_km:.1f} km · {return_net:.2f} €</span>
+      </div>
+      <div style='display: flex; justify-content: space-between; font-size: 0.95rem; gap: 1rem;'>
+        <span style='color: #3b82f6; font-weight: 600; flex-shrink: 0;'>Paluualennus -30%</span>
+        <span style='font-weight: 700; color: #3b82f6; text-align: right;'>-{return_discount:.2f} €</span>
+      </div>
+    </div>
+    <div style='margin-bottom: 0.5rem;'>
+      <div class='distance'>{total_km:.1f} km yhteensä</div>
+    </div>
+    <div style='font-size: 2.75rem; font-weight: 800; color: #1e293b; line-height: 1; margin-bottom: 0.5rem;'>{total_net:.2f} €</div>
+    <div style='font-size: 1rem; font-weight: 600; color: #64748b; margin-bottom: 1rem;'>ALV 0%</div>
+    <div style='font-size: 0.8rem; color: #94a3b8;'>ALV 25,5%: {total_vat:.2f} € · Sis. ALV: {total_gross:.2f} €</div>
+    {f'<div style="margin-top: 1rem; padding: 0.75rem; background: #fee; border-radius: 6px; color: #c00; font-size: 0.85rem;">{err}</div>' if err else ''}
+  </div>
+</div>
+"""
+    else:
+        pricing_html = f"""
+<div class='price-card'>
+  <h3 class='price-title'>Hinta</h3>
+  <div class='price-details'>
+    <div style='margin-bottom: 1rem;'>
+      <div class='distance'>{km:.1f} km</div>
+    </div>
+    <div style='font-size: 2.75rem; font-weight: 800; color: #1e293b; line-height: 1; margin-bottom: 0.5rem;'>{net:.2f} €</div>
+    <div style='font-size: 1rem; font-weight: 600; color: #64748b; margin-bottom: 1rem;'>ALV 0%</div>
+    <div style='font-size: 0.8rem; color: #94a3b8;'>ALV 25,5%: {vat:.2f} € · Sis. ALV: {gross:.2f} €</div>
+    {f'<div style="margin-top: 1rem; padding: 0.75rem; background: #fee; border-radius: 6px; color: #c00; font-size: 0.85rem;">{err}</div>' if err else ''}
+  </div>
+</div>
+"""
 
     inner = f"""
 <h2 class='card-title'>Vahvista tilaus</h2>
 {error_html}
-<div class='confirmation-layout'>
-  <div class='confirmation-grid'>
-    <div class='confirmation-card'><h3 class='confirmation-title'>Nouto</h3><p class='confirmation-text'>{d.get('pickup')}</p>{pickup_date_html}</div>
-    <div class='confirmation-card'><h3 class='confirmation-title'>Toimitus</h3><p class='confirmation-text'>{d.get('dropoff')}</p>{delivery_date_html}</div>
-    <div class='confirmation-card'><h3 class='confirmation-title'>Ajoneuvo</h3><p class='confirmation-text'>Rekisteri: {d.get('reg_number')}</p><p class='confirmation-meta'>Talvirenkaat: {"Kyllä" if d.get('winter_tires') else "Ei"}</p></div>
-    <div class='confirmation-card'><h3 class='confirmation-title'>Tilaajan tiedot</h3><p class='confirmation-text'>{d.get('orderer_name')}</p><p class='confirmation-meta'>{d.get('orderer_email')} / {d.get('orderer_phone')}</p></div>
-    <div class='confirmation-card'><h3 class='confirmation-title'>Asiakkaan tiedot</h3><p class='confirmation-text'>{d.get('customer_name')}</p><p class='confirmation-meta'>{d.get('customer_phone')}</p></div>
-    <div class='confirmation-card'><h3 class='confirmation-title'>Lisätiedot</h3><p class='confirmation-text'>{(d.get('additional_info') or '-').replace('<','&lt;')}</p></div>
+<div class='confirmation-modern-layout'>
+  <div class='confirmation-main'>
+    {leg_sections_html}
   </div>
-  <div class='confirmation-map-container'>
-    <div class='confirmation-card map-card'>
-      <h3 class='confirmation-title'>Reitti</h3>
-      <div id="confirmation_map" class="confirmation-map"></div>
-      <p class='confirmation-meta'><strong style='font-size: 1.3em; font-weight: 800;'>{net:.2f} €</strong> <strong>ALV 0%</strong></p>
+  <div class='confirmation-sidebar'>
+    <div class='map-wrapper'>
+      <h3 class='sidebar-title'>Reitti</h3>
+      <div id='confirmation_map' class='confirmation-map'></div>
     </div>
-  </div>
-</div>
-<div class='price-summary'>
-  <div class='price-card'>
-    <h3 class='price-title'>Hinta</h3>
-    <div class='price-details'>
-      <span class='distance'>{km:.1f} km</span>
-      <div class='price-breakdown-confirm'>
-        <div class='price-main-confirm' style="font-size: 2.5em; font-weight: 800; line-height: 1.1; margin-bottom: 4px;">{net:.2f} €</div>
-        <div style="font-size: 1.2em; font-weight: 700; margin-bottom: 12px;">ALV 0%</div>
-        <div class='price-vat-confirm' style="font-size: 0.75em; opacity: 0.5; margin-top: 8px;">ALV 25,5%: {vat:.2f} € | Yhteensä sis. ALV: {gross:.2f} €</div>
-      </div>
-    </div>
-    {f'<p class="price-error">{err}</p>' if err else ''}
+    {pricing_html}
   </div>
 </div>
 <form method='POST' class='calculator-form'>
-  <div class='calculator-actions'>
+  <div class='calculator-actions' style='margin-top: 2rem;'>
     <button type='button' onclick='window.location.href="/order/new/step5"' class='btn btn-ghost'>← Takaisin</button>
-    <button type='submit' class='btn btn-primary'>Lähetä tilaus</button>
+    <button type='submit' class='btn btn-primary btn-large'>Vahvista ja lähetä tilaus</button>
   </div>
 </form>
 
 <!-- Leaflet CSS and JS for map -->
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+<link rel='stylesheet' href='https://unpkg.com/leaflet@1.9.4/dist/leaflet.css' crossorigin='' />
+<script src='https://unpkg.com/leaflet@1.9.4/dist/leaflet.js' crossorigin=''></script>
 
 <style>
-.confirmation-layout {{
+/* Modern two-column layout */
+.confirmation-modern-layout {{
+  display: grid;
+  grid-template-columns: 1fr 380px;
+  gap: 2rem;
+  margin-top: 1.5rem;
+}}
+
+.confirmation-main {{
+  min-width: 0;
+}}
+
+.confirmation-sidebar {{
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}}
+
+/* Trip card styling - Clean professional design */
+.trip-card {{
+  background: #fff;
+  border-radius: 12px;
+  margin-bottom: 1rem;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+  overflow: hidden;
+  border: 1px solid #e5e7eb;
+}}
+
+.trip-card--outbound {{
+  border-color: #3b82f6;
+}}
+
+.trip-card--return {{
+  border-color: #f59e0b;
+}}
+
+.trip-card__header {{
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.25rem;
+  background: #f8fafc;
+  border-bottom: 1px solid #f1f5f9;
+}}
+
+.trip-card__title {{
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #1e293b;
+  letter-spacing: -0.01em;
+}}
+
+.trip-card__header-right {{
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}}
+
+.trip-card__distance {{
+  font-size: 0.85rem;
+  color: #64748b;
+  font-weight: 500;
+}}
+
+.trip-card__discount {{
+  background: #fef3c7;
+  color: #d97706;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.35rem 0.65rem;
+  border-radius: 6px;
+}}
+
+.trip-card__route {{
+  padding: 1.25rem;
+  position: relative;
+}}
+
+.route-point {{
+  display: flex;
+  gap: 1rem;
+  position: relative;
+  z-index: 1;
+}}
+
+.route-point--start {{
+  margin-bottom: 0.5rem;
+}}
+
+.route-point--end {{
+  margin-top: 0.5rem;
+}}
+
+.route-point__marker {{
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #3b82f6;
+  margin-top: 4px;
+  flex-shrink: 0;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+}}
+
+.trip-card--return .route-point__marker {{
+  background: #f59e0b;
+  box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.15);
+}}
+
+.route-point--end .route-point__marker {{
+  background: #10b981;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.15);
+}}
+
+.route-point__content {{
+  flex: 1;
+  min-width: 0;
+}}
+
+.route-point__label {{
+  display: block;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #94a3b8;
+  font-weight: 600;
+  margin-bottom: 0.2rem;
+}}
+
+.route-point__address {{
+  display: block;
+  font-size: 0.9rem;
+  color: #1e293b;
+  font-weight: 500;
+  line-height: 1.4;
+}}
+
+.route-point__date {{
+  display: block;
+  font-size: 0.8rem;
+  color: #64748b;
+  margin-top: 0.2rem;
+}}
+
+.route-line {{
+  position: absolute;
+  left: 1.25rem;
+  top: 2.5rem;
+  bottom: 2.5rem;
+  width: 12px;
+  display: flex;
+  justify-content: center;
+}}
+
+.route-line::before {{
+  content: '';
+  width: 2px;
+  height: 100%;
+  background: linear-gradient(to bottom, #3b82f6, #10b981);
+  border-radius: 1px;
+}}
+
+.trip-card--return .route-line::before {{
+  background: linear-gradient(to bottom, #f59e0b, #10b981);
+}}
+
+.trip-card__footer {{
   display: flex;
   gap: 1.5rem;
-  flex-wrap: wrap;
+  padding: 0.875rem 1.25rem;
+  background: #fafafa;
+  border-top: 1px solid #f1f5f9;
 }}
 
-.confirmation-grid {{
-  flex: 1;
-  min-width: 300px;
+.trip-meta {{
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
 }}
 
-.confirmation-map-container {{
+.trip-meta__label {{
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #94a3b8;
+  font-weight: 600;
+}}
+
+.trip-meta__value {{
+  font-size: 0.875rem;
+  color: #1e293b;
+  font-weight: 600;
+}}
+
+/* Legacy support - keeping old class names working */
+.trip-section {{
+  background: #fff;
+  border: 2px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 0;
+  margin-bottom: 1.5rem;
+  overflow: hidden;
+}}
+
+.trip-section--return {{
+  border-color: #fbbf24;
+}}
+
+.trip-header {{
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  padding: 1rem 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}}
+
+.trip-section--return .trip-header {{
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+}}
+
+.trip-badge {{
+  color: white;
+  font-weight: 700;
+  font-size: 0.9rem;
+  letter-spacing: 0.5px;
+}}
+
+.discount-badge {{
+  background: rgba(255,255,255,0.25);
+  color: white;
+  padding: 0.25rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: 700;
+}}
+
+.trip-details {{
+  padding: 1.5rem;
+}}
+
+.detail-row {{
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start;
+}}
+
+.detail-icon {{
+  font-size: 1.5rem;
+  line-height: 1;
+  margin-top: 0.15rem;
+}}
+
+.detail-content {{
   flex: 1;
-  min-width: 300px;
+}}
+
+.detail-label {{
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  color: #64748b;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  margin-bottom: 0.35rem;
+}}
+
+.detail-value {{
+  font-size: 1rem;
+  color: #1e293b;
+  font-weight: 500;
+  line-height: 1.4;
+}}
+
+.detail-meta {{
+  font-size: 0.875rem;
+  color: #64748b;
+  margin-top: 0.25rem;
+}}
+
+.route-arrow {{
+  text-align: center;
+  color: #cbd5e1;
+  font-size: 1.5rem;
+  margin: 0.75rem 0;
+  font-weight: 300;
+}}
+
+.detail-separator {{
+  height: 1px;
+  background: #e5e7eb;
+  margin: 1.25rem 0;
+}}
+
+.detail-row-compact {{
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+}}
+
+.compact-item {{
+  text-align: center;
+}}
+
+.compact-label {{
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  color: #94a3b8;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  margin-bottom: 0.35rem;
+}}
+
+.compact-value {{
+  font-size: 0.95rem;
+  color: #1e293b;
+  font-weight: 600;
+}}
+
+/* Contact section */
+.contact-section,
+.additional-info-section {{
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+}}
+
+.section-title {{
+  font-size: 1rem;
+  font-weight: 700;
+  color: #334155;
+  margin: 0 0 1rem 0;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-size: 0.85rem;
+}}
+
+.contact-grid {{
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1.5rem;
+}}
+
+.contact-item {{
+  
+}}
+
+.contact-label {{
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  color: #64748b;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  margin-bottom: 0.5rem;
+}}
+
+.contact-name {{
+  font-size: 1rem;
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 0.25rem;
+}}
+
+.contact-details {{
+  font-size: 0.9rem;
+  color: #475569;
+  line-height: 1.6;
+}}
+
+.additional-info-content {{
+  font-size: 0.95rem;
+  color: #475569;
+  line-height: 1.7;
+  white-space: pre-wrap;
+}}
+
+/* Sidebar elements */
+.map-wrapper {{
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 1rem;
+}}
+
+.sidebar-title {{
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #334155;
+  margin: 0 0 0.75rem 0;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }}
 
 .confirmation-map {{
   height: 250px;
-  border-radius: 0.5rem;
-  margin: 0.75rem 0;
+  border-radius: 8px;
+  overflow: hidden;
 }}
 
-.map-card {{
-  height: auto;
+.price-summary {{
+  position: sticky;
+  top: 1rem;
 }}
 
-/* Distance label styling for map */
+.price-card {{
+  background: linear-gradient(135deg, #f8fafc 0%, #fff 100%);
+  border: 2px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 1.5rem;
+}}
+
+.price-title {{
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #334155;
+  margin: 0 0 1rem 0;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}}
+
+.price-details {{
+  text-align: center;
+}}
+
+.distance {{
+  display: inline-block;
+  background: #eff6ff;
+  color: #2563eb;
+  padding: 0.35rem 0.85rem;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+}}
+
+.btn-large {{
+  padding: 0.875rem 2rem;
+  font-size: 1.05rem;
+  font-weight: 600;
+}}
+
+/* Distance label on map */
 .distance-label {{
   background: transparent;
   border: none;
@@ -1459,21 +2323,47 @@ def order_confirm():
   font-size: 0.95rem;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
   white-space: nowrap;
-  text-align: center;
 }}
 
-@media (max-width: 768px) {{
-  .confirmation-layout {{
-    flex-direction: column;
-  }}
-
-  .confirmation-map {{
-    height: 200px;
+@media (max-width: 1024px) {{
+  .confirmation-modern-layout {{
+    grid-template-columns: 1fr;
   }}
   
-  .distance-text {{
-    font-size: 0.85rem;
-    padding: 0.4rem 0.8rem;
+  .confirmation-sidebar {{
+    order: -1;
+  }}
+  
+  .price-summary {{
+    position: static;
+  }}
+  
+  .detail-row-compact {{
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }}
+  
+  .compact-item {{
+    text-align: left;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid #f1f5f9;
+  }}
+  
+  .compact-item:last-child {{
+    border-bottom: none;
+  }}
+}}
+
+@media (max-width: 640px) {{
+  .contact-grid {{
+    grid-template-columns: 1fr;
+  }}
+  
+  .confirmation-map {{
+    height: 200px;
   }}
 }}
 </style>

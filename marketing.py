@@ -69,25 +69,24 @@ def calculator():
             </div>
           </div>
 
-          <!-- Saved Addresses Section -->
-          <div style="margin-top: 1.5rem; padding: 1.25rem; border: 1px solid #e0e0e0; border-radius: 8px; background: #fafafa;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-              <h3 style="margin: 0; font-size: 1.1rem; font-weight: 600; color: #333;">Tallennetut osoitteet</h3>
-              <button onclick="openAddressModal()" class="btn btn-primary btn-sm" style="font-size: 0.875rem;">
-                + Lisää uusi osoite
-              </button>
-            </div>
-            
-            <button id="toggleAddresses" onclick="toggleSavedAddresses()" class="btn btn-ghost btn-sm" style="width: 100%; margin-bottom: 0.75rem;">
-              Näytä tallennetut osoitteet
-            </button>
-            
-            <div id="savedAddressesList" style="display: none;">
-              <div id="addressesContainer" style="max-height: 300px; overflow-y: auto;">
+          <!-- Saved Addresses Section - Compact Design -->
+          <details class="saved-addresses-details" style="margin-top: 12px; padding: 0.5rem 0.75rem; border: 1px solid #e5e7eb; border-radius: 6px; background: #fafafa;">
+            <summary style="display: flex; align-items: center; justify-content: space-between; padding: 0.25rem 0; cursor: pointer; font-size: 0.85rem; color: #64748b; list-style: none;">
+              <span style="display: flex; align-items: center; gap: 6px;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+                Tallennetut osoitteet
+              </span>
+              <span style="display: flex; align-items: center; gap: 8px;">
+                <button type="button" onclick="event.stopPropagation(); openAddressModal();" class="btn-link" style="font-size: 0.8rem; color: #2563eb; background: none; border: none; cursor: pointer; padding: 0;">+ Lisää</button>
+                <svg class="chevron-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+              </span>
+            </summary>
+            <div id="savedAddressesList" style="padding: 0.5rem 0;">
+              <div id="addressesContainer" style="max-height: 180px; overflow-y: auto;">
                 <!-- Addresses will be loaded here -->
               </div>
             </div>
-          </div>
+          </details>
 
           <div class="calculator-actions">
             <button id="calcBtn" class="btn btn-primary btn-lg" onclick="calc()">Laske hinta ja reitti</button>
@@ -173,6 +172,10 @@ style.textContent = `
   .menu-item:hover {
     background: #f3f4f6;
   }
+  /* Saved addresses compact styling */
+  .saved-addresses-details summary::-webkit-details-marker { display: none; }
+  .saved-addresses-details[open] .chevron-icon { transform: rotate(180deg); }
+  .chevron-icon { transition: transform 0.2s ease; }
 `;
 document.head.appendChild(style);
 
@@ -492,6 +495,7 @@ async function calcAndRender({fromId, toId, receiptIds, continueId, mapInst}){
   const f = document.getElementById(fromId).value.trim();
   const t = document.getElementById(toId).value.trim();
   if(!f || !t) return;
+  const cont = document.getElementById(continueId);
 
   // hinta
   const r = await fetch('/api/quote_for_addresses',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pickup:f,dropoff:t})});
@@ -507,7 +511,7 @@ async function calcAndRender({fromId, toId, receiptIds, continueId, mapInst}){
   if(rr.ok){ mapInst.draw(jj.latlngs, jj.start, jj.end, j.km); }
 
   // jatka tilaukseen
-  cont.classList.remove('link-disabled');
+  if (cont) cont.classList.remove('link-disabled');
 }
 
 // === Helppo init molemmille sivuille ===

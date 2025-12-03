@@ -10,6 +10,15 @@
     margin-bottom: 1.5rem;
 }
 
+.user-dashboard-wrapper {
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.user-dashboard-inner {
+    padding: var(--space-6);
+}
+
 /* Header section */
 .user-orders-header {
     padding: 1.5rem 1.5rem 1rem;
@@ -316,7 +325,6 @@
         display: block;
         width: 100%;
         overflow-x: auto;
-        -webkit-overflow-scrolling: touch;
     }
 
     .user-orders-table {
@@ -390,6 +398,7 @@
         font-weight: 600;
         color: #2563eb;
         min-width: 80px;
+        white-space: nowrap;
     }
 
     .user-orders-route {
@@ -523,6 +532,45 @@
 .user-action-btn:focus-visible {
     outline: 3px solid #3b82f6;
     outline-offset: 2px;
+}
+
+.trip-type-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 9999px;
+    font-weight: 700;
+    padding: 0.125rem 0.5rem;
+    margin-left: 0.5rem;
+}
+
+.trip-type-badge.trip-type-meno {
+    background: #3b82f6;
+    color: #ffffff;
+}
+
+.trip-type-badge.trip-type-paluu {
+    background: #f59e0b;
+    color: #ffffff;
+}
+
+.user-orders-id .trip-type-badge {
+    font-size: 0.75rem;
+}
+
+.order-card-id .trip-type-badge {
+    font-size: 0.7rem;
+}
+
+.admin-table-row .trip-type-badge {
+    font-size: 0.7rem;
+}
+
+.order-header .trip-type-badge,
+.order-hero .trip-type-badge {
+    margin-left: 0.75rem;
+    padding: 0.25rem 0.75rem;
+    font-size: 0.85rem;
 }
 
 /* Empty state */
@@ -767,5 +815,11 @@
 
     .user-action-btn:hover {
         transform: none;
+    }
+}
+
+@supports (-webkit-overflow-scrolling: touch) {
+    .user-orders-table-wrapper {
+        -webkit-overflow-scrolling: touch;
     }
 }

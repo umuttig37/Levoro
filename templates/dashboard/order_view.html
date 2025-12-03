@@ -13,7 +13,12 @@
   <header class="order-hero status-{{ order.status.lower() }}">
     <div class="hero-content">
       <div class="hero-header">
-        <h1 id="order-title" class="order-title">Tilaus #{{ order.id }}</h1>
+        <h1 id="order-title" class="order-title">
+          Tilaus #{{ order.id }}
+          {% if order.trip_type %}
+            <span class="trip-type-badge trip-type-{{ order.trip_type.lower() }}">{{ order.trip_type }}</span>
+          {% endif %}
+        </h1>
         <div class="order-status-main">
           <span class="status-badge status-{{ order.status.lower() }}" role="status"
             aria-label="Tilauksen tila: {{ status_fi }}">{{ status_fi }}</span>
