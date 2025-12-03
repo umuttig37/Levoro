@@ -1117,7 +1117,7 @@ function renderAddresses(){ const container=document.getElementById('addressesCo
         <div style="font-weight:600; color:#111827; margin-bottom:0.25rem;">${a.displayName}</div>\
         <div style="font-size:0.875rem; color:#6b7280;">${a.fullAddress}</div>\
       </div>\
-      <button type="button" onclick="deleteAddressDirectly(${i})" class="btn btn-ghost" title="Poista">×</button>\
+      <button type="button" onclick="deleteAddressDirectly(${i})" class="btn-delete-address" style="border: 2px solid #2563eb; background: white; cursor: pointer; padding: 0.25rem 0.5rem; font-size: 1.25rem; line-height: 1; color: #2563eb; transition: all 0.2s; border-radius: 6px; min-width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;" onmouseover="this.style.background='#2563eb'; this.style.color='white'" onmouseout="this.style.background='white'; this.style.color='#2563eb'" title="Poista">×</button>\
     </div>`).join(''); }
 function toggleSavedAddresses(){ const list=document.getElementById('savedAddressesList'); const btn=document.getElementById('toggleAddresses'); if(!list||!btn) return; const show=list.style.display!=='block'; list.style.display=show?'block':'none'; btn.textContent=show?'Piilota tallennetut osoitteet':'Näytä tallennetut osoitteet'; }
 function useAddress(id){ const a=(window.savedAddresses||[]).find(x=>String(x.id)===String(id)); if(!a) return; const inp=document.getElementById('to_step'); if(inp){ inp.value=a.fullAddress; inp.dispatchEvent(new Event('change')); } }
@@ -1610,7 +1610,8 @@ def order_confirm():
                     
                     # Paluu auto fields
                     "trip_type": order_model.TRIP_TYPE_RETURN,
-                    "parent_order_id": outbound_order_id
+                    "parent_order_id": outbound_order_id,
+                    "return_leg": True  # Ensure backend recalculations keep the -30% discount
                 }
                 
                 # Create return order
@@ -1670,42 +1671,38 @@ def order_confirm():
 
     # Build simple, clean outbound section
     meno_section_html = f"""
-<div class='trip-section'>
-  <div class='trip-header'>
-    <span class='trip-badge trip-badge--outbound'>MENOMATKA</span>
+<div class='trip-card trip-card--outbound'>
+  <div class='trip-card__header'>
+    <span class='trip-card__title'>Menomatka</span>
+    <span class='trip-card__distance'>{km:.1f} km</span>
   </div>
-  <div class='trip-details'>
-    <div class='detail-row'>
-      <div class='detail-icon'>📍</div>
-      <div class='detail-content'>
-        <div class='detail-label'>Nouto</div>
-        <div class='detail-value'>{pickup_address}</div>
-        {f"<div class='detail-meta'>{pickup_date_display}</div>" if pickup_date_str else ""}
+  <div class='trip-card__route'>
+    <div class='route-point route-point--start'>
+      <div class='route-point__marker'></div>
+      <div class='route-point__content'>
+        <span class='route-point__label'>Nouto</span>
+        <span class='route-point__address'>{pickup_address}</span>
+        {f"<span class='route-point__date'>{pickup_date_display}</span>" if pickup_date_str else ""}
       </div>
     </div>
-    <div class='route-arrow'>↓</div>
-    <div class='detail-row'>
-      <div class='detail-icon'>📍</div>
-      <div class='detail-content'>
-        <div class='detail-label'>Toimitus</div>
-        <div class='detail-value'>{dropoff_address}</div>
-        {f"<div class='detail-meta'>Viimeistään {last_delivery_display}</div>" if last_delivery_date_str else ""}
+    <div class='route-line'></div>
+    <div class='route-point route-point--end'>
+      <div class='route-point__marker'></div>
+      <div class='route-point__content'>
+        <span class='route-point__label'>Toimitus</span>
+        <span class='route-point__address'>{dropoff_address}</span>
+        {f"<span class='route-point__date'>Viimeistään {last_delivery_display}</span>" if last_delivery_date_str else ""}
       </div>
     </div>
-    <div class='detail-separator'></div>
-    <div class='detail-row-compact'>
-      <div class='compact-item'>
-        <div class='compact-label'>Ajoneuvo</div>
-        <div class='compact-value'>{d.get('reg_number')}</div>
-      </div>
-      <div class='compact-item'>
-        <div class='compact-label'>Talvirenkaat</div>
-        <div class='compact-value'>{"Kyllä" if d.get('winter_tires') else "Ei"}</div>
-      </div>
-      <div class='compact-item'>
-        <div class='compact-label'>Matka</div>
-        <div class='compact-value'>{km:.1f} km</div>
-      </div>
+  </div>
+  <div class='trip-card__footer'>
+    <div class='trip-meta'>
+      <span class='trip-meta__label'>Rekisterinumero</span>
+      <span class='trip-meta__value'>{d.get('reg_number')}</span>
+    </div>
+    <div class='trip-meta'>
+      <span class='trip-meta__label'>Talvirenkaat</span>
+      <span class='trip-meta__value'>{"Kyllä" if d.get('winter_tires') else "Ei"}</span>
     </div>
   </div>
 </div>
@@ -1714,43 +1711,41 @@ def order_confirm():
     paluu_section_html = ""
     if paluu_auto:
         paluu_section_html = f"""
-<div class='trip-section trip-section--return'>
-  <div class='trip-header'>
-    <span class='trip-badge trip-badge--return'>PALUUMATKA</span>
-    <span class='discount-badge'>-30%</span>
+<div class='trip-card trip-card--return'>
+  <div class='trip-card__header'>
+    <span class='trip-card__title'>Paluumatka</span>
+    <div class='trip-card__header-right'>
+      <span class='trip-card__discount'>-30%</span>
+      <span class='trip-card__distance'>{return_km:.1f} km</span>
+    </div>
   </div>
-  <div class='trip-details'>
-    <div class='detail-row'>
-      <div class='detail-icon'>📍</div>
-      <div class='detail-content'>
-        <div class='detail-label'>Nouto</div>
-        <div class='detail-value'>{dropoff_address}</div>
-        {f"<div class='detail-meta'>{return_pickup_display}</div>" if return_pickup_str else ""}
+  <div class='trip-card__route'>
+    <div class='route-point route-point--start'>
+      <div class='route-point__marker'></div>
+      <div class='route-point__content'>
+        <span class='route-point__label'>Nouto</span>
+        <span class='route-point__address'>{dropoff_address}</span>
+        {f"<span class='route-point__date'>{return_pickup_display}</span>" if return_pickup_str else ""}
       </div>
     </div>
-    <div class='route-arrow'>↓</div>
-    <div class='detail-row'>
-      <div class='detail-icon'>📍</div>
-      <div class='detail-content'>
-        <div class='detail-label'>Toimitus</div>
-        <div class='detail-value'>{pickup_address}</div>
-        <div class='detail-meta'>Viimeistään {return_delivery_display}</div>
+    <div class='route-line'></div>
+    <div class='route-point route-point--end'>
+      <div class='route-point__marker'></div>
+      <div class='route-point__content'>
+        <span class='route-point__label'>Toimitus</span>
+        <span class='route-point__address'>{pickup_address}</span>
+        <span class='route-point__date'>Viimeistään {return_delivery_display}</span>
       </div>
     </div>
-    <div class='detail-separator'></div>
-    <div class='detail-row-compact'>
-      <div class='compact-item'>
-        <div class='compact-label'>Ajoneuvo</div>
-        <div class='compact-value'>{d.get('return_reg_number') or 'Ei asetettu'}</div>
-      </div>
-      <div class='compact-item'>
-        <div class='compact-label'>Talvirenkaat</div>
-        <div class='compact-value'>{"Kyllä" if d.get('return_winter_tires') else "Ei"}</div>
-      </div>
-      <div class='compact-item'>
-        <div class='compact-label'>Matka</div>
-        <div class='compact-value'>{return_km:.1f} km</div>
-      </div>
+  </div>
+  <div class='trip-card__footer'>
+    <div class='trip-meta'>
+      <span class='trip-meta__label'>Rekisterinumero</span>
+      <span class='trip-meta__value'>{d.get('return_reg_number') or 'Ei asetettu'}</span>
+    </div>
+    <div class='trip-meta'>
+      <span class='trip-meta__label'>Talvirenkaat</span>
+      <span class='trip-meta__value'>{"Kyllä" if d.get('return_winter_tires') else "Ei"}</span>
     </div>
   </div>
 </div>
@@ -1807,17 +1802,17 @@ def order_confirm():
   <h3 class='price-title'>Yhteenveto</h3>
   <div class='price-details'>
     <div style='text-align: left; margin-bottom: 1.5rem; padding-bottom: 1.5rem; border-bottom: 2px solid #e5e7eb;'>
-      <div style='display: flex; justify-content: space-between; margin-bottom: 0.75rem; font-size: 0.95rem;'>
-        <span style='color: #64748b;'>Menomatka</span>
-        <span style='font-weight: 600; color: #1e293b;'>{km:.1f} km · {net:.2f} €</span>
+      <div style='display: flex; justify-content: space-between; margin-bottom: 0.75rem; font-size: 0.95rem; gap: 1rem;'>
+        <span style='color: #64748b; flex-shrink: 0;'>Menomatka</span>
+        <span style='font-weight: 600; color: #1e293b; text-align: right;'>{km:.1f} km · {net:.2f} €</span>
       </div>
-      <div style='display: flex; justify-content: space-between; margin-bottom: 0.75rem; font-size: 0.95rem;'>
-        <span style='color: #64748b;'>Paluumatka</span>
-        <span style='font-weight: 600; color: #1e293b;'>{return_km:.1f} km · {return_net:.2f} €</span>
+      <div style='display: flex; justify-content: space-between; margin-bottom: 0.75rem; font-size: 0.95rem; gap: 1rem;'>
+        <span style='color: #64748b; flex-shrink: 0;'>Paluumatka</span>
+        <span style='font-weight: 600; color: #1e293b; text-align: right;'>{return_km:.1f} km · {return_net:.2f} €</span>
       </div>
-      <div style='display: flex; justify-content: space-between; font-size: 0.95rem;'>
-        <span style='color: #059669; font-weight: 600;'>Paluualennus -30%</span>
-        <span style='font-weight: 700; color: #059669;'>-{return_discount:.2f} €</span>
+      <div style='display: flex; justify-content: space-between; font-size: 0.95rem; gap: 1rem;'>
+        <span style='color: #3b82f6; font-weight: 600; flex-shrink: 0;'>Paluualennus -30%</span>
+        <span style='font-weight: 700; color: #3b82f6; text-align: right;'>-{return_discount:.2f} €</span>
       </div>
     </div>
     <div style='margin-bottom: 0.5rem;'>
@@ -1891,7 +1886,182 @@ def order_confirm():
   gap: 1.5rem;
 }}
 
-/* Trip section styling */
+/* Trip card styling - Clean professional design */
+.trip-card {{
+  background: #fff;
+  border-radius: 12px;
+  margin-bottom: 1rem;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+  overflow: hidden;
+  border: 1px solid #e5e7eb;
+}}
+
+.trip-card--outbound {{
+  border-color: #3b82f6;
+}}
+
+.trip-card--return {{
+  border-color: #f59e0b;
+}}
+
+.trip-card__header {{
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.25rem;
+  background: #f8fafc;
+  border-bottom: 1px solid #f1f5f9;
+}}
+
+.trip-card__title {{
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #1e293b;
+  letter-spacing: -0.01em;
+}}
+
+.trip-card__header-right {{
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}}
+
+.trip-card__distance {{
+  font-size: 0.85rem;
+  color: #64748b;
+  font-weight: 500;
+}}
+
+.trip-card__discount {{
+  background: #fef3c7;
+  color: #d97706;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.35rem 0.65rem;
+  border-radius: 6px;
+}}
+
+.trip-card__route {{
+  padding: 1.25rem;
+  position: relative;
+}}
+
+.route-point {{
+  display: flex;
+  gap: 1rem;
+  position: relative;
+  z-index: 1;
+}}
+
+.route-point--start {{
+  margin-bottom: 0.5rem;
+}}
+
+.route-point--end {{
+  margin-top: 0.5rem;
+}}
+
+.route-point__marker {{
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #3b82f6;
+  margin-top: 4px;
+  flex-shrink: 0;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+}}
+
+.trip-card--return .route-point__marker {{
+  background: #f59e0b;
+  box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.15);
+}}
+
+.route-point--end .route-point__marker {{
+  background: #10b981;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.15);
+}}
+
+.route-point__content {{
+  flex: 1;
+  min-width: 0;
+}}
+
+.route-point__label {{
+  display: block;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #94a3b8;
+  font-weight: 600;
+  margin-bottom: 0.2rem;
+}}
+
+.route-point__address {{
+  display: block;
+  font-size: 0.9rem;
+  color: #1e293b;
+  font-weight: 500;
+  line-height: 1.4;
+}}
+
+.route-point__date {{
+  display: block;
+  font-size: 0.8rem;
+  color: #64748b;
+  margin-top: 0.2rem;
+}}
+
+.route-line {{
+  position: absolute;
+  left: 1.25rem;
+  top: 2.5rem;
+  bottom: 2.5rem;
+  width: 12px;
+  display: flex;
+  justify-content: center;
+}}
+
+.route-line::before {{
+  content: '';
+  width: 2px;
+  height: 100%;
+  background: linear-gradient(to bottom, #3b82f6, #10b981);
+  border-radius: 1px;
+}}
+
+.trip-card--return .route-line::before {{
+  background: linear-gradient(to bottom, #f59e0b, #10b981);
+}}
+
+.trip-card__footer {{
+  display: flex;
+  gap: 1.5rem;
+  padding: 0.875rem 1.25rem;
+  background: #fafafa;
+  border-top: 1px solid #f1f5f9;
+}}
+
+.trip-meta {{
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}}
+
+.trip-meta__label {{
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #94a3b8;
+  font-weight: 600;
+}}
+
+.trip-meta__value {{
+  font-size: 0.875rem;
+  color: #1e293b;
+  font-weight: 600;
+}}
+
+/* Legacy support - keeping old class names working */
 .trip-section {{
   background: #fff;
   border: 2px solid #e5e7eb;

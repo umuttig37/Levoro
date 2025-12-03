@@ -48,6 +48,9 @@ LONG_NET = float(os.getenv("LONG_NET", "207"))  # Net price for long-distance
 # NOTE: Return leg discount is not currently used in the application UI
 # This feature is preserved for potential future use
 ROUNDTRIP_DISCOUNT = 0.30
+# Short-distance special rule: any trip up to this distance uses SHORT_DISTANCE_NET
+SHORT_DISTANCE_KM = float(os.getenv("SHORT_DISTANCE_KM", "30"))
+SHORT_DISTANCE_NET = float(os.getenv("SHORT_DISTANCE_NET", "27"))
 # Minimum order price - all orders must be at least this amount (net)
 MINIMUM_ORDER_PRICE_NET = 20.0
 
@@ -74,12 +77,16 @@ class OrderService:
                 )
                 if distance_km > 0:
                     order_data["distance_km"] = distance_km
-                    order_data["price_gross"] = self.calculate_price(
+                    gross_price = self.calculate_price(
                         distance_km,
                         order_data["pickup_address"],
                         order_data["dropoff_address"],
                         order_data.get("return_leg", False)
                     )
+                    order_data["price_gross"] = gross_price
+                    net_price, vat_amount = self._split_gross_to_net_vat(gross_price)
+                    order_data["price_net"] = net_price
+                    order_data["price_vat"] = vat_amount
 
             order, error = self.order_model.create_order(user_id, order_data)
 
@@ -177,12 +184,15 @@ class OrderService:
             return 0.0
 
         # Calculate NET price first
+        if distance_km <= SHORT_DISTANCE_KM:
+            # All short trips cost SHORT_DISTANCE_NET regardless of city pairing
+            net_price = SHORT_DISTANCE_NET
         # Check if both addresses are in metro area
-        if self._both_in_metro(pickup_addr, dropoff_addr):
+        elif self._both_in_metro(pickup_addr, dropoff_addr):
             net_price = METRO_NET
         elif distance_km <= MID_KM:
-            # Interpolate between metro and mid-distance
-            net_price = self._interpolate(distance_km, 50, METRO_NET, MID_KM, MID_NET)
+            # Interpolate between short-distance baseline and mid-distance tier
+            net_price = self._interpolate(distance_km, SHORT_DISTANCE_KM, SHORT_DISTANCE_NET, MID_KM, MID_NET)
         elif distance_km <= LONG_KM:
             # Interpolate between mid and long distance
             net_price = self._interpolate(distance_km, MID_KM, MID_NET, LONG_KM, LONG_NET)
@@ -196,7 +206,10 @@ class OrderService:
             net_price *= (1 - ROUNDTRIP_DISCOUNT)
 
         # Enforce minimum order price (net)
-        net_price = max(net_price, MINIMUM_ORDER_PRICE_NET)
+        if distance_km <= SHORT_DISTANCE_KM:
+            net_price = max(net_price, SHORT_DISTANCE_NET)
+        else:
+            net_price = max(net_price, MINIMUM_ORDER_PRICE_NET)
 
         # Add VAT to get gross price
         gross_price = net_price * (1 + VAT_RATE)
