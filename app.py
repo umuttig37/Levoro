@@ -431,7 +431,7 @@ PAGE_FOOT = """
     <div class="footer-inner">
       <div class="text-center">
         __FOOTER_CALCULATOR__
-        <p style="margin: 0; opacity: 0.8;">© 2025 Levoro – Luotettava autonkuljetus</p>
+        <p style="margin: 0; opacity: 0.8;">© 2025 Levoro - Tiyouba Oy | Y-tunnus: 1541430-2</p>
       </div>
     </div>
   </div>
