@@ -184,32 +184,39 @@ class OrderService:
             return 0.0
 
         # Calculate NET price first
+        min_net_price = MINIMUM_ORDER_PRICE_NET
         if distance_km <= SHORT_DISTANCE_KM:
             # All short trips cost SHORT_DISTANCE_NET regardless of city pairing
             net_price = SHORT_DISTANCE_NET
+            min_net_price = SHORT_DISTANCE_NET
         # Check if both addresses are in metro area
         elif self._both_in_metro(pickup_addr, dropoff_addr):
             net_price = METRO_NET
+            min_net_price = MINIMUM_ORDER_PRICE_NET
         elif distance_km <= MID_KM:
             # Interpolate between short-distance baseline and mid-distance tier
             net_price = self._interpolate(distance_km, SHORT_DISTANCE_KM, SHORT_DISTANCE_NET, MID_KM, MID_NET)
+            min_net_price = MINIMUM_ORDER_PRICE_NET
         elif distance_km <= LONG_KM:
             # Interpolate between mid and long distance
             net_price = self._interpolate(distance_km, MID_KM, MID_NET, LONG_KM, LONG_NET)
+            min_net_price = MINIMUM_ORDER_PRICE_NET
         else:
             # Long distance: fixed rate per km
             rate_per_km = LONG_NET / LONG_KM
             net_price = distance_km * rate_per_km
+            min_net_price = MINIMUM_ORDER_PRICE_NET
 
         # Apply return trip discount (NOTE: This feature is not currently used in the UI)
         if return_leg:
             net_price *= (1 - ROUNDTRIP_DISCOUNT)
+            # Allow paluuauto discount to lower short-distance fares below the 27€ floor
+            if distance_km <= SHORT_DISTANCE_KM:
+                discounted_floor = SHORT_DISTANCE_NET * (1 - ROUNDTRIP_DISCOUNT)
+                min_net_price = min(min_net_price, discounted_floor)
 
         # Enforce minimum order price (net)
-        if distance_km <= SHORT_DISTANCE_KM:
-            net_price = max(net_price, SHORT_DISTANCE_NET)
-        else:
-            net_price = max(net_price, MINIMUM_ORDER_PRICE_NET)
+        net_price = max(net_price, min_net_price)
 
         # Add VAT to get gross price
         gross_price = net_price * (1 + VAT_RATE)

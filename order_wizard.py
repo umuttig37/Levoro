@@ -1467,21 +1467,29 @@ def order_confirm():
     # Calculate outbound km and pricing
     km = 0.0
     err = None
+    pricing_error_messages = []
+    outbound_route_ok = False
     try:
         km = order_service.route_km(d["pickup"], d["dropoff"])
+        outbound_route_ok = True
     except Exception as e:
-        err = f"Hinnanlaskenta epäonnistui: {e}"
-    
+        print(f"Outbound route calculation failed: {e}")
+        pricing_error_messages.append(
+            "Menomatkan reitin laskenta epäonnistui. Tilausta ei voida vahvistaa juuri nyt. Tarkista osoitteet ja yritä hetken kuluttua uudelleen."
+        )
+
     u = auth_service.get_current_user()
     time_window = "flex" if not d.get("pickup_date") else "exact"
     return_leg = False
-    net, vat, gross, _ = order_service.price_from_km(
-        km,
-        pickup_addr=d.get("pickup"),
-        dropoff_addr=d.get("dropoff"),
-        return_leg=return_leg
-    )
-    
+    net = vat = gross = 0.0
+    if outbound_route_ok:
+        net, vat, gross, _ = order_service.price_from_km(
+            km,
+            pickup_addr=d.get("pickup"),
+            dropoff_addr=d.get("dropoff"),
+            return_leg=return_leg
+        )
+
     # Calculate return leg if Paluu auto is checked
     paluu_auto = d.get("paluu_auto", False)
     return_km = 0.0
@@ -1500,36 +1508,43 @@ def order_confirm():
             # Return trip is reversed: dropoff becomes pickup, pickup becomes dropoff
             return_km = order_service.route_km(d["dropoff"], d["pickup"])
             total_km = km + return_km
-            
-            # Calculate return pricing (30% discount)
-            return_net_full, return_vat_full, return_gross_full, _ = order_service.price_from_km(
-                return_km,
-                pickup_addr=d.get("dropoff"),
-                dropoff_addr=d.get("pickup"),
-                return_leg=True  # This will apply 30% discount
-            )
-            
-            # The return_leg=True already applies 30% discount in order_service
-            return_net = return_net_full
-            return_vat = return_vat_full
-            return_gross = return_gross_full
-            
-            # Calculate what the discount amount is (for display)
-            return_net_before_discount, _, _, _ = order_service.price_from_km(
-                return_km,
-                pickup_addr=d.get("dropoff"),
-                dropoff_addr=d.get("pickup"),
-                return_leg=False
-            )
-            return_discount = return_net_before_discount - return_net
-            
-            # Total pricing
-            total_net = net + return_net
-            total_vat = vat + return_vat
-            total_gross = gross + return_gross
-            
+
+            # Calculate return pricing (30% discount) only if routing succeeded
+            if return_km > 0:
+                return_net_full, return_vat_full, return_gross_full, _ = order_service.price_from_km(
+                    return_km,
+                    pickup_addr=d.get("dropoff"),
+                    dropoff_addr=d.get("pickup"),
+                    return_leg=True  # This will apply 30% discount
+                )
+
+                # The return_leg=True already applies 30% discount in order_service
+                return_net = return_net_full
+                return_vat = return_vat_full
+                return_gross = return_gross_full
+
+                # Calculate what the discount amount is (for display)
+                return_net_before_discount, _, _, _ = order_service.price_from_km(
+                    return_km,
+                    pickup_addr=d.get("dropoff"),
+                    dropoff_addr=d.get("pickup"),
+                    return_leg=False
+                )
+                return_discount = return_net_before_discount - return_net
+
+                # Total pricing
+                total_net = net + return_net
+                total_vat = vat + return_vat
+                total_gross = gross + return_gross
+            else:
+                pricing_error_messages.append(
+                    "Paluumatkan reitin laskenta epäonnistui. Tilausta ei voida vahvistaa juuri nyt. Yritä hetken kuluttua uudelleen."
+                )
         except Exception as e:
-            err = f"Paluumatkan hinnanlaskenta epäonnistui: {e}"
+            print(f"Return route calculation failed: {e}")
+            pricing_error_messages.append(
+                "Paluumatkan reitin laskenta epäonnistui. Tilausta ei voida vahvistaa juuri nyt. Yritä hetken kuluttua uudelleen."
+            )
 
     pickup_date_iso = d.get("pickup_date") or None
     last_delivery_date_iso = d.get("last_delivery_date") or None
@@ -1537,6 +1552,9 @@ def order_confirm():
     computed_return_pickup_iso = last_delivery_date_iso or pickup_date_iso
 
     if request.method == "POST":
+        if pricing_error_messages:
+            session["error_message"] = " ".join(pricing_error_messages)
+            return redirect("/order/new/confirm")
         # Prepare outbound order data
         order_data = {
             "pickup_address": d.get("pickup"),
@@ -1638,6 +1656,7 @@ def order_confirm():
             # Stay on confirmation page to show error
             pass
 
+    err = " ".join(pricing_error_messages) if pricing_error_messages else None
     price_block = f"<div class='card'><strong style='font-size: 0.9em;'>Hinta:</strong> <span style='font-size: 1.5em; font-weight: 800;'>{net:.2f} €</span> <strong style='font-size: 1.1em;'>ALV 0%</strong> <span style='opacity: 0.6; font-size: 0.85em;'>({km:.1f} km)</span></div>"
     if err: price_block = f"<div class='card'><span class='muted'>{err}</span><br>{price_block}</div>"
 
@@ -1841,6 +1860,10 @@ def order_confirm():
 </div>
 """
 
+    disable_submission = bool(pricing_error_messages)
+    submit_disabled_attr = "disabled" if disable_submission else ""
+    submit_disabled_helper = f"<p class='muted' style='margin-top: 0.75rem; color: #dc2626;'>Hinnanlaskenta epäonnistui, joten tilausta ei voi lähettää. Yritä myöhemmin uudelleen.</p>" if disable_submission else ""
+
     inner = f"""
 <h2 class='card-title'>Vahvista tilaus</h2>
 {error_html}
@@ -1859,8 +1882,9 @@ def order_confirm():
 <form method='POST' class='calculator-form'>
   <div class='calculator-actions' style='margin-top: 2rem;'>
     <button type='button' onclick='window.location.href="/order/new/step5"' class='btn btn-ghost'>← Takaisin</button>
-    <button type='submit' class='btn btn-primary btn-large'>Vahvista ja lähetä tilaus</button>
+    <button type='submit' class='btn btn-primary btn-large' {submit_disabled_attr}>Vahvista ja lähetä tilaus</button>
   </div>
+  {submit_disabled_helper}
 </form>
 
 <!-- Leaflet CSS and JS for map -->
