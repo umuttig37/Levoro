@@ -995,10 +995,13 @@ class EmailService:
             </div>
 """
             
+            # Add clear all button if there are emails
+            clear_button = '<div class="clear-all"><button class="btn btn-danger" onclick="if(confirm(\'Clear all emails?\')) { alert(\'Please delete files manually from static/dev_emails folder\'); }">🗑️ Clear All Emails</button></div>' if email_files else ''
+            
             index_html += f"""
         </div>
         
-        {f'<div class="clear-all"><button class="btn btn-danger" onclick="if(confirm(\'Clear all emails?\')) {{ alert(\'Please delete files manually from static/dev_emails folder\'); }}">🗑️ Clear All Emails</button></div>' if email_files else ''}
+        {clear_button}
     </div>
     <script>
         // Auto-refresh every 5 seconds
