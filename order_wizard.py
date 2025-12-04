@@ -115,12 +115,11 @@ def order_step1():
         pickup_date_obj = _parse_iso_date(d.get("pickup_date")) or default_pickup_date
         pickup_date_val = pickup_date_obj.isoformat()
 
-        last_delivery_obj = _parse_iso_date(d.get("last_delivery_date")) or (pickup_date_obj + datetime.timedelta(days=1))
+        last_delivery_obj = _parse_iso_date(d.get("last_delivery_date")) or pickup_date_obj
         last_delivery_date_val = last_delivery_obj.isoformat()
 
         pickup_val = (d.get("pickup", "") or "").replace('"', '&quot;')
         paluu_auto_checked = "checked" if d.get("paluu_auto") else ""
-        return_delivery_date_val = str(d.get('return_delivery_date') or '')
 
         # Check for error message and display it
         error_msg = session.pop("error_message", None)
@@ -138,7 +137,7 @@ def order_step1():
 
   <div class="date-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 12px;">
     <div class="date-field">
-      <label for="pickup_date">Viimeinen noutopäivä</label>
+      <label for="pickup_date">Toimituspäivä</label>
       <div class="date-input-wrap" style="position: relative;">
         <svg class="calendar-icon-svg" width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="position: absolute; left: 12px; top: 12px; z-index: 1;"> 
           <rect x="3" y="4" width="18" height="18" rx="2" stroke="#64748b" stroke-width="2"/>
@@ -180,30 +179,16 @@ def order_step1():
     </div>
   </details>
 
-  <!-- Paluu auto -->
+  <!-- Paluuajo -->
   <div class='form-group' style="margin-top: 20px; padding: 14px 16px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px;">
     <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 6px;">
       <label class='form-checkbox' style="margin: 0;">
         <input type='checkbox' id='paluu_auto_checkbox' name='paluu_auto' value='1' __PALUU_AUTO_CHECKED__>
-        <span class='form-checkbox-label' style="font-weight: 600; font-size: 1.05rem; color: #1e293b; margin-left: 10px;">Paluu auto</span>
+        <span class='form-checkbox-label' style="font-weight: 600; font-size: 1.05rem; color: #1e293b; margin-left: 10px;">Paluuajo</span>
       </label>
       <span style="background: #f97316; color: white; font-weight: 600; font-size: 0.8rem; padding: 5px 12px; border-radius: 6px; white-space: nowrap;">-30% Alennus</span>
     </div>
     <p style="margin: 0; padding-left: 0; font-size: 0.875rem; color: #64748b; line-height: 1.5;">Säästä 30% paluukuljetuksesta</p>
-    <div id="return_delivery_date_section" style="margin-top: 16px; display: __RETURN_DATE_DISPLAY__;">
-      <div class="date-field">
-        <label for="return_delivery_date">Paluuauton viimeinen toimituspäivä *</label>
-        <div class="date-input-wrap" style="position: relative; max-width: 280px;">
-          <svg class="calendar-icon-svg" width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="position: absolute; left: 12px; top: 12px; z-index: 1;"> 
-            <rect x="3" y="4" width="18" height="18" rx="2" stroke="#64748b" stroke-width="2"/>
-            <line x1="8" y1="2.5" x2="8" y2="6" stroke="#64748b" stroke-width="2"/>
-            <line x1="16" y1="2.5" x2="16" y2="6" stroke="#64748b" stroke-width="2"/>
-            <line x1="3" y1="10" x2="21" y2="10" stroke="#64748b" stroke-width="2"/>
-          </svg>
-          <input type="date" name="return_delivery_date" id="return_delivery_date" class="form-input date-input" style="padding-left: 40px; height: 44px; font-size: 0.95rem; width: 100%;" value="__RETURN_DELIVERY_DATE_VAL__">
-        </div>
-      </div>
-    </div>
   </div>
 
   <div class='calculator-actions mt-2' style="margin-top: 16px;">
@@ -652,11 +637,6 @@ window.fromAutocomplete = step1Autocomplete;
 (function() {
   const pickupDateInput = document.getElementById('pickup_date');
   const lastDeliveryDateInput = document.getElementById('last_delivery_date');
-  const paluuAutoCheckbox = document.getElementById('paluu_auto_checkbox');
-  const returnDeliveryDateSection = document.getElementById('return_delivery_date_section');
-  const returnDeliveryDateInput = document.getElementById('return_delivery_date');
-  const returnPickupHint = document.getElementById('return_pickup_hint');
-  const returnPickupHintValue = document.getElementById('return_pickup_hint_value');
 
   function formatISODate(dateObj) {
     const year = dateObj.getFullYear();
@@ -683,12 +663,6 @@ window.fromAutocomplete = step1Autocomplete;
     return formatISODate(date);
   }
 
-  function formatFinnishDate(isoValue) {
-    const date = parseISODate(isoValue);
-    if (!date) return '';
-    return `${String(date.getDate()).padStart(2, '0')}.${String(date.getMonth() + 1).padStart(2, '0')}.${date.getFullYear()}`;
-  }
-
   function ensurePickupDefault() {
     if (!pickupDateInput) return;
     const tomorrow = new Date();
@@ -700,53 +674,11 @@ window.fromAutocomplete = step1Autocomplete;
     }
   }
 
-  function updateReturnPickupHint(pickupISO) {
-    if (!returnPickupHint || !returnPickupHintValue) return;
-    if (!pickupISO) {
-      returnPickupHint.style.display = 'none';
-      return;
-    }
-    returnPickupHintValue.textContent = formatFinnishDate(pickupISO);
-    returnPickupHint.style.display = 'block';
-  }
-
-  function updateReturnDeliveryMin() {
-    if (!paluuAutoCheckbox || !returnDeliveryDateInput || !lastDeliveryDateInput) return;
-    if (!paluuAutoCheckbox.checked) {
-      updateReturnPickupHint(null);
-      return;
-    }
-
-    const lastDeliveryDate = lastDeliveryDateInput.value;
-    if (lastDeliveryDate) {
-      returnDeliveryDateInput.min = lastDeliveryDate;
-      const returnDeliveryValue = returnDeliveryDateInput.value;
-      if (!returnDeliveryValue || returnDeliveryValue < lastDeliveryDate) {
-        returnDeliveryDateInput.value = lastDeliveryDate;
-      }
-      updateReturnPickupHint(lastDeliveryDate);
-    }
-  }
-
-  function toggleReturnDeliverySection() {
-    if (!paluuAutoCheckbox || !returnDeliveryDateSection || !returnDeliveryDateInput) return;
-    if (paluuAutoCheckbox.checked) {
-      returnDeliveryDateSection.style.display = 'block';
-      returnDeliveryDateInput.required = true;
-      updateReturnDeliveryMin();
-    } else {
-      returnDeliveryDateSection.style.display = 'none';
-      returnDeliveryDateInput.required = false;
-      returnDeliveryDateInput.value = '';
-      updateReturnPickupHint(null);
-    }
-  }
-
   function updateLastDeliveryMin() {
     if (!pickupDateInput || !lastDeliveryDateInput) return;
     const pickupDate = pickupDateInput.value;
     if (pickupDate) {
-      const minDeliveryDate = addDaysToISO(pickupDate, 1);
+      const minDeliveryDate = addDaysToISO(pickupDate, 0);
       if (minDeliveryDate) {
         lastDeliveryDateInput.min = minDeliveryDate;
         const lastDeliveryValue = lastDeliveryDateInput.value;
@@ -755,7 +687,6 @@ window.fromAutocomplete = step1Autocomplete;
         }
       }
     }
-    updateReturnDeliveryMin();
   }
 
   if (pickupDateInput && lastDeliveryDateInput) {
@@ -764,21 +695,10 @@ window.fromAutocomplete = step1Autocomplete;
     pickupDateInput.addEventListener('input', updateLastDeliveryMin);
     updateLastDeliveryMin();
   }
-
-  if (paluuAutoCheckbox && returnDeliveryDateSection && returnDeliveryDateInput) {
-    paluuAutoCheckbox.addEventListener('change', toggleReturnDeliverySection);
-    paluuAutoCheckbox.addEventListener('input', toggleReturnDeliverySection);
-    if (lastDeliveryDateInput) {
-      lastDeliveryDateInput.addEventListener('change', updateReturnDeliveryMin);
-      lastDeliveryDateInput.addEventListener('input', updateReturnDeliveryMin);
-    }
-    toggleReturnDeliverySection();
-  }
 })();
 </script>
 """
-        return_date_display = "block" if d.get("paluu_auto") else "none"
-        inner = inner.replace("__PICKUP_VAL__", pickup_val).replace("__PICKUP_DATE_VAL__", pickup_date_val).replace("__LAST_DELIVERY_DATE_VAL__", last_delivery_date_val).replace("__PALUU_AUTO_CHECKED__", paluu_auto_checked).replace("__RETURN_DELIVERY_DATE_VAL__", return_delivery_date_val).replace("__RETURN_DATE_DISPLAY__", return_date_display)
+        inner = inner.replace("__PICKUP_VAL__", pickup_val).replace("__PICKUP_DATE_VAL__", pickup_date_val).replace("__LAST_DELIVERY_DATE_VAL__", last_delivery_date_val).replace("__PALUU_AUTO_CHECKED__", paluu_auto_checked)
         return get_wrap()(wizard_shell(1, inner, session.get("order_draft", {})), u)
 
     # POST → talteen ja seuraavaan steppiin
@@ -786,8 +706,12 @@ window.fromAutocomplete = step1Autocomplete;
     d["pickup"] = request.form.get("pickup", "").strip()
     d["pickup_date"] = request.form.get("pickup_date", "").strip()
     d["last_delivery_date"] = request.form.get("last_delivery_date") or None
-    d["paluu_auto"] = bool(request.form.get("paluu_auto"))
-    d["return_delivery_date"] = request.form.get("return_delivery_date") or None if d["paluu_auto"] else None
+    paluu_auto_selected = bool(request.form.get("paluu_auto"))
+    d["paluu_auto"] = paluu_auto_selected
+    if paluu_auto_selected:
+        d["return_delivery_date"] = d.get("last_delivery_date") or d.get("pickup_date") or None
+    else:
+        d["return_delivery_date"] = None
     session["order_draft"] = d
     return redirect("/order/new/step2")
 
@@ -1219,14 +1143,14 @@ def order_step3():
   </div>
   
   <div id='return_car_section' style='display: {return_section_display}; padding: 1rem; border: 2px solid #dbeafe; border-radius: 8px; background: linear-gradient(to bottom, #eff6ff, #ffffff); margin-bottom: 1.5rem;'>
-    <h3 style='margin: 0 0 1rem 0; font-size: 1.1rem; font-weight: 600; color: #1e40af;'>Paluuauton tiedot</h3>
-    <label class='form-label'>Rekisterinumero (paluuauto) *</label>
+    <h3 style='margin: 0 0 1rem 0; font-size: 1.1rem; font-weight: 600; color: #1e40af;'>Paluauton tiedot</h3>
+    <label class='form-label'>Rekisterinumero (paluauto) *</label>
     <input name='return_reg_number' id='return_reg_number' placeholder='XYZ-456' class='form-input' value="{return_reg_val}" {("required" if paluu_auto else "")}>
     
     <div class='form-group mt-4'>
       <label class='form-checkbox'>
         <input type='checkbox' name='return_winter_tires' value='1' {return_winter_checked}>
-        <span class='form-checkbox-label'>Autossa on talvirenkaat (paluuauto)</span>
+        <span class='form-checkbox-label'>Autossa on talvirenkaat (paluauto)</span>
       </label>
     </div>
   </div>
@@ -1670,9 +1594,16 @@ def order_confirm():
             if not s:
                 return None
             dt = datetime.datetime.strptime(s, "%Y-%m-%d")
-            return dt.strftime("%d.%m.%Y")
+            return dt.strftime("%d.%m")
         except Exception:
             return s
+
+    def _format_date_range(start_str: str, end_str: str, fallback: str):
+        if start_str and end_str:
+            return start_str if start_str == end_str else f"{start_str} - {end_str}"
+        if start_str or end_str:
+            return start_str or end_str
+        return fallback
 
     pickup_date_str = _fmt_date(pickup_date_iso)
     last_delivery_date_str = _fmt_date(last_delivery_date_iso)
@@ -1680,10 +1611,14 @@ def order_confirm():
     return_pickup_str = _fmt_date(computed_return_pickup_iso)
 
     date_fallback = "Ei asetettu"
-    pickup_date_display = pickup_date_str or date_fallback
-    last_delivery_display = last_delivery_date_str or date_fallback
-    return_delivery_display = return_delivery_date_str or date_fallback
-    return_pickup_display = return_pickup_str or date_fallback
+    outbound_date_display = _format_date_range(pickup_date_str, last_delivery_date_str, date_fallback)
+    return_range_end = return_delivery_date_str or last_delivery_date_str or pickup_date_str
+    return_date_display = _format_date_range(pickup_date_str, return_range_end, date_fallback)
+
+    pickup_date_display = outbound_date_display
+    last_delivery_display = outbound_date_display
+    return_pickup_display = return_date_display
+    return_delivery_display = return_date_display
 
     pickup_address = d.get("pickup") or ""
     dropoff_address = d.get("dropoff") or ""
@@ -1710,7 +1645,7 @@ def order_confirm():
       <div class='route-point__content'>
         <span class='route-point__label'>Toimitus</span>
         <span class='route-point__address'>{dropoff_address}</span>
-        {f"<span class='route-point__date'>Viimeistään {last_delivery_display}</span>" if last_delivery_date_str else ""}
+        {f"<span class='route-point__date'>{last_delivery_display}</span>" if last_delivery_date_str else ""}
       </div>
     </div>
   </div>
@@ -1753,7 +1688,7 @@ def order_confirm():
       <div class='route-point__content'>
         <span class='route-point__label'>Toimitus</span>
         <span class='route-point__address'>{pickup_address}</span>
-        <span class='route-point__date'>Viimeistään {return_delivery_display}</span>
+        <span class='route-point__date'>{return_delivery_display}</span>
       </div>
     </div>
   </div>
