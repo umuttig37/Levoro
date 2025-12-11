@@ -232,6 +232,12 @@ def order_step1():
 </style>
 
 <script>
+function applySavedPhoneToStep2(phone){
+  const hidden = document.getElementById('saved_dropoff_phone');
+  if (!hidden) return;
+  hidden.value = (phone || '').trim();
+}
+
 /* ===== Google Places Autocomplete for Wizard ===== */
 class WizardGooglePlacesAutocomplete {
   constructor(input, listEl){
@@ -473,6 +479,9 @@ class WizardGooglePlacesAutocomplete {
     const addr = (window.savedAddresses||[]).find(a=>String(a.id)===String(id));
     if (!addr) return;
     this.input.value = addr.fullAddress;
+    if (this.input && this.input.id === 'to_step') {
+      applySavedPhoneToStep2(addr.phone || '');
+    }
     this.hide();
     this.input.dispatchEvent(new Event('change'));
   }
@@ -494,6 +503,9 @@ class WizardGooglePlacesAutocomplete {
     const item = this.items[i];
     if(!item) return;
 
+    if (this.input && this.input.id === 'to_step') {
+      applySavedPhoneToStep2('');
+    }
     this.input.value = item.description;
     this.hide();
     this.input.dispatchEvent(new Event('change'));
@@ -521,8 +533,10 @@ async function fetchServerAddresses(){
   return Array.isArray(data.items) ? data.items : [];
 }
 
-async function createServerAddress(displayName, fullAddress){
-  const data = await apiCall('/api/saved_addresses', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({displayName, fullAddress}) });
+async function createServerAddress(displayName, fullAddress, phone){
+  const payload = { displayName, fullAddress };
+  if (phone) payload.phone = phone;
+  const data = await apiCall('/api/saved_addresses', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) });
   return data.item;
 }
 
@@ -553,6 +567,7 @@ function renderAddresses(){
       <div style="flex:1;">
         <div style="font-weight:600; color:#111827; margin-bottom:0.25rem;">${a.displayName}</div>
         <div style="font-size:0.875rem; color:#6b7280;">${a.fullAddress}</div>
+        ${a.phone ? `<div style="font-size:0.85rem; color:#334155; margin-top:4px;">Puhelin: ${a.phone}</div>` : ''}
       </div>
       <button type="button" onclick="deleteAddressDirectly(${i})" class="btn-delete-address" style="border: 2px solid #2563eb; background: white; cursor: pointer; padding: 0.25rem 0.5rem; font-size: 1.25rem; line-height: 1; color: #2563eb; transition: all 0.2s; border-radius: 6px; min-width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;" onmouseover="this.style.background='#2563eb'; this.style.color='white'" onmouseout="this.style.background='white'; this.style.color='#2563eb'" title="Poista">×</button>
     </div>`).join('');
@@ -596,6 +611,10 @@ function openAddressModal(){
         <label style="display:block; margin-bottom:0.25rem;">Osoite *</label>
         <input id="addrFull" class="form-input" placeholder="Esim. Mannerheimintie 1, Helsinki" style="width:100%;">
       </div>
+      <div style="margin-bottom:0.75rem;">
+        <label style="display:block; margin-bottom:0.25rem;">Puhelinnumero (valinnainen)</label>
+        <input id="addrPhone" type="tel" class="form-input" placeholder="+358..." style="width:100%;">
+      </div>
       <div style="display:flex; gap:0.5rem; justify-content:flex-end;">
         <button type="button" class="btn btn-ghost" onclick="closeAddressModal()">Peruuta</button>
         <button type="button" class="btn btn-primary" onclick="saveAddress()">Tallenna</button>
@@ -611,9 +630,12 @@ function closeAddressModal(){ const m=document.getElementById('addressModal'); i
 async function saveAddress(){
   const name = document.getElementById('addrName').value.trim();
   const addr = document.getElementById('addrFull').value.trim();
+  const phoneInput = document.getElementById('addrPhone');
+  const phone = phoneInput ? phoneInput.value.trim() : '';
   if (!name || !addr) { alert('Täytä molemmat kentät'); return; }
-  let created=null; try{ created = await createServerAddress(name, addr);}catch(e){}
-  const item = created || { id: Date.now(), displayName: name, fullAddress: addr };
+  if (phone && !/^[+]?[0-9\s\-()]+$/.test(phone)) { alert('Syötä vain numeroita ja merkit +, -, ( )'); return; }
+  let created=null; try{ created = await createServerAddress(name, addr, phone);}catch(e){}
+  const item = created || { id: Date.now(), displayName: name, fullAddress: addr, phone };
   window.savedAddresses.push(item);
   saveToStorage();
   renderAddresses();
@@ -733,6 +755,10 @@ def order_step2():
     if request.method == "POST":
         d = session.get("order_draft", {})
         d["dropoff"] = request.form.get("dropoff", "").strip()
+        saved_phone = (request.form.get("saved_dropoff_phone") or "").strip()
+        if saved_phone and not validate_phone_number(saved_phone):
+            saved_phone = ""
+        d["saved_dropoff_phone"] = saved_phone
         # Note: last_delivery_date is now handled in step 1, not step 2
         session["order_draft"] = d
         
@@ -748,6 +774,7 @@ def order_step2():
     pick_val = (d.get('pickup', '') or '').replace('"', '&quot;')  # piilotettuun from_stepiin
     pickup_date_val = d.get('pickup_date', '')
     last_delivery_date_val = d.get('last_delivery_date', '')
+    saved_phone_val = (d.get('saved_dropoff_phone', '') or '').replace('"', '&quot;')
 
     inner = """
 <h2>Auton toimitus</h2>
@@ -755,6 +782,7 @@ def order_step2():
   <!-- piilotettu nouto, jotta kartta voi piirtyä (from_step löytyy DOMista) -->
   <input type="hidden" id="from_step" value="__PICK_VAL__">
   <input type="hidden" id="pickup_date_step2" value="__PICKUP_DATE_VAL__">
+  <input type="hidden" id="saved_dropoff_phone" name="saved_dropoff_phone" value="__SAVED_PHONE_VAL__">
   
   <label class='form-label'>Toimitusosoite *</label>
   <div class="autocomplete">
@@ -801,6 +829,12 @@ def order_step2():
 </style>
 
 <script>
+function applySavedPhoneToStep2(phone){
+  const hidden = document.getElementById('saved_dropoff_phone');
+  if (!hidden) return;
+  hidden.value = (phone || '').trim();
+}
+
 /* ===== Google Places Autocomplete for Wizard Step 2 ===== */
 class WizardGooglePlacesAutocomplete {
   constructor(input, listEl){
@@ -991,6 +1025,9 @@ class WizardGooglePlacesAutocomplete {
     const addr = (window.savedAddresses||[]).find(a=>String(a.id)===String(id));
     if (!addr) return;
     this.input.value = addr.fullAddress;
+    if (this.input && this.input.id === 'to_step') {
+      applySavedPhoneToStep2(addr.phone || '');
+    }
     this.hide();
     this.input.dispatchEvent(new Event('change'));
   }
@@ -1012,6 +1049,9 @@ class WizardGooglePlacesAutocomplete {
     const item = this.items[i];
     if(!item) return;
 
+    if (this.input && this.input.id === 'to_step') {
+      applySavedPhoneToStep2('');
+    }
     this.input.value = item.description;
     this.hide();
     this.input.dispatchEvent(new Event('change'));
@@ -1029,7 +1069,7 @@ window.savedAddresses = [];
 
 async function apiCall(url, options={}){ const res=await fetch(url, options); let data=null; try{ data=await res.json(); }catch{} if(!res.ok) throw new Error((data&&(data.error||data.message))||('HTTP '+res.status)); return data; }
 async function fetchServerAddresses(){ const d=await apiCall('/api/saved_addresses',{method:'GET'}); return Array.isArray(d.items)?d.items:[]; }
-async function createServerAddress(displayName, fullAddress){ const d=await apiCall('/api/saved_addresses',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({displayName, fullAddress})}); return d.item; }
+async function createServerAddress(displayName, fullAddress, phone){ const payload={displayName, fullAddress}; if(phone) payload.phone=phone; const d=await apiCall('/api/saved_addresses',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}); return d.item; }
 async function deleteServerAddress(id){ await apiCall(`/api/saved_addresses/${encodeURIComponent(id)}`, { method:'DELETE' }); }
 function setCookie(name, value, days){ try{ const d=new Date(); d.setTime(d.getTime()+days*864e5); document.cookie=name+'='+value+';expires='+d.toUTCString()+';path=/;SameSite=Lax'; }catch(e){} }
 function getCookie(name){ try{ const cname=name+'='; return document.cookie.split(';').map(s=>s.trim()).find(c=>c.indexOf(cname)===0)?.substring(cname.length)||''; }catch(e){return '';} }
@@ -1040,15 +1080,20 @@ function renderAddresses(){ const container=document.getElementById('addressesCo
       <div style="flex:1; cursor:pointer;" onclick="useAddress('${a.id}')">\
         <div style="font-weight:600; color:#111827; margin-bottom:0.25rem;">${a.displayName}</div>\
         <div style="font-size:0.875rem; color:#6b7280;">${a.fullAddress}</div>\
+        ${a.phone ? `<div style="font-size:0.85rem; color:#334155; margin-top:4px;">Puhelin: ${a.phone}</div>` : ''}\
       </div>\
       <button type="button" onclick="deleteAddressDirectly(${i})" class="btn-delete-address" style="border: 2px solid #2563eb; background: white; cursor: pointer; padding: 0.25rem 0.5rem; font-size: 1.25rem; line-height: 1; color: #2563eb; transition: all 0.2s; border-radius: 6px; min-width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;" onmouseover="this.style.background='#2563eb'; this.style.color='white'" onmouseout="this.style.background='white'; this.style.color='#2563eb'" title="Poista">×</button>\
     </div>`).join(''); }
 function toggleSavedAddresses(){ const list=document.getElementById('savedAddressesList'); const btn=document.getElementById('toggleAddresses'); if(!list||!btn) return; const show=list.style.display!=='block'; list.style.display=show?'block':'none'; btn.textContent=show?'Piilota tallennetut osoitteet':'Näytä tallennetut osoitteet'; }
-function useAddress(id){ const a=(window.savedAddresses||[]).find(x=>String(x.id)===String(id)); if(!a) return; const inp=document.getElementById('to_step'); if(inp){ inp.value=a.fullAddress; inp.dispatchEvent(new Event('change')); } }
+function useAddress(id){ const a=(window.savedAddresses||[]).find(x=>String(x.id)===String(id)); if(!a) return; const inp=document.getElementById('to_step'); if(inp){ inp.value=a.fullAddress; inp.dispatchEvent(new Event('change')); } applySavedPhoneToStep2(a.phone||''); }
 async function deleteAddressDirectly(index){ const item=(window.savedAddresses||[])[index]; if(!item) return; try{ if(item.id) await deleteServerAddress(item.id);}catch(e){} window.savedAddresses.splice(index,1); saveToStorage(); renderAddresses(); }
-function openAddressModal(){ const html=`<div id=\"addressModal\" style=\"position:fixed; inset:0; background:rgba(0,0,0,0.5); display:flex; align-items:center; justify-content:center; z-index:9999;\"><div style=\"background:white; padding:1.25rem; border-radius:12px; width:90%; max-width:480px;\"><h3 style=\"margin:0 0 1rem 0; font-size:1.1rem; font-weight:600;\">Lisää uusi osoite</h3><div style=\"margin-bottom:0.75rem;\"><label style=\"display:block; margin-bottom:0.25rem;\">Nimi *</label><input id=\"addrName\" class=\"form-input\" placeholder=\"Esim. Koti, Toimisto\" style=\"width:100%;\"></div><div style=\"margin-bottom:1rem;\"><label style=\"display:block; margin-bottom:0.25rem;\">Osoite *</label><input id=\"addrFull\" class=\"form-input\" placeholder=\"Esim. Mannerheimintie 1, Helsinki\" style=\"width:100%;\"></div><div style=\"display:flex; gap:0.5rem; justify-content:flex-end;\"><button type=\"button\" class=\"btn btn-ghost\" onclick=\"closeAddressModal()\">Peruuta</button><button type=\"button\" class=\"btn btn-primary\" onclick=\"saveAddress()\">Tallenna</button></div></div></div>`; document.body.insertAdjacentHTML('beforeend', html); document.getElementById('addrName').focus(); }
+function openAddressModal(){
+  const html = `<div id="addressModal" style="position:fixed; inset:0; background:rgba(0,0,0,0.5); display:flex; align-items:center; justify-content:center; z-index:9999;"><div style="background:white; padding:1.25rem; border-radius:12px; width:90%; max-width:480px;"><h3 style="margin:0 0 1rem 0; font-size:1.1rem; font-weight:600;">Lisää uusi osoite</h3><div style="margin-bottom:0.75rem;"><label style="display:block; margin-bottom:0.25rem;">Nimi *</label><input id="addrName" class="form-input" placeholder="Esim. Koti, Toimisto" style="width:100%;"></div><div style="margin-bottom:1rem;"><label style="display:block; margin-bottom:0.25rem;">Osoite *</label><input id="addrFull" class="form-input" placeholder="Esim. Mannerheimintie 1, Helsinki" style="width:100%;"></div><div style="margin-bottom:0.75rem;"><label style="display:block; margin-bottom:0.25rem;">Puhelinnumero (valinnainen)</label><input id="addrPhone" type="tel" class="form-input" placeholder="+358..." style="width:100%;"></div><div style="display:flex; gap:0.5rem; justify-content:flex-end;"><button type="button" class="btn btn-ghost" onclick="closeAddressModal()">Peruuta</button><button type="button" class="btn btn-primary" onclick="saveAddress()">Tallenna</button></div></div></div>`;
+  document.body.insertAdjacentHTML('beforeend', html);
+  document.getElementById('addrName').focus();
+}
 function closeAddressModal(){ const m=document.getElementById('addressModal'); if(m) m.remove(); }
-async function saveAddress(){ const name=document.getElementById('addrName').value.trim(); const addr=document.getElementById('addrFull').value.trim(); if(!name||!addr){ alert('Täytä molemmat kentät'); return;} let created=null; try{ created=await createServerAddress(name, addr);}catch(e){} const item=created||{ id: Date.now(), displayName:name, fullAddress:addr }; window.savedAddresses.push(item); saveToStorage(); renderAddresses(); closeAddressModal(); }
+async function saveAddress(){ const name=document.getElementById('addrName').value.trim(); const addr=document.getElementById('addrFull').value.trim(); const phoneInput=document.getElementById('addrPhone'); const phone=phoneInput?phoneInput.value.trim():''; if(!name||!addr){ alert('Täytä molemmat kentät'); return;} if(phone && !/^[+]?[0-9\s\-()]+$/.test(phone)){ alert('Syötä vain numeroita ja merkit +, -, ( )'); return;} let created=null; try{ created=await createServerAddress(name, addr, phone);}catch(e){} const item=created||{ id: Date.now(), displayName:name, fullAddress:addr, phone }; window.savedAddresses.push(item); saveToStorage(); renderAddresses(); closeAddressModal(); }
 async function loadSavedAddresses(){ try{ window.savedAddresses=quickLocalLoad(); renderAddresses(); }catch(e){} try{ const server=await fetchServerAddresses(); if(Array.isArray(server)){ window.savedAddresses=server; saveToStorage(); renderAddresses(); } }catch(e){} }
 
 /* Initialize saved addresses + autocomplete for Step 2 */
@@ -1058,6 +1103,11 @@ const step2Autocomplete = new WizardGooglePlacesAutocomplete(
   document.getElementById('ac_to_step')
 );
 window.toAutocomplete = step2Autocomplete;
+const savedPhoneInputStep2 = document.getElementById('saved_dropoff_phone');
+const toStepInput = document.getElementById('to_step');
+if (toStepInput && savedPhoneInputStep2) {
+  toStepInput.addEventListener('input', () => { savedPhoneInputStep2.value = ''; });
+}
 
 /* Date validation for Step 2 */
 (function() {
@@ -1072,7 +1122,7 @@ window.toAutocomplete = step2Autocomplete;
 })();
 </script>
 """
-    inner = inner.replace("__DROP_VAL__", drop_val).replace("__PICK_VAL__", pick_val).replace("__PICKUP_DATE_VAL__", pickup_date_val).replace("__LAST_DELIVERY_DATE_VAL__", last_delivery_date_val)
+    inner = inner.replace("__DROP_VAL__", drop_val).replace("__PICK_VAL__", pick_val).replace("__PICKUP_DATE_VAL__", pickup_date_val).replace("__LAST_DELIVERY_DATE_VAL__", last_delivery_date_val).replace("__SAVED_PHONE_VAL__", saved_phone_val)
     return get_wrap()(wizard_shell(2, inner, session.get("order_draft", {})), u)
 
 
@@ -1209,12 +1259,25 @@ def order_step4():
     # Get form values from session for pre-filling
     d = session.get("order_draft", {})
 
-    # Auto-fill orderer from logged-in user if not already filled
+    saved_dropoff_phone = (d.get("saved_dropoff_phone") or "").strip()
+    user_phone_default = (u.get("phone") or "").strip()
+
+    # Auto-fill orderer basic info from logged-in user if missing
     if not d.get("orderer_name"):
         d["orderer_name"] = u.get("name", "")
+    if not d.get("orderer_email"):
         d["orderer_email"] = u.get("email", "")
-        d["orderer_phone"] = u.get("phone", "")
-        session["order_draft"] = d
+
+    # If a saved dropoff phone exists from Step 2, always use it for tilaajan puhelin.
+    # This ensures that when you go back and pick another saved address with a phone,
+    # the tilaajan phone is updated to match the latest selection.
+    if saved_dropoff_phone:
+        d["orderer_phone"] = saved_dropoff_phone
+    elif not d.get("orderer_phone"):
+        # Fallback to account phone only if nothing else is set
+        d["orderer_phone"] = user_phone_default
+
+    session["order_draft"] = d
 
     orderer_name_val = (d.get("orderer_name", "") or "").replace('"', '&quot;')
     orderer_email_val = (d.get("orderer_email", "") or "").replace('"', '&quot;')
