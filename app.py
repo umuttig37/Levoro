@@ -3,6 +3,7 @@ import secrets
 import datetime
 import requests
 import uuid
+import re
 from zoneinfo import ZoneInfo
 
 from flask import Flask, request, redirect, url_for, session, abort, jsonify, flash, render_template
@@ -895,6 +896,17 @@ def api_quote():
 
 
 # ----------------- SAVED ADDRESSES (server-side persistence) -----------------
+PHONE_REGEX = re.compile(r'^[+]?[0-9\s\-()]+$')
+
+def _is_valid_phone(phone_val: str) -> bool:
+    """Allow digits, spaces, +, -, and parentheses; empty is ok."""
+    if phone_val is None:
+        return True
+    phone_val = str(phone_val).strip()
+    if not phone_val:
+        return True
+    return bool(PHONE_REGEX.match(phone_val))
+
 def _get_user_required():
     u = current_user()
     if not u:
@@ -911,6 +923,8 @@ def api_saved_addresses_list():
         a["id"] = str(a.get("id"))
         a["displayName"] = a.get("displayName") or a.get("name") or ""
         a["fullAddress"] = a.get("fullAddress") or a.get("address") or ""
+        phone_raw = a.get("phone")
+        a["phone"] = str(phone_raw).strip() if phone_raw else ""
     return jsonify({"items": addrs})
 
 @app.post("/api/saved_addresses")
@@ -919,14 +933,18 @@ def api_saved_addresses_create():
     data = request.get_json(force=True, silent=True) or {}
     display = (data.get("displayName") or "").strip()
     full = (data.get("fullAddress") or "").strip()
+    phone = (data.get("phone") or "").strip()
     if not display or not full:
         return jsonify({"error": "displayName and fullAddress required"}), 400
+    if phone and not _is_valid_phone(phone):
+        return jsonify({"error": "invalid phone"}), 400
 
     import uuid, datetime as _dt
     item = {
         "id": str(uuid.uuid4()),
         "displayName": display,
         "fullAddress": full,
+        "phone": phone,
         "created_at": _dt.datetime.now(_dt.timezone.utc).isoformat()
     }
 
@@ -943,8 +961,12 @@ def api_saved_addresses_update(addr_id: str):
     data = request.get_json(force=True, silent=True) or {}
     display = (data.get("displayName") or "").strip()
     full = (data.get("fullAddress") or "").strip()
+    phone_raw = data.get("phone", None)
+    phone = (phone_raw or "").strip() if phone_raw is not None else None
     if not display or not full:
         return jsonify({"error": "displayName and fullAddress required"}), 400
+    if phone and not _is_valid_phone(phone):
+        return jsonify({"error": "invalid phone"}), 400
 
     doc = users_col().find_one({"id": int(u["id"])}, {"_id": 0, "saved_addresses": 1}) or {}
     arr = list(doc.get("saved_addresses") or [])
@@ -953,6 +975,8 @@ def api_saved_addresses_update(addr_id: str):
         if str(a.get("id")) == str(addr_id):
             a["displayName"] = display
             a["fullAddress"] = full
+            if phone is not None:
+                a["phone"] = phone
             found = True
             break
     if not found:
