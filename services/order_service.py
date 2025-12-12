@@ -78,9 +78,13 @@ class OrderService:
         try:
             # Calculate pricing if addresses are provided
             if "pickup_address" in order_data and "dropoff_address" in order_data:
+                pickup_place_id = order_data.get("pickup_place_id", "")
+                dropoff_place_id = order_data.get("dropoff_place_id", "")
                 distance_km = self.calculate_route_distance(
                     order_data["pickup_address"],
-                    order_data["dropoff_address"]
+                    order_data["dropoff_address"],
+                    pickup_place_id,
+                    dropoff_place_id
                 )
                 if distance_km > 0:
                     order_data["distance_km"] = distance_km
@@ -230,11 +234,17 @@ class OrderService:
 
         return round_half_up(gross_price, 2)
 
-    def calculate_route_distance(self, pickup_addr: str, dropoff_addr: str) -> float:
+    def calculate_route_distance(
+        self,
+        pickup_addr: str,
+        dropoff_addr: str,
+        pickup_place_id: str = "",
+        dropoff_place_id: str = ""
+    ) -> float:
         """Calculate route distance using OSRM"""
         try:
-            pickup_coords = self._geocode_address(pickup_addr)
-            dropoff_coords = self._geocode_address(dropoff_addr)
+            pickup_coords = self._geocode_address(pickup_addr, pickup_place_id)
+            dropoff_coords = self._geocode_address(dropoff_addr, dropoff_place_id)
 
             if not pickup_coords or not dropoff_coords:
                 return 0.0
@@ -257,9 +267,20 @@ class OrderService:
 
         return 0.0
 
-    def route_km(self, pickup_addr: str, dropoff_addr: str) -> float:
+    def route_km(
+        self,
+        pickup_addr: str,
+        dropoff_addr: str,
+        pickup_place_id: str = "",
+        dropoff_place_id: str = ""
+    ) -> float:
         """Calculate route distance - alias for calculate_route_distance"""
-        distance = self.calculate_route_distance(pickup_addr, dropoff_addr)
+        distance = self.calculate_route_distance(
+            pickup_addr,
+            dropoff_addr,
+            pickup_place_id,
+            dropoff_place_id
+        )
         if distance <= 0:
             raise ValueError("Reititys ei ole saatavilla juuri nyt, yritä hetken kuluttua uudestaan")
         return distance
@@ -326,24 +347,68 @@ class OrderService:
         return status in ["NEW", "CONFIRMED", "IN_TRANSIT"]
 
     # Private helper methods
-    def _geocode_address(self, address: str) -> Optional[Dict]:
-        """Geocode address using Google Places API"""
-        if not GOOGLE_PLACES_API_KEY or not address:
+    def _geocode_address(self, address: str, place_id: Optional[str] = None) -> Optional[Dict]:
+        """Geocode address using Google Places/Geocode APIs"""
+        if not GOOGLE_PLACES_API_KEY or (not address and not place_id):
             return None
 
         try:
-            url = "https://maps.googleapis.com/maps/api/geocode/json"
-            params = {
-                "address": address,
-                "key": GOOGLE_PLACES_API_KEY,
-                "region": "fi"
-            }
-
-            response = requests.get(url, params=params, timeout=10)
-            if response.status_code == 200:
+            # 1) If we received a Places place_id from the UI, resolve it directly
+            if place_id:
+                url = "https://maps.googleapis.com/maps/api/place/details/json"
+                params = {
+                    "place_id": place_id,
+                    "fields": "geometry/location",
+                    "language": "fi",
+                    "key": GOOGLE_PLACES_API_KEY
+                }
+                response = requests.get(url, params=params, timeout=10)
+                response.raise_for_status()
                 data = response.json()
-                if data.get("status") == "OK" and data.get("results"):
-                    location = data["results"][0]["geometry"]["location"]
+                if data.get("status") == "OK":
+                    location = (
+                        data.get("result", {})
+                        .get("geometry", {})
+                        .get("location")
+                    )
+                    if location:
+                        return {"lat": location["lat"], "lng": location["lng"]}
+
+            # 2) Fall back to Places Find Place for plain text addresses
+            if address:
+                url = "https://maps.googleapis.com/maps/api/place/findplacefromtext/json"
+                params = {
+                    "input": address,
+                    "inputtype": "textquery",
+                    "fields": "geometry/location",
+                    "language": "fi",
+                    "key": GOOGLE_PLACES_API_KEY,
+                    "region": "fi"
+                }
+                response = requests.get(url, params=params, timeout=10)
+                response.raise_for_status()
+                data = response.json()
+                if data.get("status") == "OK" and data.get("candidates"):
+                    location = (
+                        data["candidates"][0]
+                        .get("geometry", {})
+                        .get("location")
+                    )
+                    if location:
+                        return {"lat": location["lat"], "lng": location["lng"]}
+
+                # 3) Absolute fallback to legacy Geocoding API if Places failed
+                legacy_url = "https://maps.googleapis.com/maps/api/geocode/json"
+                legacy_params = {
+                    "address": address,
+                    "key": GOOGLE_PLACES_API_KEY,
+                    "region": "fi"
+                }
+                response = requests.get(legacy_url, params=legacy_params, timeout=10)
+                response.raise_for_status()
+                legacy_data = response.json()
+                if legacy_data.get("status") == "OK" and legacy_data.get("results"):
+                    location = legacy_data["results"][0]["geometry"]["location"]
                     return {"lat": location["lat"], "lng": location["lng"]}
 
         except Exception as e:

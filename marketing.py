@@ -53,19 +53,21 @@ def calculator():
         <div class="card-body">
           <div class="form-group">
             <label class="form-label">Lähtöosoite</label>
-            <div class="autocomplete">
-              <input id="from" class="form-input" placeholder="Esim. Antaksentie 4, Vantaa"
-                     autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" name="from_addr">
-              <div id="ac_from" class="ac-list"></div>
+             <div class="autocomplete">
+               <input id="from" class="form-input" placeholder="Esim. Antaksentie 4, Vantaa"
+                      autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" name="from_addr">
+               <input type="hidden" id="from_place_id">
+               <div id="ac_from" class="ac-list"></div>
             </div>
           </div>
 
           <div class="form-group">
             <label class="form-label">Kohdeosoite</label>
-            <div class="autocomplete">
-              <input id="to" class="form-input" placeholder="Esim. Kirstinmäki 6, Espoo"
-                     autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" name="to_addr">
-              <div id="ac_to" class="ac-list"></div>
+             <div class="autocomplete">
+               <input id="to" class="form-input" placeholder="Esim. Kirstinmäki 6, Espoo"
+                      autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" name="to_addr">
+               <input type="hidden" id="to_place_id">
+               <div id="ac_to" class="ac-list"></div>
             </div>
           </div>
 
@@ -181,9 +183,10 @@ document.head.appendChild(style);
 
 // ====== Google Places Autocomplete ======
 class GooglePlacesAutocomplete {
-  constructor(input, listEl){
+  constructor(input, listEl, options = {}){
     this.input = input;
     this.list = listEl;
+    this.placeIdInput = options.placeIdInput || null;
     this.timer = null;
     this.items = [];
     this.cache = new Map();
@@ -196,6 +199,8 @@ class GooglePlacesAutocomplete {
     input.setAttribute('autocorrect','off');
     input.setAttribute('autocapitalize','off');
     input.setAttribute('spellcheck','false');
+
+    this.setPlaceId('');
 
     input.addEventListener('input', ()=> this.onInput());
     input.addEventListener('focus', ()=> this.onFocus());
@@ -243,12 +248,14 @@ class GooglePlacesAutocomplete {
     const addr = window.savedAddresses[index];
     if (!addr) return;
     this.input.value = addr.fullAddress;
+    this.setPlaceId('');
     this.hide();
     this.input.dispatchEvent(new Event('change'));
   }
 
   onInput(){
     clearTimeout(this.timer);
+    this.setPlaceId('');
     const q = this.input.value.trim();
     if(!q){ 
       this.showSavedAddresses();
@@ -438,12 +445,23 @@ class GooglePlacesAutocomplete {
     if(!item) return;
 
     this.input.value = item.description;
+    this.setPlaceId(item.place_id || '');
     this.hide();
     this.input.dispatchEvent(new Event('change'));
   }
 
   show(){ this.list.style.display='block'; }
   hide(){ this.list.style.display='none'; }
+
+  setPlaceId(value){
+    const val = value || '';
+    if (this.placeIdInput) {
+      this.placeIdInput.value = val;
+    }
+    if (this.input) {
+      this.input.dataset.placeId = val;
+    }
+  }
 }
 
 // ====== Leaflet Route Map (tyylikäs polyline + markerit) ======
@@ -492,13 +510,27 @@ class RouteMap {
 
 // ====== “Flovi-tyylinen” laskuri: sidonta ja UI päivitys ======
 async function calcAndRender({fromId, toId, receiptIds, continueId, mapInst}){
-  const f = document.getElementById(fromId).value.trim();
-  const t = document.getElementById(toId).value.trim();
+  const fromInput = document.getElementById(fromId);
+  const toInput = document.getElementById(toId);
+  const f = fromInput.value.trim();
+  const t = toInput.value.trim();
   if(!f || !t) return;
   const cont = document.getElementById(continueId);
+  const pickupPlaceId = (document.getElementById(`${fromId}_place_id`)?.value || fromInput.dataset.placeId || '').trim();
+  const dropoffPlaceId = (document.getElementById(`${toId}_place_id`)?.value || toInput.dataset.placeId || '').trim();
+  const payload = {
+    pickup: f,
+    dropoff: t,
+    pickup_place_id: pickupPlaceId,
+    dropoff_place_id: dropoffPlaceId
+  };
 
   // hinta
-  const r = await fetch('/api/quote_for_addresses',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pickup:f,dropoff:t})});
+  const r = await fetch('/api/quote_for_addresses',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify(payload)
+  });
   const j = await r.json();
   if(!r.ok){ alert(j.error||'Hinnan laskenta epäonnistui'); return; }
   document.getElementById(receiptIds.km).textContent   = kmfmt(j.km);
@@ -506,7 +538,11 @@ async function calcAndRender({fromId, toId, receiptIds, continueId, mapInst}){
   document.getElementById(receiptIds.box).classList.remove('hidden');
 
   // reitti
-  const rr = await fetch('/api/route_geo',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pickup:f,dropoff:t})});
+  const rr = await fetch('/api/route_geo',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify(payload)
+  });
   const jj = await rr.json();
   if(rr.ok){ mapInst.draw(jj.latlngs, jj.start, jj.end, j.km); }
 
@@ -517,8 +553,18 @@ async function calcAndRender({fromId, toId, receiptIds, continueId, mapInst}){
 // === Helppo init molemmille sivuille ===
 function initQuoteUI(cfg){
   // 1) Google Places Autocomplete
-  const acFrom = new GooglePlacesAutocomplete(document.getElementById(cfg.fromId), document.getElementById(cfg.acFromId));
-  const acTo   = new GooglePlacesAutocomplete(document.getElementById(cfg.toId),   document.getElementById(cfg.acToId));
+  const fromPlaceInput = document.getElementById(cfg.fromPlaceIdId || `${cfg.fromId}_place_id`);
+  const toPlaceInput = document.getElementById(cfg.toPlaceIdId || `${cfg.toId}_place_id`);
+  const acFrom = new GooglePlacesAutocomplete(
+    document.getElementById(cfg.fromId),
+    document.getElementById(cfg.acFromId),
+    { placeIdInput: fromPlaceInput }
+  );
+  const acTo   = new GooglePlacesAutocomplete(
+    document.getElementById(cfg.toId),
+    document.getElementById(cfg.acToId),
+    { placeIdInput: toPlaceInput }
+  );
 
   // 2) Kartta
   const map = new RouteMap(cfg.mapId, cfg.miniMap||false);
@@ -591,9 +637,19 @@ async function calc(){
 
   try {
     initMap();
-    const f=document.getElementById('from').value.trim(), t=document.getElementById('to').value.trim();
+    const fromInputEl = document.getElementById('from');
+    const toInputEl = document.getElementById('to');
+    const f=fromInputEl.value.trim(), t=toInputEl.value.trim();
     const errEl=document.getElementById('err'), rec=document.getElementById('receipt'), cont=document.getElementById('continueBtn');
     const noResults = document.getElementById('no-results');
+    const pickupPlaceId = (document.getElementById('from_place_id')?.value || fromInputEl.dataset.placeId || '').trim();
+    const dropoffPlaceId = (document.getElementById('to_place_id')?.value || toInputEl.dataset.placeId || '').trim();
+    const payload = {
+      pickup: f,
+      dropoff: t,
+      pickup_place_id: pickupPlaceId,
+      dropoff_place_id: dropoffPlaceId
+    };
 
     errEl.classList.add('hidden');
     rec.classList.add('hidden');
@@ -608,7 +664,11 @@ async function calc(){
 
     // 1) Hinta
     try{
-      const r=await fetch('/api/quote_for_addresses',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pickup:f,dropoff:t})});
+      const r=await fetch('/api/quote_for_addresses',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify(payload)
+      });
       const j=await r.json();
       if(!r.ok) throw new Error(j.error||'Tuntematon virhe');
       document.getElementById('r_km').textContent = kmfmt(j.km);
@@ -626,7 +686,11 @@ async function calc(){
 
     // 2) Reittigeometria kartalle
     try{
-      const r=await fetch('/api/route_geo',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pickup:f,dropoff:t})});
+      const r=await fetch('/api/route_geo',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify(payload)
+      });
       const j=await r.json();
       if(!r.ok) throw new Error(j.error||'Route error');
 
@@ -641,8 +705,10 @@ async function calc(){
     }catch(e){ /* Route error - silently handle */ }
 
     // 3) Jatka tilaukseen
-    const url = '/order/new/step1?pickup='+encodeURIComponent(f)+'&dropoff='+encodeURIComponent(t);
-    cont.href = url;
+    const params = new URLSearchParams({pickup: f, dropoff: t});
+    if (pickupPlaceId) params.append('pickup_place_id', pickupPlaceId);
+    if (dropoffPlaceId) params.append('dropoff_place_id', dropoffPlaceId);
+    cont.href = '/order/new/step1?' + params.toString();
     cont.style.pointerEvents='auto'; cont.style.opacity='1';
   } finally {
     // Reset loading state
@@ -656,8 +722,16 @@ async function calc(){
 }
 
 function demo(){
-  document.getElementById('from').value='Antaksentie 4, Vantaa';
-  document.getElementById('to').value='Kirstinmäki 6, Espoo';
+  const fromInput = document.getElementById('from');
+  const toInput = document.getElementById('to');
+  fromInput.value='Antaksentie 4, Vantaa';
+  toInput.value='Kirstinmäki 6, Espoo';
+  const fromPlace = document.getElementById('from_place_id');
+  const toPlace = document.getElementById('to_place_id');
+  if (fromPlace) fromPlace.value = '';
+  if (toPlace) toPlace.value = '';
+  fromInput.dataset.placeId = '';
+  toInput.dataset.placeId = '';
 }
 
 // --- Google Places Autocomplete bindings ---
@@ -682,11 +756,19 @@ function initCalculatorAutocomplete() {
     const acTo = document.getElementById('ac_to');
 
     if (fromInput && acFrom) {
-      window.fromAutocomplete = new GooglePlacesAutocomplete(fromInput, acFrom);
+      window.fromAutocomplete = new GooglePlacesAutocomplete(
+        fromInput,
+        acFrom,
+        { placeIdInput: document.getElementById('from_place_id') }
+      );
     }
 
     if (toInput && acTo) {
-      window.toAutocomplete = new GooglePlacesAutocomplete(toInput, acTo);
+      window.toAutocomplete = new GooglePlacesAutocomplete(
+        toInput,
+        acTo,
+        { placeIdInput: document.getElementById('to_place_id') }
+      );
     }
   }, 50);
 }

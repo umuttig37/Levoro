@@ -17,6 +17,8 @@ def quote_for_addresses():
 
     pickup = payload.get("pickup", "").strip()
     dropoff = payload.get("dropoff", "").strip()
+    pickup_place_id = (payload.get("pickup_place_id") or "").strip()
+    dropoff_place_id = (payload.get("dropoff_place_id") or "").strip()
     # NOTE: return_leg parameter exists but is not used in the current UI
     return_leg = bool(payload.get("return_leg", False))
 
@@ -24,7 +26,7 @@ def quote_for_addresses():
         return jsonify({"error": "Lähtö- ja kohdeosoite vaaditaan"}), 400
 
     try:
-        km = order_service.route_km(pickup, dropoff)
+        km = order_service.route_km(pickup, dropoff, pickup_place_id, dropoff_place_id)
         net, vat, gross, details = order_service.price_from_km(km, pickup, dropoff, return_leg=return_leg)
         return jsonify({"km": round(km, 2), "net": net, "vat": vat, "gross": gross, "details": details})
     except ValueError as e:
