@@ -56,8 +56,15 @@ MINIMUM_ORDER_PRICE_NET = 20.0
 
 # External API configuration
 GOOGLE_PLACES_API_KEY = os.getenv("GOOGLE_PLACES_API_KEY", "")
-OSRM_URL = "https://router.project-osrm.org/route/v1/driving/{lon1},{lat1};{lon2},{lat2}?overview=false"
-USER_AGENT = "Umut-Autotransport-Portal/1.0 (contact: example@example.com)"
+OSRM_ROUTE_URL = os.getenv(
+    "OSRM_ROUTE_URL",
+    "https://router.project-osrm.org/route/v1/driving/{lon1},{lat1};{lon2},{lat2}?overview=false"
+)
+
+OSRM_USER_AGENT = os.getenv(
+    "OSRM_USER_AGENT",
+    "Levoro-Autotransport-Calculator/1.0 (+https://levoro.fi)"
+)
 
 
 class OrderService:
@@ -224,33 +231,27 @@ class OrderService:
         return round_half_up(gross_price, 2)
 
     def calculate_route_distance(self, pickup_addr: str, dropoff_addr: str) -> float:
-        """Calculate route distance using OSRM API"""
+        """Calculate route distance using OSRM"""
         try:
-            # Geocode addresses
             pickup_coords = self._geocode_address(pickup_addr)
             dropoff_coords = self._geocode_address(dropoff_addr)
 
             if not pickup_coords or not dropoff_coords:
                 return 0.0
 
-            # Get route from OSRM
-            url = OSRM_URL.format(
+            url = OSRM_ROUTE_URL.format(
                 lon1=pickup_coords["lng"],
                 lat1=pickup_coords["lat"],
                 lon2=dropoff_coords["lng"],
                 lat2=dropoff_coords["lat"]
             )
 
-            headers = {"User-Agent": USER_AGENT}
-            response = requests.get(url, headers=headers, timeout=10)
-
+            response = requests.get(url, headers={"User-Agent": OSRM_USER_AGENT}, timeout=10)
             if response.status_code == 200:
                 data = response.json()
                 if data.get("code") == "Ok" and data.get("routes"):
-                    # Distance is in meters, convert to kilometers
                     distance_m = data["routes"][0]["distance"]
                     return round(distance_m / 1000.0, 1)
-
         except Exception as e:
             print(f"Route calculation error: {e}")
 

@@ -70,10 +70,14 @@ SEED_ADMIN_PASS = os.getenv("SEED_ADMIN_PASS", "admin123")
 SEED_ADMIN_NAME = os.getenv("SEED_ADMIN_NAME", "Admin")
 
 GOOGLE_PLACES_API_KEY = os.getenv("GOOGLE_PLACES_API_KEY", "")
-# NOMINATIM_URL removed - using Google Places API only
-OSRM_URL = "https://router.project-osrm.org/route/v1/driving/{lon1},{lat1};{lon2},{lat2}?overview=false"
-
-USER_AGENT = "Umut-Autotransport-Portal/1.0 (contact: example@example.com)"
+OSRM_ROUTE_URL = os.getenv(
+    "OSRM_ROUTE_URL",
+    "https://router.project-osrm.org/route/v1/driving/{lon1},{lat1};{lon2},{lat2}"
+)
+OSRM_USER_AGENT = os.getenv(
+    "OSRM_USER_AGENT",
+    "Levoro-Autotransport-Calculator/1.0 (+https://levoro.fi)"
+)
 
 # Image upload configuration
 UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static', 'uploads', 'orders')
@@ -607,55 +611,68 @@ def api_route_geo():
     pickup = (data.get("pickup") or "").strip()
     dropoff = (data.get("dropoff") or "").strip()
     if not pickup or not dropoff:
-        return jsonify({"error": "Lähtö- ja kohdeosoite vaaditaan"}), 400
+        return jsonify({"error": "L?ht?- ja kohdeosoite vaaditaan"}), 400
 
     try:
-        # Use order service for geocoding
         pickup_coords = order_service._geocode_address(pickup)
         dropoff_coords = order_service._geocode_address(dropoff)
 
         if not pickup_coords or not dropoff_coords:
-            return jsonify({"error": "Osoitteiden geokoodaus epäonnistui"}), 400
+            return jsonify({"error": "Osoitteiden geokoodaus ep?onnistui"}), 400
 
         lat1, lon1 = pickup_coords["lat"], pickup_coords["lng"]
         lat2, lon2 = dropoff_coords["lat"], dropoff_coords["lng"]
 
-        # OSRM with full geometry for map
-        url = (
-            "https://router.project-osrm.org/route/v1/driving/"
-            f"{lon1},{lat1};{lon2},{lat2}"
-            "?overview=full&geometries=geojson"
-        )
+        route_template = OSRM_ROUTE_URL
+        extra_params = []
+        if "?" not in route_template:
+            extra_params.extend(["overview=full", "geometries=geojson"])
+        else:
+            if "overview=" not in route_template:
+                extra_params.append("overview=full")
+            if "geometries=" not in route_template:
+                extra_params.append("geometries=geojson")
 
-        r = requests.get(url, headers={"User-Agent": USER_AGENT}, timeout=8)
+        url = route_template.format(lon1=lon1, lat1=lat1, lon2=lon2, lat2=lat2)
+        if extra_params:
+            separator = "&" if "?" in url else "?"
+            url = f"{url}{separator}{'&'.join(extra_params)}"
+
+        r = requests.get(url, headers={"User-Agent": OSRM_USER_AGENT}, timeout=10)
         r.raise_for_status()
-        j = r.json()
+        payload = r.json()
 
-        if not j.get("routes"):
+        if payload.get("code") != "Ok" or not payload.get("routes"):
             return jsonify({"error": "Reittiä ei löytynyt annetuille osoitteille"}), 404
 
-        route = j["routes"][0]
-        km = route["distance"] / 1000.0
-        coords = route["geometry"]["coordinates"]  # [ [lon,lat], ... ]
-        # muunna [lon,lat] -> [lat,lon] Leafletille:
+        route = payload["routes"][0]
+        km = route.get("distance", 0) / 1000.0
+        coords = route.get("geometry", {}).get("coordinates", [])
         latlngs = [[c[1], c[0]] for c in coords]
-        return jsonify({"km": round(km, 2), "latlngs": latlngs, "start": [lat1, lon1], "end": [lat2, lon2]})
+
+        return jsonify({
+            "km": round(km, 2),
+            "latlngs": latlngs,
+            "start": [lat1, lon1],
+            "end": [lat2, lon2]
+        })
 
     except requests.exceptions.Timeout:
         return jsonify({"error": "Karttapalvelussa on ruuhkaa, odota hetken kuluttua uudestaan"}), 503
     except requests.exceptions.ConnectionError:
-        return jsonify({"error": "Karttapalvelu ei ole saatavilla juuri nyt, yritä hetken kuluttua uudestaan"}), 503
+        return jsonify({"error": "Karttapalvelu ei ole saatavilla juuri nyt, yrit? hetken kuluttua uudestaan"}), 503
     except requests.exceptions.HTTPError:
-        return jsonify({"error": "Karttapalvelu on tilapäisesti pois käytöstä, yritä hetken kuluttua uudestaan"}), 503
+        return jsonify({"error": "Karttapalvelu on tilap?isesti pois k?yt?st?, yrit? hetken kuluttua uudestaan"}), 503
     except ValueError as e:
-        # Geocoding errors or other validation issues
         if "Address not found" in str(e):
-            return jsonify({"error": "Osoitetta ei löytynyt. Tarkista osoitteiden oikeinkirjoitus."}), 400
+            return jsonify({"error": "Osoitetta ei l?ytynyt. Tarkista osoitteiden oikeinkirjoitus."}), 400
         return jsonify({"error": str(e)}), 400
     except Exception as e:
-        # Log unexpected errors but don't expose them to user
         print(f"Unexpected error in route_geo: {str(e)}")
-        return jsonify({"error": "Karttapalvelu ei ole saatavilla juust nyt, yritä hetken kuluttua uudestaan"}), 500
+        return jsonify({"error": "Karttapalvelu ei ole saatavilla juuri nyt, yrit? hetken kuluttua uudestaan"}), 500
+
+
+
 
 
 # /login route removed - now handled by auth.py blueprint
@@ -877,7 +894,7 @@ def api_quote_for_addresses():
         net, vat, gross, details = order_service.price_from_km(km, pickup, dropoff, return_leg=return_leg)
         return jsonify({"km": round(km, 2), "net": net, "vat": vat, "gross": gross, "details": details})
     except ValueError as e:
-        # These are user-friendly messages from route_km() when OSRM is unavailable
+        # These are user-friendly messages from route_km() when routing is unavailable
         return jsonify({"error": str(e)}), 503
     except Exception as e:
         # Unexpected errors - log but don't expose details
