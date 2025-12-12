@@ -94,12 +94,18 @@ def order_step1():
         # esitäyttö query-parametreilla (jatka tilaukseen -napista)
         qp_pick = (request.args.get("pickup") or "").strip()
         qp_drop = (request.args.get("dropoff") or "").strip()
-        if qp_pick or qp_drop:
+        qp_pick_id = (request.args.get("pickup_place_id") or "").strip()
+        qp_drop_id = (request.args.get("dropoff_place_id") or "").strip()
+        if qp_pick or qp_drop or qp_pick_id or qp_drop_id:
             d = session.get("order_draft", {})
             if qp_pick:
                 d["pickup"] = qp_pick
             if qp_drop:
                 d["dropoff"] = qp_drop   # talletetaan jo tässä vaiheessa
+            if qp_pick_id:
+                d["pickup_place_id"] = qp_pick_id
+            if qp_drop_id:
+                d["dropoff_place_id"] = qp_drop_id
             session["order_draft"] = d
 
         d = session.get("order_draft", {})
@@ -119,6 +125,7 @@ def order_step1():
         last_delivery_date_val = last_delivery_obj.isoformat()
 
         pickup_val = (d.get("pickup", "") or "").replace('"', '&quot;')
+        pickup_place_id_val = (d.get("pickup_place_id", "") or "").replace('"', '&quot;')
         paluu_auto_checked = "checked" if d.get("paluu_auto") else ""
 
         # Check for error message and display it
@@ -132,6 +139,7 @@ def order_step1():
   <label>Nouto-osoite *</label>
   <div class="autocomplete">
     <input id="from_step" name="pickup" required value="__PICKUP_VAL__" placeholder="Katu, kaupunki">
+    <input type="hidden" id="pickup_place_id" name="pickup_place_id" value="__PICKUP_PLACE_ID__">
     <div id="ac_from_step" class="ac-list"></div>
   </div>
 
@@ -240,9 +248,10 @@ function applySavedPhoneToStep2(phone){
 
 /* ===== Google Places Autocomplete for Wizard ===== */
 class WizardGooglePlacesAutocomplete {
-  constructor(input, listEl){
+  constructor(input, listEl, options = {}){
     this.input = input;
     this.list = listEl;
+    this.placeIdInput = options.placeIdInput || null;
     this.timer = null;
     this.items = [];
     this.cache = new Map();
@@ -257,6 +266,7 @@ class WizardGooglePlacesAutocomplete {
     input.setAttribute('autocorrect','off');
     input.setAttribute('autocapitalize','off');
     input.setAttribute('spellcheck','false');
+    this.setPlaceId('');
 
     input.addEventListener('input', ()=> this.onInput());
     input.addEventListener('focus', ()=> this.onFocus());
@@ -313,6 +323,7 @@ class WizardGooglePlacesAutocomplete {
 
   onInput(){
     clearTimeout(this.timer);
+    this.setPlaceId('');
     const q = this.input.value.trim();
     if(!q){ this.showSavedAddresses(); return; }
 
@@ -479,6 +490,8 @@ class WizardGooglePlacesAutocomplete {
     const addr = (window.savedAddresses||[]).find(a=>String(a.id)===String(id));
     if (!addr) return;
     this.input.value = addr.fullAddress;
+    this.setPlaceId('');
+    this.setPlaceId('');
     if (this.input && this.input.id === 'to_step') {
       applySavedPhoneToStep2(addr.phone || '');
     }
@@ -513,6 +526,16 @@ class WizardGooglePlacesAutocomplete {
 
   show(){ this.list.style.display='block'; }
   hide(){ this.list.style.display='none'; }
+
+  setPlaceId(value){
+    const val = value || '';
+    if (this.placeIdInput) {
+      this.placeIdInput.value = val;
+    }
+    if (this.input) {
+      this.input.dataset.placeId = val;
+    }
+  }
 }
 
 /* ===== Saved Addresses (shared with calculator) ===== */
@@ -651,7 +674,8 @@ async function loadSavedAddresses(){
 loadSavedAddresses();
 const step1Autocomplete = new WizardGooglePlacesAutocomplete(
   document.getElementById('from_step'),
-  document.getElementById('ac_from_step')
+  document.getElementById('ac_from_step'),
+  { placeIdInput: document.getElementById('pickup_place_id') }
 );
 window.fromAutocomplete = step1Autocomplete;
 
@@ -720,12 +744,20 @@ window.fromAutocomplete = step1Autocomplete;
 })();
 </script>
 """
-        inner = inner.replace("__PICKUP_VAL__", pickup_val).replace("__PICKUP_DATE_VAL__", pickup_date_val).replace("__LAST_DELIVERY_DATE_VAL__", last_delivery_date_val).replace("__PALUU_AUTO_CHECKED__", paluu_auto_checked)
+        inner = (
+            inner
+            .replace("__PICKUP_VAL__", pickup_val)
+            .replace("__PICKUP_PLACE_ID__", pickup_place_id_val)
+            .replace("__PICKUP_DATE_VAL__", pickup_date_val)
+            .replace("__LAST_DELIVERY_DATE_VAL__", last_delivery_date_val)
+            .replace("__PALUU_AUTO_CHECKED__", paluu_auto_checked)
+        )
         return get_wrap()(wizard_shell(1, inner, session.get("order_draft", {})), u)
 
     # POST → talteen ja seuraavaan steppiin
     d = session.get("order_draft", {})
     d["pickup"] = request.form.get("pickup", "").strip()
+    d["pickup_place_id"] = request.form.get("pickup_place_id", "").strip()
     d["pickup_date"] = request.form.get("pickup_date", "").strip()
     d["last_delivery_date"] = request.form.get("last_delivery_date") or None
     paluu_auto_selected = bool(request.form.get("paluu_auto"))
@@ -755,6 +787,7 @@ def order_step2():
     if request.method == "POST":
         d = session.get("order_draft", {})
         d["dropoff"] = request.form.get("dropoff", "").strip()
+        d["dropoff_place_id"] = request.form.get("dropoff_place_id", "").strip()
         saved_phone = (request.form.get("saved_dropoff_phone") or "").strip()
         if saved_phone and not validate_phone_number(saved_phone):
             saved_phone = ""
@@ -771,6 +804,7 @@ def order_step2():
     # GET → esitäyttö draftista
     d = session.get("order_draft", {})
     drop_val = (d.get('dropoff', '') or '').replace('"', '&quot;')
+    drop_place_id_val = (d.get('dropoff_place_id', '') or '').replace('"', '&quot;')
     pick_val = (d.get('pickup', '') or '').replace('"', '&quot;')  # piilotettuun from_stepiin
     pickup_date_val = d.get('pickup_date', '')
     last_delivery_date_val = d.get('last_delivery_date', '')
@@ -787,6 +821,7 @@ def order_step2():
   <label class='form-label'>Toimitusosoite *</label>
   <div class="autocomplete">
     <input id="to_step" name="dropoff" required value="__DROP_VAL__" placeholder="Katu, kaupunki" class="form-input">
+    <input type="hidden" id="dropoff_place_id" name="dropoff_place_id" value="__DROP_PLACE_ID__">
     <div id="ac_to_step" class="ac-list"></div>
   </div>
   
@@ -837,9 +872,10 @@ function applySavedPhoneToStep2(phone){
 
 /* ===== Google Places Autocomplete for Wizard Step 2 ===== */
 class WizardGooglePlacesAutocomplete {
-  constructor(input, listEl){
+  constructor(input, listEl, options = {}){
     this.input = input;
     this.list = listEl;
+    this.placeIdInput = options.placeIdInput || null;
     this.timer = null;
     this.items = [];
     this.cache = new Map();
@@ -852,6 +888,7 @@ class WizardGooglePlacesAutocomplete {
     input.setAttribute('autocorrect','off');
     input.setAttribute('autocapitalize','off');
     input.setAttribute('spellcheck','false');
+    this.setPlaceId('');
 
     input.addEventListener('input', ()=> this.onInput());
     input.addEventListener('focus', ()=> this.onFocus());
@@ -880,6 +917,7 @@ class WizardGooglePlacesAutocomplete {
 
   onInput(){
     clearTimeout(this.timer);
+    this.setPlaceId('');
     const q = this.input.value.trim();
     if(!q){ this.showSavedAddresses(); return; }
 
@@ -1053,12 +1091,23 @@ class WizardGooglePlacesAutocomplete {
       applySavedPhoneToStep2('');
     }
     this.input.value = item.description;
+    this.setPlaceId(item.place_id || '');
     this.hide();
     this.input.dispatchEvent(new Event('change'));
   }
 
   show(){ this.list.style.display='block'; }
   hide(){ this.list.style.display='none'; }
+
+  setPlaceId(value){
+    const val = value || '';
+    if (this.placeIdInput) {
+      this.placeIdInput.value = val;
+    }
+    if (this.input) {
+      this.input.dataset.placeId = val;
+    }
+  }
 }
 
 /* ===== Saved Addresses (Step 2 page) ===== */
@@ -1100,7 +1149,8 @@ async function loadSavedAddresses(){ try{ window.savedAddresses=quickLocalLoad()
 loadSavedAddresses();
 const step2Autocomplete = new WizardGooglePlacesAutocomplete(
   document.getElementById('to_step'),
-  document.getElementById('ac_to_step')
+  document.getElementById('ac_to_step'),
+  { placeIdInput: document.getElementById('dropoff_place_id') }
 );
 window.toAutocomplete = step2Autocomplete;
 const savedPhoneInputStep2 = document.getElementById('saved_dropoff_phone');
@@ -1122,7 +1172,15 @@ if (toStepInput && savedPhoneInputStep2) {
 })();
 </script>
 """
-    inner = inner.replace("__DROP_VAL__", drop_val).replace("__PICK_VAL__", pick_val).replace("__PICKUP_DATE_VAL__", pickup_date_val).replace("__LAST_DELIVERY_DATE_VAL__", last_delivery_date_val).replace("__SAVED_PHONE_VAL__", saved_phone_val)
+    inner = (
+        inner
+        .replace("__DROP_VAL__", drop_val)
+        .replace("__DROP_PLACE_ID__", drop_place_id_val)
+        .replace("__PICK_VAL__", pick_val)
+        .replace("__PICKUP_DATE_VAL__", pickup_date_val)
+        .replace("__LAST_DELIVERY_DATE_VAL__", last_delivery_date_val)
+        .replace("__SAVED_PHONE_VAL__", saved_phone_val)
+    )
     return get_wrap()(wizard_shell(2, inner, session.get("order_draft", {})), u)
 
 
@@ -1457,7 +1515,12 @@ def order_confirm():
     pricing_error_messages = []
     outbound_route_ok = False
     try:
-        km = order_service.route_km(d["pickup"], d["dropoff"])
+        km = order_service.route_km(
+            d["pickup"],
+            d["dropoff"],
+            d.get("pickup_place_id", ""),
+            d.get("dropoff_place_id", "")
+        )
         outbound_route_ok = True
     except Exception as e:
         print(f"Outbound route calculation failed: {e}")
@@ -1493,7 +1556,12 @@ def order_confirm():
     if paluu_auto:
         try:
             # Return trip is reversed: dropoff becomes pickup, pickup becomes dropoff
-            return_km = order_service.route_km(d["dropoff"], d["pickup"])
+            return_km = order_service.route_km(
+                d["dropoff"],
+                d["pickup"],
+                d.get("dropoff_place_id", ""),
+                d.get("pickup_place_id", "")
+            )
             total_km = km + return_km
 
             # Calculate return pricing (30% discount) only if routing succeeded
@@ -1546,6 +1614,8 @@ def order_confirm():
         order_data = {
             "pickup_address": d.get("pickup"),
             "dropoff_address": d.get("dropoff"),
+            "pickup_place_id": d.get("pickup_place_id"),
+            "dropoff_place_id": d.get("dropoff_place_id"),
             "reg_number": d.get("reg_number"),
             "pickup_date": pickup_date_iso,
             "last_delivery_date": last_delivery_date_iso,
@@ -1587,6 +1657,8 @@ def order_confirm():
                 return_order_data = {
                     "pickup_address": d.get("dropoff"),  # Reversed
                     "dropoff_address": d.get("pickup"),  # Reversed
+                    "pickup_place_id": d.get("dropoff_place_id"),
+                    "dropoff_place_id": d.get("pickup_place_id"),
                     "reg_number": d.get("return_reg_number"),
                     "pickup_date": computed_return_pickup_iso or last_delivery_date_iso or pickup_date_iso,  # Paluuauton nouto tapahtuu viimeisen toimituspäivän kanssa samana päivänä
                     "last_delivery_date": return_delivery_date_iso,
@@ -2442,13 +2514,15 @@ document.addEventListener('DOMContentLoaded', function() {{
   // Fetch route data using the same endpoint as calculator
   const pickup = '{d.get("pickup")}';
   const dropoff = '{d.get("dropoff")}';
+  const pickupPlaceId = '{d.get("pickup_place_id") or ""}';
+  const dropoffPlaceId = '{d.get("dropoff_place_id") or ""}';
 
   fetch('/api/route_geo', {{
     method: 'POST',
     headers: {{
       'Content-Type': 'application/json'
     }},
-    body: JSON.stringify({{ pickup: pickup, dropoff: dropoff }})
+    body: JSON.stringify({{ pickup: pickup, dropoff: dropoff, pickup_place_id: pickupPlaceId, dropoff_place_id: dropoffPlaceId }})
   }})
     .then(response => response.json())
     .then(data => {{
