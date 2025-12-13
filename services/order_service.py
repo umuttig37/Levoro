@@ -38,7 +38,7 @@ BASE_FEE = float(os.getenv("BASE_FEE", "49"))
 PER_KM = float(os.getenv("PER_KM", "1.20"))
 VAT_RATE = float(os.getenv("VAT_RATE", "0.255"))  # 25.5% Finnish VAT
 # Invisible background discount for calculator pricing
-CALCULATOR_DISCOUNT_RATE = float(os.getenv("CALCULATOR_DISCOUNT_RATE", "0.02"))
+CALCULATOR_DISCOUNT_RATE = float(os.getenv("CALCULATOR_DISCOUNT_RATE", "0.035"))
 
 # Pricing tiers (NET prices - VAT will be added on top)
 METRO_CITIES = {"helsinki", "espoo", "vantaa", "kauniainen"}
