@@ -37,6 +37,8 @@ def round_half_up(value: float, decimals: int = 2) -> float:
 BASE_FEE = float(os.getenv("BASE_FEE", "49"))
 PER_KM = float(os.getenv("PER_KM", "1.20"))
 VAT_RATE = float(os.getenv("VAT_RATE", "0.255"))  # 25.5% Finnish VAT
+# Invisible background discount for calculator pricing
+CALCULATOR_DISCOUNT_RATE = float(os.getenv("CALCULATOR_DISCOUNT_RATE", "0.02"))
 
 # Pricing tiers (NET prices - VAT will be added on top)
 METRO_CITIES = {"helsinki", "espoo", "vantaa", "kauniainen"}
@@ -227,6 +229,11 @@ class OrderService:
                 min_net_price = min(min_net_price, discounted_floor)
 
         # Enforce minimum order price (net)
+        net_price = max(net_price, min_net_price)
+
+        # Apply hidden calculator discount (customers only see the cheaper result)
+        net_price = self._apply_hidden_discount(net_price)
+        # Ensure discount never undercuts the minimum net threshold
         net_price = max(net_price, min_net_price)
 
         # Add VAT to get gross price
@@ -447,6 +454,13 @@ class OrderService:
         net = gross / (1 + VAT_RATE)
         vat = gross - net
         return round_half_up(net, 2), round_half_up(vat, 2)
+
+    def _apply_hidden_discount(self, amount: float) -> float:
+        """Apply background discount used by the calculator/UI."""
+        if CALCULATOR_DISCOUNT_RATE <= 0:
+            return amount
+        discounted = amount * (1 - CALCULATOR_DISCOUNT_RATE)
+        return max(discounted, 0.0)
 
     def assign_driver_to_order(self, order_id: int, driver_id: int) -> Tuple[bool, Optional[str]]:
         """Assign or reassign a driver to an order"""
