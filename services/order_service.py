@@ -4,12 +4,14 @@ Handles order business logic, pricing, and operations
 """
 
 import os
+import re
 import requests
 import math
 from typing import Dict, List, Optional, Tuple
 from datetime import datetime
 from decimal import Decimal, ROUND_HALF_UP
 from models.order import order_model
+from models.database import DatabaseManager
 
 
 def round_half_up(value: float, decimals: int = 2) -> float:
@@ -70,6 +72,7 @@ class OrderService:
 
     def __init__(self):
         self.order_model = order_model
+        self.route_cache = DatabaseManager().get_collection("route_cache")
 
     def create_order(self, user_id: int, order_data: Dict) -> Tuple[bool, Optional[Dict], Optional[str]]:
         """Create a new order with pricing calculation"""
@@ -329,6 +332,83 @@ class OrderService:
         return status in ["NEW", "CONFIRMED", "IN_TRANSIT"]
 
     # Private helper methods
+    def _normalize_for_cache(self, value: str) -> str:
+        """Normalize address strings for cache keys."""
+        if not value:
+            return ""
+        return re.sub(r"\s+", " ", value.strip().lower())
+
+    def _build_route_cache_key(
+        self,
+        pickup_addr: str,
+        dropoff_addr: str,
+        pickup_place_id: str,
+        dropoff_place_id: str
+    ) -> str:
+        """Build deterministic cache key for a pickup/dropoff pair."""
+        if pickup_place_id and dropoff_place_id:
+            return f"place:{pickup_place_id}:{dropoff_place_id}"
+        pickup_norm = self._normalize_for_cache(pickup_addr)
+        dropoff_norm = self._normalize_for_cache(dropoff_addr)
+        if not pickup_norm or not dropoff_norm:
+            return ""
+        return f"addr:{pickup_norm}:{dropoff_norm}"
+
+    def _get_cached_route(self, cache_key: str) -> Optional[Dict]:
+        """Fetch cached route data if available."""
+        if not cache_key or self.route_cache is None:
+            return None
+
+        cached = self.route_cache.find_one({"key": cache_key}, {"_id": 0})
+        if not cached:
+            return None
+
+        self.route_cache.update_one(
+            {"key": cache_key},
+            {"$set": {"last_used_at": datetime.utcnow()}}
+        )
+
+        return {
+            "distance_km": cached.get("distance_km", 0.0),
+            "latlngs": cached.get("latlngs", []),
+            "start": cached.get("start"),
+            "end": cached.get("end"),
+            "provider": "route-cache",
+            "source_provider": cached.get("provider", "google-directions")
+        }
+
+    def _save_route_cache(
+        self,
+        cache_key: str,
+        route_data: Dict,
+        pickup_addr: str,
+        dropoff_addr: str,
+        pickup_place_id: str,
+        dropoff_place_id: str
+    ):
+        """Persist route data into Mongo cache."""
+        if not cache_key or self.route_cache is None or not route_data:
+            return
+
+        now = datetime.utcnow()
+        update_doc = {
+            "$set": {
+                "key": cache_key,
+                "pickup": pickup_addr,
+                "dropoff": dropoff_addr,
+                "pickup_place_id": pickup_place_id,
+                "dropoff_place_id": dropoff_place_id,
+                "distance_km": route_data.get("distance_km", 0.0),
+                "latlngs": route_data.get("latlngs", []),
+                "start": route_data.get("start"),
+                "end": route_data.get("end"),
+                "provider": route_data.get("provider", "google-directions"),
+                "last_used_at": now,
+            },
+            "$setOnInsert": {"created_at": now}
+        }
+        self.route_cache.update_one({"key": cache_key}, update_doc, upsert=True)
+
     def _decode_polyline(self, polyline_str: Optional[str]) -> List[List[float]]:
         """Decode a Google polyline string into a list of [lat, lng]."""
         if not polyline_str:
@@ -459,6 +539,11 @@ class OrderService:
         dropoff_place_id: str = ""
     ) -> Dict:
         """Resolve geocodes and return route data with fallbacks."""
+        cache_key = self._build_route_cache_key(pickup_addr, dropoff_addr, pickup_place_id, dropoff_place_id)
+        cached_route = self._get_cached_route(cache_key)
+        if cached_route:
+            return cached_route
+
         pickup_coords = self._geocode_address(pickup_addr, pickup_place_id)
         dropoff_coords = self._geocode_address(dropoff_addr, dropoff_place_id)
 
@@ -472,7 +557,16 @@ class OrderService:
         destination = f"place_id:{dropoff_place_id}" if dropoff_place_id else f"{lat2},{lon2}"
 
         try:
-            return self._fetch_google_route(origin, destination, [lat1, lon1], [lat2, lon2])
+            route = self._fetch_google_route(origin, destination, [lat1, lon1], [lat2, lon2])
+            self._save_route_cache(
+                cache_key,
+                route,
+                pickup_addr,
+                dropoff_addr,
+                pickup_place_id,
+                dropoff_place_id
+            )
+            return route
         except ValueError:
             raise
         except Exception as e:
