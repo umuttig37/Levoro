@@ -46,7 +46,7 @@ The order confirmation page (final step of order wizard) did not display the rou
 
 ### RouteMap Class Features
 - **Mini mode**: Simplified, static map (no zoom/pan)
-- **Polyline rendering**: Full route geometry from OSRM
+- **Polyline rendering**: Full route geometry from Google Directions API
 - **Markers**: Start (pickup) and end (dropoff) locations
 - **Distance label**: Centered blue badge showing kilometers
 - **Auto-fit**: Automatically adjusts view to show entire route
@@ -55,7 +55,7 @@ The order confirmation page (final step of order wizard) did not display the rou
 - **Endpoint**: `POST /api/route_geo`
 - **Request**: `{ pickup: string, dropoff: string }`
 - **Response**: `{ latlngs: [[lat,lon],...], start: [lat,lon], end: [lat,lon], km: float }`
-- **Backend**: Uses Google Maps Geocoding + OSRM routing
+- **Backend**: Uses Google Maps Geocoding + Directions routing
 
 ## Files Modified
 
@@ -104,7 +104,7 @@ Consider applying similar map visualization to:
 ## Notes
 
 - The map uses Leaflet.js (already loaded in calculator)
-- OSRM provides free routing without API keys
+- Google Directions API provides reliable routing (requires API key)
 - Google Maps Geocoding used for address → coordinates conversion
 - Map is static (no user interaction) to focus on confirmation
 - Distance label CSS uses blue theme matching application design
