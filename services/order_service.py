@@ -5,6 +5,7 @@ Handles order business logic, pricing, and operations
 
 import os
 import requests
+import math
 from typing import Dict, List, Optional, Tuple
 from datetime import datetime
 from decimal import Decimal, ROUND_HALF_UP
@@ -37,8 +38,6 @@ def round_half_up(value: float, decimals: int = 2) -> float:
 BASE_FEE = float(os.getenv("BASE_FEE", "49"))
 PER_KM = float(os.getenv("PER_KM", "1.20"))
 VAT_RATE = float(os.getenv("VAT_RATE", "0.255"))  # 25.5% Finnish VAT
-# Invisible background discount for calculator pricing
-CALCULATOR_DISCOUNT_RATE = float(os.getenv("CALCULATOR_DISCOUNT_RATE", "0.035"))
 
 # Pricing tiers (NET prices - VAT will be added on top)
 METRO_CITIES = {"helsinki", "espoo", "vantaa", "kauniainen"}
@@ -58,15 +57,12 @@ MINIMUM_ORDER_PRICE_NET = 20.0
 
 # External API configuration
 GOOGLE_PLACES_API_KEY = os.getenv("GOOGLE_PLACES_API_KEY", "")
-OSRM_ROUTE_URL = os.getenv(
-    "OSRM_ROUTE_URL",
-    "https://router.project-osrm.org/route/v1/driving/{lon1},{lat1};{lon2},{lat2}?overview=false"
+GOOGLE_DIRECTIONS_URL = os.getenv(
+    "GOOGLE_DIRECTIONS_URL",
+    "https://maps.googleapis.com/maps/api/directions/json"
 )
-
-OSRM_USER_AGENT = os.getenv(
-    "OSRM_USER_AGENT",
-    "Levoro-Autotransport-Calculator/1.0 (+https://levoro.fi)"
-)
+# When routing fails entirely, inflate straight-line distance to avoid underpricing
+STRAIGHT_LINE_DISTANCE_FACTOR = float(os.getenv("STRAIGHT_LINE_DISTANCE_FACTOR", "1.2"))
 
 
 class OrderService:
@@ -231,11 +227,6 @@ class OrderService:
         # Enforce minimum order price (net)
         net_price = max(net_price, min_net_price)
 
-        # Apply hidden calculator discount (customers only see the cheaper result)
-        net_price = self._apply_hidden_discount(net_price)
-        # Ensure discount never undercuts the minimum net threshold
-        net_price = max(net_price, min_net_price)
-
         # Add VAT to get gross price
         gross_price = net_price * (1 + VAT_RATE)
 
@@ -248,27 +239,10 @@ class OrderService:
         pickup_place_id: str = "",
         dropoff_place_id: str = ""
     ) -> float:
-        """Calculate route distance using OSRM"""
+        """Calculate route distance using Google Directions with fallbacks."""
         try:
-            pickup_coords = self._geocode_address(pickup_addr, pickup_place_id)
-            dropoff_coords = self._geocode_address(dropoff_addr, dropoff_place_id)
-
-            if not pickup_coords or not dropoff_coords:
-                return 0.0
-
-            url = OSRM_ROUTE_URL.format(
-                lon1=pickup_coords["lng"],
-                lat1=pickup_coords["lat"],
-                lon2=dropoff_coords["lng"],
-                lat2=dropoff_coords["lat"]
-            )
-
-            response = requests.get(url, headers={"User-Agent": OSRM_USER_AGENT}, timeout=10)
-            if response.status_code == 200:
-                data = response.json()
-                if data.get("code") == "Ok" and data.get("routes"):
-                    distance_m = data["routes"][0]["distance"]
-                    return round(distance_m / 1000.0, 1)
+            route = self.get_route(pickup_addr, dropoff_addr, pickup_place_id, dropoff_place_id)
+            return round(route.get("distance_km", 0.0), 1)
         except Exception as e:
             print(f"Route calculation error: {e}")
 
@@ -282,14 +256,15 @@ class OrderService:
         dropoff_place_id: str = ""
     ) -> float:
         """Calculate route distance - alias for calculate_route_distance"""
-        distance = self.calculate_route_distance(
+        route = self.get_route(
             pickup_addr,
             dropoff_addr,
             pickup_place_id,
             dropoff_place_id
         )
+        distance = route.get("distance_km", 0.0)
         if distance <= 0:
-            raise ValueError("Reititys ei ole saatavilla juuri nyt, yritä hetken kuluttua uudestaan")
+            raise ValueError("Reititys ei ole saatavilla juuri nyt, yrita hetken kuluttua uudestaan")
         return distance
 
     def price_from_km(self, distance_km: float, pickup_addr: str = "", dropoff_addr: str = "", return_leg: bool = False) -> Tuple[float, float, float, str]:
@@ -354,6 +329,168 @@ class OrderService:
         return status in ["NEW", "CONFIRMED", "IN_TRANSIT"]
 
     # Private helper methods
+    def _decode_polyline(self, polyline_str: Optional[str]) -> List[List[float]]:
+        """Decode a Google polyline string into a list of [lat, lng]."""
+        if not polyline_str:
+            return []
+
+        points: List[List[float]] = []
+        index = 0
+        lat = 0
+        lng = 0
+        length = len(polyline_str)
+
+        while index < length:
+            result = 0
+            shift = 0
+
+            while True:
+                b = ord(polyline_str[index]) - 63
+                index += 1
+                result |= (b & 0x1F) << shift
+                shift += 5
+                if b < 0x20:
+                    break
+
+            delta = ~(result >> 1) if (result & 1) else (result >> 1)
+            lat += delta
+
+            result = 0
+            shift = 0
+
+            while True:
+                b = ord(polyline_str[index]) - 63
+                index += 1
+                result |= (b & 0x1F) << shift
+                shift += 5
+                if b < 0x20:
+                    break
+
+            delta = ~(result >> 1) if (result & 1) else (result >> 1)
+            lng += delta
+
+            points.append([lat / 1e5, lng / 1e5])
+
+        return points
+
+    def _fetch_google_route(
+        self,
+        origin: str,
+        destination: str,
+        fallback_start: List[float],
+        fallback_end: List[float]
+    ) -> Dict:
+        """Fetch driving route from Google Directions API."""
+        if not GOOGLE_PLACES_API_KEY:
+            raise ValueError("Google Maps API -avain puuttuu")
+
+        params = {
+            "origin": origin,
+            "destination": destination,
+            "mode": "driving",
+            "region": "fi",
+            "language": "fi",
+            "units": "metric",
+            "key": GOOGLE_PLACES_API_KEY
+        }
+
+        res = requests.get(GOOGLE_DIRECTIONS_URL, params=params, timeout=10)
+        res.raise_for_status()
+        data = res.json()
+        status = data.get("status")
+        if status != "OK" or not data.get("routes"):
+            error_msg = data.get("error_message") or status or "Unknown error"
+            raise ValueError(f"Reitin laskenta epaonnistui: {error_msg}")
+
+        route = data["routes"][0]
+        legs = route.get("legs") or []
+        if not legs:
+            raise ValueError("Reitti ei sisalla leg-tietoja")
+
+        leg = legs[0]
+        distance_m = (leg.get("distance") or {}).get("value")
+        if distance_m is None:
+            raise ValueError("Reitin etaisyystieto puuttuu")
+
+        start_loc = leg.get("start_location") or {}
+        end_loc = leg.get("end_location") or {}
+
+        start = [
+            start_loc.get("lat", fallback_start[0]),
+            start_loc.get("lng", fallback_start[1])
+        ]
+        end = [
+            end_loc.get("lat", fallback_end[0]),
+            end_loc.get("lng", fallback_end[1])
+        ]
+
+        overview_polyline = (route.get("overview_polyline") or {}).get("points")
+        latlngs = self._decode_polyline(overview_polyline)
+        if not latlngs:
+            latlngs = [start, end]
+
+        return {
+            "distance_km": distance_m / 1000.0,
+            "latlngs": latlngs,
+            "start": start,
+            "end": end,
+            "provider": "google-directions"
+        }
+
+    def _haversine_distance(self, lat1: float, lon1: float, lat2: float, lon2: float) -> float:
+        """Great-circle distance between two points in kilometers."""
+        R = 6371.0
+        d_lat = math.radians(lat2 - lat1)
+        d_lon = math.radians(lon2 - lon1)
+        a = (
+            math.sin(d_lat / 2) ** 2
+            + math.cos(math.radians(lat1))
+            * math.cos(math.radians(lat2))
+            * math.sin(d_lon / 2) ** 2
+        )
+        c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+        return R * c
+
+    def get_route(
+        self,
+        pickup_addr: str,
+        dropoff_addr: str,
+        pickup_place_id: str = "",
+        dropoff_place_id: str = ""
+    ) -> Dict:
+        """Resolve geocodes and return route data with fallbacks."""
+        pickup_coords = self._geocode_address(pickup_addr, pickup_place_id)
+        dropoff_coords = self._geocode_address(dropoff_addr, dropoff_place_id)
+
+        if not pickup_coords or not dropoff_coords:
+            raise ValueError("Osoitteiden geokoodaus epaonnistui")
+
+        lat1, lon1 = pickup_coords["lat"], pickup_coords["lng"]
+        lat2, lon2 = dropoff_coords["lat"], dropoff_coords["lng"]
+
+        origin = f"place_id:{pickup_place_id}" if pickup_place_id else f"{lat1},{lon1}"
+        destination = f"place_id:{dropoff_place_id}" if dropoff_place_id else f"{lat2},{lon2}"
+
+        try:
+            return self._fetch_google_route(origin, destination, [lat1, lon1], [lat2, lon2])
+        except ValueError:
+            raise
+        except Exception as e:
+            print(f"Google Directions error: {e}")
+
+        straight_km = self._haversine_distance(lat1, lon1, lat2, lon2)
+        adjusted_km = straight_km * STRAIGHT_LINE_DISTANCE_FACTOR
+        if adjusted_km <= 0:
+            raise ValueError("Reititys ei ole saatavilla juuri nyt, yrita hetken kuluttua uudestaan")
+
+        return {
+            "distance_km": adjusted_km,
+            "latlngs": [[lat1, lon1], [lat2, lon2]],
+            "start": [lat1, lon1],
+            "end": [lat2, lon2],
+            "provider": "straight-line-fallback"
+        }
+
     def _geocode_address(self, address: str, place_id: Optional[str] = None) -> Optional[Dict]:
         """Geocode address using Google Places/Geocode APIs"""
         if not GOOGLE_PLACES_API_KEY or (not address and not place_id):
@@ -454,13 +591,6 @@ class OrderService:
         net = gross / (1 + VAT_RATE)
         vat = gross - net
         return round_half_up(net, 2), round_half_up(vat, 2)
-
-    def _apply_hidden_discount(self, amount: float) -> float:
-        """Apply background discount used by the calculator/UI."""
-        if CALCULATOR_DISCOUNT_RATE <= 0:
-            return amount
-        discounted = amount * (1 - CALCULATOR_DISCOUNT_RATE)
-        return max(discounted, 0.0)
 
     def assign_driver_to_order(self, order_id: int, driver_id: int) -> Tuple[bool, Optional[str]]:
         """Assign or reassign a driver to an order"""

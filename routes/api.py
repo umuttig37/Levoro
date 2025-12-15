@@ -30,7 +30,7 @@ def quote_for_addresses():
         net, vat, gross, details = order_service.price_from_km(km, pickup, dropoff, return_leg=return_leg)
         return jsonify({"km": round(km, 2), "net": net, "vat": vat, "gross": gross, "details": details})
     except ValueError as e:
-        # These are user-friendly messages from route_km() when OSRM is unavailable
+        # These are user-friendly messages from route_km() when routing is unavailable
         return jsonify({"error": str(e)}), 503
     except Exception as e:
         # Unexpected errors - log but don't expose details

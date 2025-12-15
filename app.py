@@ -70,14 +70,6 @@ SEED_ADMIN_PASS = os.getenv("SEED_ADMIN_PASS", "admin123")
 SEED_ADMIN_NAME = os.getenv("SEED_ADMIN_NAME", "Admin")
 
 GOOGLE_PLACES_API_KEY = os.getenv("GOOGLE_PLACES_API_KEY", "")
-OSRM_ROUTE_URL = os.getenv(
-    "OSRM_ROUTE_URL",
-    "https://router.project-osrm.org/route/v1/driving/{lon1},{lat1};{lon2},{lat2}"
-)
-OSRM_USER_AGENT = os.getenv(
-    "OSRM_USER_AGENT",
-    "Levoro-Autotransport-Calculator/1.0 (+https://levoro.fi)"
-)
 
 # Image upload configuration
 UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static', 'uploads', 'orders')
@@ -613,68 +605,22 @@ def api_route_geo():
     pickup_place_id = (data.get("pickup_place_id") or "").strip()
     dropoff_place_id = (data.get("dropoff_place_id") or "").strip()
     if not pickup or not dropoff:
-        return jsonify({"error": "L?ht?- ja kohdeosoite vaaditaan"}), 400
+        return jsonify({"error": "Lahto- ja kohdeosoite vaaditaan"}), 400
 
     try:
-        pickup_coords = order_service._geocode_address(pickup, pickup_place_id)
-        dropoff_coords = order_service._geocode_address(dropoff, dropoff_place_id)
-
-        if not pickup_coords or not dropoff_coords:
-            return jsonify({"error": "Osoitteiden geokoodaus ep?onnistui"}), 400
-
-        lat1, lon1 = pickup_coords["lat"], pickup_coords["lng"]
-        lat2, lon2 = dropoff_coords["lat"], dropoff_coords["lng"]
-
-        route_template = OSRM_ROUTE_URL
-        extra_params = []
-        if "?" not in route_template:
-            extra_params.extend(["overview=full", "geometries=geojson"])
-        else:
-            if "overview=" not in route_template:
-                extra_params.append("overview=full")
-            if "geometries=" not in route_template:
-                extra_params.append("geometries=geojson")
-
-        url = route_template.format(lon1=lon1, lat1=lat1, lon2=lon2, lat2=lat2)
-        if extra_params:
-            separator = "&" if "?" in url else "?"
-            url = f"{url}{separator}{'&'.join(extra_params)}"
-
-        r = requests.get(url, headers={"User-Agent": OSRM_USER_AGENT}, timeout=10)
-        r.raise_for_status()
-        payload = r.json()
-
-        if payload.get("code") != "Ok" or not payload.get("routes"):
-            return jsonify({"error": "Reittiä ei löytynyt annetuille osoitteille"}), 404
-
-        route = payload["routes"][0]
-        km = route.get("distance", 0) / 1000.0
-        coords = route.get("geometry", {}).get("coordinates", [])
-        latlngs = [[c[1], c[0]] for c in coords]
-
+        route = order_service.get_route(pickup, dropoff, pickup_place_id, dropoff_place_id)
         return jsonify({
-            "km": round(km, 2),
-            "latlngs": latlngs,
-            "start": [lat1, lon1],
-            "end": [lat2, lon2]
+            "km": round(route.get("distance_km", 0.0), 2),
+            "latlngs": route.get("latlngs", []),
+            "start": route.get("start"),
+            "end": route.get("end"),
+            "provider": route.get("provider", "osrm")
         })
-
-    except requests.exceptions.Timeout:
-        return jsonify({"error": "Karttapalvelussa on ruuhkaa, odota hetken kuluttua uudestaan"}), 503
-    except requests.exceptions.ConnectionError:
-        return jsonify({"error": "Karttapalvelu ei ole saatavilla juuri nyt, yrit? hetken kuluttua uudestaan"}), 503
-    except requests.exceptions.HTTPError:
-        return jsonify({"error": "Karttapalvelu on tilap?isesti pois k?yt?st?, yrit? hetken kuluttua uudestaan"}), 503
     except ValueError as e:
-        if "Address not found" in str(e):
-            return jsonify({"error": "Osoitetta ei l?ytynyt. Tarkista osoitteiden oikeinkirjoitus."}), 400
         return jsonify({"error": str(e)}), 400
     except Exception as e:
         print(f"Unexpected error in route_geo: {str(e)}")
-        return jsonify({"error": "Karttapalvelu ei ole saatavilla juuri nyt, yrit? hetken kuluttua uudestaan"}), 500
-
-
-
+        return jsonify({"error": "Karttapalvelu ei ole saatavilla juuri nyt, yrita hetken kuluttua uudestaan"}), 503
 
 
 # /login route removed - now handled by auth.py blueprint
