@@ -110,11 +110,11 @@
                         </td>
                         <td class="conditions-cell">
                             {% if discount.conditions %}
-                            <ul class="conditions-list">
+                            <div class="conditions-list">
                                 {% for condition in discount.conditions %}
-                                <li><i class="fas fa-check"></i> {{ condition }}</li>
+                                <span class="condition-tag"><i class="fas fa-check"></i> {{ condition }}</span>
                                 {% endfor %}
-                            </ul>
+                            </div>
                             {% else %}
                             <span class="text-muted">Ei ehtoja</span>
                             {% endif %}
@@ -142,7 +142,7 @@
                                     <i class="fas fa-edit"></i>
                                     <span>Muokkaa</span>
                                 </a>
-                                <form method="POST" action="{{ url_for('admin.discount_toggle', discount_id=discount.id) }}" style="display: inline;">
+                                <form method="POST" action="{{ url_for('admin.discount_toggle', discount_id=discount.id) }}" class="inline-form">
                                     <button type="submit" class="btn btn-sm btn-ghost btn-action" 
                                             title="{% if discount.active %}Poista käytöstä{% else %}Aktivoi{% endif %}">
                                         <i class="fas {% if discount.active %}fa-toggle-on{% else %}fa-toggle-off{% endif %}"></i>
@@ -155,7 +155,7 @@
                     {% endfor %}
                 </tbody>
             </table>
-            <div id="tableEmptyNotice" class="table-empty-notice" style="display: none;">
+            <div id="tableEmptyNotice" class="table-empty-notice hidden">
                 <i class="fas fa-search"></i> Ei tuloksia suodatuksilla.
             </div>
         </div>
@@ -423,25 +423,23 @@
 }
 
 .conditions-list {
-    list-style: none;
-    padding: 0;
-    margin: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
     font-size: 0.8125rem;
 }
 
-.conditions-list li {
-    display: flex;
+.condition-tag {
+    display: inline-flex;
     align-items: center;
-    gap: 6px;
+    gap: 4px;
     color: var(--gray-600);
-    margin-bottom: 4px;
+    background: var(--gray-100);
+    padding: 2px 8px;
+    border-radius: 4px;
 }
 
-.conditions-list li:last-child {
-    margin-bottom: 0;
-}
-
-.conditions-list i {
+.condition-tag i {
     color: var(--success);
     font-size: 0.6875rem;
 }
@@ -466,6 +464,14 @@
 .action-buttons {
     display: flex;
     gap: 8px;
+}
+
+.inline-form {
+    display: inline;
+}
+
+.hidden {
+    display: none;
 }
 
 /* Buttons */

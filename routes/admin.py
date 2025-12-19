@@ -819,6 +819,72 @@ def update_order_details(order_id):
 
 # ==================== DISCOUNT MANAGEMENT ====================
 
+
+def _get_discount_form_choices(discount_service):
+    """Build shared discount type/scope option lists."""
+    from models.discount import DiscountModel
+
+    discount_types = [
+        {"value": DiscountModel.TYPE_PERCENTAGE, "label": discount_service.get_discount_type_label(DiscountModel.TYPE_PERCENTAGE)},
+        {"value": DiscountModel.TYPE_FIXED_AMOUNT, "label": discount_service.get_discount_type_label(DiscountModel.TYPE_FIXED_AMOUNT)},
+        {"value": DiscountModel.TYPE_FREE_KILOMETERS, "label": discount_service.get_discount_type_label(DiscountModel.TYPE_FREE_KILOMETERS)},
+        {"value": DiscountModel.TYPE_PRICE_CAP, "label": discount_service.get_discount_type_label(DiscountModel.TYPE_PRICE_CAP)},
+        {"value": DiscountModel.TYPE_CUSTOM_RATE, "label": discount_service.get_discount_type_label(DiscountModel.TYPE_CUSTOM_RATE)},
+        {"value": DiscountModel.TYPE_TIERED_PERCENTAGE, "label": discount_service.get_discount_type_label(DiscountModel.TYPE_TIERED_PERCENTAGE)},
+    ]
+
+    discount_scopes = [
+        {"value": DiscountModel.SCOPE_ACCOUNT, "label": discount_service.get_scope_label(DiscountModel.SCOPE_ACCOUNT)},
+        {"value": DiscountModel.SCOPE_GLOBAL, "label": discount_service.get_scope_label(DiscountModel.SCOPE_GLOBAL)},
+        {"value": DiscountModel.SCOPE_CODE, "label": discount_service.get_scope_label(DiscountModel.SCOPE_CODE)},
+        {"value": DiscountModel.SCOPE_FIRST_ORDER, "label": discount_service.get_scope_label(DiscountModel.SCOPE_FIRST_ORDER)},
+    ]
+
+    return discount_types, discount_scopes
+
+
+def _get_active_regular_users():
+    """Return active non-admin customer users for discount assignment."""
+    from app import users_col
+
+    query = {"role": "user", "status": "active"}
+    projection = {"_id": 0, "id": 1, "name": 1, "email": 1}
+    return list(users_col().find(query, projection).sort("name", 1))
+
+
+def _parse_csv_list(value):
+    """Convert comma-separated string into a list of trimmed items."""
+    if not value:
+        return []
+    return [item.strip() for item in value.split(",") if item.strip()]
+
+
+def _parse_date_field(value):
+    """Parse YYYY-MM-DD date strings into datetime objects or None."""
+    from datetime import datetime
+
+    cleaned = (value or "").strip()
+    if not cleaned:
+        return None
+
+    try:
+        return datetime.strptime(cleaned, "%Y-%m-%d")
+    except ValueError:
+        return None
+
+
+def _parse_tiers_json(raw_value):
+    """Parse tier JSON payload with graceful fallback."""
+    import json
+
+    if not raw_value:
+        return []
+
+    try:
+        return json.loads(raw_value)
+    except json.JSONDecodeError:
+        return []
+
 @admin_bp.route("/discounts")
 @admin_required
 def discounts():
@@ -850,15 +916,11 @@ def discounts():
 @admin_required
 def discount_new():
     """Create new discount form"""
-    from models.discount import DiscountModel
     from services.discount_service import discount_service
-    from app import users_col
 
     # Get all regular users for preview
-    all_users = list(users_col().find(
-        {"role": "user", "status": "active"},
-        {"_id": 0, "id": 1, "name": 1, "email": 1}
-    ).sort("name", 1))
+    all_users = _get_active_regular_users()
+    discount_types, discount_scopes = _get_discount_form_choices(discount_service)
 
     return render_template(
         "admin/discount_form.html",
@@ -866,20 +928,8 @@ def discount_new():
         is_new=True,
         assigned_users=[],
         all_users=all_users,
-        discount_types=[
-            {"value": DiscountModel.TYPE_PERCENTAGE, "label": discount_service.get_discount_type_label(DiscountModel.TYPE_PERCENTAGE)},
-            {"value": DiscountModel.TYPE_FIXED_AMOUNT, "label": discount_service.get_discount_type_label(DiscountModel.TYPE_FIXED_AMOUNT)},
-            {"value": DiscountModel.TYPE_FREE_KILOMETERS, "label": discount_service.get_discount_type_label(DiscountModel.TYPE_FREE_KILOMETERS)},
-            {"value": DiscountModel.TYPE_PRICE_CAP, "label": discount_service.get_discount_type_label(DiscountModel.TYPE_PRICE_CAP)},
-            {"value": DiscountModel.TYPE_CUSTOM_RATE, "label": discount_service.get_discount_type_label(DiscountModel.TYPE_CUSTOM_RATE)},
-            {"value": DiscountModel.TYPE_TIERED_PERCENTAGE, "label": discount_service.get_discount_type_label(DiscountModel.TYPE_TIERED_PERCENTAGE)},
-        ],
-        discount_scopes=[
-            {"value": DiscountModel.SCOPE_ACCOUNT, "label": discount_service.get_scope_label(DiscountModel.SCOPE_ACCOUNT)},
-            {"value": DiscountModel.SCOPE_GLOBAL, "label": discount_service.get_scope_label(DiscountModel.SCOPE_GLOBAL)},
-            {"value": DiscountModel.SCOPE_CODE, "label": discount_service.get_scope_label(DiscountModel.SCOPE_CODE)},
-            {"value": DiscountModel.SCOPE_FIRST_ORDER, "label": discount_service.get_scope_label(DiscountModel.SCOPE_FIRST_ORDER)},
-        ],
+        discount_types=discount_types,
+        discount_scopes=discount_scopes,
         current_user=auth_service.get_current_user()
     )
 
@@ -889,8 +939,6 @@ def discount_new():
 def discount_create():
     """Create a new discount"""
     from services.discount_service import discount_service
-    from datetime import datetime
-    import json
 
     current_user = auth_service.get_current_user()
 
@@ -916,36 +964,20 @@ def discount_create():
     }
 
     # Parse date fields
-    valid_from = request.form.get("valid_from", "").strip()
-    valid_until = request.form.get("valid_until", "").strip()
-    
+    valid_from = _parse_date_field(request.form.get("valid_from", ""))
+    valid_until = _parse_date_field(request.form.get("valid_until", ""))
     if valid_from:
-        try:
-            discount_data["valid_from"] = datetime.strptime(valid_from, "%Y-%m-%d")
-        except ValueError:
-            pass
-    
+        discount_data["valid_from"] = valid_from
     if valid_until:
-        try:
-            discount_data["valid_until"] = datetime.strptime(valid_until, "%Y-%m-%d")
-        except ValueError:
-            pass
+        discount_data["valid_until"] = valid_until
 
     # Parse tiered discounts
-    tiers_json = request.form.get("tiers", "[]")
-    try:
-        discount_data["tiers"] = json.loads(tiers_json) if tiers_json else []
-    except json.JSONDecodeError:
-        discount_data["tiers"] = []
+    discount_data["tiers"] = _parse_tiers_json(request.form.get("tiers", "[]"))
 
     # Parse city restrictions
-    allowed_pickup = request.form.get("allowed_pickup_cities", "").strip()
-    allowed_dropoff = request.form.get("allowed_dropoff_cities", "").strip()
-    excluded = request.form.get("excluded_cities", "").strip()
-
-    discount_data["allowed_pickup_cities"] = [c.strip() for c in allowed_pickup.split(",") if c.strip()] if allowed_pickup else []
-    discount_data["allowed_dropoff_cities"] = [c.strip() for c in allowed_dropoff.split(",") if c.strip()] if allowed_dropoff else []
-    discount_data["excluded_cities"] = [c.strip() for c in excluded.split(",") if c.strip()] if excluded else []
+    discount_data["allowed_pickup_cities"] = _parse_csv_list(request.form.get("allowed_pickup_cities", "").strip())
+    discount_data["allowed_dropoff_cities"] = _parse_csv_list(request.form.get("allowed_dropoff_cities", "").strip())
+    discount_data["excluded_cities"] = _parse_csv_list(request.form.get("excluded_cities", "").strip())
 
     assigned_user_ids = request.form.getlist("assigned_users")
     if assigned_user_ids:
@@ -968,8 +1000,6 @@ def discount_create():
 def discount_detail(discount_id):
     """View/edit discount details"""
     from services.discount_service import discount_service
-    from models.discount import DiscountModel
-    from app import users_col
 
     discount = discount_service.get_discount(discount_id)
     if not discount:
@@ -981,16 +1011,19 @@ def discount_detail(discount_id):
 
     # Get assigned users details
     assigned_user_ids = discount.get("assigned_users", [])
-    assigned_users = list(users_col().find(
-        {"id": {"$in": assigned_user_ids}},
-        {"_id": 0, "id": 1, "name": 1, "email": 1}
-    )) if assigned_user_ids else []
+    if assigned_user_ids:
+        from app import users_col
+
+        assigned_users = list(users_col().find(
+            {"id": {"$in": assigned_user_ids}},
+            {"_id": 0, "id": 1, "name": 1, "email": 1}
+        ))
+    else:
+        assigned_users = []
 
     # Get all users for assignment dropdown (exclude drivers and admins)
-    all_users = list(users_col().find(
-        {"role": "user", "status": "active"},
-        {"_id": 0, "id": 1, "name": 1, "email": 1}
-    ).sort("name", 1))
+    all_users = _get_active_regular_users()
+    discount_types, discount_scopes = _get_discount_form_choices(discount_service)
 
     return render_template(
         "admin/discount_form.html",
@@ -999,20 +1032,8 @@ def discount_detail(discount_id):
         stats=stats,
         assigned_users=assigned_users,
         all_users=all_users,
-        discount_types=[
-            {"value": DiscountModel.TYPE_PERCENTAGE, "label": discount_service.get_discount_type_label(DiscountModel.TYPE_PERCENTAGE)},
-            {"value": DiscountModel.TYPE_FIXED_AMOUNT, "label": discount_service.get_discount_type_label(DiscountModel.TYPE_FIXED_AMOUNT)},
-            {"value": DiscountModel.TYPE_FREE_KILOMETERS, "label": discount_service.get_discount_type_label(DiscountModel.TYPE_FREE_KILOMETERS)},
-            {"value": DiscountModel.TYPE_PRICE_CAP, "label": discount_service.get_discount_type_label(DiscountModel.TYPE_PRICE_CAP)},
-            {"value": DiscountModel.TYPE_CUSTOM_RATE, "label": discount_service.get_discount_type_label(DiscountModel.TYPE_CUSTOM_RATE)},
-            {"value": DiscountModel.TYPE_TIERED_PERCENTAGE, "label": discount_service.get_discount_type_label(DiscountModel.TYPE_TIERED_PERCENTAGE)},
-        ],
-        discount_scopes=[
-            {"value": DiscountModel.SCOPE_ACCOUNT, "label": discount_service.get_scope_label(DiscountModel.SCOPE_ACCOUNT)},
-            {"value": DiscountModel.SCOPE_GLOBAL, "label": discount_service.get_scope_label(DiscountModel.SCOPE_GLOBAL)},
-            {"value": DiscountModel.SCOPE_CODE, "label": discount_service.get_scope_label(DiscountModel.SCOPE_CODE)},
-            {"value": DiscountModel.SCOPE_FIRST_ORDER, "label": discount_service.get_scope_label(DiscountModel.SCOPE_FIRST_ORDER)},
-        ],
+        discount_types=discount_types,
+        discount_scopes=discount_scopes,
         current_user=auth_service.get_current_user()
     )
 
@@ -1022,8 +1043,6 @@ def discount_detail(discount_id):
 def discount_update(discount_id):
     """Update an existing discount"""
     from services.discount_service import discount_service
-    from datetime import datetime
-    import json
 
     # Parse form data
     update_data = {
@@ -1046,40 +1065,16 @@ def discount_update(discount_id):
     }
 
     # Parse date fields
-    valid_from = request.form.get("valid_from", "").strip()
-    valid_until = request.form.get("valid_until", "").strip()
-    
-    if valid_from:
-        try:
-            update_data["valid_from"] = datetime.strptime(valid_from, "%Y-%m-%d")
-        except ValueError:
-            update_data["valid_from"] = None
-    else:
-        update_data["valid_from"] = None
-    
-    if valid_until:
-        try:
-            update_data["valid_until"] = datetime.strptime(valid_until, "%Y-%m-%d")
-        except ValueError:
-            update_data["valid_until"] = None
-    else:
-        update_data["valid_until"] = None
+    update_data["valid_from"] = _parse_date_field(request.form.get("valid_from", ""))
+    update_data["valid_until"] = _parse_date_field(request.form.get("valid_until", ""))
 
     # Parse tiered discounts
-    tiers_json = request.form.get("tiers", "[]")
-    try:
-        update_data["tiers"] = json.loads(tiers_json) if tiers_json else []
-    except json.JSONDecodeError:
-        update_data["tiers"] = []
+    update_data["tiers"] = _parse_tiers_json(request.form.get("tiers", "[]"))
 
     # Parse city restrictions
-    allowed_pickup = request.form.get("allowed_pickup_cities", "").strip()
-    allowed_dropoff = request.form.get("allowed_dropoff_cities", "").strip()
-    excluded = request.form.get("excluded_cities", "").strip()
-
-    update_data["allowed_pickup_cities"] = [c.strip() for c in allowed_pickup.split(",") if c.strip()] if allowed_pickup else []
-    update_data["allowed_dropoff_cities"] = [c.strip() for c in allowed_dropoff.split(",") if c.strip()] if allowed_dropoff else []
-    update_data["excluded_cities"] = [c.strip() for c in excluded.split(",") if c.strip()] if excluded else []
+    update_data["allowed_pickup_cities"] = _parse_csv_list(request.form.get("allowed_pickup_cities", "").strip())
+    update_data["allowed_dropoff_cities"] = _parse_csv_list(request.form.get("allowed_dropoff_cities", "").strip())
+    update_data["excluded_cities"] = _parse_csv_list(request.form.get("excluded_cities", "").strip())
 
     success, error = discount_service.update_discount(discount_id, update_data)
 
