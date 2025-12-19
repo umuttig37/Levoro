@@ -89,16 +89,28 @@ class OrderService:
                 )
                 if distance_km > 0:
                     order_data["distance_km"] = distance_km
-                    gross_price = self.calculate_price(
+                    promo_code = order_data.get("promo_code")
+                    is_first_order = False
+                    try:
+                        existing_count = self.order_model.count_documents({"user_id": int(user_id)})
+                        is_first_order = existing_count == 0
+                    except Exception as e:
+                        print(f"Failed to check first order status during pricing: {e}")
+
+                    pricing = self.price_from_km_with_discounts(
                         distance_km,
-                        order_data["pickup_address"],
-                        order_data["dropoff_address"],
-                        order_data.get("return_leg", False)
+                        pickup_addr=order_data["pickup_address"],
+                        dropoff_addr=order_data["dropoff_address"],
+                        return_leg=order_data.get("return_leg", False),
+                        user_id=user_id,
+                        promo_code=promo_code,
+                        is_first_order=is_first_order
                     )
-                    order_data["price_gross"] = gross_price
-                    net_price, vat_amount = self._split_gross_to_net_vat(gross_price)
-                    order_data["price_net"] = net_price
-                    order_data["price_vat"] = vat_amount
+                    order_data["price_net"] = float(pricing.get("final_net", 0.0))
+                    order_data["price_vat"] = float(pricing.get("final_vat", 0.0))
+                    order_data["price_gross"] = float(pricing.get("final_gross", 0.0))
+                    order_data["discount_amount"] = float(pricing.get("discount_amount", 0.0))
+                    order_data["applied_discounts"] = pricing.get("all_applied_discounts", pricing.get("applied_discounts", []))
 
             order, error = self.order_model.create_order(user_id, order_data)
 
@@ -284,6 +296,103 @@ class OrderService:
             details = "long"
 
         return round_half_up(net_price, 2), round_half_up(vat_amount, 2), round_half_up(gross_price, 2), details
+
+    def price_from_km_with_discounts(
+        self,
+        distance_km: float,
+        pickup_addr: str = "",
+        dropoff_addr: str = "",
+        return_leg: bool = False,
+        user_id: Optional[int] = None,
+        promo_code: Optional[str] = None,
+        is_first_order: bool = False
+    ) -> Dict:
+        """
+        Calculate price with applicable discounts.
+        
+        Returns:
+            {
+                "original_net": float,
+                "original_vat": float,
+                "original_gross": float,
+                "discount_amount": float,
+                "final_net": float,
+                "final_vat": float,
+                "final_gross": float,
+                "applied_discounts": [...],
+                "details": str
+            }
+        """
+        # Get base pricing
+        gross_price = self.calculate_price(distance_km, pickup_addr, dropoff_addr, return_leg)
+        net_price, vat_amount = self._split_gross_to_net_vat(gross_price)
+
+        # Determine pricing tier
+        if pickup_addr and dropoff_addr and self._both_in_metro(pickup_addr, dropoff_addr):
+            details = "metro"
+        elif distance_km <= MID_KM:
+            details = "mid"
+        else:
+            details = "long"
+
+        result = {
+            "original_net": round_half_up(net_price, 2),
+            "original_vat": round_half_up(vat_amount, 2),
+            "original_gross": round_half_up(gross_price, 2),
+            "discount_amount": 0.0,
+            "final_net": round_half_up(net_price, 2),
+            "final_vat": round_half_up(vat_amount, 2),
+            "final_gross": round_half_up(gross_price, 2),
+            "applied_discounts": [],
+            "details": details,
+            "all_applied_discounts": []
+        }
+        result["display_original_net"] = result["original_net"]
+        result["display_original_vat"] = result["original_vat"]
+        result["display_original_gross"] = result["original_gross"]
+
+        # Apply discounts if available
+        try:
+            from services.discount_service import discount_service
+
+            # Extract cities from addresses
+            pickup_city = discount_service.extract_city_from_address(pickup_addr)
+            dropoff_city = discount_service.extract_city_from_address(dropoff_addr)
+
+            discount_result = discount_service.apply_discounts(
+                user_id=user_id,
+                base_net_price=net_price,
+                distance_km=distance_km,
+                pickup_city=pickup_city,
+                dropoff_city=dropoff_city,
+                promo_code=promo_code,
+                is_first_order=is_first_order
+            )
+
+            applied_discounts = discount_result.get("applied_discounts", []) or []
+            visible_discounts = [d for d in applied_discounts if not d.get("hide_from_customer", False)]
+            if discount_result.get("applied_discounts"):
+                result["discount_amount"] = round_half_up(sum(d.get("amount", 0.0) for d in visible_discounts), 2)
+                result["final_net"] = discount_result.get("final_net", net_price)
+                result["final_vat"] = discount_result.get("final_vat", vat_amount)
+                result["final_gross"] = discount_result.get("final_gross", gross_price)
+                result["applied_discounts"] = [
+                    {k: v for k, v in disc.items() if k != "hide_from_customer"}
+                    for disc in visible_discounts
+                ]
+                result["all_applied_discounts"] = applied_discounts
+                display_net = result["final_net"] + result["discount_amount"]
+                result["display_original_net"] = round_half_up(display_net, 2)
+                result["display_original_vat"] = round_half_up(display_net * VAT_RATE, 2)
+                result["display_original_gross"] = round_half_up(display_net * (1 + VAT_RATE), 2)
+            else:
+                result["all_applied_discounts"] = applied_discounts
+
+        except Exception as e:
+            print(f"Error applying discounts: {e}")
+            # Continue without discounts on error
+
+        return result
 
     def get_price_quote(self, pickup_addr: str, dropoff_addr: str, return_leg: bool = False) -> Dict:
         """Get price quote for addresses"""

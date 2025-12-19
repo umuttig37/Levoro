@@ -886,6 +886,16 @@ main::before {
     border-radius: var(--radius-xl);
 }
 
+.calculator-form.card {
+    position: relative;
+    z-index: 2;
+}
+
+.calculator-results.card {
+    position: relative;
+    z-index: 1;
+}
+
 /* Calculator form input improvements */
 .calculator-form .form-input,
 .calculator-form .form-select,

@@ -1,0 +1,1555 @@
+{% extends "base/layout.html" %}
+
+{% block title %}{% if is_new %}Luo uusi alennus{% else %}Muokkaa alennusta{% endif %} - Admin{% endblock %}
+
+{% block content %}
+<div class="admin-page discount-form-page">
+    <!-- Page Header -->
+    <div class="admin-header">
+        <h2>{% if is_new %}Luo uusi alennus{% else %}Muokkaa alennusta #{{ discount.id }}{% endif %}</h2>
+        <div class="admin-actions">
+            <a class="btn btn-ghost" href="{{ url_for('admin.discounts') }}">
+                <i class="fas fa-arrow-left"></i> Takaisin
+            </a>
+        </div>
+    </div>
+
+    <div class="form-layout {% if not is_new %}with-sidebar{% endif %}">
+        <!-- Main Form -->
+        <div class="form-main">
+            <form method="POST" 
+                  action="{% if is_new %}{{ url_for('admin.discount_create') }}{% else %}{{ url_for('admin.discount_update', discount_id=discount.id) }}{% endif %}"
+                  class="discount-form" id="discountForm">
+                
+                <!-- Basic Info -->
+                <div class="form-section">
+                    <h3><i class="fas fa-info-circle"></i> Perustiedot</h3>
+                    
+                    <div class="form-group">
+                        <label for="name">Alennuksen nimi <span class="required">*</span></label>
+                        <input type="text" id="name" name="name" required
+                               value="{{ discount.name if discount else '' }}"
+                               placeholder="Esim. VIP-asiakkaan alennus">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="description">Kuvaus</label>
+                        <textarea id="description" name="description" rows="2"
+                                  placeholder="Valinnainen kuvaus alennuksesta">{{ discount.description if discount else '' }}</textarea>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="active">Tila</label>
+                            <div class="toggle-switch">
+                                <input type="checkbox" id="active" name="active"
+                                       {% if is_new or (discount and discount.active) %}checked{% endif %}>
+                                <label for="active" class="toggle-label">
+                                    <span class="toggle-text-on">Aktiivinen</span>
+                                    <span class="toggle-text-off">Ei käytössä</span>
+                                </label>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="priority">Prioriteetti</label>
+                            <input type="number" id="priority" name="priority" min="1" max="100"
+                                   value="{{ discount.priority if discount else 10 }}"
+                                   placeholder="10">
+                            <small class="help-text">Pienempi numero = korkeampi prioriteetti</small>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="hide_from_customer">Piilota alennus asiakkaalta</label>
+                        <div class="toggle-switch">
+                            <input type="checkbox" id="hide_from_customer" name="hide_from_customer"
+                                   {% if discount and discount.hide_from_customer %}checked{% endif %}>
+                            <label for="hide_from_customer" class="toggle-label">
+                                <span class="toggle-text-on">Piilotettu</span>
+                                <span class="toggle-text-off">Näkyvissä</span>
+                            </label>
+                        </div>
+                        <small class="help-text">Kun tämä on päällä, alennus huomioidaan hinnassa mutta asiakas näkee vain lopullisen hinnan.</small>
+                    </div>
+                </div>
+
+                <!-- Discount Type & Value -->
+                <div class="form-section">
+                    <h3><i class="fas fa-tags"></i> Alennuksen tyyppi</h3>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="type">Tyyppi <span class="required">*</span></label>
+                            <select id="type" name="type" required onchange="updateValueLabel()">
+                                {% for t in discount_types %}
+                                <option value="{{ t.value }}" {% if discount and discount.type == t.value %}selected{% endif %}>
+                                    {{ t.label }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="form-group" id="valueGroup">
+                            <label for="value" id="valueLabel">Arvo <span class="required">*</span></label>
+                            <div class="input-with-suffix">
+                                <input type="number" id="value" name="value" step="0.01" min="0"
+                                       value="{{ discount.value if discount else '' }}"
+                                       placeholder="0">
+                                <span class="suffix" id="valueSuffix">%</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tiered Discounts (shown only for tiered_percentage type) -->
+                    <div id="tieredSection" class="tiered-section hidden-section">
+                        <h4>Porrastetut alennukset</h4>
+                        <p class="help-text">Määritä eri alennusprosentit eri matkan pituuksille. Esim. yli 100km matkoille 10% alennus.</p>
+                        
+                        <div id="tiersContainer">
+                            <!-- Tiers will be added dynamically -->
+                        </div>
+                        
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="addTier()">
+                            <i class="fas fa-plus"></i> Lisää porras
+                        </button>
+                        
+                        <input type="hidden" id="tiers" name="tiers" value="[]">
+                    </div>
+                </div>
+
+                <!-- Scope -->
+                <div class="form-section">
+                    <h3><i class="fas fa-bullseye"></i> Laajuus</h3>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="scope">Laajuus <span class="required">*</span></label>
+                            <select id="scope" name="scope" required onchange="updateScopeFields()">
+                                {% for s in discount_scopes %}
+                                <option value="{{ s.value }}" {% if discount and discount.scope == s.value %}selected{% endif %}>
+                                    {{ s.label }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="form-group hidden-section" id="codeGroup">
+                            <label for="code">Kampanjakoodi</label>
+                            <input type="text" id="code" name="code" 
+                                   value="{{ discount.code if discount else '' }}"
+                                   placeholder="SUMMER2024"
+                                   class="text-uppercase">
+                        </div>
+                    </div>
+
+                    <div class="scope-info">
+                        <div class="info-box info-account" id="infoAccount">
+                            <i class="fas fa-user"></i>
+                            <span>Tämä alennus on asiakaskohtainen. Lisää käyttäjät alla olevasta listasta.</span>
+                        </div>
+                        <div class="info-box info-global hidden-section" id="infoGlobal">
+                            <i class="fas fa-globe"></i>
+                            <span>Tämä alennus koskee kaikkia asiakkaita automaattisesti.</span>
+                        </div>
+                        <div class="info-box info-code hidden-section" id="infoCode">
+                            <i class="fas fa-ticket-alt"></i>
+                            <span>Asiakas voi käyttää tämän alennuksen syöttämällä kampanjakoodin.</span>
+                        </div>
+                        <div class="info-box info-first hidden-section" id="infoFirst">
+                            <i class="fas fa-star"></i>
+                            <span>Alennus annetaan automaattisesti ensimmäisestä tilauksesta.</span>
+                        </div>
+                    </div>
+
+                    {% if is_new %}
+                    <div class="form-group account-user-picker hidden-section" id="inlineUserPicker">
+                        <label for="inlineAssignedUsers">Valitse asiakkaat tälle alennukselle</label>
+                        <div class="select-wrapper multi-select">
+                            <select id="inlineAssignedUsers" name="assigned_users" multiple size="8" class="user-select">
+                                {% for user in all_users %}
+                                <option value="{{ user.id }}">{{ user.name }} - {{ user.email }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <small class="help-text">Pidä Ctrl (tai Cmd) pohjassa valitaksesi useita käyttäjiä. Voit jättää valinnan tyhjäksi ja lisätä käyttäjät myöhemmin.</small>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- Conditions -->
+                <div class="form-section">
+                    <h3><i class="fas fa-filter"></i> Ehdot</h3>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="min_distance_km">Minimietäisyys (km)</label>
+                            <input type="number" id="min_distance_km" name="min_distance_km" step="0.1" min="0"
+                                   value="{{ discount.min_distance_km if discount and discount.min_distance_km else '' }}"
+                                   placeholder="Esim. 100">
+                            <small class="help-text">Alennus voimassa vasta kun matka on yli tämän</small>
+                        </div>
+                        <div class="form-group">
+                            <label for="max_distance_km">Maksimietäisyys (km)</label>
+                            <input type="number" id="max_distance_km" name="max_distance_km" step="0.1" min="0"
+                                   value="{{ discount.max_distance_km if discount and discount.max_distance_km else '' }}"
+                                   placeholder="Esim. 500">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="min_order_value">Minimitilausarvo (€)</label>
+                            <input type="number" id="min_order_value" name="min_order_value" step="0.01" min="0"
+                                   value="{{ discount.min_order_value if discount and discount.min_order_value else '' }}"
+                                   placeholder="Esim. 50">
+                        </div>
+                        <div class="form-group">
+                            <label for="max_order_value">Maksimitilausarvo (€)</label>
+                            <input type="number" id="max_order_value" name="max_order_value" step="0.01" min="0"
+                                   value="{{ discount.max_order_value if discount and discount.max_order_value else '' }}"
+                                   placeholder="Esim. 1000">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Usage Limits -->
+                <div class="form-section">
+                    <h3><i class="fas fa-calculator"></i> Käyttörajoitukset</h3>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="max_uses_total">Max käyttökerrat yhteensä</label>
+                            <input type="number" id="max_uses_total" name="max_uses_total" min="0"
+                                   value="{{ discount.max_uses_total if discount and discount.max_uses_total else '' }}"
+                                   placeholder="Rajaton">
+                        </div>
+                        <div class="form-group">
+                            <label for="max_uses_per_user">Max käyttökerrat/käyttäjä</label>
+                            <input type="number" id="max_uses_per_user" name="max_uses_per_user" min="0"
+                                   value="{{ discount.max_uses_per_user if discount and discount.max_uses_per_user else '' }}"
+                                   placeholder="Rajaton">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="valid_from">Voimassa alkaen</label>
+                            <input type="date" id="valid_from" name="valid_from"
+                                   value="{{ discount.valid_from.strftime('%Y-%m-%d') if discount and discount.valid_from else '' }}">
+                        </div>
+                        <div class="form-group">
+                            <label for="valid_until">Voimassa asti</label>
+                            <input type="date" id="valid_until" name="valid_until"
+                                   value="{{ discount.valid_until.strftime('%Y-%m-%d') if discount and discount.valid_until else '' }}">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" name="stackable"
+                                   {% if discount and discount.stackable %}checked{% endif %}>
+                            <span>Yhdistettävissä muihin alennuksiin</span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- City Restrictions -->
+                <div class="form-section collapsible" id="citySection">
+                    <h3 onclick="toggleSection('citySection')">
+                        <i class="fas fa-map-marker-alt"></i> Kaupunkirajoitukset
+                        <i class="fas fa-chevron-down collapse-icon"></i>
+                    </h3>
+                    <div class="section-content">
+                        <div class="form-group">
+                            <label for="allowed_pickup_cities">Sallitut noutopaikkakunnat</label>
+                            <input type="text" id="allowed_pickup_cities" name="allowed_pickup_cities"
+                                   value="{{ discount.allowed_pickup_cities | join(', ') if discount and discount.allowed_pickup_cities else '' }}"
+                                   placeholder="Helsinki, Espoo, Vantaa (pilkulla erotettuna)">
+                            <small class="help-text">Jätä tyhjäksi salliaksesi kaikki</small>
+                        </div>
+                        <div class="form-group">
+                            <label for="allowed_dropoff_cities">Sallitut toimitusosoitepaikkakunnat</label>
+                            <input type="text" id="allowed_dropoff_cities" name="allowed_dropoff_cities"
+                                   value="{{ discount.allowed_dropoff_cities | join(', ') if discount and discount.allowed_dropoff_cities else '' }}"
+                                   placeholder="Helsinki, Espoo, Vantaa">
+                        </div>
+                        <div class="form-group">
+                            <label for="excluded_cities">Poissuljetut paikkakunnat</label>
+                            <input type="text" id="excluded_cities" name="excluded_cities"
+                                   value="{{ discount.excluded_cities | join(', ') if discount and discount.excluded_cities else '' }}"
+                                   placeholder="Turku, Tampere">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Form Actions -->
+                <div class="form-actions">
+                    <a href="{{ url_for('admin.discounts') }}" class="btn btn-secondary">
+                        <i class="fas fa-times"></i>
+                        Peruuta
+                    </a>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save"></i>
+                        {% if is_new %}Luo alennus{% else %}Tallenna muutokset{% endif %}
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        {% if not is_new %}
+        <!-- Sidebar: Statistics & User Assignment -->
+        <div class="form-sidebar">
+            <!-- Statistics -->
+            <div class="sidebar-section">
+                <h3><i class="fas fa-chart-bar"></i> Tilastot</h3>
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <span class="stat-value">{{ stats.total_uses if stats else 0 }}</span>
+                        <span class="stat-label">Käyttökertaa</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-value">{{ "%.2f"|format(stats.total_saved if stats else 0) }}€</span>
+                        <span class="stat-label">Annettu alennusta</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-value">{{ stats.unique_users if stats else 0 }}</span>
+                        <span class="stat-label">Käyttäjää</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-value">{{ "%.2f"|format(stats.average_discount if stats else 0) }}€</span>
+                        <span class="stat-label">Keskim. alennus</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- User Assignment (only for account scope) -->
+            {% if (discount and discount.scope == 'account') or is_new %}
+            <div class="sidebar-section user-assignment-section {% if not discount and not is_new %}hidden-section{% elif discount and discount.scope != 'account' %}hidden-section{% endif %}" id="userAssignmentSection">
+                <h3><i class="fas fa-users"></i> Käyttäjät {% if discount %}({{ assigned_users|length }}){% else %}(0){% endif %}</h3>
+                
+                {% if is_new %}
+                <!-- Preview for new discounts -->
+                <div class="new-discount-preview">
+                    <div class="info-box info-account">
+                        <i class="fas fa-info-circle"></i>
+                        <span>Tallenna alennus ensin, jonka jälkeen voit lisätä käyttäjiä.</span>
+                    </div>
+                    <div class="preview-users-list">
+                        <p class="preview-title">Saatavilla olevat käyttäjät ({{ all_users|length }}):</p>
+                        <div class="preview-users">
+                            {% for user in all_users[:5] %}
+                            <div class="preview-user">
+                                <div class="user-avatar"><i class="fas fa-user"></i></div>
+                                <div class="user-details">
+                                    <div class="user-name">{{ user.name }}</div>
+                                    <div class="user-email">{{ user.email }}</div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                            {% if all_users|length > 5 %}
+                            <div class="preview-more">...ja {{ all_users|length - 5 }} muuta</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% else %}
+                <!-- Add User Form -->
+                <form method="POST" action="{{ url_for('admin.discount_assign_user', discount_id=discount.id) }}" 
+                      class="assign-form" id="assignUserForm">
+                    <div class="form-group">
+                        <label for="user_id">Lisää käyttäjä</label>
+                        <div class="select-wrapper">
+                            <select id="user_id" name="user_id" class="user-select" required>
+                                <option value="">Valitse käyttäjä...</option>
+                                {% for user in all_users %}
+                                {% if user.id not in discount.assigned_users %}
+                                <option value="{{ user.id }}">{{ user.name }} - {{ user.email }}</option>
+                                {% endif %}
+                                {% endfor %}
+                            </select>
+                            <i class="fas fa-chevron-down select-arrow"></i>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-sm btn-block">
+                        <i class="fas fa-user-plus"></i> Lisää käyttäjä
+                    </button>
+                </form>
+                {% endif %}
+
+                <!-- Assigned Users List -->
+                {% if assigned_users %}
+                <div class="assigned-users-list">
+                    <div class="list-header">
+                        <span class="list-title">Käyttöoikeudet</span>
+                        <span class="list-count">{{ assigned_users|length }}</span>
+                    </div>
+                    {% for user in assigned_users %}
+                    <div class="assigned-user">
+                        <div class="user-info">
+                            <div class="user-avatar">
+                                <i class="fas fa-user"></i>
+                            </div>
+                            <div class="user-details">
+                                <div class="user-name">{{ user.name }}</div>
+                                <div class="user-email">{{ user.email }}</div>
+                            </div>
+                        </div>
+                        <form method="POST" action="{{ url_for('admin.discount_unassign_user', discount_id=discount.id, user_id=user.id) }}"
+                              onsubmit="return confirm('Haluatko varmasti poistaa käyttäjän {{ user.name }} tästä alennuksesta?');">
+                            <button type="submit" class="btn-remove" title="Poista käyttäjä">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </form>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="empty-users">
+                    <div class="empty-icon">
+                        <i class="fas fa-user-friends"></i>
+                    </div>
+                    <p>Ei vielä käyttäjiä</p>
+                    <small>Lisää käyttäjiä yllä olevasta listasta antaaksesi heille käyttöoikeuden tähän alennukseen.</small>
+                </div>
+                {% endif %}
+            </div>
+            {% elif (discount and discount.scope != 'account') or is_new %}
+            <div class="sidebar-section info-section {% if is_new %}hidden-section{% endif %}" id="scopeInfoSection">
+                <h3><i class="fas fa-info-circle"></i> Käyttöoikeudet</h3>
+                <div class="scope-notice">
+                    {% if is_new %}
+                    <i class="fas fa-globe"></i>
+                    <div>
+                        <strong>Valitse laajuus</strong>
+                        <p>Valitse ensin alennuksen laajuus nähdäksesi käyttöoikeustiedot.</p>
+                    </div>
+                    {% elif discount %}
+                    {% if discount.scope == 'global' %}
+                    <i class="fas fa-globe"></i>
+                    <div>
+                        <strong>Yleinen alennus</strong>
+                        <p>Tämä alennus koskee kaikkia käyttäjiä automaattisesti.</p>
+                    </div>
+                    {% elif discount.scope == 'code' %}
+                    <i class="fas fa-ticket-alt"></i>
+                    <div>
+                        <strong>Kampanjakoodi</strong>
+                        <p>Käyttäjät voivat käyttää tätä alennusta syöttämällä kampanjakoodin.</p>
+                    </div>
+                    {% elif discount.scope == 'first_order' %}
+                    <i class="fas fa-star"></i>
+                    <div>
+                        <strong>Ensimmäinen tilaus</strong>
+                        <p>Alennus annetaan automaattisesti uusille käyttäjille ensimmäisestä tilauksesta.</p>
+                    </div>
+                    {% endif %}
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Quick Actions -->
+            <div class="sidebar-section">
+                <h3><i class="fas fa-bolt"></i> Pikatoiminnot</h3>
+                <form method="POST" action="{{ url_for('admin.discount_toggle', discount_id=discount.id) }}">
+                    <button type="submit" class="btn {% if discount.active %}btn-warning{% else %}btn-success{% endif %} btn-block">
+                        <i class="fas {% if discount.active %}fa-pause{% else %}fa-play{% endif %}"></i>
+                        {% if discount.active %}Poista käytöstä{% else %}Aktivoi{% endif %}
+                    </button>
+                </form>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<style>
+/* Utility Classes */
+.hidden-section {
+    display: none !important;
+}
+
+.text-uppercase {
+    text-transform: uppercase;
+}
+
+/* Professional Modern UI Styles */
+:root {
+    --primary: #2563eb;
+    --primary-dark: #1e40af;
+    --primary-light: #3b82f6;
+    --success: #10b981;
+    --success-dark: #059669;
+    --danger: #ef4444;
+    --warning: #f59e0b;
+    --info: #3b82f6;
+    --gray-50: #f9fafb;
+    --gray-100: #f3f4f6;
+    --gray-200: #e5e7eb;
+    --gray-300: #d1d5db;
+    --gray-400: #9ca3af;
+    --gray-500: #6b7280;
+    --gray-600: #4b5563;
+    --gray-700: #374151;
+    --gray-800: #1f2937;
+    --gray-900: #111827;
+    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    --shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    --radius: 8px;
+    --radius-lg: 12px;
+    --transition: all 0.2s ease;
+}
+
+/* Form Page Layout */
+.discount-form-page {
+    background: var(--gray-50);
+    min-height: 100vh;
+    padding: 20px 0 40px;
+}
+
+.discount-form-page .admin-header {
+    background: white;
+    padding: 20px 24px;
+    margin-bottom: 24px;
+    box-shadow: var(--shadow-sm);
+    border-bottom: 1px solid var(--gray-200);
+}
+
+.discount-form-page .admin-header h2 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--gray-900);
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.form-layout {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 0 20px;
+    display: grid;
+    gap: 24px;
+}
+
+.form-layout.with-sidebar {
+    grid-template-columns: 1fr 380px;
+}
+
+/* Form Sections */
+.form-section {
+    background: white;
+    border-radius: var(--radius-lg);
+    padding: 28px;
+    margin-bottom: 20px;
+    box-shadow: var(--shadow);
+    border: 1px solid var(--gray-200);
+    transition: var(--transition);
+}
+
+.form-section:hover {
+    box-shadow: var(--shadow-md);
+}
+
+.form-section h3 {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 0 0 24px;
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: var(--gray-900);
+    padding-bottom: 16px;
+    border-bottom: 2px solid var(--gray-100);
+}
+
+.form-section h3 i {
+    color: var(--primary);
+    font-size: 1.25rem;
+    width: 24px;
+    text-align: center;
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 8px;
+    font-size: 0.875rem;
+    color: var(--gray-700);
+    letter-spacing: 0.01em;
+}
+
+.form-group .required {
+    color: var(--danger);
+    margin-left: 2px;
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+    width: 100%;
+    padding: 11px 14px;
+    border: 1.5px solid var(--gray-300);
+    border-radius: var(--radius);
+    font-size: 0.9375rem;
+    transition: var(--transition);
+    background: white;
+    color: var(--gray-900);
+    font-family: inherit;
+}
+
+.form-group input:hover,
+.form-group select:hover,
+.form-group textarea:hover {
+    border-color: var(--gray-400);
+}
+
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.form-group textarea {
+    resize: vertical;
+    min-height: 80px;
+}
+
+.form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+}
+
+.help-text {
+    display: block;
+    margin-top: 6px;
+    font-size: 0.8125rem;
+    color: var(--gray-500);
+    line-height: 1.4;
+}
+
+.input-with-suffix {
+    display: flex;
+    align-items: stretch;
+}
+
+.input-with-suffix input {
+    border-radius: var(--radius) 0 0 var(--radius);
+    border-right: none;
+    flex: 1;
+}
+
+.input-with-suffix .suffix {
+    background: var(--gray-100);
+    border: 1.5px solid var(--gray-300);
+    border-left: none;
+    padding: 11px 16px;
+    border-radius: 0 var(--radius) var(--radius) 0;
+    font-weight: 600;
+    color: var(--gray-600);
+    display: flex;
+    align-items: center;
+    min-width: 60px;
+    justify-content: center;
+}
+
+/* Select Wrapper */
+.select-wrapper {
+    position: relative;
+}
+
+.select-wrapper select {
+    appearance: none;
+    padding-right: 40px;
+}
+
+.select-wrapper .select-arrow {
+    position: absolute;
+    right: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--gray-400);
+    pointer-events: none;
+    font-size: 0.875rem;
+}
+
+/* Toggle Switch */
+.toggle-switch {
+    display: inline-flex;
+    align-items: center;
+}
+
+.toggle-switch input {
+    display: none;
+}
+
+.toggle-label {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    padding: 3px;
+    background: var(--gray-200);
+    border-radius: 50px;
+    cursor: pointer;
+    transition: background 0.3s;
+    border: 2px solid var(--gray-200);
+}
+
+.toggle-switch input:checked + .toggle-label {
+    background: var(--success);
+    border-color: var(--success);
+}
+
+.toggle-text-on,
+.toggle-text-off {
+    padding: 8px 18px;
+    font-size: 0.875rem;
+    font-weight: 600;
+    border-radius: 40px;
+    transition: all 0.3s;
+    white-space: nowrap;
+}
+
+.toggle-text-on {
+    color: var(--gray-600);
+}
+
+.toggle-text-off {
+    color: white;
+    background: var(--danger);
+}
+
+.toggle-switch input:checked + .toggle-label .toggle-text-on {
+    color: white;
+    background: var(--success-dark);
+}
+
+.toggle-switch input:checked + .toggle-label .toggle-text-off {
+    color: var(--gray-600);
+    background: transparent;
+}
+
+/* Scope Info Boxes */
+.scope-info {
+    margin-top: 16px;
+}
+
+.account-user-picker .multi-select {
+    position: relative;
+}
+
+.account-user-picker select {
+    width: 100%;
+    min-height: 180px;
+    border: 1px solid var(--gray-200);
+    border-radius: 10px;
+    padding: 8px;
+    background: #fff;
+    font-size: 0.95rem;
+}
+
+.info-box {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 14px 16px;
+    border-radius: var(--radius);
+    font-size: 0.875rem;
+    line-height: 1.5;
+    border-left: 4px solid;
+}
+
+.info-box i {
+    font-size: 1.125rem;
+    margin-top: 2px;
+    flex-shrink: 0;
+}
+
+.info-account {
+    background: #fef3c7;
+    color: #92400e;
+    border-color: #f59e0b;
+}
+
+.info-global {
+    background: #d1fae5;
+    color: #065f46;
+    border-color: var(--success);
+}
+
+.info-code {
+    background: #dbeafe;
+    color: #1e40af;
+    border-color: var(--info);
+}
+
+.info-first {
+    background: #fce7f3;
+    color: #9d174d;
+    border-color: #ec4899;
+}
+
+/* Tiered Section */
+.tiered-section {
+    margin-top: 24px;
+    padding: 20px;
+    background: var(--gray-50);
+    border-radius: var(--radius);
+    border: 1px solid var(--gray-200);
+}
+
+.tiered-section h4 {
+    margin: 0 0 8px;
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--gray-800);
+}
+
+#tiersContainer {
+    margin: 20px 0;
+}
+
+.tier-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr auto;
+    gap: 12px;
+    align-items: end;
+    margin-bottom: 12px;
+    padding: 16px;
+    background: white;
+    border-radius: var(--radius);
+    border: 1px solid var(--gray-200);
+    transition: var(--transition);
+}
+
+.tier-row:hover {
+    border-color: var(--primary);
+    box-shadow: var(--shadow-sm);
+}
+
+.tier-row label {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--gray-600);
+}
+
+.tier-row input {
+    padding: 10px 12px;
+    font-size: 0.9375rem;
+}
+
+.btn-remove-tier {
+    padding: 10px 12px;
+    background: var(--gray-100);
+    color: var(--danger);
+    border: 1px solid var(--gray-200);
+    border-radius: var(--radius);
+    cursor: pointer;
+    transition: var(--transition);
+    font-size: 0.9375rem;
+}
+
+.btn-remove-tier:hover {
+    background: #fee2e2;
+    border-color: var(--danger);
+}
+
+/* Collapsible Section */
+.collapsible .section-content {
+    display: none;
+}
+
+.collapsible.expanded .section-content {
+    display: block;
+}
+
+.collapsible h3 {
+    cursor: pointer;
+    -webkit-user-select: none;
+    user-select: none;
+    justify-content: space-between;
+}
+
+.collapse-icon {
+    margin-left: auto;
+    transition: transform 0.3s;
+    color: var(--gray-400);
+}
+
+.collapsible.expanded .collapse-icon {
+    transform: rotate(180deg);
+}
+
+.collapsible h3:hover {
+    color: var(--primary);
+}
+
+.collapsible h3:hover .collapse-icon {
+    color: var(--primary);
+}
+
+/* Checkbox Label */
+.checkbox-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    padding: 12px 16px;
+    background: var(--gray-50);
+    border-radius: var(--radius);
+    border: 1px solid var(--gray-200);
+    transition: var(--transition);
+}
+
+.checkbox-label:hover {
+    background: var(--gray-100);
+    border-color: var(--gray-300);
+}
+
+.checkbox-label input {
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+    accent-color: var(--primary);
+}
+
+.checkbox-label span {
+    font-weight: 500;
+    color: var(--gray-700);
+}
+
+/* Form Actions */
+.form-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    padding-top: 24px;
+    border-top: 2px solid var(--gray-100);
+    margin-top: 16px;
+}
+
+.btn {
+    padding: 11px 24px;
+    border-radius: var(--radius);
+    font-weight: 600;
+    font-size: 0.9375rem;
+    cursor: pointer;
+    transition: var(--transition);
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    border: none;
+    text-decoration: none;
+}
+
+.btn-primary {
+    background: var(--primary);
+    color: white;
+    box-shadow: var(--shadow-sm);
+}
+
+.btn-primary:hover {
+    background: var(--primary-dark);
+    box-shadow: var(--shadow-md);
+    transform: translateY(-1px);
+}
+
+.btn-secondary {
+    background: white;
+    color: var(--gray-700);
+    border: 1.5px solid var(--gray-300);
+}
+
+.btn-secondary:hover {
+    background: var(--gray-50);
+    border-color: var(--gray-400);
+}
+
+.btn-success {
+    background: var(--success);
+    color: white;
+}
+
+.btn-success:hover {
+    background: var(--success-dark);
+}
+
+.btn-warning {
+    background: var(--warning);
+    color: white;
+}
+
+.btn-warning:hover {
+    background: #d97706;
+}
+
+.btn-sm {
+    padding: 8px 16px;
+    font-size: 0.875rem;
+}
+
+.btn-block {
+    width: 100%;
+    justify-content: center;
+}
+
+/* Sidebar */
+.form-sidebar {
+    position: sticky;
+    top: 24px;
+    height: fit-content;
+}
+
+.sidebar-section {
+    background: white;
+    border-radius: var(--radius-lg);
+    padding: 24px;
+    margin-bottom: 20px;
+    box-shadow: var(--shadow);
+    border: 1px solid var(--gray-200);
+}
+
+.sidebar-section h3 {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 0 0 20px;
+    font-size: 1.0625rem;
+    font-weight: 600;
+    color: var(--gray-900);
+    padding-bottom: 16px;
+    border-bottom: 2px solid var(--gray-100);
+}
+
+.sidebar-section h3 i {
+    color: var(--primary);
+    font-size: 1.125rem;
+}
+
+/* Stats Grid */
+.stats-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+.stat-item {
+    text-align: center;
+    padding: 16px;
+    background: linear-gradient(135deg, var(--gray-50) 0%, white 100%);
+    border-radius: var(--radius);
+    border: 1px solid var(--gray-200);
+    transition: var(--transition);
+}
+
+.stat-item:hover {
+    border-color: var(--primary);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-sm);
+}
+
+.stat-value {
+    display: block;
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: var(--primary);
+    line-height: 1;
+    margin-bottom: 6px;
+}
+
+.stat-label {
+    font-size: 0.75rem;
+    color: var(--gray-600);
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+/* User Assignment Section */
+.user-assignment-section {
+    background: linear-gradient(135deg, #eff6ff 0%, white 100%);
+    border: 2px solid var(--primary);
+}
+
+.user-assignment-section h3 {
+    color: var(--primary);
+}
+
+.assign-form {
+    margin-bottom: 20px;
+    padding: 16px;
+    background: white;
+    border-radius: var(--radius);
+    border: 1px solid var(--gray-200);
+}
+
+.assign-form .form-group {
+    margin-bottom: 12px;
+}
+
+/* Assigned Users List */
+.list-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 0;
+    margin-bottom: 12px;
+    border-bottom: 2px solid var(--gray-100);
+}
+
+.list-title {
+    font-weight: 600;
+    color: var(--gray-700);
+    font-size: 0.875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.list-count {
+    background: var(--primary);
+    color: white;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 700;
+}
+
+.assigned-users-list {
+    max-height: 400px;
+    overflow-y: auto;
+    padding-right: 4px;
+}
+
+.assigned-users-list::-webkit-scrollbar {
+    width: 6px;
+}
+
+.assigned-users-list::-webkit-scrollbar-track {
+    background: var(--gray-100);
+    border-radius: 10px;
+}
+
+.assigned-users-list::-webkit-scrollbar-thumb {
+    background: var(--gray-300);
+    border-radius: 10px;
+}
+
+.assigned-users-list::-webkit-scrollbar-thumb:hover {
+    background: var(--gray-400);
+}
+
+.assigned-user {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 16px;
+    background: white;
+    border-radius: var(--radius);
+    margin-bottom: 10px;
+    border: 1px solid var(--gray-200);
+    transition: var(--transition);
+}
+
+.assigned-user:hover {
+    border-color: var(--primary);
+    box-shadow: var(--shadow-sm);
+    transform: translateX(4px);
+}
+
+.user-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex: 1;
+}
+
+.user-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 1rem;
+    flex-shrink: 0;
+}
+
+.user-details {
+    flex: 1;
+    min-width: 0;
+}
+
+.user-name {
+    font-weight: 600;
+    font-size: 0.9375rem;
+    color: var(--gray-900);
+    margin-bottom: 2px;
+}
+
+.user-email {
+    font-size: 0.8125rem;
+    color: var(--gray-500);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.btn-remove {
+    padding: 8px 10px;
+    background: var(--gray-100);
+    border: 1px solid var(--gray-200);
+    color: var(--gray-500);
+    cursor: pointer;
+    border-radius: var(--radius);
+    transition: var(--transition);
+    flex-shrink: 0;
+}
+
+.btn-remove:hover {
+    background: #fee2e2;
+    border-color: var(--danger);
+    color: var(--danger);
+}
+
+.empty-users {
+    text-align: center;
+    padding: 32px 20px;
+    background: var(--gray-50);
+    border-radius: var(--radius);
+    border: 2px dashed var(--gray-300);
+}
+
+.empty-icon {
+    width: 64px;
+    height: 64px;
+    background: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 16px;
+    border: 2px solid var(--gray-200);
+}
+
+.empty-icon i {
+    font-size: 1.75rem;
+    color: var(--gray-400);
+}
+
+.empty-users p {
+    margin: 0 0 8px;
+    font-weight: 600;
+    color: var(--gray-700);
+}
+
+.empty-users small {
+    color: var(--gray-500);
+    font-size: 0.8125rem;
+    line-height: 1.4;
+    display: block;
+}
+
+/* Info Section */
+.info-section {
+    background: linear-gradient(135deg, var(--gray-50) 0%, white 100%);
+}
+
+.scope-notice {
+    display: flex;
+    gap: 14px;
+    padding: 16px;
+    background: white;
+    border-radius: var(--radius);
+    border: 1px solid var(--gray-200);
+}
+
+.scope-notice > i {
+    font-size: 1.5rem;
+    color: var(--primary);
+    flex-shrink: 0;
+    margin-top: 2px;
+}
+
+.scope-notice strong {
+    display: block;
+    margin-bottom: 6px;
+    color: var(--gray-900);
+    font-size: 0.9375rem;
+}
+
+.scope-notice p {
+    margin: 0;
+    color: var(--gray-600);
+    font-size: 0.875rem;
+    line-height: 1.5;
+}
+
+/* Mobile Responsive */
+@media (max-width: 900px) {
+    .form-layout.with-sidebar {
+        grid-template-columns: 1fr;
+    }
+    
+    .form-sidebar {
+        position: static;
+    }
+    
+    .form-row {
+        grid-template-columns: 1fr;
+    }
+    
+    .tier-row {
+        grid-template-columns: 1fr;
+    }
+    
+    .stats-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+@media (max-width: 640px) {
+    .discount-form-page {
+        padding: 10px 0 30px;
+    }
+    
+    .form-section {
+        padding: 20px;
+    }
+    
+    .sidebar-section {
+        padding: 20px;
+    }
+    
+    .form-actions {
+        flex-direction: column-reverse;
+    }
+    
+    .form-actions .btn {
+        width: 100%;
+        justify-content: center;
+    }
+}
+</style>
+
+<script>
+/* eslint-disable */
+// Jinja2 template variable
+const isNewDiscount = {% if is_new %}true{% else %}false{% endif %};
+
+// Helper function to show/hide elements using CSS classes
+function showElement(element) {
+    if (element) element.classList.remove('hidden-section');
+}
+
+function hideElement(element) {
+    if (element) element.classList.add('hidden-section');
+}
+
+// Update value label based on discount type
+function updateValueLabel() {
+    const type = document.getElementById('type').value;
+    const valueLabel = document.getElementById('valueLabel');
+    const valueSuffix = document.getElementById('valueSuffix');
+    const valueGroup = document.getElementById('valueGroup');
+    const tieredSection = document.getElementById('tieredSection');
+    
+    // Show/hide tiered section using classes
+    if (type === 'tiered_percentage') {
+        showElement(tieredSection);
+        hideElement(valueGroup);
+    } else {
+        hideElement(tieredSection);
+        showElement(valueGroup);
+    }
+    
+    switch(type) {
+        case 'percentage':
+            valueLabel.innerHTML = 'Alennusprosentti <span class="required">*</span>';
+            valueSuffix.textContent = '%';
+            break;
+        case 'fixed_amount':
+            valueLabel.innerHTML = 'Alennussumma <span class="required">*</span>';
+            valueSuffix.textContent = '€';
+            break;
+        case 'free_kilometers':
+            valueLabel.innerHTML = 'Ilmaiset kilometrit <span class="required">*</span>';
+            valueSuffix.textContent = 'km';
+            break;
+        case 'price_cap':
+            valueLabel.innerHTML = 'Maksimihinta <span class="required">*</span>';
+            valueSuffix.textContent = '€';
+            break;
+        case 'custom_rate':
+            valueLabel.innerHTML = 'Hinta/km <span class="required">*</span>';
+            valueSuffix.textContent = '€/km';
+            break;
+        case 'tiered_percentage':
+            // Value not needed, tiers are used
+            break;
+    }
+}
+
+// Update scope-related fields
+function updateScopeFields() {
+    const scope = document.getElementById('scope').value;
+    const codeGroup = document.getElementById('codeGroup');
+    const infoAccount = document.getElementById('infoAccount');
+    const infoGlobal = document.getElementById('infoGlobal');
+    const infoCode = document.getElementById('infoCode');
+    const infoFirst = document.getElementById('infoFirst');
+    const userAssignmentSection = document.getElementById('userAssignmentSection');
+    const scopeInfoSection = document.getElementById('scopeInfoSection');
+    const inlineUserPicker = document.getElementById('inlineUserPicker');
+    
+    // Hide all info boxes using classes
+    hideElement(infoAccount);
+    hideElement(infoGlobal);
+    hideElement(infoCode);
+    hideElement(infoFirst);
+    hideElement(codeGroup);
+    
+    // Show/hide sections based on scope
+    if (userAssignmentSection) {
+        const showSidebarAssignment = scope === 'account' && !isNewDiscount;
+        if (showSidebarAssignment) {
+            showElement(userAssignmentSection);
+        } else {
+            hideElement(userAssignmentSection);
+        }
+    }
+    if (scopeInfoSection) {
+        if (scope !== 'account') {
+            showElement(scopeInfoSection);
+        } else {
+            hideElement(scopeInfoSection);
+        }
+    }
+    if (inlineUserPicker) {
+        if (scope === 'account' && isNewDiscount) {
+            showElement(inlineUserPicker);
+        } else {
+            hideElement(inlineUserPicker);
+        }
+    }
+    
+    switch(scope) {
+        case 'account':
+            showElement(infoAccount);
+            break;
+        case 'global':
+            showElement(infoGlobal);
+            break;
+        case 'code':
+            showElement(infoCode);
+            showElement(codeGroup);
+            break;
+        case 'first_order':
+            showElement(infoFirst);
+            break;
+    }
+}
+
+// Toggle collapsible section
+function toggleSection(sectionId) {
+    const section = document.getElementById(sectionId);
+    section.classList.toggle('expanded');
+}
+
+// Tiered discount management
+let tiers = [];
+
+function initTiers() {
+    const tiersInput = document.getElementById('tiers');
+    try {
+        const existingTiers = JSON.parse(tiersInput.value);
+        if (existingTiers && existingTiers.length > 0) {
+            tiers = existingTiers;
+            renderTiers();
+        }
+    } catch(e) {
+        tiers = [];
+    }
+}
+
+function addTier() {
+    tiers.push({ min_km: 0, percentage: 0 });
+    renderTiers();
+}
+
+function removeTier(index) {
+    tiers.splice(index, 1);
+    renderTiers();
+}
+
+function updateTier(index, field, value) {
+    tiers[index][field] = parseFloat(value) || 0;
+    document.getElementById('tiers').value = JSON.stringify(tiers);
+}
+
+function renderTiers() {
+    const container = document.getElementById('tiersContainer');
+    container.innerHTML = '';
+    
+    tiers.forEach((tier, index) => {
+        const row = document.createElement('div');
+        row.className = 'tier-row';
+        row.innerHTML = `
+            <div class="form-group">
+                <label>Yli (km)</label>
+                <input type="number" value="${tier.min_km}" 
+                       onchange="updateTier(${index}, 'min_km', this.value)"
+                       placeholder="100">
+            </div>
+            <div class="form-group">
+                <label>Alennus (%)</label>
+                <input type="number" value="${tier.percentage}" step="0.1"
+                       onchange="updateTier(${index}, 'percentage', this.value)"
+                       placeholder="10">
+            </div>
+            <button type="button" class="btn-remove-tier" onclick="removeTier(${index})">
+                <i class="fas fa-trash"></i>
+            </button>
+        `;
+        container.appendChild(row);
+    });
+    
+    document.getElementById('tiers').value = JSON.stringify(tiers);
+}
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', function() {
+    updateValueLabel();
+    updateScopeFields();
+    initTiers();
+    
+    // Form validation before submit
+    document.getElementById('discountForm').addEventListener('submit', function(e) {
+        const type = document.getElementById('type').value;
+        const value = document.getElementById('value').value;
+        
+        if (type === 'tiered_percentage' && tiers.length === 0) {
+            e.preventDefault();
+            alert('Lisää vähintään yksi porras porrastettuun alennukseen');
+            return false;
+        }
+        
+        if (type !== 'tiered_percentage' && (!value || parseFloat(value) <= 0)) {
+            e.preventDefault();
+            alert('Anna alennuksen arvo');
+            return false;
+        }
+    });
+});
+</script>
+{% endblock %}
