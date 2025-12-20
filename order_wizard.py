@@ -118,12 +118,12 @@ def order_step1():
                 return None
 
         today = datetime.date.today()
-        default_pickup_date = today + datetime.timedelta(days=1)
-        pickup_date_obj = _parse_iso_date(d.get("pickup_date")) or default_pickup_date
+        pickup_date_obj = _parse_iso_date(d.get("pickup_date"))
+        if not pickup_date_obj or pickup_date_obj < today:
+            pickup_date_obj = today
         pickup_date_val = pickup_date_obj.isoformat()
 
-        last_delivery_obj = _parse_iso_date(d.get("last_delivery_date")) or pickup_date_obj
-        last_delivery_date_val = last_delivery_obj.isoformat()
+        pickup_time_val = (d.get("pickup_time") or "").strip()
 
         pickup_val = (d.get("pickup", "") or "").replace('"', '&quot;')
         pickup_place_id_val = (d.get("pickup_place_id", "") or "").replace('"', '&quot;')
@@ -144,35 +144,39 @@ def order_step1():
     <div id="ac_from_step" class="ac-list"></div>
   </div>
 
-  <div class="date-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 12px;">
-    <div class="date-field">
-      <label for="pickup_date">Toimituspäivä</label>
-      <div class="date-input-wrap" style="position: relative;">
-        <svg class="calendar-icon-svg" width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="position: absolute; left: 12px; top: 12px; z-index: 1;"> 
-          <rect x="3" y="4" width="18" height="18" rx="2" stroke="#64748b" stroke-width="2"/>
-          <line x1="8" y1="2.5" x2="8" y2="6" stroke="#64748b" stroke-width="2"/>
-          <line x1="16" y1="2.5" x2="16" y2="6" stroke="#64748b" stroke-width="2"/>
-          <line x1="3" y1="10" x2="21" y2="10" stroke="#64748b" stroke-width="2"/>
-        </svg>
-        <input type="date" name="pickup_date" id="pickup_date" required class="form-input date-input" style="padding-left: 40px; height: 44px; font-size: 0.95rem; width: 100%;" value="__PICKUP_DATE_VAL__">
+  <!-- Date and Time Picker -->
+  <div class="wizard-date-grid">
+    <div class="wizard-field">
+      <label>Noutopäivä *</label>
+      <div class="wizard-input-box" onclick="openDatePicker('pickup_date')">
+        <div class="wizard-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2">
+            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+            <line x1="16" y1="2" x2="16" y2="6"></line>
+            <line x1="8" y1="2" x2="8" y2="6"></line>
+            <line x1="3" y1="10" x2="21" y2="10"></line>
+          </svg>
+        </div>
+        <input type="date" id="pickup_date" name="pickup_date" required value="__PICKUP_DATE_VAL__">
       </div>
     </div>
-    <div class="date-field">
-      <label for="last_delivery_date">Viimeinen toimituspäivä</label>
-      <div class="date-input-wrap" style="position: relative;">
-        <svg class="calendar-icon-svg" width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="position: absolute; left: 12px; top: 12px; z-index: 1;"> 
-          <rect x="3" y="4" width="18" height="18" rx="2" stroke="#64748b" stroke-width="2"/>
-          <line x1="8" y1="2.5" x2="8" y2="6" stroke="#64748b" stroke-width="2"/>
-          <line x1="16" y1="2.5" x2="16" y2="6" stroke="#64748b" stroke-width="2"/>
-          <line x1="3" y1="10" x2="21" y2="10" stroke="#64748b" stroke-width="2"/>
-        </svg>
-        <input type="date" name="last_delivery_date" id="last_delivery_date" class="form-input date-input" style="padding-left: 40px; height: 44px; font-size: 0.95rem; width: 100%;" value="__LAST_DELIVERY_DATE_VAL__">
+    <div class="wizard-field">
+      <label>Noutoaika (valinnainen)</label>
+      <div class="wizard-input-box wizard-input-box--time" onclick="openTimePicker('pickup_time')">
+        <div class="wizard-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2">
+            <circle cx="12" cy="12" r="10"></circle>
+            <polyline points="12 6 12 12 16 14"></polyline>
+          </svg>
+        </div>
+        <input type="time" id="pickup_time" name="pickup_time" value="__PICKUP_TIME_VAL__">
+        <button type="button" id="pickup_time_clear" class="wizard-clear-btn" onclick="clearTimeInput('pickup_time')">×</button>
       </div>
     </div>
   </div>
 
   <!-- Saved Addresses - Compact -->
-  <details class="saved-addresses-details" style="margin-top: 12px; padding: 0.5rem 0.75rem; border: 1px solid #e5e7eb; border-radius: 6px; background: #fafafa;">
+  <details class="saved-addresses-details" style="margin-top: 36px; padding: 0.5rem 0.75rem; border: 1px solid #e5e7eb; border-radius: 6px; background: #fafafa;">
     <summary style="display: flex; align-items: center; justify-content: space-between; padding: 0.25rem 0; cursor: pointer; font-size: 0.85rem; color: #64748b; list-style: none;">
       <span style="display: flex; align-items: center; gap: 6px;">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
@@ -206,20 +210,105 @@ def order_step1():
 </form>
 
 <style>
-/* Keep date inputs compact and icons centered */
-.date-input-wrap { position: relative; display: grid; align-items: center; }
-.date-input { padding-left: 40px; height: 44px; line-height: 44px; box-sizing: border-box; -webkit-appearance: none; appearance: none; }
-.date-input:focus { outline: none; }
-.calendar-icon-svg { pointer-events: none; transition: transform 120ms ease-out; }
-/* Move native date picker icon to the left visually (keep it clickable) */
-.date-input::-webkit-calendar-picker-indicator {
+/* Wizard date/time picker styles */
+.wizard-date-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-top: 12px;
+}
+.wizard-field label {
+  display: block;
+  font-weight: 500;
+  color: #1e293b;
+  margin-bottom: 6px;
+  font-size: 14px;
+}
+.wizard-input-box {
+  position: relative;
+  display: flex;
+  align-items: center;
+  height: 48px;
+  border: 1px solid #22c55e;
+  border-radius: 8px;
+  background: #fff;
+  padding: 0 12px 0 44px;
+}
+.wizard-input-box:focus-within {
+  border-color: #16a34a;
+  box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.1);
+}
+.wizard-icon {
   position: absolute;
   left: 0;
-  right: auto;
+  top: 0;
+  bottom: 0;
   width: 44px;
-  height: 44px;
-  opacity: 0; /* hide default icon */
+  display: flex;
+  align-items: center;
+  justify-content: center;
   cursor: pointer;
+  flex-shrink: 0;
+  z-index: 2;
+}
+.wizard-icon svg { display: block; }
+.wizard-input-box--time { padding-right: 44px; }
+.wizard-input-box input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  font-size: 15px;
+  color: #1e293b;
+  outline: none;
+  height: 100%;
+  min-width: 0;
+  width: 100%;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  align-items: center;
+}
+.wizard-input-box input[type="date"]::-webkit-date-and-time-value,
+.wizard-input-box input[type="time"]::-webkit-date-and-time-value {
+  text-align: left;
+  margin: 0;
+  padding: 0;
+}
+.wizard-input-box input::-webkit-calendar-picker-indicator {
+  opacity: 0;
+  cursor: pointer;
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+.wizard-clear-btn {
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #94a3b8;
+  font-size: 18px;
+  border: none;
+  background: none;
+  padding: 0;
+  opacity: 0;
+  pointer-events: none;
+  z-index: 2;
+}
+.wizard-clear-btn:hover { color: #64748b; }
+@media (max-width: 640px) {
+  .wizard-date-grid { grid-template-columns: 1fr; }
 }
 /* Saved addresses compact styling */
 .saved-addresses-details summary::-webkit-details-marker { display: none; }
@@ -245,6 +334,84 @@ function applySavedPhoneToStep2(phone){
   const hidden = document.getElementById('saved_dropoff_phone');
   if (!hidden) return;
   hidden.value = (phone || '').trim();
+}
+
+function openDatePicker(inputId){
+  const input = document.getElementById(inputId);
+  if (!input) return;
+  if (input.showPicker) {
+    input.showPicker();
+  } else {
+    input.focus();
+    input.click();
+  }
+}
+
+function openTimePicker(inputId){
+  const input = document.getElementById(inputId);
+  if (!input) return;
+  if (input.showPicker) {
+    input.showPicker();
+  } else {
+    input.focus();
+    input.click();
+  }
+}
+
+function clearTimeInput(inputId){
+  const input = document.getElementById(inputId);
+  if (!input) return;
+  input.value = '';
+  input.dispatchEvent(new Event('input', { bubbles: true }));
+  input.dispatchEvent(new Event('change', { bubbles: true }));
+}
+
+function toggleClearButton(inputId, buttonId){
+  const input = document.getElementById(inputId);
+  const button = document.getElementById(buttonId);
+  if (!input || !button) return;
+  const hasValue = !!input.value;
+  button.style.opacity = hasValue ? '1' : '0';
+  button.style.pointerEvents = hasValue ? 'auto' : 'none';
+}
+
+function openDatePicker(inputId){
+  const input = document.getElementById(inputId);
+  if (!input) return;
+  if (input.showPicker) {
+    input.showPicker();
+  } else {
+    input.focus();
+    input.click();
+  }
+}
+
+function openTimePicker(inputId){
+  const input = document.getElementById(inputId);
+  if (!input) return;
+  if (input.showPicker) {
+    input.showPicker();
+  } else {
+    input.focus();
+    input.click();
+  }
+}
+
+function clearTimeInput(inputId){
+  const input = document.getElementById(inputId);
+  if (!input) return;
+  input.value = '';
+  input.dispatchEvent(new Event('input', { bubbles: true }));
+  input.dispatchEvent(new Event('change', { bubbles: true }));
+}
+
+function toggleClearButton(inputId, buttonId){
+  const input = document.getElementById(inputId);
+  const button = document.getElementById(buttonId);
+  if (!input || !button) return;
+  const hasValue = !!input.value;
+  button.style.opacity = hasValue ? '1' : '0';
+  button.style.pointerEvents = hasValue ? 'auto' : 'none';
 }
 
 /* ===== Google Places Autocomplete for Wizard ===== */
@@ -683,7 +850,6 @@ window.fromAutocomplete = step1Autocomplete;
 /* Date validation for Step 1 */
 (function() {
   const pickupDateInput = document.getElementById('pickup_date');
-  const lastDeliveryDateInput = document.getElementById('last_delivery_date');
 
   function formatISODate(dateObj) {
     const year = dateObj.getFullYear();
@@ -692,55 +858,27 @@ window.fromAutocomplete = step1Autocomplete;
     return `${year}-${month}-${day}`;
   }
 
-  function parseISODate(value) {
-    if (!value || typeof value !== 'string') return null;
-    const parts = value.split('-');
-    if (parts.length !== 3) return null;
-    const year = Number(parts[0]);
-    const monthIndex = Number(parts[1]) - 1;
-    const day = Number(parts[2]);
-    const date = new Date(year, monthIndex, day);
-    return Number.isNaN(date.getTime()) ? null : date;
-  }
-
-  function addDaysToISO(value, days) {
-    const date = parseISODate(value);
-    if (!date) return null;
-    date.setDate(date.getDate() + days);
-    return formatISODate(date);
-  }
-
   function ensurePickupDefault() {
     if (!pickupDateInput) return;
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    const tomorrowStr = formatISODate(tomorrow);
-    pickupDateInput.min = tomorrowStr;
-    if (!pickupDateInput.value || pickupDateInput.value < tomorrowStr) {
-      pickupDateInput.value = tomorrowStr;
+    const today = new Date();
+    const todayStr = formatISODate(today);
+    pickupDateInput.min = todayStr;
+    if (!pickupDateInput.value || pickupDateInput.value < todayStr) {
+      pickupDateInput.value = todayStr;
     }
   }
 
-  function updateLastDeliveryMin() {
-    if (!pickupDateInput || !lastDeliveryDateInput) return;
-    const pickupDate = pickupDateInput.value;
-    if (pickupDate) {
-      const minDeliveryDate = addDaysToISO(pickupDate, 0);
-      if (minDeliveryDate) {
-        lastDeliveryDateInput.min = minDeliveryDate;
-        const lastDeliveryValue = lastDeliveryDateInput.value;
-        if (!lastDeliveryValue || lastDeliveryValue < minDeliveryDate) {
-          lastDeliveryDateInput.value = minDeliveryDate;
-        }
-      }
-    }
-  }
-
-  if (pickupDateInput && lastDeliveryDateInput) {
+  if (pickupDateInput) {
     ensurePickupDefault();
-    pickupDateInput.addEventListener('change', updateLastDeliveryMin);
-    pickupDateInput.addEventListener('input', updateLastDeliveryMin);
-    updateLastDeliveryMin();
+    pickupDateInput.addEventListener('change', ensurePickupDefault);
+    pickupDateInput.addEventListener('input', ensurePickupDefault);
+  }
+
+  const pickupTimeInput = document.getElementById('pickup_time');
+  if (pickupTimeInput) {
+    toggleClearButton('pickup_time', 'pickup_time_clear');
+    pickupTimeInput.addEventListener('input', () => toggleClearButton('pickup_time', 'pickup_time_clear'));
+    pickupTimeInput.addEventListener('change', () => toggleClearButton('pickup_time', 'pickup_time_clear'));
   }
 })();
 </script>
@@ -750,7 +888,7 @@ window.fromAutocomplete = step1Autocomplete;
             .replace("__PICKUP_VAL__", pickup_val)
             .replace("__PICKUP_PLACE_ID__", pickup_place_id_val)
             .replace("__PICKUP_DATE_VAL__", pickup_date_val)
-            .replace("__LAST_DELIVERY_DATE_VAL__", last_delivery_date_val)
+            .replace("__PICKUP_TIME_VAL__", pickup_time_val)
             .replace("__PALUU_AUTO_CHECKED__", paluu_auto_checked)
         )
         return get_wrap()(wizard_shell(1, inner, session.get("order_draft", {})), u)
@@ -760,12 +898,11 @@ window.fromAutocomplete = step1Autocomplete;
     d["pickup"] = request.form.get("pickup", "").strip()
     d["pickup_place_id"] = request.form.get("pickup_place_id", "").strip()
     d["pickup_date"] = request.form.get("pickup_date", "").strip()
-    d["last_delivery_date"] = request.form.get("last_delivery_date") or None
+    pickup_time = request.form.get("pickup_time", "").strip()
+    d["pickup_time"] = pickup_time or None
     paluu_auto_selected = bool(request.form.get("paluu_auto"))
     d["paluu_auto"] = paluu_auto_selected
-    if paluu_auto_selected:
-        d["return_delivery_date"] = d.get("last_delivery_date") or d.get("pickup_date") or None
-    else:
+    if not paluu_auto_selected:
         d["return_delivery_date"] = None
     session["order_draft"] = d
     return redirect("/order/new/step2")
@@ -793,7 +930,14 @@ def order_step2():
         if saved_phone and not validate_phone_number(saved_phone):
             saved_phone = ""
         d["saved_dropoff_phone"] = saved_phone
-        # Note: last_delivery_date is now handled in step 1, not step 2
+        d["last_delivery_date"] = request.form.get("last_delivery_date") or None
+        delivery_time = request.form.get("delivery_time", "").strip()
+        d["delivery_time"] = delivery_time or None
+        paluu_auto_selected = bool(d.get("paluu_auto"))
+        if paluu_auto_selected:
+            d["return_delivery_date"] = d.get("last_delivery_date") or d.get("pickup_date") or None
+        else:
+            d["return_delivery_date"] = None
         session["order_draft"] = d
         
         action = request.form.get("action")
@@ -807,8 +951,17 @@ def order_step2():
     drop_val = (d.get('dropoff', '') or '').replace('"', '&quot;')
     drop_place_id_val = (d.get('dropoff_place_id', '') or '').replace('"', '&quot;')
     pick_val = (d.get('pickup', '') or '').replace('"', '&quot;')  # piilotettuun from_stepiin
-    pickup_date_val = d.get('pickup_date', '')
-    last_delivery_date_val = d.get('last_delivery_date', '')
+    def _parse_iso_date(value):
+        try:
+            return datetime.datetime.strptime(value, "%Y-%m-%d").date()
+        except Exception:
+            return None
+
+    pickup_date_obj = _parse_iso_date(d.get("pickup_date")) or datetime.date.today()
+    pickup_date_val = pickup_date_obj.isoformat()
+    last_delivery_obj = _parse_iso_date(d.get("last_delivery_date")) or pickup_date_obj
+    last_delivery_date_val = last_delivery_obj.isoformat()
+    delivery_time_val = (d.get("delivery_time") or "").strip()
     saved_phone_val = (d.get('saved_dropoff_phone', '') or '').replace('"', '&quot;')
 
     inner = """
@@ -825,9 +978,41 @@ def order_step2():
     <input type="hidden" id="dropoff_place_id" name="dropoff_place_id" value="__DROP_PLACE_ID__">
     <div id="ac_to_step" class="ac-list"></div>
   </div>
+
+  <!-- Date and Time Picker -->
+  <div class="wizard-date-grid">
+    <div class="wizard-field">
+      <label>Toimituspäivä *</label>
+      <div class="wizard-input-box" onclick="openDatePicker('last_delivery_date')">
+        <div class="wizard-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2">
+            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+            <line x1="16" y1="2" x2="16" y2="6"></line>
+            <line x1="8" y1="2" x2="8" y2="6"></line>
+            <line x1="3" y1="10" x2="21" y2="10"></line>
+          </svg>
+        </div>
+        <input type="date" id="last_delivery_date" name="last_delivery_date" required value="__LAST_DELIVERY_DATE_VAL__">
+      </div>
+    </div>
+    <div class="wizard-field">
+      <label>Toimitusaika (valinnainen)</label>
+      <div class="wizard-input-box wizard-input-box--time" onclick="openTimePicker('delivery_time')">
+        <div class="wizard-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2">
+            <circle cx="12" cy="12" r="10"></circle>
+            <polyline points="12 6 12 12 16 14"></polyline>
+          </svg>
+        </div>
+        <input type="time" id="delivery_time" name="delivery_time" value="__DELIVERY_TIME_VAL__">
+        <button type="button" id="delivery_time_clear" class="wizard-clear-btn" onclick="clearTimeInput('delivery_time')">×</button>
+      </div>
+    </div>
+  </div>
+
   
   <!-- Saved Addresses - Compact -->
-  <details class="saved-addresses-details" style="margin-top: 12px; padding: 0.5rem 0.75rem; border: 1px solid #e5e7eb; border-radius: 6px; background: #fafafa;">
+  <details class="saved-addresses-details" style="margin-top: 36px; padding: 0.5rem 0.75rem; border: 1px solid #e5e7eb; border-radius: 6px; background: #fafafa;">
     <summary style="display: flex; align-items: center; justify-content: space-between; padding: 0.25rem 0; cursor: pointer; font-size: 0.85rem; color: #64748b; list-style: none;">
       <span style="display: flex; align-items: center; gap: 6px;">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
@@ -850,6 +1035,106 @@ def order_step2():
 </form>
 
 <style>
+/* Wizard date/time picker styles */
+.wizard-date-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-top: 12px;
+}
+.wizard-field label {
+  display: block;
+  font-weight: 500;
+  color: #1e293b;
+  margin-bottom: 6px;
+  font-size: 14px;
+}
+.wizard-input-box {
+  position: relative;
+  display: flex;
+  align-items: center;
+  height: 48px;
+  border: 1px solid #22c55e;
+  border-radius: 8px;
+  background: #fff;
+  padding: 0 12px 0 44px;
+}
+.wizard-input-box:focus-within {
+  border-color: #16a34a;
+  box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.1);
+}
+.wizard-icon {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  z-index: 2;
+}
+.wizard-icon svg { display: block; }
+.wizard-input-box--time { padding-right: 44px; }
+.wizard-input-box input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  font-size: 15px;
+  color: #1e293b;
+  outline: none;
+  height: 100%;
+  min-width: 0;
+  width: 100%;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  align-items: center;
+}
+.wizard-input-box input[type="date"]::-webkit-date-and-time-value,
+.wizard-input-box input[type="time"]::-webkit-date-and-time-value {
+  text-align: left;
+  margin: 0;
+  padding: 0;
+}
+.wizard-input-box input::-webkit-calendar-picker-indicator {
+  opacity: 0;
+  cursor: pointer;
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+.wizard-clear-btn {
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #94a3b8;
+  font-size: 18px;
+  border: none;
+  background: none;
+  padding: 0;
+  opacity: 0;
+  pointer-events: none;
+  z-index: 2;
+}
+.wizard-clear-btn:hover { color: #64748b; }
+@media (max-width: 640px) {
+  .wizard-date-grid { grid-template-columns: 1fr; }
+}
 /* Saved addresses compact styling */
 .saved-addresses-details summary::-webkit-details-marker { display: none; }
 .saved-addresses-details[open] .chevron-icon { transform: rotate(180deg); }
@@ -869,6 +1154,45 @@ function applySavedPhoneToStep2(phone){
   const hidden = document.getElementById('saved_dropoff_phone');
   if (!hidden) return;
   hidden.value = (phone || '').trim();
+}
+
+function openDatePicker(inputId){
+  const input = document.getElementById(inputId);
+  if (!input) return;
+  if (input.showPicker) {
+    input.showPicker();
+  } else {
+    input.focus();
+    input.click();
+  }
+}
+
+function openTimePicker(inputId){
+  const input = document.getElementById(inputId);
+  if (!input) return;
+  if (input.showPicker) {
+    input.showPicker();
+  } else {
+    input.focus();
+    input.click();
+  }
+}
+
+function clearTimeInput(inputId){
+  const input = document.getElementById(inputId);
+  if (!input) return;
+  input.value = '';
+  input.dispatchEvent(new Event('input', { bubbles: true }));
+  input.dispatchEvent(new Event('change', { bubbles: true }));
+}
+
+function toggleClearButton(inputId, buttonId){
+  const input = document.getElementById(inputId);
+  const button = document.getElementById(buttonId);
+  if (!input || !button) return;
+  const hasValue = !!input.value;
+  button.style.opacity = hasValue ? '1' : '0';
+  button.style.pointerEvents = hasValue ? 'auto' : 'none';
 }
 
 /* ===== Google Places Autocomplete for Wizard Step 2 ===== */
@@ -1163,12 +1487,38 @@ if (toStepInput && savedPhoneInputStep2) {
 /* Date validation for Step 2 */
 (function() {
   const pickupDateStep2 = document.getElementById('pickup_date_step2');
-  
-  // Note: last_delivery_date_step2 field was removed from step 2
-  // Date validation is now handled in step 1
-  if (pickupDateStep2) {
-    // Any pickup date validation can be added here if needed
-    console.log('Step 2 pickup date:', pickupDateStep2.value);
+  const deliveryDateInput = document.getElementById('last_delivery_date');
+
+  function formatISODate(dateObj) {
+    const year = dateObj.getFullYear();
+    const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+    const day = String(dateObj.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }
+
+  function ensureDeliveryDefault() {
+    if (!deliveryDateInput) return;
+    const today = new Date();
+    const todayStr = formatISODate(today);
+    const pickupValue = pickupDateStep2 ? pickupDateStep2.value : '';
+    const minDate = pickupValue || todayStr;
+    deliveryDateInput.min = minDate;
+    if (!deliveryDateInput.value || deliveryDateInput.value < minDate) {
+      deliveryDateInput.value = minDate;
+    }
+  }
+
+  if (deliveryDateInput) {
+    ensureDeliveryDefault();
+    deliveryDateInput.addEventListener('change', ensureDeliveryDefault);
+    deliveryDateInput.addEventListener('input', ensureDeliveryDefault);
+  }
+
+  const deliveryTimeInput = document.getElementById('delivery_time');
+  if (deliveryTimeInput) {
+    toggleClearButton('delivery_time', 'delivery_time_clear');
+    deliveryTimeInput.addEventListener('input', () => toggleClearButton('delivery_time', 'delivery_time_clear'));
+    deliveryTimeInput.addEventListener('change', () => toggleClearButton('delivery_time', 'delivery_time_clear'));
   }
 })();
 </script>
@@ -1180,6 +1530,7 @@ if (toStepInput && savedPhoneInputStep2) {
         .replace("__PICK_VAL__", pick_val)
         .replace("__PICKUP_DATE_VAL__", pickup_date_val)
         .replace("__LAST_DELIVERY_DATE_VAL__", last_delivery_date_val)
+        .replace("__DELIVERY_TIME_VAL__", delivery_time_val)
         .replace("__SAVED_PHONE_VAL__", saved_phone_val)
     )
     return get_wrap()(wizard_shell(2, inner, session.get("order_draft", {})), u)
@@ -1633,6 +1984,8 @@ def order_confirm():
     pickup_date_iso = d.get("pickup_date") or None
     last_delivery_date_iso = d.get("last_delivery_date") or None
     return_delivery_date_iso = d.get("return_delivery_date") or None
+    pickup_time_val = (d.get("pickup_time") or "").strip() or None
+    delivery_time_val = (d.get("delivery_time") or "").strip() or None
     computed_return_pickup_iso = last_delivery_date_iso or pickup_date_iso
 
     if request.method == "POST":
@@ -1648,6 +2001,8 @@ def order_confirm():
             "reg_number": d.get("reg_number"),
             "pickup_date": pickup_date_iso,
             "last_delivery_date": last_delivery_date_iso,
+            "pickup_time": pickup_time_val,
+            "delivery_time": delivery_time_val,
 
             # Orderer (Tilaaja) information
             "orderer_name": d.get("orderer_name"),
@@ -1764,27 +2119,21 @@ def order_confirm():
         except Exception:
             return s
 
-    def _format_date_range(start_str: str, end_str: str, fallback: str):
-        if start_str and end_str:
-            return start_str if start_str == end_str else f"{start_str} - {end_str}"
-        if start_str or end_str:
-            return start_str or end_str
-        return fallback
-
     pickup_date_str = _fmt_date(pickup_date_iso)
     last_delivery_date_str = _fmt_date(last_delivery_date_iso)
     return_delivery_date_str = _fmt_date(return_delivery_date_iso)
     return_pickup_str = _fmt_date(computed_return_pickup_iso)
 
     date_fallback = "Ei asetettu"
-    outbound_date_display = _format_date_range(pickup_date_str, last_delivery_date_str, date_fallback)
-    return_range_end = return_delivery_date_str or last_delivery_date_str or pickup_date_str
-    return_date_display = _format_date_range(pickup_date_str, return_range_end, date_fallback)
+    pickup_date_display = pickup_date_str or date_fallback
+    delivery_date_display = last_delivery_date_str or date_fallback
+    if pickup_time_val and pickup_date_str:
+        pickup_date_display = f"{pickup_date_str} klo {pickup_time_val}"
+    if delivery_time_val and last_delivery_date_str:
+        delivery_date_display = f"{last_delivery_date_str} klo {delivery_time_val}"
 
-    pickup_date_display = outbound_date_display
-    last_delivery_display = outbound_date_display
-    return_pickup_display = return_date_display
-    return_delivery_display = return_date_display
+    return_pickup_display = return_pickup_str or date_fallback
+    return_delivery_display = return_delivery_date_str or date_fallback
 
     pickup_address = d.get("pickup") or ""
     dropoff_address = d.get("dropoff") or ""
@@ -1811,7 +2160,7 @@ def order_confirm():
       <div class='route-point__content'>
         <span class='route-point__label'>Toimitus</span>
         <span class='route-point__address'>{dropoff_address}</span>
-        {f"<span class='route-point__date'>{last_delivery_display}</span>" if last_delivery_date_str else ""}
+        {f"<span class='route-point__date'>{delivery_date_display}</span>" if last_delivery_date_str else ""}
       </div>
     </div>
   </div>
@@ -2023,7 +2372,6 @@ def order_confirm():
     pricing_html = f"""
 <div class='price-card' style='background: #ffffff; border: 1px solid #e2e8f0; border-radius: 20px; padding: 24px; box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08); text-align: left;'>
   <div style='text-transform: uppercase; letter-spacing: 0.08em; font-size: 0.85rem; color: #94a3b8; font-weight: 700;'>Yhteenveto</div>
-  <p style='color: #475569; margin: 0.35rem 0 1.25rem;'>Näet hinnan ennen kuin vahvistat tilauksen.</p>
   <div style='border: 1px solid #e2e8f0; border-radius: 16px; background: #f8fafc; padding: 0.25rem 1.1rem;'>
     {legs_html}
   </div>

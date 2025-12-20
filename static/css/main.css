@@ -406,6 +406,11 @@ main::before {
     color: var(--color-primary);
 }
 
+.feature-icon svg {
+    width: 2.5rem;
+    height: 2.5rem;
+}
+
 .feature-card:hover .feature-icon {
     background: var(--color-primary-lighter);
 }

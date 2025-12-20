@@ -37,8 +37,8 @@
     font-weight: var(--font-weight-bold);
     text-transform: none;
     letter-spacing: 0.02em;
-    backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
     box-shadow: 0 2px 8px rgba(59, 130, 246, 0.2);
     transition: all var(--transition-fast);
 }
@@ -325,8 +325,8 @@ input[type="file"]::file-selector-button {
 /* Cards */
 .card {
     background: rgba(255, 255, 255, 0.9);
-    backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
     border: 1px solid rgba(255, 255, 255, 0.2);
     border-radius: var(--radius-xl);
     padding: var(--space-6);
@@ -925,8 +925,8 @@ input[type="file"]::file-selector-button {
 /* Admin page containers */
 .admin-container {
     background: rgba(255, 255, 255, 0.3);
-    backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
     border-radius: var(--radius-xl);
     padding: var(--space-8);
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
@@ -1373,7 +1373,6 @@ input[type="file"]::file-selector-button {
         display: block;
         overflow-x: auto;
         white-space: nowrap;
-        -webkit-overflow-scrolling: touch;
     }
 }
 
@@ -1468,8 +1467,8 @@ input[type="file"]::file-selector-button {
 }
 
 .form-checkbox input[type="checkbox"] {
-    appearance: none;
     -webkit-appearance: none;
+    appearance: none;
     width: 20px;
     height: 20px;
     border: 2px solid var(--color-gray-300);
