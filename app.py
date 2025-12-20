@@ -121,6 +121,7 @@ def init_db():
         db_manager.sync_counter("users", "users", "id")
         db_manager.sync_counter("orders", "orders", "id")
         db_manager.sync_counter("driver_applications", "driver_applications", "id")
+        db_manager.sync_counter("discounts", "discounts", "id")
     except Exception as e:
         print(f"Warning: Counter sync failed (may be concurrent initialization): {e}")
 
@@ -841,8 +842,46 @@ def api_quote_for_addresses():
 
     try:
         km = order_service.route_km(pickup, dropoff, pickup_place_id, dropoff_place_id)
-        net, vat, gross, details = order_service.price_from_km(km, pickup, dropoff, return_leg=return_leg)
-        return jsonify({"km": round(km, 2), "net": net, "vat": vat, "gross": gross, "details": details})
+
+        # Determine current user and first-order info for personalized discounts
+        user = auth_service.get_current_user()
+        user_id = None
+        is_first_order = False
+        if user and user.get("id"):
+            try:
+                user_id = int(user["id"])
+                existing_orders = order_service.get_user_orders(user_id, limit=1)
+                is_first_order = len(existing_orders) == 0
+            except Exception as e:
+                print(f"Failed to determine first-order status for quote: {e}")
+                user_id = int(user["id"])
+
+        pricing = order_service.price_from_km_with_discounts(
+            km,
+            pickup_addr=pickup,
+            dropoff_addr=dropoff,
+            return_leg=return_leg,
+            user_id=user_id,
+            promo_code=payload.get("promo_code"),
+            is_first_order=is_first_order
+        )
+
+        response = {
+            "km": round(km, 2),
+            "net": pricing.get("final_net", 0.0),
+            "vat": pricing.get("final_vat", 0.0),
+            "gross": pricing.get("final_gross", 0.0),
+            "details": pricing.get("details"),
+            "original_net": pricing.get("original_net", pricing.get("final_net", 0.0)),
+            "original_vat": pricing.get("original_vat", pricing.get("final_vat", 0.0)),
+            "original_gross": pricing.get("original_gross", pricing.get("final_gross", 0.0)),
+            "display_original_net": pricing.get("display_original_net", pricing.get("original_net", pricing.get("final_net", 0.0))),
+            "display_original_vat": pricing.get("display_original_vat", pricing.get("original_vat", pricing.get("final_vat", 0.0))),
+            "display_original_gross": pricing.get("display_original_gross", pricing.get("original_gross", pricing.get("final_gross", 0.0))),
+            "discount_amount": pricing.get("discount_amount", 0.0),
+            "applied_discounts": pricing.get("applied_discounts", []),
+        }
+        return jsonify(response)
     except ValueError as e:
         # These are user-friendly messages from route_km() when routing is unavailable
         return jsonify({"error": str(e)}), 503

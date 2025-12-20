@@ -58,7 +58,7 @@ def calculator():
                       autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" name="from_addr">
                <input type="hidden" id="from_place_id">
                <div id="ac_from" class="ac-list"></div>
-            </div>
+          </div>
           </div>
 
           <div class="form-group">
@@ -105,7 +105,6 @@ def calculator():
           <h2 class="card-title">Hinta ja reitti</h2>
           <p class="card-subtitle">Tulos näkyy tässä laskennan jälkeen</p>
         </div>
-        
         <div class="card-body">
           <div id="receipt" class="receipt hidden">
             <div class="rowline"><span>Matka</span><span id="r_km">—</span></div>
@@ -113,12 +112,20 @@ def calculator():
               <span style="font-size: 1.1em; font-weight: 600;">Hinta</span>
               <div style="text-align: right;">
                 <div style="font-size: 2.5em; font-weight: 800; line-height: 1.1;" id="r_net">—</div>
+                <div id="r_net_original" class="price-original hidden">Normaalisti —</div>
                 <div style="font-size: 1.2em; font-weight: 700; margin-top: 4px;">ALV 0%</div>
               </div>
             </div>
             <div class="rowline" style="font-size: 0.75em; opacity: 0.6; margin: 8px 0;">
               <span>ALV 25,5%: <span id="r_vat">—</span></span>
               <span>Yhteensä sis. ALV: <span id="r_gross">—</span></span>
+            </div>
+            <div id="discount_summary" class="discount-summary hidden">
+              <div class="discount-summary__header">
+                <span>Säästät yhteensä</span>
+                <span id="discount_total_amount">-0,00 €</span>
+              </div>
+              <div id="discount_list" class="discount-summary__list"></div>
             </div>
           </div>
 
@@ -177,9 +184,79 @@ style.textContent = `
   /* Saved addresses compact styling */
   .saved-addresses-details summary::-webkit-details-marker { display: none; }
   .saved-addresses-details[open] .chevron-icon { transform: rotate(180deg); }
+  .saved-addresses-details { position: relative; z-index: 1; }
+  .saved-addresses-details[open] { z-index: 1200; }
   .chevron-icon { transition: transform 0.2s ease; }
+  .price-original { font-size: 0.95rem; color: #94a3b8; text-decoration: line-through; margin-top: 0.35rem; }
+  .discount-summary { margin-top: 1rem; padding: 0.85rem; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; }
+  .discount-summary__header { display: flex; justify-content: space-between; font-weight: 600; color: #15803d; }
+  .discount-summary__list { margin-top: 0.5rem; display: flex; flex-direction: column; gap: 0.35rem; }
+  .discount-summary__item { display: flex; justify-content: space-between; font-size: 0.9rem; color: #166534; }
 `;
 document.head.appendChild(style);
+
+function updateCalculatorDiscountUI(quote){
+  const originalEl = document.getElementById('r_net_original');
+  const summaryEl = document.getElementById('discount_summary');
+  const totalEl = document.getElementById('discount_total_amount');
+  const listEl = document.getElementById('discount_list');
+  if(!originalEl && !summaryEl) return;
+
+  const discountAmount = Number(quote?.discount_amount || 0);
+  const hasDiscount = discountAmount > 0.009;
+
+  if(hasDiscount){
+    if(originalEl){
+      const displayOriginalNet = Number(
+        (quote?.display_original_net ??
+         quote?.original_net ??
+         ((quote?.net || 0) + discountAmount))
+      );
+      originalEl.textContent = `Normaalisti ${euro(displayOriginalNet)}`;
+      originalEl.classList.remove('hidden');
+    }
+    if(summaryEl){
+      summaryEl.classList.remove('hidden');
+      if(totalEl){
+        totalEl.textContent = `-${euro(discountAmount)}`;
+      }
+      if(listEl){
+        listEl.innerHTML = '';
+        const discounts = Array.isArray(quote?.applied_discounts) ? quote.applied_discounts : [];
+        if(discounts.length){
+          discounts.forEach(d=>{
+            const amount = Number(d.amount || 0);
+            if(amount <= 0) return;
+            const row = document.createElement('div');
+            row.className = 'discount-summary__item';
+            const nameSpan = document.createElement('span');
+            nameSpan.textContent = d.name || 'Alennus';
+            const amountSpan = document.createElement('span');
+            amountSpan.textContent = `-${euro(amount)}`;
+            row.appendChild(nameSpan);
+            row.appendChild(amountSpan);
+            listEl.appendChild(row);
+          });
+        } else {
+          const row = document.createElement('div');
+          row.className = 'discount-summary__item';
+          row.innerHTML = '<span>Alennus käytössä</span><span>-' + euro(discountAmount) + '</span>';
+          listEl.appendChild(row);
+        }
+      }
+    }
+  } else {
+    if(originalEl){
+      originalEl.classList.add('hidden');
+    }
+    if(summaryEl){
+      summaryEl.classList.add('hidden');
+    }
+    if(listEl){
+      listEl.innerHTML = '';
+    }
+  }
+}
 
 // ====== Google Places Autocomplete ======
 class GooglePlacesAutocomplete {
@@ -536,6 +613,7 @@ async function calcAndRender({fromId, toId, receiptIds, continueId, mapInst}){
   document.getElementById(receiptIds.km).textContent   = kmfmt(j.km);
   document.getElementById(receiptIds.gross).textContent= euro(j.gross);
   document.getElementById(receiptIds.box).classList.remove('hidden');
+  updateCalculatorDiscountUI(j);
 
   // reitti
   const rr = await fetch('/api/route_geo',{
@@ -654,6 +732,7 @@ async function calc(){
     errEl.classList.add('hidden');
     rec.classList.add('hidden');
     cont.classList.add('link-disabled');
+    updateCalculatorDiscountUI({discount_amount: 0});
     if(noResults) noResults.style.display = 'block';
 
     if(!f||!t){
@@ -675,6 +754,7 @@ async function calc(){
       document.getElementById('r_net').textContent = euro(j.net);
       document.getElementById('r_vat').textContent = euro(j.vat);
       document.getElementById('r_gross').textContent = euro(j.gross);
+      updateCalculatorDiscountUI(j);
       rec.classList.remove('hidden');
       if(noResults) noResults.style.display = 'none';
       cont.classList.remove('link-disabled');
@@ -801,20 +881,20 @@ async function fetchServerAddresses(){
   return Array.isArray(data.items) ? data.items : [];
 }
 
-async function createServerAddress(displayName, fullAddress){
+async function createServerAddress(displayName, fullAddress, phone = ''){
   const data = await apiCall('/api/saved_addresses', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ displayName, fullAddress })
+    body: JSON.stringify({ displayName, fullAddress, phone })
   });
   return data.item;
 }
 
-async function updateServerAddress(id, displayName, fullAddress){
+async function updateServerAddress(id, displayName, fullAddress, phone = ''){
   const data = await apiCall(`/api/saved_addresses/${encodeURIComponent(id)}`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ displayName, fullAddress })
+    body: JSON.stringify({ displayName, fullAddress, phone })
   });
   return data.item;
 }
@@ -1049,9 +1129,14 @@ function openAddressModal(editIndex = null) {
           <input id="addrName" type="text" class="form-input" placeholder="Esim. Koti, Toimisto, Varasto" value="${addr ? addr.displayName : ''}" style="width: 100%;">
         </div>
         
-        <div style="margin-bottom: 1.5rem;">
+        <div style="margin-bottom: 1rem;">
           <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Osoite *</label>
           <input id="addrFull" type="text" class="form-input" placeholder="Esim. Mannerheimintie 1, Helsinki" value="${addr ? addr.fullAddress : ''}" style="width: 100%;">
+        </div>
+        
+        <div style="margin-bottom: 1.5rem;">
+          <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Puhelinnumero (valinnainen)</label>
+          <input id="addrPhone" type="tel" class="form-input" placeholder="+358..." value="${addr && addr.phone ? addr.phone : ''}" style="width: 100%;">
         </div>
         
         <div style="display: flex; gap: 0.75rem; justify-content: flex-end;">
@@ -1075,9 +1160,16 @@ function closeAddressModal() {
 async function saveAddress() {
   const name = document.getElementById('addrName').value.trim();
   const address = document.getElementById('addrFull').value.trim();
+  const phoneInput = document.getElementById('addrPhone');
+  const phone = phoneInput ? phoneInput.value.trim() : '';
   
   if (!name || !address) {
     alert('Täytä molemmat kentät');
+    return;
+  }
+  
+  if (phone && !/^[+]?[0-9\s\-()]+$/.test(phone)) {
+    alert('Syötä vain numeroita ja merkit +, -, ( )');
     return;
   }
   
@@ -1088,22 +1180,22 @@ async function saveAddress() {
       let updated = null;
       if (current && current.id) {
         try {
-          updated = await updateServerAddress(current.id, name, address);
+          updated = await updateServerAddress(current.id, name, address, phone);
         } catch (e) {
           console.warn('[SavedAddresses] server update failed, falling back to local:', e.message || e);
         }
       }
-      const newAddr = updated || { id: current && current.id || Date.now(), displayName: name, fullAddress: address };
+      const newAddr = updated || { id: current && current.id || Date.now(), displayName: name, fullAddress: address, phone };
       window.savedAddresses[editingAddressId] = newAddr;
     } else {
       // Create new
       let created = null;
       try {
-        created = await createServerAddress(name, address);
+        created = await createServerAddress(name, address, phone);
       } catch (e) {
         console.warn('[SavedAddresses] server create failed, storing locally:', e.message || e);
       }
-      const newAddr = created || { id: Date.now(), displayName: name, fullAddress: address };
+      const newAddr = created || { id: Date.now(), displayName: name, fullAddress: address, phone };
       window.savedAddresses.push(newAddr);
     }
   } finally {

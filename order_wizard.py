@@ -1,6 +1,7 @@
 # order_wizard.py
 import datetime
 import re
+from typing import Dict, List
 from flask import request, redirect, url_for, session
 from services.auth_service import auth_service
 from services.order_service import order_service
@@ -1528,26 +1529,55 @@ def order_confirm():
             "Menomatkan reitin laskenta epäonnistui. Tilausta ei voida vahvistaa juuri nyt. Tarkista osoitteet ja yritä hetken kuluttua uudelleen."
         )
 
-    u = auth_service.get_current_user()
+    user_id = None
+    is_first_order = False
+    if u and u.get("id"):
+        try:
+            user_id = int(u["id"])
+            existing_orders = order_service.get_user_orders(user_id, limit=1)
+            is_first_order = len(existing_orders) == 0
+        except Exception as e:
+            print(f"Failed to check first order status: {e}")
+            user_id = int(u["id"])
     time_window = "flex" if not d.get("pickup_date") else "exact"
     return_leg = False
     net = vat = gross = 0.0
+    outbound_discount_amount = 0.0
+    outbound_applied_discounts: List[Dict] = []
+    outbound_applied_discounts_db: List[Dict] = []
+    outbound_original_net = 0.0
+    pricing_result = None
     if outbound_route_ok:
-        net, vat, gross, _ = order_service.price_from_km(
+        pricing_result = order_service.price_from_km_with_discounts(
             km,
             pickup_addr=d.get("pickup"),
             dropoff_addr=d.get("dropoff"),
-            return_leg=return_leg
+            return_leg=return_leg,
+            user_id=user_id,
+            promo_code=d.get("promo_code"),
+            is_first_order=is_first_order
         )
+        net = pricing_result.get("final_net", 0.0)
+        vat = pricing_result.get("final_vat", 0.0)
+        gross = pricing_result.get("final_gross", 0.0)
+        outbound_discount_amount = pricing_result.get("discount_amount", 0.0)
+        outbound_applied_discounts = pricing_result.get("applied_discounts", []) or []
+        outbound_applied_discounts_db = pricing_result.get("all_applied_discounts", outbound_applied_discounts)
+    outbound_original_net = pricing_result.get("display_original_net", pricing_result.get("original_net", net)) if pricing_result else net
+    total_discount_amount = outbound_discount_amount
+    total_original_net = outbound_original_net
 
     # Calculate return leg if Paluu auto is checked
     paluu_auto = d.get("paluu_auto", False)
     return_km = 0.0
     return_net = 0.0
+    return_pricing = None
     return_vat = 0.0
     return_gross = 0.0
-    return_discount = 0.0
-    return_net_discounted = 0.0
+    return_discount_amount = 0.0
+    return_applied_discounts: List[Dict] = []
+    return_applied_discounts_db: List[Dict] = []
+    return_original_net = 0.0
     total_km = km
     total_net = net
     total_vat = vat
@@ -1566,31 +1596,30 @@ def order_confirm():
 
             # Calculate return pricing (30% discount) only if routing succeeded
             if return_km > 0:
-                return_net_full, return_vat_full, return_gross_full, _ = order_service.price_from_km(
+                return_pricing = order_service.price_from_km_with_discounts(
                     return_km,
                     pickup_addr=d.get("dropoff"),
                     dropoff_addr=d.get("pickup"),
-                    return_leg=True  # This will apply 30% discount
+                    return_leg=True,
+                    user_id=user_id,
+                    promo_code=d.get("promo_code"),
+                    is_first_order=is_first_order
                 )
 
-                # The return_leg=True already applies 30% discount in order_service
-                return_net = return_net_full
-                return_vat = return_vat_full
-                return_gross = return_gross_full
-
-                # Calculate what the discount amount is (for display)
-                return_net_before_discount, _, _, _ = order_service.price_from_km(
-                    return_km,
-                    pickup_addr=d.get("dropoff"),
-                    dropoff_addr=d.get("pickup"),
-                    return_leg=False
-                )
-                return_discount = return_net_before_discount - return_net
+                return_net = return_pricing.get("final_net", 0.0)
+                return_vat = return_pricing.get("final_vat", 0.0)
+                return_gross = return_pricing.get("final_gross", 0.0)
+                return_discount_amount = return_pricing.get("discount_amount", 0.0)
+                return_applied_discounts = return_pricing.get("applied_discounts", []) or []
+                return_applied_discounts_db = return_pricing.get("all_applied_discounts", return_applied_discounts)
+                return_original_net = return_pricing.get("display_original_net", return_pricing.get("original_net", return_net))
 
                 # Total pricing
                 total_net = net + return_net
                 total_vat = vat + return_vat
                 total_gross = gross + return_gross
+                total_discount_amount += return_discount_amount
+                total_original_net += return_original_net
             else:
                 pricing_error_messages.append(
                     "Paluumatkan reitin laskenta epäonnistui. Tilausta ei voida vahvistaa juuri nyt. Yritä hetken kuluttua uudelleen."
@@ -1639,6 +1668,8 @@ def order_confirm():
             "price_net": float(net),
             "price_vat": float(vat),
             "price_gross": float(gross),
+            "discount_amount": float(round(outbound_discount_amount, 2)),
+            "applied_discounts": outbound_applied_discounts_db,
 
             "winter_tires": bool(d.get("winter_tires")) if "winter_tires" in d else False,
             
@@ -1682,6 +1713,8 @@ def order_confirm():
                     "price_net": float(return_net),
                     "price_vat": float(return_vat),
                     "price_gross": float(return_gross),
+                    "discount_amount": float(round(return_discount_amount, 2)),
+                    "applied_discounts": return_applied_discounts_db,
 
                     "winter_tires": bool(d.get("return_winter_tires")) if "return_winter_tires" in d else False,
                     
@@ -1716,8 +1749,6 @@ def order_confirm():
             pass
 
     err = " ".join(pricing_error_messages) if pricing_error_messages else None
-    price_block = f"<div class='card'><strong style='font-size: 0.9em;'>Hinta:</strong> <span style='font-size: 1.5em; font-weight: 800;'>{net:.2f} €</span> <strong style='font-size: 1.1em;'>ALV 0%</strong> <span style='opacity: 0.6; font-size: 0.85em;'>({km:.1f} km)</span></div>"
-    if err: price_block = f"<div class='card'><span class='muted'>{err}</span><br>{price_block}</div>"
 
     # Check for error message in session
     error_msg = session.pop("error_message", None)
@@ -1882,54 +1913,125 @@ def order_confirm():
 </div>
 """
 
-    leg_sections_html = f"{meno_section_html}{paluu_section_html}{contact_section_html}{additional_info_html}"
-    
-    # Build pricing summary
-    if paluu_auto:
-        pricing_html = f"""
-<div class='price-card'>
-  <h3 class='price-title'>Yhteenveto</h3>
-  <div class='price-details'>
-    <div style='text-align: left; margin-bottom: 1.5rem; padding-bottom: 1.5rem; border-bottom: 2px solid #e5e7eb;'>
-      <div style='display: flex; justify-content: space-between; margin-bottom: 0.75rem; font-size: 0.95rem; gap: 1rem;'>
-        <span style='color: #64748b; flex-shrink: 0;'>Menomatka</span>
-        <span style='font-weight: 600; color: #1e293b; text-align: right;'>{km:.1f} km · {net:.2f} €</span>
-      </div>
-      <div style='display: flex; justify-content: space-between; margin-bottom: 0.75rem; font-size: 0.95rem; gap: 1rem;'>
-        <span style='color: #64748b; flex-shrink: 0;'>Paluumatka</span>
-        <span style='font-weight: 600; color: #1e293b; text-align: right;'>{return_km:.1f} km · {return_net:.2f} €</span>
-      </div>
-      <div style='display: flex; justify-content: space-between; font-size: 0.95rem; gap: 1rem;'>
-        <span style='color: #3b82f6; font-weight: 600; flex-shrink: 0;'>Paluualennus -30%</span>
-        <span style='font-weight: 700; color: #3b82f6; text-align: right;'>-{return_discount:.2f} €</span>
-      </div>
-    </div>
-    <div style='margin-bottom: 0.5rem;'>
-      <div class='distance'>{total_km:.1f} km yhteensä</div>
-    </div>
-    <div style='font-size: 2.75rem; font-weight: 800; color: #1e293b; line-height: 1; margin-bottom: 0.5rem;'>{total_net:.2f} €</div>
-    <div style='font-size: 1rem; font-weight: 600; color: #64748b; margin-bottom: 1rem;'>ALV 0%</div>
-    <div style='font-size: 0.8rem; color: #94a3b8;'>ALV 25,5%: {total_vat:.2f} € · Sis. ALV: {total_gross:.2f} €</div>
-    {f'<div style="margin-top: 1rem; padding: 0.75rem; background: #fee; border-radius: 6px; color: #c00; font-size: 0.85rem;">{err}</div>' if err else ''}
-  </div>
-</div>
-"""
-    else:
-        pricing_html = f"""
-<div class='price-card'>
-  <h3 class='price-title'>Hinta</h3>
-  <div class='price-details'>
-    <div style='margin-bottom: 1rem;'>
-      <div class='distance'>{km:.1f} km</div>
-    </div>
-    <div style='font-size: 2.75rem; font-weight: 800; color: #1e293b; line-height: 1; margin-bottom: 0.5rem;'>{net:.2f} €</div>
-    <div style='font-size: 1rem; font-weight: 600; color: #64748b; margin-bottom: 1rem;'>ALV 0%</div>
-    <div style='font-size: 0.8rem; color: #94a3b8;'>ALV 25,5%: {vat:.2f} € · Sis. ALV: {gross:.2f} €</div>
-    {f'<div style="margin-top: 1rem; padding: 0.75rem; background: #fee; border-radius: 6px; color: #c00; font-size: 0.85rem;">{err}</div>' if err else ''}
-  </div>
-</div>
-"""
 
+    leg_sections_html = f"{meno_section_html}{paluu_section_html}{contact_section_html}{additional_info_html}"
+
+    # Build pricing summary with discount breakdown
+    def _format_price_parts(current_value: float, original_value: float):
+        current = f"{current_value:.2f} €"
+        original = None
+        if original_value and original_value - current_value > 0.009:
+            original = f"{original_value:.2f} €"
+        return current, original
+
+    outbound_price_display, outbound_price_original = _format_price_parts(net, outbound_original_net)
+    return_price_display, return_price_original = _format_price_parts(return_net, return_original_net)
+    total_price_display, total_price_original = _format_price_parts(total_net, total_original_net)
+
+    discount_sections = []
+    if outbound_discount_amount > 0:
+        discount_sections.append(("Menomatka", outbound_applied_discounts, outbound_discount_amount))
+    if return_discount_amount > 0:
+        discount_sections.append(("Paluumatka", return_applied_discounts, return_discount_amount))
+
+    discount_html = ""
+    if discount_sections:
+        section_markup = []
+        for title, discounts, section_total in discount_sections:
+            rows = []
+            if discounts:
+                for disc in discounts:
+                    amount = float(disc.get("amount", 0.0) or 0.0)
+                    if amount <= 0:
+                        continue
+                    disc_name = disc.get("name") or "Alennus"
+                    rows.append(
+                        "<div style='display: flex; justify-content: space-between; font-size: 0.9rem; margin-top: 0.4rem;'>"
+                        f"<span style='color: #166534;'>{disc_name}</span>"
+                        f"<span style='color: #15803d; font-weight: 600;'>-{amount:.2f} €</span>"
+                        "</div>"
+                    )
+            if not rows:
+                rows.append("<div style='font-size: 0.9rem; color: #94a3b8; margin-top: 0.4rem;'>Ei erillisiä alennuksia</div>")
+            rows.append(
+                "<div style='display: flex; justify-content: space-between; font-size: 0.9rem; margin-top: 0.4rem; font-weight: 600;'>"
+                "<span style='color: #166534;'>Yhteensä</span>"
+                f"<span style='color: #15803d;'>-{section_total:.2f} €</span>"
+                "</div>"
+            )
+            section_markup.append(
+                "<div style='margin-top: 0.75rem;'>"
+                f"<div style='font-weight: 700; color: #065f46; text-transform: uppercase; font-size: 0.8rem;'>{title}</div>"
+                f"{''.join(rows)}"
+                "</div>"
+            )
+
+        discount_html = (
+            "<div style='margin-top: 1.25rem; padding: 1.1rem; background: #ecfdf5; border: 1px solid #d1fae5; border-radius: 14px;'>"
+            "<div style='display: flex; justify-content: space-between; font-weight: 700; color: #065f46; font-size: 1rem;'>"
+            "<span>Säästät yhteensä</span>"
+            f"<span>-{total_discount_amount:.2f} €</span>"
+            "</div>"
+            f"{''.join(section_markup)}"
+            "</div>"
+        )
+
+    def _build_leg_row(label: str, distance_value: float, current_price: str, original_price: str | None) -> str:
+        original_html = (
+            f"<div style='font-size: 0.85rem; color: #94a3b8; text-decoration: line-through;'>{original_price}</div>"
+            if original_price else ""
+        )
+        return (
+            "<div style='display: flex; justify-content: space-between; align-items: center; padding: 0.85rem 0; border-bottom: 1px solid #e2e8f0;'>"
+            "<div>"
+            f"<div style='font-weight: 600; color: #0f172a;'>{label}</div>"
+            f"<div style='font-size: 0.85rem; color: #64748b;'>{distance_value:.1f} km</div>"
+            "</div>"
+            "<div style='text-align: right;'>"
+            f"<div style='font-weight: 700; color: #0f172a;'>{current_price}</div>"
+            f"{original_html}"
+            "</div>"
+            "</div>"
+        )
+
+    leg_rows = []
+    leg_rows.append(_build_leg_row("Menomatka" if paluu_auto else "Matka", km, outbound_price_display, outbound_price_original))
+    if paluu_auto:
+        leg_rows.append(_build_leg_row("Paluumatka", return_km, return_price_display, return_price_original))
+    legs_html = "".join(leg_rows)
+
+    total_original_block = ""
+    if total_price_original:
+        total_original_block = (
+            f"<div style='font-size: 1rem; color: #94a3b8; text-decoration: line-through; margin-top: -0.2rem;'>{total_price_original}</div>"
+        )
+
+    total_section = (
+        "<div style='text-align: center; margin: 1.25rem 0 1.5rem;'>"
+        f"<div style='display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.35rem 0.95rem; border-radius: 999px; font-size: 0.95rem; font-weight: 600; background: #eff6ff; color: #1d4ed8;'>{total_km:.1f} km yhteensä</div>"
+        f"<div style='font-size: 3rem; font-weight: 800; color: #0f172a; line-height: 1; margin-top: 0.75rem;'>{total_net:.2f} €</div>"
+        f"{total_original_block}"
+        f"<div style='font-size: 0.95rem; color: #475569; margin-top: 0.5rem;'>ALV 25,5%: {total_vat:.2f} € • Sis. ALV: {total_gross:.2f} €</div>"
+        "</div>"
+    )
+
+    error_block = (
+        f"<div style='margin-top: 1rem; padding: 0.75rem; background: #fef2f2; border: 1px solid #fecaca; color: #b91c1c; border-radius: 10px; font-size: 0.9rem;'>{err}</div>"
+        if err else ""
+    )
+
+    pricing_html = f"""
+<div class='price-card' style='background: #ffffff; border: 1px solid #e2e8f0; border-radius: 20px; padding: 24px; box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08); text-align: left;'>
+  <div style='text-transform: uppercase; letter-spacing: 0.08em; font-size: 0.85rem; color: #94a3b8; font-weight: 700;'>Yhteenveto</div>
+  <p style='color: #475569; margin: 0.35rem 0 1.25rem;'>Näet hinnan ennen kuin vahvistat tilauksen.</p>
+  <div style='border: 1px solid #e2e8f0; border-radius: 16px; background: #f8fafc; padding: 0.25rem 1.1rem;'>
+    {legs_html}
+  </div>
+  {total_section}
+  {discount_html}
+  {error_block}
+</div>
+"""
     disable_submission = bool(pricing_error_messages)
     submit_disabled_attr = "disabled" if disable_submission else ""
     submit_disabled_helper = f"<p class='muted' style='margin-top: 0.75rem; color: #dc2626;'>Hinnanlaskenta epäonnistui, joten tilausta ei voi lähettää. Yritä myöhemmin uudelleen.</p>" if disable_submission else ""

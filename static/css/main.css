@@ -385,6 +385,7 @@ main::before {
     background: rgba(255, 255, 255, 0.8);
     border: 1px solid var(--color-primary-lighter);
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15);
+    -webkit-backdrop-filter: blur(8px);
     backdrop-filter: blur(8px);
 }
 
@@ -886,6 +887,16 @@ main::before {
     border-radius: var(--radius-xl);
 }
 
+.calculator-form.card {
+    position: relative;
+    z-index: 2;
+}
+
+.calculator-results.card {
+    position: relative;
+    z-index: 1;
+}
+
 /* Calculator form input improvements */
 .calculator-form .form-input,
 .calculator-form .form-select,
@@ -1323,4 +1334,25 @@ main::before {
         width: 240px;
         margin-left: -120px;
     }
+}
+
+/* ==========================================================================
+   Flash Messages
+   ========================================================================== */
+
+.flash-messages {
+    margin-top: var(--space-5);
+}
+
+/* ==========================================================================
+   Footer Utilities
+   ========================================================================== */
+
+.footer-cta-wrapper {
+    margin-bottom: var(--space-4);
+}
+
+.footer-copyright {
+    margin: 0;
+    opacity: 0.8;
 }

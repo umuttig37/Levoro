@@ -815,3 +815,390 @@ def update_order_details(order_id):
         flash(f'Virhe: {error}', 'error')
 
     return redirect(url_for('admin.order_detail', order_id=order_id))
+
+
+# ==================== DISCOUNT MANAGEMENT ====================
+
+
+def _get_discount_form_choices(discount_service):
+    """Build shared discount type/scope option lists."""
+    from models.discount import DiscountModel
+
+    discount_types = [
+        {"value": DiscountModel.TYPE_PERCENTAGE, "label": discount_service.get_discount_type_label(DiscountModel.TYPE_PERCENTAGE)},
+        {"value": DiscountModel.TYPE_FIXED_AMOUNT, "label": discount_service.get_discount_type_label(DiscountModel.TYPE_FIXED_AMOUNT)},
+        {"value": DiscountModel.TYPE_FREE_KILOMETERS, "label": discount_service.get_discount_type_label(DiscountModel.TYPE_FREE_KILOMETERS)},
+        {"value": DiscountModel.TYPE_PRICE_CAP, "label": discount_service.get_discount_type_label(DiscountModel.TYPE_PRICE_CAP)},
+        {"value": DiscountModel.TYPE_CUSTOM_RATE, "label": discount_service.get_discount_type_label(DiscountModel.TYPE_CUSTOM_RATE)},
+        {"value": DiscountModel.TYPE_TIERED_PERCENTAGE, "label": discount_service.get_discount_type_label(DiscountModel.TYPE_TIERED_PERCENTAGE)},
+    ]
+
+    discount_scopes = [
+        {"value": DiscountModel.SCOPE_ACCOUNT, "label": discount_service.get_scope_label(DiscountModel.SCOPE_ACCOUNT)},
+        {"value": DiscountModel.SCOPE_GLOBAL, "label": discount_service.get_scope_label(DiscountModel.SCOPE_GLOBAL)},
+        {"value": DiscountModel.SCOPE_CODE, "label": discount_service.get_scope_label(DiscountModel.SCOPE_CODE)},
+        {"value": DiscountModel.SCOPE_FIRST_ORDER, "label": discount_service.get_scope_label(DiscountModel.SCOPE_FIRST_ORDER)},
+    ]
+
+    return discount_types, discount_scopes
+
+
+def _get_active_regular_users():
+    """Return active non-admin customer users for discount assignment."""
+    from app import users_col
+
+    query = {"role": "user", "status": "active"}
+    projection = {"_id": 0, "id": 1, "name": 1, "email": 1}
+    return list(users_col().find(query, projection).sort("name", 1))
+
+
+def _parse_csv_list(value):
+    """Convert comma-separated string into a list of trimmed items."""
+    if not value:
+        return []
+    return [item.strip() for item in value.split(",") if item.strip()]
+
+
+def _parse_date_field(value):
+    """Parse YYYY-MM-DD date strings into datetime objects or None."""
+    from datetime import datetime
+
+    cleaned = (value or "").strip()
+    if not cleaned:
+        return None
+
+    try:
+        return datetime.strptime(cleaned, "%Y-%m-%d")
+    except ValueError:
+        return None
+
+
+def _parse_tiers_json(raw_value):
+    """Parse tier JSON payload with graceful fallback."""
+    import json
+
+    if not raw_value:
+        return []
+
+    try:
+        return json.loads(raw_value)
+    except json.JSONDecodeError:
+        return []
+
+@admin_bp.route("/discounts")
+@admin_required
+def discounts():
+    """Admin discount management page"""
+    from services.discount_service import discount_service
+
+    # Get filter parameters
+    include_inactive = request.args.get('include_inactive', 'false').lower() == 'true'
+
+    all_discounts = discount_service.get_all_discounts(include_inactive=include_inactive)
+
+    # Add formatted labels to discounts
+    for d in all_discounts:
+        d['type_label'] = discount_service.get_discount_type_label(d.get('type', ''))
+        d['scope_label'] = discount_service.get_scope_label(d.get('scope', ''))
+        d['value_formatted'] = discount_service.format_discount_value(d)
+        d['conditions'] = discount_service.format_conditions(d)
+        d['assigned_count'] = len(d.get('assigned_users', []))
+
+    return render_template(
+        "admin/discounts.html",
+        discounts=all_discounts,
+        include_inactive=include_inactive,
+        current_user=auth_service.get_current_user()
+    )
+
+
+@admin_bp.route("/discounts/new")
+@admin_required
+def discount_new():
+    """Create new discount form"""
+    from services.discount_service import discount_service
+
+    # Get all regular users for preview
+    all_users = _get_active_regular_users()
+    discount_types, discount_scopes = _get_discount_form_choices(discount_service)
+
+    return render_template(
+        "admin/discount_form.html",
+        discount=None,
+        is_new=True,
+        assigned_users=[],
+        all_users=all_users,
+        discount_types=discount_types,
+        discount_scopes=discount_scopes,
+        current_user=auth_service.get_current_user()
+    )
+
+
+@admin_bp.route("/discounts", methods=["POST"])
+@admin_required
+def discount_create():
+    """Create a new discount"""
+    from services.discount_service import discount_service
+
+    current_user = auth_service.get_current_user()
+
+    # Parse form data
+    discount_data = {
+        "name": request.form.get("name", "").strip(),
+        "description": request.form.get("description", "").strip(),
+        "type": request.form.get("type", "").strip(),
+        "value": request.form.get("value", "0"),
+        "scope": request.form.get("scope", "account"),
+        "code": request.form.get("code", "").strip(),
+        "min_distance_km": request.form.get("min_distance_km", ""),
+        "max_distance_km": request.form.get("max_distance_km", ""),
+        "min_order_value": request.form.get("min_order_value", ""),
+        "max_order_value": request.form.get("max_order_value", ""),
+        "max_uses_total": request.form.get("max_uses_total", ""),
+        "max_uses_per_user": request.form.get("max_uses_per_user", ""),
+        "stackable": request.form.get("stackable") == "on",
+        "priority": request.form.get("priority", "10"),
+        "active": request.form.get("active") == "on",
+        "hide_from_customer": request.form.get("hide_from_customer") == "on",
+        "created_by": current_user.get("id") if current_user else None
+    }
+
+    # Parse date fields
+    valid_from = _parse_date_field(request.form.get("valid_from", ""))
+    valid_until = _parse_date_field(request.form.get("valid_until", ""))
+    if valid_from:
+        discount_data["valid_from"] = valid_from
+    if valid_until:
+        discount_data["valid_until"] = valid_until
+
+    # Parse tiered discounts
+    discount_data["tiers"] = _parse_tiers_json(request.form.get("tiers", "[]"))
+
+    # Parse city restrictions
+    discount_data["allowed_pickup_cities"] = _parse_csv_list(request.form.get("allowed_pickup_cities", "").strip())
+    discount_data["allowed_dropoff_cities"] = _parse_csv_list(request.form.get("allowed_dropoff_cities", "").strip())
+    discount_data["excluded_cities"] = _parse_csv_list(request.form.get("excluded_cities", "").strip())
+
+    assigned_user_ids = request.form.getlist("assigned_users")
+    if assigned_user_ids:
+        discount_data["assigned_users"] = [int(uid) for uid in assigned_user_ids if uid.isdigit()]
+    else:
+        discount_data["assigned_users"] = []
+
+    discount, error = discount_service.create_discount(discount_data, created_by=current_user.get("id") if current_user else None)
+
+    if error:
+        flash(f"Virhe alennuksen luomisessa: {error}", "error")
+        return redirect(url_for("admin.discount_new"))
+
+    flash(f"Alennus '{discount.get('name')}' luotu onnistuneesti!", "success")
+    return redirect(url_for("admin.discounts"))
+
+
+@admin_bp.route("/discounts/<int:discount_id>")
+@admin_required
+def discount_detail(discount_id):
+    """View/edit discount details"""
+    from services.discount_service import discount_service
+
+    discount = discount_service.get_discount(discount_id)
+    if not discount:
+        flash("Alennusta ei löytynyt", "error")
+        return redirect(url_for("admin.discounts"))
+
+    # Get statistics
+    stats = discount_service.get_statistics(discount_id)
+
+    # Get assigned users details
+    assigned_user_ids = discount.get("assigned_users", [])
+    if assigned_user_ids:
+        from app import users_col
+
+        assigned_users = list(users_col().find(
+            {"id": {"$in": assigned_user_ids}},
+            {"_id": 0, "id": 1, "name": 1, "email": 1}
+        ))
+    else:
+        assigned_users = []
+
+    # Get all users for assignment dropdown (exclude drivers and admins)
+    all_users = _get_active_regular_users()
+    discount_types, discount_scopes = _get_discount_form_choices(discount_service)
+
+    return render_template(
+        "admin/discount_form.html",
+        discount=discount,
+        is_new=False,
+        stats=stats,
+        assigned_users=assigned_users,
+        all_users=all_users,
+        discount_types=discount_types,
+        discount_scopes=discount_scopes,
+        current_user=auth_service.get_current_user()
+    )
+
+
+@admin_bp.route("/discounts/<int:discount_id>", methods=["POST"])
+@admin_required
+def discount_update(discount_id):
+    """Update an existing discount"""
+    from services.discount_service import discount_service
+
+    # Parse form data
+    update_data = {
+        "name": request.form.get("name", "").strip(),
+        "description": request.form.get("description", "").strip(),
+        "type": request.form.get("type", "").strip(),
+        "value": request.form.get("value", "0"),
+        "scope": request.form.get("scope", "account"),
+        "code": request.form.get("code", "").strip(),
+        "min_distance_km": request.form.get("min_distance_km", ""),
+        "max_distance_km": request.form.get("max_distance_km", ""),
+        "min_order_value": request.form.get("min_order_value", ""),
+        "max_order_value": request.form.get("max_order_value", ""),
+        "max_uses_total": request.form.get("max_uses_total", ""),
+        "max_uses_per_user": request.form.get("max_uses_per_user", ""),
+        "stackable": request.form.get("stackable") == "on",
+        "priority": request.form.get("priority", "10"),
+        "active": request.form.get("active") == "on",
+        "hide_from_customer": request.form.get("hide_from_customer") == "on"
+    }
+
+    # Parse date fields
+    update_data["valid_from"] = _parse_date_field(request.form.get("valid_from", ""))
+    update_data["valid_until"] = _parse_date_field(request.form.get("valid_until", ""))
+
+    # Parse tiered discounts
+    update_data["tiers"] = _parse_tiers_json(request.form.get("tiers", "[]"))
+
+    # Parse city restrictions
+    update_data["allowed_pickup_cities"] = _parse_csv_list(request.form.get("allowed_pickup_cities", "").strip())
+    update_data["allowed_dropoff_cities"] = _parse_csv_list(request.form.get("allowed_dropoff_cities", "").strip())
+    update_data["excluded_cities"] = _parse_csv_list(request.form.get("excluded_cities", "").strip())
+
+    success, error = discount_service.update_discount(discount_id, update_data)
+
+    if error:
+        flash(f"Virhe alennuksen päivityksessä: {error}", "error")
+    else:
+        flash("Alennus päivitetty onnistuneesti!", "success")
+
+    return redirect(url_for("admin.discount_detail", discount_id=discount_id))
+
+
+@admin_bp.route("/discounts/<int:discount_id>/toggle", methods=["POST"])
+@admin_required
+def discount_toggle(discount_id):
+    """Toggle discount active status"""
+    from services.discount_service import discount_service
+
+    discount = discount_service.get_discount(discount_id)
+    if not discount:
+        flash("Alennusta ei löytynyt", "error")
+        return redirect(url_for("admin.discounts"))
+
+    if discount.get("active"):
+        success, error = discount_service.deactivate_discount(discount_id)
+        action = "poistettu käytöstä"
+    else:
+        success, error = discount_service.activate_discount(discount_id)
+        action = "aktivoitu"
+
+    if error:
+        flash(f"Virhe: {error}", "error")
+    else:
+        flash(f"Alennus {action} onnistuneesti!", "success")
+
+    return redirect(url_for("admin.discounts"))
+
+
+@admin_bp.route("/discounts/<int:discount_id>/assign", methods=["POST"])
+@admin_required
+def discount_assign_user(discount_id):
+    """Assign discount to a user"""
+    from services.discount_service import discount_service
+
+    user_id = request.form.get("user_id")
+    if not user_id:
+        flash("Valitse käyttäjä", "error")
+        return redirect(url_for("admin.discount_detail", discount_id=discount_id))
+
+    success, error = discount_service.assign_to_user(discount_id, int(user_id))
+
+    if error:
+        flash(f"Virhe käyttäjän lisäämisessä: {error}", "error")
+    else:
+        flash("Käyttäjä lisätty alennukseen!", "success")
+
+    return redirect(url_for("admin.discount_detail", discount_id=discount_id))
+
+
+@admin_bp.route("/discounts/<int:discount_id>/unassign/<int:user_id>", methods=["POST"])
+@admin_required
+def discount_unassign_user(discount_id, user_id):
+    """Remove discount from a user"""
+    from services.discount_service import discount_service
+
+    success, error = discount_service.remove_from_user(discount_id, user_id)
+
+    if error:
+        flash(f"Virhe käyttäjän poistamisessa: {error}", "error")
+    else:
+        flash("Käyttäjä poistettu alennuksesta!", "success")
+
+    return redirect(url_for("admin.discount_detail", discount_id=discount_id))
+
+
+# ==================== API Endpoints for Discounts ====================
+
+@admin_bp.route("/api/discounts/validate-code", methods=["POST"])
+@admin_required
+def api_validate_promo_code():
+    """Validate a promo code"""
+    from services.discount_service import discount_service
+
+    data = request.get_json(force=True, silent=True) or {}
+    code = data.get("code", "").strip()
+
+    discount, error = discount_service.validate_promo_code(code)
+
+    if error:
+        return jsonify({"valid": False, "error": error}), 400
+
+    return jsonify({
+        "valid": True,
+        "discount": {
+            "id": discount.get("id"),
+            "name": discount.get("name"),
+            "type": discount.get("type"),
+            "value": discount.get("value")
+        }
+    })
+
+
+@admin_bp.route("/api/discounts/preview-price", methods=["POST"])
+@admin_required
+def api_preview_discounted_price():
+    """Preview price with discounts applied"""
+    from services.order_service import order_service
+
+    data = request.get_json(force=True, silent=True) or {}
+    
+    distance_km = float(data.get("distance_km", 0))
+    pickup_addr = data.get("pickup_addr", "")
+    dropoff_addr = data.get("dropoff_addr", "")
+    user_id = data.get("user_id")
+    promo_code = data.get("promo_code")
+
+    if distance_km <= 0:
+        return jsonify({"error": "Etäisyys vaaditaan"}), 400
+
+    result = order_service.price_from_km_with_discounts(
+        distance_km=distance_km,
+        pickup_addr=pickup_addr,
+        dropoff_addr=dropoff_addr,
+        user_id=int(user_id) if user_id else None,
+        promo_code=promo_code
+    )
+
+    return jsonify(result)
