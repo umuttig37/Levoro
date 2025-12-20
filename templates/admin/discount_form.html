@@ -128,6 +128,22 @@
                         </div>
                     </div>
 
+                    <div class="form-row hidden-section" id="fixedRouteSection">
+                        <div class="form-group">
+                            <label for="fixed_pickup_city">Noutopaikkakunta <span class="required">*</span></label>
+                            <input type="text" id="fixed_pickup_city" name="allowed_pickup_cities"
+                                   value="{{ discount.allowed_pickup_cities[0] if discount and discount.allowed_pickup_cities else '' }}"
+                                   placeholder="Helsinki">
+                        </div>
+                        <div class="form-group">
+                            <label for="fixed_dropoff_city">Toimituspaikkakunta <span class="required">*</span></label>
+                            <input type="text" id="fixed_dropoff_city" name="allowed_dropoff_cities"
+                                   value="{{ discount.allowed_dropoff_cities[0] if discount and discount.allowed_dropoff_cities else '' }}"
+                                   placeholder="Tampere">
+                        </div>
+                        <small class="help-text">Kiinteä reittihinta koskee vain tätä kaupunkiparia.</small>
+                    </div>
+
                     <!-- Tiered Discounts (shown only for tiered_percentage type) -->
                     <div id="tieredSection" class="tiered-section hidden-section">
                         <h4>Porrastetut alennukset</h4>
@@ -2289,6 +2305,10 @@ const discountTypeDescriptions = {
         title: 'Mukautettu km-hinta',
         description: 'Korvaa normaalin kilometrihinnan mukautetulla hinnalla. Esim. 0,50€/km normaalin 1,20€/km sijaan.'
     },
+    'fixed_price': {
+        title: 'Kiinteä reittihinta',
+        description: 'Määrittää kiinteän hinnan valitulle reitille (nouto- ja toimituskaupungit). Esim. Helsinki - Tampere 75€.'
+    },
     'tiered': {
         title: 'Porrastettu alennus',
         description: 'Eri alennusprosentit eri matkan pituuksille. Esim. yli 100km = 5% alennus, yli 200km = 10% alennus.'
@@ -2313,6 +2333,13 @@ function updateValueLabel() {
     const valueSuffix = document.getElementById('valueSuffix');
     const valueGroup = document.getElementById('valueGroup');
     const tieredSection = document.getElementById('tieredSection');
+    const fixedRouteSection = document.getElementById('fixedRouteSection');
+    const citySection = document.getElementById('citySection');
+    const fixedPickup = document.getElementById('fixed_pickup_city');
+    const fixedDropoff = document.getElementById('fixed_dropoff_city');
+    const allowedPickup = document.getElementById('allowed_pickup_cities');
+    const allowedDropoff = document.getElementById('allowed_dropoff_cities');
+    const excludedCities = document.getElementById('excluded_cities');
     
     // Update tooltip
     updateTypeTooltip(type);
@@ -2324,6 +2351,28 @@ function updateValueLabel() {
     } else {
         hideElement(tieredSection);
         showElement(valueGroup);
+    }
+
+    if (type === 'fixed_price') {
+        showElement(fixedRouteSection);
+        if (citySection) hideElement(citySection);
+        if (fixedPickup) fixedPickup.required = true;
+        if (fixedDropoff) fixedDropoff.required = true;
+        if (fixedPickup) fixedPickup.disabled = false;
+        if (fixedDropoff) fixedDropoff.disabled = false;
+        if (allowedPickup) allowedPickup.disabled = true;
+        if (allowedDropoff) allowedDropoff.disabled = true;
+        if (excludedCities) excludedCities.disabled = true;
+    } else {
+        hideElement(fixedRouteSection);
+        if (citySection) showElement(citySection);
+        if (fixedPickup) fixedPickup.required = false;
+        if (fixedDropoff) fixedDropoff.required = false;
+        if (fixedPickup) fixedPickup.disabled = true;
+        if (fixedDropoff) fixedDropoff.disabled = true;
+        if (allowedPickup) allowedPickup.disabled = false;
+        if (allowedDropoff) allowedDropoff.disabled = false;
+        if (excludedCities) excludedCities.disabled = false;
     }
     
     switch(type) {
@@ -2346,6 +2395,10 @@ function updateValueLabel() {
         case 'custom_rate':
             valueLabel.innerHTML = 'Hinta/km <span class="required">*</span>';
             valueSuffix.textContent = '€/km';
+            break;
+        case 'fixed_price':
+            valueLabel.innerHTML = 'Kiinteä hinta <span class="required">*</span>';
+            valueSuffix.textContent = '€';
             break;
         case 'tiered':
             // Value not needed, tiers are used

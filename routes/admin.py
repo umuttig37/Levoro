@@ -464,6 +464,7 @@ def order_detail(order_id):
             "pickup_address": 1, "dropoff_address": 1,
             "distance_km": 1, "price_gross": 1,
             "reg_number": 1, "winter_tires": 1, "pickup_date": 1, "last_delivery_date": 1,
+            "pickup_time": 1, "delivery_time": 1,
             "extras": 1, "images": 1,
             "orderer_name": 1, "orderer_email": 1, "orderer_phone": 1,
             "customer_name": 1, "customer_phone": 1,
@@ -505,6 +506,8 @@ def order_detail(order_id):
                 last_delivery_date_fi = last_delivery_date_fi.strftime('%d.%m.%Y')
         except Exception:
             pass
+    pickup_time = (order.get('pickup_time') or '').strip()
+    delivery_time = (order.get('delivery_time') or '').strip()
 
     # Get current user for navbar
     user = auth_service.get_current_user()
@@ -514,6 +517,8 @@ def order_detail(order_id):
         status_fi=status_fi,
         pickup_date_fi=pickup_date_fi,
         last_delivery_date_fi=last_delivery_date_fi,
+        pickup_time=pickup_time,
+        delivery_time=delivery_time,
         available_drivers=available_drivers,
         current_user=user
     )
@@ -831,6 +836,7 @@ def _get_discount_form_choices(discount_service):
         {"value": DiscountModel.TYPE_PRICE_CAP, "label": discount_service.get_discount_type_label(DiscountModel.TYPE_PRICE_CAP)},
         {"value": DiscountModel.TYPE_CUSTOM_RATE, "label": discount_service.get_discount_type_label(DiscountModel.TYPE_CUSTOM_RATE)},
         {"value": DiscountModel.TYPE_TIERED_PERCENTAGE, "label": discount_service.get_discount_type_label(DiscountModel.TYPE_TIERED_PERCENTAGE)},
+        {"value": DiscountModel.TYPE_FIXED_PRICE, "label": discount_service.get_discount_type_label(DiscountModel.TYPE_FIXED_PRICE)},
     ]
 
     discount_scopes = [

@@ -163,6 +163,10 @@ class DiscountService:
             
             return 0.0
 
+        elif discount_type == DiscountModel.TYPE_FIXED_PRICE:
+            # Fixed target price (net)
+            return max(0.0, round_half_up(base_net_price - value, 2))
+
         return 0.0
 
     def apply_discounts(
@@ -338,7 +342,8 @@ class DiscountService:
             DiscountModel.TYPE_FREE_KILOMETERS: "Ilmaiset kilometrit",
             DiscountModel.TYPE_PRICE_CAP: "Maksimihinta",
             DiscountModel.TYPE_CUSTOM_RATE: "Mukautettu km-hinta",
-            DiscountModel.TYPE_TIERED_PERCENTAGE: "Porrastettu alennus"
+            DiscountModel.TYPE_TIERED_PERCENTAGE: "Porrastettu alennus",
+            DiscountModel.TYPE_FIXED_PRICE: "Kiinteä reittihinta"
         }
         return labels.get(discount_type, discount_type)
 
@@ -373,6 +378,9 @@ class DiscountService:
                 tier_strs = [f"{t.get('percentage', 0)}% yli {t.get('min_km', 0)} km" for t in tiers]
                 return ", ".join(tier_strs)
             return "Porrastettu"
+
+        elif discount_type == DiscountModel.TYPE_FIXED_PRICE:
+            return f"{value:.2f} €"
         
         return str(value)
 

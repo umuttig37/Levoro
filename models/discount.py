@@ -20,10 +20,11 @@ class DiscountModel(BaseModel):
     TYPE_PRICE_CAP = "price_cap"             # Maximum price limit
     TYPE_CUSTOM_RATE = "custom_rate"         # Custom €/km rate
     TYPE_TIERED_PERCENTAGE = "tiered"        # Different % at thresholds
+    TYPE_FIXED_PRICE = "fixed_price"         # Fixed price for a route
 
     VALID_TYPES = [
         TYPE_PERCENTAGE, TYPE_FIXED_AMOUNT, TYPE_FREE_KILOMETERS,
-        TYPE_PRICE_CAP, TYPE_CUSTOM_RATE, TYPE_TIERED_PERCENTAGE
+        TYPE_PRICE_CAP, TYPE_CUSTOM_RATE, TYPE_TIERED_PERCENTAGE, TYPE_FIXED_PRICE
     ]
 
     # Discount scopes
