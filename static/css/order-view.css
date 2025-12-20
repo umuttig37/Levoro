@@ -204,6 +204,11 @@
     line-height: 1.4;
 }
 
+.point-meta {
+    font-size: 0.9rem;
+    color: var(--color-gray-500, #6b7280);
+}
+
 .route-connector {
     display: flex;
     flex-direction: column;

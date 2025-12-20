@@ -658,6 +658,7 @@ def order_view(order_id: int):
             "pickup_address": 1, "dropoff_address": 1,
             "distance_km": 1, "price_gross": 1,
             "reg_number": 1, "winter_tires": 1, "pickup_date": 1, "last_delivery_date": 1,
+            "pickup_time": 1, "delivery_time": 1,
             "extras": 1, "images": 1, "customer_name": 1,
             "email": 1, "phone": 1,
             "orderer_name": 1, "orderer_email": 1, "orderer_phone": 1,
@@ -739,6 +740,8 @@ def order_view(order_id: int):
     # Format dates to Finnish format
     pickup_date_fi = r.get('pickup_date', None)
     last_delivery_date_fi = r.get('last_delivery_date', None)
+    pickup_time = (r.get('pickup_time') or '').strip()
+    delivery_time = (r.get('delivery_time') or '').strip()
     
     if pickup_date_fi and hasattr(pickup_date_fi, 'strftime'):
         pickup_date_fi = pickup_date_fi.strftime('%d.%m.%Y')
@@ -768,6 +771,8 @@ def order_view(order_id: int):
         status_description=status_description,
         pickup_date_fi=pickup_date_fi,
         last_delivery_date_fi=last_delivery_date_fi,
+        pickup_time=pickup_time,
+        delivery_time=delivery_time,
         has_reg_number=has_reg_number,
         has_winter_tires=has_winter_tires,
         has_customer_info=has_customer_info,

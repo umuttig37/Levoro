@@ -40,6 +40,9 @@
             <div class="point-details">
               <span class="point-label">Nouto</span>
               <span class="point-address">{{ order.pickup_address or '?' }}</span>
+              {% if pickup_date_fi %}
+              <span class="point-meta">{{ pickup_date_fi }}{% if pickup_time %} klo {{ pickup_time }}{% endif %}</span>
+              {% endif %}
               
             </div>
           </div>
@@ -57,6 +60,9 @@
             <div class="point-details">
               <span class="point-label">Toimitus</span>
               <span class="point-address">{{ order.dropoff_address or '?' }}</span>
+              {% if last_delivery_date_fi %}
+              <span class="point-meta">{{ last_delivery_date_fi }}{% if delivery_time %} klo {{ delivery_time }}{% endif %}</span>
+              {% endif %}
               
             </div>
           </div>

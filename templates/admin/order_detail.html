@@ -82,8 +82,16 @@
                                 <span class="admin-info-value">{{ pickup_date_fi }}</span>
                             </div>
                             <div class="admin-info-row">
-                                <span class="admin-info-label">Viimeinen toimituspäivä</span>
+                                <span class="admin-info-label">Toimituspäivä</span>
                                 <span class="admin-info-value">{{ last_delivery_date_fi or '-' }}</span>
+                            </div>
+                            <div class="admin-info-row">
+                                <span class="admin-info-label">Noutoaika</span>
+                                <span class="admin-info-value">{{ pickup_time or '-' }}</span>
+                            </div>
+                            <div class="admin-info-row">
+                                <span class="admin-info-label">Toimitusaika</span>
+                                <span class="admin-info-value">{{ delivery_time or '-' }}</span>
                             </div>
                             <div class="admin-info-row">
                                 <span class="admin-info-label">Rekisterinumero</span>
