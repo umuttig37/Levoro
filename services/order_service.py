@@ -51,9 +51,8 @@ LONG_NET = float(os.getenv("LONG_NET", "207"))  # Net price for long-distance
 # NOTE: Return leg discount is not currently used in the application UI
 # This feature is preserved for potential future use
 ROUNDTRIP_DISCOUNT = 0.30
-# Short-distance special rule: any trip up to this distance uses SHORT_DISTANCE_NET
-SHORT_DISTANCE_KM = float(os.getenv("SHORT_DISTANCE_KM", "30"))
-SHORT_DISTANCE_NET = float(os.getenv("SHORT_DISTANCE_NET", "27"))
+# Legacy interpolation anchor for metro-to-mid pricing
+LEGACY_INTERPOLATION_START_KM = float(os.getenv("LEGACY_INTERPOLATION_START_KM", "50"))
 # Minimum order price - all orders must be at least this amount (net)
 MINIMUM_ORDER_PRICE_NET = 20.0
 
@@ -209,18 +208,12 @@ class OrderService:
 
         # Calculate NET price first
         min_net_price = MINIMUM_ORDER_PRICE_NET
-        if distance_km <= SHORT_DISTANCE_KM:
-            # All short trips cost SHORT_DISTANCE_NET regardless of city pairing
-            net_price = SHORT_DISTANCE_NET
-            min_net_price = SHORT_DISTANCE_NET
         # Check if both addresses are in metro area
-        elif self._both_in_metro(pickup_addr, dropoff_addr):
+        if self._both_in_metro(pickup_addr, dropoff_addr):
             net_price = METRO_NET
-            min_net_price = MINIMUM_ORDER_PRICE_NET
         elif distance_km <= MID_KM:
-            # Interpolate between short-distance baseline and mid-distance tier
-            net_price = self._interpolate(distance_km, SHORT_DISTANCE_KM, SHORT_DISTANCE_NET, MID_KM, MID_NET)
-            min_net_price = MINIMUM_ORDER_PRICE_NET
+            # Interpolate between metro baseline (legacy 50 km anchor) and mid-distance tier
+            net_price = self._interpolate(distance_km, LEGACY_INTERPOLATION_START_KM, METRO_NET, MID_KM, MID_NET)
         elif distance_km <= LONG_KM:
             # Interpolate between mid and long distance
             net_price = self._interpolate(distance_km, MID_KM, MID_NET, LONG_KM, LONG_NET)
@@ -234,10 +227,6 @@ class OrderService:
         # Apply return trip discount (NOTE: This feature is not currently used in the UI)
         if return_leg:
             net_price *= (1 - ROUNDTRIP_DISCOUNT)
-            # Allow paluuauto discount to lower short-distance fares below the 27€ floor
-            if distance_km <= SHORT_DISTANCE_KM:
-                discounted_floor = SHORT_DISTANCE_NET * (1 - ROUNDTRIP_DISCOUNT)
-                min_net_price = min(min_net_price, discounted_floor)
 
         # Enforce minimum order price (net)
         net_price = max(net_price, min_net_price)
