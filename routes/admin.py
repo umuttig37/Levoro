@@ -217,7 +217,12 @@ def delete_driver(driver_id):
 @admin_required
 def driver_applications():
     """Admin interface for managing driver applications"""
+    from flask import session
+    from datetime import datetime, timezone
     from models.driver_application import driver_application_model
+
+    # Mark applications as viewed
+    session['admin_last_viewed_applications'] = datetime.now(timezone.utc)
 
     # Get all applications
     applications = list(driver_application_model.get_all_applications(limit=100))
@@ -1206,3 +1211,63 @@ def api_preview_discounted_price():
     )
 
     return jsonify(result)
+
+
+# ----------------- REVIEWS MODERATION -----------------
+
+@admin_bp.route("/reviews")
+@admin_required
+def reviews():
+    """Admin reviews moderation page"""
+    from flask import session
+    from datetime import datetime, timezone
+    from services.rating_service import rating_service
+    from models.rating import rating_model
+    
+    # Mark reviews as viewed
+    session['admin_last_viewed_reviews'] = datetime.now(timezone.utc)
+    
+    # Get all reviews with details
+    reviews = rating_service.get_all_reviews_for_admin()
+    
+    # Calculate stats
+    approved_reviews = [r for r in reviews if r.get("status") == "approved"]
+    pending_count = len([r for r in reviews if r.get("status") == "pending"])
+    
+    avg_rating = 0
+    if approved_reviews:
+        avg_rating = sum(r["rating"] for r in approved_reviews) / len(approved_reviews)
+    
+    return render_template(
+        "admin/reviews.html",
+        reviews=reviews,
+        avg_rating=avg_rating,
+        pending_count=pending_count,
+        current_user=auth_service.get_current_user()
+    )
+
+
+@admin_bp.route("/reviews/moderate", methods=["POST"])
+@admin_required
+def moderate_review():
+    """Moderate a review (approve/hide)"""
+    from services.rating_service import rating_service
+    
+    rating_id = int(request.form.get("rating_id", 0))
+    action = request.form.get("action", "")
+    
+    if not rating_id or action not in ["approve", "hide"]:
+        flash("Virheelliset parametrit", "error")
+        return redirect(url_for("admin.reviews"))
+    
+    admin = auth_service.get_current_user()
+    success, error = rating_service.moderate_review(rating_id, action, admin["id"])
+    
+    if success:
+        action_text = "hyväksytty" if action == "approve" else "piilotettu"
+        flash(f"Arvostelu {action_text}", "success")
+    else:
+        flash(error or "Moderointi epäonnistui", "error")
+    
+    return redirect(url_for("admin.reviews"))
+

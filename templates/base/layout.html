@@ -122,23 +122,133 @@
     </main>
 
     <!-- Footer -->
-    <footer class="footer">
+    <footer class="footer-new">
         <div class="container">
-            <div class="footer-inner">
-                <div class="text-center">
-                    <!-- Footer CTA -->
-                    <div class="footer-cta footer-cta-wrapper">
-                        {% if current_user and current_user.role != 'driver' %}
-                        <a href="/calculator" class="btn btn-primary">Laske hinta</a>
-                        {% elif not current_user %}
-                        <a href="/register" class="btn btn-primary">Kirjaudu ja laske hinta</a>
-                        {% endif %}
+            <div class="footer-grid">
+                <!-- Company Info -->
+                <div class="footer-brand">
+                    <a href="/" class="footer-logo">
+                        <img src="{{ url_for('static', filename='LevoroLogo.png') }}" alt="Levoro"
+                            class="footer-logo-img">
+                    </a>
+                    <div class="footer-company-info">
+                        <p><strong>Levoro - Tiyouba Oy</strong></p>
+                        <p>Y-tunnus: 1541430-2</p>
+                        <p><a href="mailto:support@levoro.fi">support@levoro.fi</a></p>
+                        <p><a href="tel:+358449782446">+358 44 978 2446</a></p>
                     </div>
-                    <p class="footer-copyright">© 2025 Levoro - Tiyouba Oy | Y-tunnus: 1541430-2</p>
                 </div>
+
+                <!-- Yritys Column -->
+                <div class="footer-column">
+                    <h4 class="footer-column-title">Yritys</h4>
+                    <ul class="footer-links">
+                        <li><a href="/#features" onclick="smoothScrollTo('features'); return false;">Tietoa meistä</a>
+                        </li>
+                        <li><a href="/hae-kuljettajaksi">Hae kuljettajaksi</a></li>
+                    </ul>
+                </div>
+
+                <!-- Palvelut Column -->
+                <div class="footer-column">
+                    <h4 class="footer-column-title">Palvelut</h4>
+                    <ul class="footer-links">
+                        <li><a href="/" onclick="smoothScrollTo('features'); return false;">Näin palvelu toimii</a></li>
+                        <li><a href="/" onclick="smoothScrollTo('categories'); return false;">Ajoneuvoluokat</a></li>
+                        <li><a href="/calculator">Laskuri</a></li>
+                    </ul>
+                </div>
+
+                <!-- Tuki Column -->
+                <div class="footer-column">
+                    <h4 class="footer-column-title">Tuki</h4>
+                    <ul class="footer-links">
+                        <li><a href="/#contact" onclick="openContactFromFooter(); return false;">Yhteystiedot</a></li>
+                        <li><a href="/kayttoehdot">Palveluehdot</a></li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Footer Bottom -->
+            <div class="footer-bottom">
+                <p class="footer-copyright">© 2025 Levoro - Tiyouba Oy | Y-tunnus: 1541430-2</p>
             </div>
         </div>
     </footer>
+
+    <!-- Back to Top Button -->
+    <button class="back-to-top" id="backToTop" onclick="window.scrollTo({top: 0, behavior: 'smooth'})"
+        aria-label="Takaisin ylös">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
+            <polyline points="18 15 12 9 6 15"></polyline>
+        </svg>
+    </button>
+
+    <script>
+        // Smooth scroll to section - handles both same-page and cross-page navigation
+        function smoothScrollTo(sectionId) {
+            const element = document.getElementById(sectionId);
+            if (element) {
+                // Element exists on this page, scroll to it
+                element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            } else {
+                // Element doesn't exist, navigate to home page with hash
+                window.location.href = '/#' + sectionId;
+            }
+        }
+
+        // Open contact section from footer
+        function openContactFromFooter() {
+            const contactSection = document.getElementById('contact');
+            if (contactSection) {
+                // If there's a toggle function, use it
+                if (typeof toggleContactSection === 'function') {
+                    const content = document.getElementById('contactContent');
+                    if (content && !content.classList.contains('open')) {
+                        toggleContactSection();
+                    }
+                }
+                contactSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            } else {
+                // Navigate to home page contact section
+                window.location.href = '/#contact';
+            }
+        }
+
+        // Show/hide back to top button based on scroll position
+        window.addEventListener('scroll', function () {
+            const backToTop = document.getElementById('backToTop');
+            if (backToTop) {
+                if (window.scrollY > 300) {
+                    backToTop.style.opacity = '1';
+                    backToTop.style.visibility = 'visible';
+                } else {
+                    backToTop.style.opacity = '0';
+                    backToTop.style.visibility = 'hidden';
+                }
+            }
+        });
+
+        // On page load, check for hash and scroll to element
+        document.addEventListener('DOMContentLoaded', function () {
+            if (window.location.hash) {
+                const targetId = window.location.hash.substring(1);
+                setTimeout(function () {
+                    const element = document.getElementById(targetId);
+                    if (element) {
+                        element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        // If it's the contact section, also open it
+                        if (targetId === 'contact' && typeof toggleContactSection === 'function') {
+                            const content = document.getElementById('contactContent');
+                            if (content && !content.classList.contains('open')) {
+                                toggleContactSection();
+                            }
+                        }
+                    }
+                }, 100);
+            }
+        });
+    </script>
 
     <!-- Core JavaScript -->
     <script src="{{ url_for('static', filename='js/core/app.js') }}"></script>

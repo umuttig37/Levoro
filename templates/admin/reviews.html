@@ -1,0 +1,364 @@
+{% extends "base/layout.html" %}
+
+{% block title %}Arvostelut – Admin{% endblock %}
+
+{% block content %}
+<div class="admin-container">
+    {% include "admin/navigation.html" %}
+
+    <div class="page-header">
+        <h1>Asiakasarvostelut</h1>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="admin-stats-row">
+        <div class="admin-stat-card">
+            <div class="admin-stat-value">{{ reviews|length }}</div>
+            <div class="admin-stat-label">Arvosteluja yhteensä</div>
+        </div>
+        <div class="admin-stat-card">
+            <div class="admin-stat-value">{{ "%.1f"|format(avg_rating) if avg_rating else '-' }}</div>
+            <div class="admin-stat-label">Keskiarvo</div>
+        </div>
+        <div class="admin-stat-card">
+            <div class="admin-stat-value">{{ pending_count }}</div>
+            <div class="admin-stat-label">Odottaa käsittelyä</div>
+        </div>
+    </div>
+
+    <!-- Reviews List -->
+    <div class="reviews-list">
+        {% if reviews %}
+        {% for review in reviews %}
+        <div class="review-card" data-review-id="{{ review.id }}">
+            <div class="review-header">
+                <div class="review-rating">
+                    {% for i in range(5) %}
+                    <svg class="star-icon {% if i < review.rating %}star-filled{% endif %}" viewBox="0 0 20 20">
+                        <path
+                            d="M10 1l2.39 4.84 5.34.78-3.87 3.77.91 5.32L10 13.27l-4.77 2.51.91-5.32L2.27 6.69l5.34-.78L10 1z" />
+                    </svg>
+                    {% endfor %}
+                    <span class="rating-number">{{ review.rating }}/5</span>
+                </div>
+                <div class="review-status">
+                    {% if review.status == 'approved' %}
+                    <span class="status-badge status-approved">Hyväksytty</span>
+                    {% elif review.status == 'hidden' %}
+                    <span class="status-badge status-hidden">Piilotettu</span>
+                    {% else %}
+                    <span class="status-badge status-pending">Odottaa</span>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="review-meta">
+                <div class="review-meta-item">
+                    <span class="meta-label">Asiakas:</span>
+                    <span class="meta-value">{{ review.customer_name }}</span>
+                </div>
+                <div class="review-meta-item">
+                    <span class="meta-label">Kuljettaja:</span>
+                    <span class="meta-value">{{ review.driver_name }}</span>
+                </div>
+                <div class="review-meta-item">
+                    <span class="meta-label">Tilaus:</span>
+                    <span class="meta-value">#{{ review.order_id }}</span>
+                </div>
+                <div class="review-meta-item">
+                    <span class="meta-label">Päivämäärä:</span>
+                    <span class="meta-value">{{ review.created_at|helsinki_time }}</span>
+                </div>
+            </div>
+
+            {% if review.comment %}
+            <div class="review-comment">
+                <div class="comment-label">Kommentti:</div>
+                <div class="comment-text">{{ review.comment }}</div>
+            </div>
+            {% endif %}
+
+            <div class="review-actions">
+                {% if review.status != 'approved' %}
+                <form method="POST" action="{{ url_for('admin.moderate_review') }}" class="inline-form">
+                    <input type="hidden" name="rating_id" value="{{ review.id }}">
+                    <input type="hidden" name="action" value="approve">
+                    <button type="submit" class="btn-action btn-approve">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <polyline points="20 6 9 17 4 12"></polyline>
+                        </svg>
+                        Hyväksy
+                    </button>
+                </form>
+                {% endif %}
+                {% if review.status != 'hidden' %}
+                <form method="POST" action="{{ url_for('admin.moderate_review') }}" class="inline-form">
+                    <input type="hidden" name="rating_id" value="{{ review.id }}">
+                    <input type="hidden" name="action" value="hide">
+                    <button type="submit" class="btn-action btn-hide">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <line x1="18" y1="6" x2="6" y2="18"></line>
+                            <line x1="6" y1="6" x2="18" y2="18"></line>
+                        </svg>
+                        Piilota
+                    </button>
+                </form>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+        {% else %}
+        <div class="empty-state">
+            <svg class="empty-icon" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#94a3b8"
+                stroke-width="1.5">
+                <polygon
+                    points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2">
+                </polygon>
+            </svg>
+            <h3>Ei arvosteluja</h3>
+            <p>Arvostelut näkyvät täällä kun asiakkaat arvioivat kuljetuksia.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<style>
+    .page-header {
+        margin-bottom: 1.5rem;
+    }
+
+    .page-header h1 {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: #111827;
+        margin: 0;
+    }
+
+    .admin-stats-row {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .admin-stat-card {
+        background: white;
+        border-radius: 0.75rem;
+        padding: 1.25rem;
+        text-align: center;
+        border: 1px solid #e5e7eb;
+    }
+
+    .admin-stat-value {
+        font-size: 2rem;
+        font-weight: 700;
+        color: #111827;
+    }
+
+    .admin-stat-label {
+        font-size: 0.875rem;
+        color: #6b7280;
+        margin-top: 0.25rem;
+    }
+
+    .reviews-list {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .review-card {
+        background: white;
+        border-radius: 0.75rem;
+        padding: 1.5rem;
+        border: 1px solid #e5e7eb;
+        transition: box-shadow 0.15s ease;
+    }
+
+    .review-card:hover {
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    }
+
+    .review-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+    }
+
+    .review-rating {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+    }
+
+    .star-icon {
+        width: 20px;
+        height: 20px;
+        fill: #e5e7eb;
+    }
+
+    .star-icon.star-filled {
+        fill: #fbbf24;
+    }
+
+    .rating-number {
+        margin-left: 0.5rem;
+        font-weight: 600;
+        color: #374151;
+        font-size: 0.875rem;
+    }
+
+    .status-badge {
+        padding: 0.375rem 0.75rem;
+        border-radius: 9999px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+    }
+
+    .status-approved {
+        background: #dcfce7;
+        color: #166534;
+    }
+
+    .status-hidden {
+        background: #fee2e2;
+        color: #991b1b;
+    }
+
+    .status-pending {
+        background: #fef3c7;
+        color: #92400e;
+    }
+
+    .review-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1rem;
+        margin-bottom: 1rem;
+        padding-bottom: 1rem;
+        border-bottom: 1px solid #f3f4f6;
+    }
+
+    .review-meta-item {
+        display: flex;
+        gap: 0.375rem;
+    }
+
+    .meta-label {
+        color: #6b7280;
+        font-size: 0.875rem;
+    }
+
+    .meta-value {
+        color: #111827;
+        font-weight: 500;
+        font-size: 0.875rem;
+    }
+
+    .review-comment {
+        background: #f8fafc;
+        border-radius: 0.5rem;
+        padding: 1rem;
+        margin-bottom: 1rem;
+    }
+
+    .comment-label {
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: #6b7280;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+        margin-bottom: 0.5rem;
+    }
+
+    .comment-text {
+        color: #374151;
+        font-size: 0.95rem;
+        line-height: 1.6;
+        white-space: pre-wrap;
+    }
+
+    .review-actions {
+        display: flex;
+        gap: 0.75rem;
+    }
+
+    .inline-form {
+        display: inline;
+    }
+
+    .btn-action {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.375rem;
+        padding: 0.5rem 1rem;
+        border-radius: 0.5rem;
+        font-size: 0.875rem;
+        font-weight: 500;
+        border: none;
+        cursor: pointer;
+        transition: all 0.15s ease;
+    }
+
+    .btn-approve {
+        background: #dcfce7;
+        color: #166534;
+    }
+
+    .btn-approve:hover {
+        background: #bbf7d0;
+    }
+
+    .btn-hide {
+        background: #fee2e2;
+        color: #991b1b;
+    }
+
+    .btn-hide:hover {
+        background: #fecaca;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 3rem;
+        background: white;
+        border-radius: 0.75rem;
+        border: 1px solid #e5e7eb;
+    }
+
+    .empty-icon {
+        margin-bottom: 1rem;
+    }
+
+    .empty-state h3 {
+        color: #374151;
+        margin: 0 0 0.5rem 0;
+    }
+
+    .empty-state p {
+        color: #6b7280;
+        margin: 0;
+    }
+
+    @media (max-width: 768px) {
+        .review-meta {
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .review-actions {
+            flex-direction: column;
+        }
+
+        .btn-action {
+            width: 100%;
+            justify-content: center;
+        }
+    }
+</style>
+{% endblock %}

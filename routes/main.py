@@ -45,6 +45,12 @@ def dashboard():
 @admin_required
 def admin_dashboard():
     """Admin dashboard - show all orders with driver info"""
+    from flask import session
+    from datetime import datetime, timezone
+    
+    # Mark orders as viewed (update session timestamp)
+    session['admin_last_viewed_orders'] = datetime.now(timezone.utc)
+    
     # Get orders with driver information (like in the legacy route)
     from models.order import order_model
     orders = order_model.get_orders_with_driver_info(300)

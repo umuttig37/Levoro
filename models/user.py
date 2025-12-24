@@ -297,6 +297,29 @@ class UserModel(BaseModel):
             }}
         )
 
+    def update_driver_rating(self, driver_id, average_rating, total_ratings):
+        """Update driver's average rating and total ratings count"""
+        return self.update_one(
+            {"id": int(driver_id)},
+            {"$set": {
+                "average_rating": round(average_rating, 2),
+                "total_ratings": total_ratings,
+                "rating_updated_at": datetime.now(timezone.utc),
+                "updated_at": datetime.now(timezone.utc)
+            }}
+        )
+
+    def get_driver_rating(self, driver_id):
+        """Get driver's rating information"""
+        driver = self.find_by_id(driver_id)
+        if not driver:
+            return None
+        return {
+            "average_rating": driver.get("average_rating", 0.0),
+            "total_ratings": driver.get("total_ratings", 0),
+            "rating_updated_at": driver.get("rating_updated_at")
+        }
+
     def get_user_stats(self):
         """Get user statistics"""
         total_users = self.count_documents()

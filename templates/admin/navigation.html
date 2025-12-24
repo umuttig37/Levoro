@@ -3,16 +3,57 @@
         <h2>Admin</h2>
         <div class="admin-actions">
             <a class="admin-nav-link {% if request.endpoint == 'main.admin_dashboard' or request.endpoint == 'admin.dashboard' %}active{% endif %}"
-                href="{{ url_for('main.admin_dashboard') }}">Tilaukset</a>
+                href="{{ url_for('main.admin_dashboard') }}">
+                Tilaukset
+                {% if admin_notifications and admin_notifications.new_orders > 0 %}
+                <span class="nav-badge">{{ admin_notifications.new_orders }}</span>
+                {% endif %}
+            </a>
             <a class="admin-nav-link {% if request.endpoint == 'admin.users' %}active{% endif %}"
                 href="{{ url_for('admin.users') }}">Käyttäjät</a>
             <a class="admin-nav-link {% if request.endpoint == 'admin.drivers' %}active{% endif %}"
                 href="{{ url_for('admin.drivers') }}">Kuljettajat</a>
             <a class="admin-nav-link {% if request.endpoint == 'admin.driver_applications' %}active{% endif %}"
-                href="{{ url_for('admin.driver_applications') }}">Hakemukset</a>
+                href="{{ url_for('admin.driver_applications') }}">
+                Hakemukset
+                {% if admin_notifications and admin_notifications.pending_applications > 0 %}
+                <span class="nav-badge">{{ admin_notifications.pending_applications }}</span>
+                {% endif %}
+            </a>
             <a class="admin-nav-link {% if request.endpoint == 'admin.discounts' %}active{% endif %}"
                 href="{{ url_for('admin.discounts') }}">Alennukset</a>
+            <a class="admin-nav-link {% if request.endpoint == 'admin.reviews' %}active{% endif %}"
+                href="{{ url_for('admin.reviews') }}">
+                Arvostelut
+                {% if admin_notifications and admin_notifications.pending_reviews > 0 %}
+                <span class="nav-badge">{{ admin_notifications.pending_reviews }}</span>
+                {% endif %}
+            </a>
             <a class="admin-btn admin-btn-ghost" href="{{ url_for('auth.logout') }}">Kirjaudu ulos</a>
         </div>
     </div>
 </div>
+
+<style>
+    .nav-badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 18px;
+        height: 18px;
+        padding: 0 5px;
+        margin-left: 6px;
+        background: #ef4444;
+        color: white;
+        font-size: 0.7rem;
+        font-weight: 700;
+        border-radius: 9999px;
+        line-height: 1;
+    }
+
+    .admin-nav-link {
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+    }
+</style>

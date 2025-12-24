@@ -374,6 +374,54 @@ def current_user():
     """Get current user - using auth service"""
     return auth_service.get_current_user()
 
+@app.context_processor
+def inject_admin_notifications():
+    """Inject admin notification counts into all templates"""
+    user = current_user()
+    
+    # Only load for admin users
+    if not user or user.get('role') != 'admin':
+        return {'admin_notifications': None}
+    
+    try:
+        from datetime import datetime, timezone
+        
+        # Get last viewed timestamps from session
+        last_viewed_orders = session.get('admin_last_viewed_orders')
+        last_viewed_reviews = session.get('admin_last_viewed_reviews')
+        last_viewed_applications = session.get('admin_last_viewed_applications')
+        
+        # Count new orders created after last view
+        orders_query = {'status': 'NEW'}
+        if last_viewed_orders:
+            orders_query['created_at'] = {'$gt': last_viewed_orders}
+        new_orders_count = orders_col().count_documents(orders_query)
+        
+        # Count pending reviews created after last view
+        from models.rating import rating_model
+        reviews_query = {'status': 'pending'}
+        if last_viewed_reviews:
+            reviews_query['created_at'] = {'$gt': last_viewed_reviews}
+        pending_reviews_count = len(list(rating_model.find(reviews_query)))
+        
+        # Count pending applications created after last view
+        from models.driver_application import driver_application_model
+        apps_query = {'status': 'pending'}
+        if last_viewed_applications:
+            apps_query['created_at'] = {'$gt': last_viewed_applications}
+        pending_applications_count = driver_application_model.count_documents(apps_query)
+        
+        return {
+            'admin_notifications': {
+                'new_orders': new_orders_count,
+                'pending_reviews': pending_reviews_count,
+                'pending_applications': pending_applications_count
+            }
+        }
+    except Exception as e:
+        print(f"Error loading admin notifications: {e}")
+        return {'admin_notifications': None}
+
 # Template global removed - current_user now passed explicitly in blueprint routes
 
 
@@ -768,6 +816,15 @@ def order_view(order_id: int):
     # Show vehicle section only if there's meaningful data
     show_vehicle_section = has_reg_number or has_winter_tires
 
+    # Check rating status for delivered orders
+    can_rate = False
+    existing_rating = None
+    if current_status == 'DELIVERED':
+        from models.rating import rating_model
+        existing_rating = rating_model.get_order_rating(int(order_id))
+        if not existing_rating:
+            can_rate = True
+
     return render_with_context('dashboard/order_view.html',
         order=r,
         distance_km=distance_km,
@@ -783,7 +840,9 @@ def order_view(order_id: int):
         has_winter_tires=has_winter_tires,
         has_customer_info=has_customer_info,
         has_images=has_images,
-        show_vehicle_section=show_vehicle_section
+        show_vehicle_section=show_vehicle_section,
+        can_rate=can_rate,
+        existing_rating=existing_rating
     )
 
 
@@ -1221,6 +1280,124 @@ def submit_driver_application():
         applicant_name=applicant_name,
         application_id=application["id"]
     )
+
+
+# ----------------- HEALTH CHECK ENDPOINTS -----------------
+
+@app.get("/health")
+def health_check():
+    """Basic health check - returns OK if app is running"""
+    return jsonify({
+        "status": "ok",
+        "timestamp": datetime.datetime.now(datetime.timezone.utc).isoformat()
+    })
+
+@app.get("/health/live")
+def health_live():
+    """Liveness probe - is the app alive?"""
+    return jsonify({"status": "ok", "live": True})
+
+@app.get("/health/ready")
+def health_ready():
+    """Readiness probe - is the app ready to serve traffic?"""
+    try:
+        # Test database connection
+        _mdb.command("ping")
+        db_status = "connected"
+    except Exception as e:
+        db_status = f"error: {str(e)}"
+    
+    is_ready = db_status == "connected"
+    
+    return jsonify({
+        "status": "ok" if is_ready else "degraded",
+        "ready": is_ready,
+        "checks": {
+            "database": db_status
+        }
+    }), 200 if is_ready else 503
+
+
+# ----------------- ERROR HANDLERS -----------------
+
+@app.errorhandler(404)
+def page_not_found(e):
+    """Handle 404 errors with a friendly page"""
+    return render_template("errors/404.html", current_user=current_user()), 404
+
+@app.errorhandler(500)
+def internal_server_error(e):
+    """Handle 500 errors with error tracking"""
+    from services.monitoring_service import monitoring_service
+    
+    # Generate error ID and capture
+    error_id = monitoring_service.capture_exception(e, context={
+        "url": request.url if request else None,
+        "method": request.method if request else None,
+        "user_id": session.get("user_id") if session else None
+    })
+    
+    return render_template("errors/500.html", 
+                          error_id=error_id, 
+                          current_user=current_user()), 500
+
+@app.errorhandler(403)
+def forbidden(e):
+    """Handle 403 forbidden errors"""
+    flash("Sinulla ei ole oikeutta tähän sivuun", "error")
+    return redirect(url_for("main.home"))
+
+# ----------------- RATING ROUTES -----------------
+
+@app.get("/order/<int:order_id>/rate")
+def rate_order_page(order_id):
+    """Show rating form for an order"""
+    from services.rating_service import rating_service
+    from models.order import order_model
+    from models.user import user_model
+    
+    user = current_user()
+    if not user:
+        flash("Kirjaudu sisään arvostellaksesi tilauksen", "error")
+        return redirect(url_for("auth.login"))
+    
+    # Check if can rate
+    can_rate, reason = rating_service.can_rate_order(order_id, user["id"])
+    if not can_rate:
+        flash(reason, "error")
+        return redirect(url_for("main.dashboard"))
+    
+    order = order_model.find_by_id(order_id)
+    driver = None
+    if order.get("driver_id"):
+        driver = user_model.find_by_id(order["driver_id"])
+    
+    return render_template("rating/submit_rating.html", 
+                          order=order, 
+                          driver=driver,
+                          current_user=user)
+
+@app.post("/order/<int:order_id>/rate")
+def submit_rating(order_id):
+    """Submit a rating for an order"""
+    from services.rating_service import rating_service
+    
+    user = current_user()
+    if not user:
+        flash("Kirjaudu sisään arvostellaksesi tilauksen", "error")
+        return redirect(url_for("auth.login"))
+    
+    rating = int(request.form.get("rating", 0))
+    comment = request.form.get("comment", "").strip()
+    
+    result, error = rating_service.submit_rating(order_id, user["id"], rating, comment)
+    
+    if error:
+        flash(error, "error")
+        return redirect(url_for("rate_order_page", order_id=order_id))
+    
+    flash("Kiitos arvostelustasi!", "success")
+    return redirect(url_for("main.dashboard"))
 
 
 # Register blueprints

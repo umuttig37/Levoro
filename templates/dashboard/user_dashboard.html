@@ -103,6 +103,10 @@
               </td>
               <td class="user-orders-actions">
                 <a class="user-action-btn" href="/order/{{ order.id }}">Avaa</a>
+                {% if order.status in ['DELIVERED', 'COMPLETED'] and order.driver_id %}
+                <a class="user-action-btn user-action-rate" href="/order/{{ order.id }}/rate"
+                  title="Arvostele kuljetus">⭐</a>
+                {% endif %}
               </td>
             </tr>
             {% endfor %}
@@ -220,11 +224,18 @@
             </div>
           </details>
 
-          <!-- Action Button -->
-          <a href="/order/{{ order.id }}" class="order-card-action" aria-label="Avaa tilaus {{ order.id }}">
-            Avaa tilaus
-            {{ icons.eye(18, '#ffffff') }}
-          </a>
+          <!-- Action Buttons -->
+          <div class="order-card-actions">
+            <a href="/order/{{ order.id }}" class="order-card-action" aria-label="Avaa tilaus {{ order.id }}">
+              Avaa tilaus
+              {{ icons.eye(18, '#ffffff') }}
+            </a>
+            {% if order.status in ['DELIVERED', 'COMPLETED'] and order.driver_id %}
+            <a href="/order/{{ order.id }}/rate" class="order-card-rate" aria-label="Arvostele kuljetus">
+              ⭐ Arvostele
+            </a>
+            {% endif %}
+          </div>
         </article>
         {% endfor %}
         {% endif %}

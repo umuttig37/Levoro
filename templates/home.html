@@ -536,6 +536,76 @@
     margin: 0;
     line-height: 1.6;
   }
+
+  /* Collapsible Contact Section */
+  .contact-section-collapsible {
+    padding: 1rem 0;
+    margin-bottom: 1rem;
+  }
+
+  .contact-toggle-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    width: 100%;
+    padding: 1rem 1.5rem;
+    background: white;
+    color: var(--color-primary, #3b82f6);
+    border: 2px solid var(--color-primary, #3b82f6);
+    border-radius: 0.75rem;
+    font-size: 1rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+  }
+
+  .contact-toggle-btn:hover {
+    background: var(--color-primary, #3b82f6);
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(59, 130, 246, 0.25);
+  }
+
+  .contact-toggle-btn[aria-expanded="true"] {
+    background: var(--color-primary, #3b82f6);
+    color: white;
+    box-shadow: 0 8px 25px rgba(59, 130, 246, 0.25);
+  }
+
+  .contact-toggle-btn[aria-expanded="true"]:hover {
+    background: var(--color-primary-dark, #2563eb);
+    border-color: var(--color-primary-dark, #2563eb);
+  }
+
+  .contact-toggle-text {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .contact-toggle-chevron {
+    transition: transform 0.3s ease;
+  }
+
+  .contact-toggle-btn[aria-expanded="true"] .contact-toggle-chevron {
+    transform: rotate(180deg);
+  }
+
+  .contact-content-collapsible {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.4s ease;
+  }
+
+  .contact-content-collapsible.open {
+    max-height: 1200px;
+  }
+
+  .contact-content-inner {
+    padding: 2rem 0;
+  }
 </style>
 {% endblock %}
 
@@ -545,8 +615,9 @@
   <div class="section-new" style="padding-top: 2rem;">
     <div class="hero-new animate-fade-up">
       <div class="hero-new-content">
-        <h1 class="hero-new-title">Luotettava autonkuljetus, aina parhaaseen hintaan</h1>
-        <p class="hero-new-subtitle">Hinnoittelu perustuu reittiin, ei autotyyppiin. Saat tarjouksen heti.</p>
+        <h1 class="hero-new-title">Nopein ja edullisin.<br>Levorolla mahdollista.</h1>
+        <p class="hero-new-subtitle">Suomen nopein, edullisin ja luotettavin tapa siirtää autoja. Läpinäkyvä
+          hinnoittelu, reaaliaikainen seuranta ja helppo tilausportaali.</p>
         <div class="hero-new-actions">
           {% if not current_user or current_user.role != 'driver' %}
           <a href="/calculator" class="hero-new-cta">
@@ -564,7 +635,8 @@
 </div>
 
 <!-- How It Works Section -->
-<div id="how" class="container scroll-mt-20">
+<div id="how" class="container scroll-mt-20"><!-- Features section for footer link -->
+  <div id="features"></div>
   <section class="section-new">
     <div class="section-header-new animate-fade-up">
       <h2 class="section-title-new">Näin Levoro toimii</h2>
@@ -655,14 +727,14 @@
 </section>
 
 <!-- Vehicle Categories Section -->
-<div class="container">
+<div id="categories" class="container scroll-mt-20">
   <section class="section-new">
     <div class="section-header-new animate-fade-up">
       <h2 class="section-title-new">Kuljetamme kaikki ajoneuvotyypit</h2>
     </div>
     <div class="category-grid">
       <div class="category-card animate-fade-up stagger-1">
-        <img src="https://images.unsplash.com/photo-1556189250-72ba954cfc2b?w=800&q=80" alt="Sedan">
+        <img src="/static/content/sedan.png" alt="Sedan">
         <div class="category-overlay">
           <p class="category-title">Sedanit</p>
           <p class="category-desc">Henkilöautot ja perheautot</p>
@@ -676,7 +748,7 @@
         </div>
       </div>
       <div class="category-card animate-fade-up stagger-3">
-        <img src="https://images.unsplash.com/photo-1580274455191-1c62238fa333?w=800&q=80" alt="Luxury">
+        <img src="https://images.unsplash.com/photo-1556189250-72ba954cfc2b?w=800&q=80" alt="Luxury">
         <div class="category-overlay">
           <p class="category-title">Luksusautot</p>
           <p class="category-desc">Premium- ja urheiluautot</p>
@@ -686,90 +758,122 @@
   </section>
 </div>
 
-<!-- Contact Section -->
-<section id="contact" class="contact-section section-new scroll-mt-20">
+<!-- Collapsible Contact Section -->
+<section id="contact" class="contact-section-collapsible">
   <div class="container">
-    <div class="text-center animate-fade-up" style="margin-bottom: 3rem;">
-      <h2 class="section-title-new">Ota yhteyttä</h2>
-      <p class="section-subtitle-new" style="margin: 0 auto; max-width: 600px;">Kysymyksiä tai tarjouspyyntöjä? Olemme
-        täällä auttamassa. Lähetä meille viesti tai soita suoraan.</p>
-    </div>
-    <div class="contact-grid">
-      <!-- Contact Form -->
-      <div class="contact-form-card animate-fade-up">
-        <h3>Lähetä viesti</h3>
-        <form action="/yhteystiedot" method="POST">
-          <div class="contact-form-group">
-            <label for="contact-name">Nimi</label>
-            <input type="text" id="contact-name" name="name" placeholder="Nimesi" required>
-          </div>
-          <div class="contact-form-group">
-            <label for="contact-email">Sähköposti</label>
-            <input type="email" id="contact-email" name="email" placeholder="sahkoposti@esimerkki.fi" required>
-          </div>
-          <div class="contact-form-group">
-            <label for="contact-message">Viesti</label>
-            <textarea id="contact-message" name="message" placeholder="Kirjoita viestisi tähän..." required></textarea>
-          </div>
-          <button type="submit" class="contact-submit-btn">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
-              <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
-              <path d="M22 6l-10 7L2 6" />
-            </svg>
-            Lähetä viesti
-          </button>
-        </form>
-      </div>
+    <button class="contact-toggle-btn" onclick="toggleContactSection()" aria-expanded="false"
+      aria-controls="contactContent">
+      <span class="contact-toggle-text">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
+          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+        </svg>
+        Ota yhteyttä
+      </span>
+      <svg class="contact-toggle-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+        width="20" height="20">
+        <polyline points="6 9 12 15 18 9"></polyline>
+      </svg>
+    </button>
 
-      <!-- Contact Info -->
-      <div class="contact-info-stack animate-fade-up stagger-1">
-        <div class="contact-info-card">
-          <div class="contact-info-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
-              <path d="M22 6l-10 7L2 6" />
-            </svg>
-          </div>
-          <div class="contact-info-content">
-            <h4>Sähköposti</h4>
-            <p>support@levoro.fi</p>
-          </div>
+    <div id="contactContent" class="contact-content-collapsible">
+      <div class="contact-content-inner">
+        <div class="text-center" style="margin-bottom: 2rem;">
+          <h2 class="section-title-new">Ota yhteyttä</h2>
+          <p class="section-subtitle-new" style="margin: 0 auto; max-width: 600px;">Kysymyksiä tai tarjouspyyntöjä?
+            Olemme täällä auttamassa.</p>
         </div>
 
-        <div class="contact-info-card">
-          <div class="contact-info-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path
-                d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92z" />
-            </svg>
+        <div class="contact-grid">
+          <!-- Contact Form -->
+          <div class="contact-form-card">
+            <h3>Lähetä viesti</h3>
+            <form action="/yhteystiedot" method="POST">
+              <div class="contact-form-group">
+                <label for="contact-name">Nimi</label>
+                <input type="text" id="contact-name" name="name" placeholder="Nimesi" required>
+              </div>
+              <div class="contact-form-group">
+                <label for="contact-email">Sähköposti</label>
+                <input type="email" id="contact-email" name="email" placeholder="sahkoposti@esimerkki.fi" required>
+              </div>
+              <div class="contact-form-group">
+                <label for="contact-message">Viesti</label>
+                <textarea id="contact-message" name="message" placeholder="Kirjoita viestisi tähän..."
+                  required></textarea>
+              </div>
+              <button type="submit" class="contact-submit-btn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
+                  <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+                  <path d="M22 6l-10 7L2 6" />
+                </svg>
+                Lähetä viesti
+              </button>
+            </form>
           </div>
-          <div class="contact-info-content">
-            <h4>Puhelinnumerot</h4>
-            <p>+358 44 978 2446</p>
-            <p>+358 44 982 6974</p>
-            <p style="font-size: 0.8rem; color: var(--color-gray-500);">Ma-Pe 8:00-17:00</p>
+
+          <!-- Contact Info -->
+          <div class="contact-info-stack">
+            <div class="contact-info-card">
+              <div class="contact-info-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+                  <path d="M22 6l-10 7L2 6" />
+                </svg>
+              </div>
+              <div class="contact-info-content">
+                <h4>Sähköposti</h4>
+                <p><a href="mailto:support@levoro.fi">support@levoro.fi</a></p>
+              </div>
+            </div>
+
+            <div class="contact-info-card">
+              <div class="contact-info-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path
+                    d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92z" />
+                </svg>
+              </div>
+              <div class="contact-info-content">
+                <h4>Puhelinnumerot</h4>
+                <p><a href="tel:+358449782446">+358 44 978 2446</a></p>
+                <p><a href="tel:+358449826974">+358 44 982 6974</a></p>
+                <p style="font-size: 0.8rem; color: var(--color-gray-500);">Ma-Pe 8:00-17:00</p>
+              </div>
+            </div>
+
+            <div class="contact-info-card">
+              <div class="contact-info-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path
+                    d="M3 21h18M3 7v14M21 7v14M6 11h.01M6 15h.01M12 11h.01M12 15h.01M18 11h.01M18 15h.01M9 21v-5a2 2 0 012-2h2a2 2 0 012 2v5M3 7l9-4 9 4" />
+                </svg>
+              </div>
+              <div class="contact-info-content">
+                <h4>Yritystiedot</h4>
+                <p>Tiyouba Oy - Levoro</p>
+                <p>Helsinki, Suomi</p>
+                <p style="font-size: 0.8rem; color: var(--color-gray-500);">Y-tunnus: 1541430-2</p>
+              </div>
+            </div>
           </div>
         </div>
-
-        <div class="contact-info-card">
-          <div class="contact-info-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path
-                d="M3 21h18M3 7v14M21 7v14M6 11h.01M6 15h.01M12 11h.01M12 15h.01M18 11h.01M18 15h.01M9 21v-5a2 2 0 012-2h2a2 2 0 012 2v5M3 7l9-4 9 4" />
-            </svg>
-          </div>
-          <div class="contact-info-content">
-            <h4>Yritystiedot</h4>
-            <p>Tiyouba Oy - Levoro</p>
-            <p>Helsinki, Suomi</p>
-            <p style="font-size: 0.8rem; color: var(--color-gray-500);">Y-tunnus: 1541430-2</p>
-          </div>
-        </div>
-
       </div>
     </div>
   </div>
 </section>
+
+<script>
+  function toggleContactSection() {
+    const content = document.getElementById('contactContent');
+    const btn = document.querySelector('.contact-toggle-btn');
+    const isOpen = content.classList.toggle('open');
+    btn.setAttribute('aria-expanded', isOpen);
+
+    if (isOpen) {
+      content.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }
+</script>
 
 <!-- Insurance Banner -->
 <div class="container">
@@ -809,33 +913,10 @@
 </div>
 {% endif %}
 
-<!-- Scroll to Top Button -->
-<button class="scroll-top-btn" id="scrollTopBtn" aria-label="Takaisin ylös">
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-    <path d="M12 19V5M5 12l7-7 7 7" stroke-linecap="round" stroke-linejoin="round" />
-  </svg>
-</button>
 {% endblock %}
 
 {% block extra_js %}
 <script>
-  // Scroll to Top Button
-  document.addEventListener('DOMContentLoaded', function () {
-    const scrollBtn = document.getElementById('scrollTopBtn');
-
-    window.addEventListener('scroll', function () {
-      if (window.scrollY > 400) {
-        scrollBtn.classList.add('visible');
-      } else {
-        scrollBtn.classList.remove('visible');
-      }
-    });
-
-    scrollBtn.addEventListener('click', function () {
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    });
-  });
-
   // Animate on scroll
   const observerOptions = {
     threshold: 0.1,

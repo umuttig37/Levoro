@@ -1,0 +1,408 @@
+{% extends "base/layout.html" %}
+
+{% block title %}Arvostele kuljetus – Levoro{% endblock %}
+
+{% block extra_css %}
+<style>
+    .rating-page {
+        min-height: 100vh;
+        background: #f8fafc;
+        padding: 3rem 1rem;
+    }
+
+    .rating-container {
+        max-width: 520px;
+        margin: 0 auto;
+    }
+
+    .rating-card {
+        background: white;
+        border-radius: 12px;
+        padding: 2.5rem;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        border: 1px solid #e5e7eb;
+    }
+
+    .rating-header {
+        text-align: center;
+        margin-bottom: 2rem;
+        padding-bottom: 1.5rem;
+        border-bottom: 1px solid #f1f5f9;
+    }
+
+    .rating-title {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: #111827;
+        margin: 0 0 0.5rem 0;
+    }
+
+    .rating-subtitle {
+        color: #6b7280;
+        font-size: 0.95rem;
+        margin: 0;
+    }
+
+    /* Order Summary */
+    .order-summary {
+        background: #f8fafc;
+        border-radius: 8px;
+        padding: 1.25rem;
+        margin-bottom: 2rem;
+        border: 1px solid #e2e8f0;
+    }
+
+    .order-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.5rem 0;
+    }
+
+    .order-row:not(:last-child) {
+        border-bottom: 1px solid #e2e8f0;
+    }
+
+    .order-label {
+        color: #6b7280;
+        font-size: 0.875rem;
+    }
+
+    .order-value {
+        font-weight: 600;
+        color: #111827;
+        font-size: 0.9rem;
+        text-align: right;
+        max-width: 280px;
+    }
+
+    /* Route Display */
+    .route-display {
+        margin-bottom: 2rem;
+    }
+
+    .route-point {
+        display: flex;
+        align-items: flex-start;
+        gap: 0.75rem;
+        padding: 0.75rem 0;
+    }
+
+    .route-dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        margin-top: 5px;
+        flex-shrink: 0;
+    }
+
+    .route-dot.pickup {
+        background: #22c55e;
+    }
+
+    .route-dot.dropoff {
+        background: #3b82f6;
+    }
+
+    .route-text {
+        flex: 1;
+    }
+
+    .route-type {
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: #6b7280;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+        margin-bottom: 0.25rem;
+    }
+
+    .route-address {
+        color: #111827;
+        font-size: 0.95rem;
+        line-height: 1.4;
+    }
+
+    .route-connector {
+        width: 1px;
+        height: 24px;
+        background: #d1d5db;
+        margin-left: 4.5px;
+    }
+
+    /* Star Rating */
+    .star-rating-section {
+        text-align: center;
+        margin-bottom: 2rem;
+    }
+
+    .star-rating-label {
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: #374151;
+        margin-bottom: 1rem;
+    }
+
+    .star-rating {
+        display: flex;
+        justify-content: center;
+        gap: 0.5rem;
+    }
+
+    .star-btn {
+        background: none;
+        border: none;
+        cursor: pointer;
+        padding: 0.25rem;
+        transition: transform 0.15s ease;
+    }
+
+    .star-btn:hover {
+        transform: scale(1.1);
+    }
+
+    .star-btn svg {
+        width: 40px;
+        height: 40px;
+        fill: #e5e7eb;
+        stroke: #d1d5db;
+        stroke-width: 1;
+        transition: all 0.15s ease;
+    }
+
+    .star-btn.active svg {
+        fill: #fbbf24;
+        stroke: #f59e0b;
+    }
+
+    .rating-text {
+        margin-top: 0.75rem;
+        font-size: 0.95rem;
+        font-weight: 500;
+        color: #374151;
+        min-height: 1.5rem;
+    }
+
+    /* Comment */
+    .comment-section {
+        margin-bottom: 1.5rem;
+    }
+
+    .comment-section label {
+        display: block;
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: #374151;
+        margin-bottom: 0.5rem;
+    }
+
+    .comment-section textarea {
+        width: 100%;
+        padding: 0.875rem 1rem;
+        border: 1px solid #d1d5db;
+        border-radius: 8px;
+        font-size: 0.95rem;
+        resize: none;
+        height: 100px;
+        font-family: inherit;
+        transition: border-color 0.15s ease;
+    }
+
+    .comment-section textarea:focus {
+        outline: none;
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    }
+
+    .comment-section textarea::placeholder {
+        color: #9ca3af;
+    }
+
+    /* Submit Button */
+    .submit-btn {
+        width: 100%;
+        padding: 0.875rem 1.5rem;
+        background: #111827;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-size: 0.95rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background 0.15s ease;
+    }
+
+    .submit-btn:hover:not(:disabled) {
+        background: #1f2937;
+    }
+
+    .submit-btn:disabled {
+        background: #9ca3af;
+        cursor: not-allowed;
+    }
+
+    /* Back Link */
+    .back-link {
+        display: block;
+        text-align: center;
+        margin-top: 1.25rem;
+        color: #6b7280;
+        text-decoration: none;
+        font-size: 0.875rem;
+        font-weight: 500;
+    }
+
+    .back-link:hover {
+        color: #111827;
+    }
+
+    /* Mobile */
+    @media (max-width: 640px) {
+        .rating-page {
+            padding: 1.5rem 1rem;
+        }
+
+        .rating-card {
+            padding: 1.5rem;
+        }
+
+        .star-btn svg {
+            width: 36px;
+            height: 36px;
+        }
+
+        .order-value {
+            max-width: 180px;
+            font-size: 0.85rem;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="rating-page">
+    <div class="rating-container">
+        <div class="rating-card">
+            <div class="rating-header">
+                <h1 class="rating-title">Arvostele kuljetus</h1>
+                <p class="rating-subtitle">Kerro meille kokemuksestasi</p>
+            </div>
+
+            <!-- Order Summary -->
+            <div class="order-summary">
+                <div class="order-row">
+                    <span class="order-label">Tilaus</span>
+                    <span class="order-value">#{{ order.id }}</span>
+                </div>
+                {% if order.reg_number %}
+                <div class="order-row">
+                    <span class="order-label">Rekisterinumero</span>
+                    <span class="order-value">{{ order.reg_number }}</span>
+                </div>
+                {% endif %}
+                {% if driver %}
+                <div class="order-row">
+                    <span class="order-label">Kuljettaja</span>
+                    <span class="order-value">{{ driver.name }}</span>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Route Display -->
+            <div class="route-display">
+                <div class="route-point">
+                    <div class="route-dot pickup"></div>
+                    <div class="route-text">
+                        <div class="route-type">Nouto</div>
+                        <div class="route-address">{{ order.pickup_address }}</div>
+                    </div>
+                </div>
+                <div class="route-connector"></div>
+                <div class="route-point">
+                    <div class="route-dot dropoff"></div>
+                    <div class="route-text">
+                        <div class="route-type">Toimitus</div>
+                        <div class="route-address">{{ order.dropoff_address }}</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Rating Form -->
+            <form method="POST" id="ratingForm">
+                <input type="hidden" name="rating" id="ratingInput" value="">
+
+                <div class="star-rating-section">
+                    <div class="star-rating-label">Arvioi kuljetus</div>
+                    <div class="star-rating" id="starRating">
+                        {% for i in range(1, 6) %}
+                        <button type="button" class="star-btn" data-rating="{{ i }}" aria-label="{{ i }} tähteä">
+                            <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                <path
+                                    d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                            </svg>
+                        </button>
+                        {% endfor %}
+                    </div>
+                    <div class="rating-text" id="ratingLabel"></div>
+                </div>
+
+                <div class="comment-section">
+                    <label for="comment">Kommentti (valinnainen)</label>
+                    <textarea name="comment" id="comment" placeholder="Kerro kokemuksestasi..."></textarea>
+                </div>
+
+                <button type="submit" class="submit-btn" id="submitBtn" disabled>Lähetä arvostelu</button>
+            </form>
+
+            <a href="/dashboard" class="back-link">← Takaisin</a>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const starButtons = document.querySelectorAll('.star-btn');
+    const ratingInput = document.getElementById('ratingInput');
+    const ratingLabel = document.getElementById('ratingLabel');
+    const submitBtn = document.getElementById('submitBtn');
+
+    const labels = {
+        1: 'Huono',
+        2: 'Tyydyttävä',
+        3: 'Hyvä',
+        4: 'Erittäin hyvä',
+        5: 'Erinomainen'
+    };
+
+    let selectedRating = 0;
+
+    starButtons.forEach((btn, index) => {
+        const rating = index + 1;
+
+        btn.addEventListener('mouseenter', () => {
+            highlightStars(rating);
+            ratingLabel.textContent = labels[rating];
+        });
+
+        btn.addEventListener('mouseleave', () => {
+            highlightStars(selectedRating);
+            ratingLabel.textContent = selectedRating ? labels[selectedRating] : '';
+        });
+
+        btn.addEventListener('click', () => {
+            selectedRating = rating;
+            ratingInput.value = rating;
+            highlightStars(rating);
+            ratingLabel.textContent = labels[rating];
+            submitBtn.disabled = false;
+        });
+    });
+
+    function highlightStars(count) {
+        starButtons.forEach((btn, index) => {
+            btn.classList.toggle('active', index < count);
+        });
+    }
+</script>
+{% endblock %}
