@@ -458,6 +458,27 @@
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Header scrolled state - more compact and prominent */
+.header-scrolled {
+    background: rgba(255, 255, 255, 0.98);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+}
+
+.header-scrolled .header-inner {
+    min-height: 56px;
+    padding: var(--space-2) 0;
+}
+
+.header-scrolled .brand-logo {
+    height: 60px;
+}
+
+/* Header hidden on scroll down (optional) */
+.header-hidden {
+    transform: translateY(-100%);
 }
 
 .header-inner {

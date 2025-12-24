@@ -2,6 +2,7 @@
 Main Application Routes
 """
 
+import os
 from flask import Blueprint, request, redirect, url_for, flash, jsonify, render_template
 from services.auth_service import auth_service
 from services.order_service import order_service
@@ -11,12 +12,15 @@ from utils.formatters import format_helsinki_time
 
 main_bp = Blueprint('main', __name__)
 
+# Get Google Places API key from environment
+GOOGLE_PLACES_API_KEY = os.environ.get("GOOGLE_PLACES_API_KEY", "")
+
 
 @main_bp.route("/")
 def index():
     """Home page - marketing content for visitors"""
     user = auth_service.get_current_user()
-    return render_template("home.html", current_user=user)
+    return render_template("home.html", current_user=user, google_places_api_key=GOOGLE_PLACES_API_KEY)
 
 
 @main_bp.route("/dashboard")
@@ -31,24 +35,10 @@ def dashboard():
     if auth_service.is_admin(user):
         return redirect(url_for("main.admin_dashboard"))
 
-    # Get tab parameter for filtering
-    tab = (request.args.get("tab", "active") or "active").lower()
-
-    # Get user's orders
+    # Get all user's orders - client-side will handle filtering
     all_orders = order_service.get_user_orders(user["id"])
 
-    # Filter orders based on tab (active vs completed)
-    def is_active_status(status):
-        return status in {"NEW", "CONFIRMED", "ASSIGNED_TO_DRIVER", "DRIVER_ARRIVED",
-                         "PICKUP_IMAGES_ADDED", "IN_TRANSIT", "DELIVERY_ARRIVED",
-                         "DELIVERY_IMAGES_ADDED"}
-
-    if tab == "completed":
-        orders = [order for order in all_orders if not is_active_status(order.get("status", "NEW"))]
-    else:
-        orders = [order for order in all_orders if is_active_status(order.get("status", "NEW"))]
-
-    return render_template("dashboard/user_dashboard.html", orders=orders, current_user=user)
+    return render_template("dashboard/user_dashboard.html", all_orders=all_orders, orders=all_orders, current_user=user)
 
 
 @main_bp.route("/admin")

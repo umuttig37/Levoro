@@ -2399,13 +2399,71 @@ def order_confirm():
     {pricing_html}
   </div>
 </div>
-<form method='POST' class='calculator-form'>
-  <div class='calculator-actions' style='margin-top: 2rem;'>
+<form method='POST' class='calculator-form' id='orderConfirmForm'>
+  <div class='terms-checkbox-wrapper' style='margin-top: 1.5rem; padding: 1rem; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px;'>
+    <label class='terms-checkbox-label' style='display: flex; align-items: flex-start; gap: 0.75rem; cursor: pointer;'>
+      <input type='checkbox' id='termsCheckbox' required style='width: 20px; height: 20px; margin-top: 2px; accent-color: #3b82f6; cursor: pointer;'>
+      <span style='font-size: 0.9rem; color: #475569; line-height: 1.5;'>
+        Hyväksyn <a href='/ehdot' target='_blank' style='color: #3b82f6; text-decoration: underline;'>käyttöehdot</a> ja 
+        <a href='/tietosuoja' target='_blank' style='color: #3b82f6; text-decoration: underline;'>tietosuojakäytännön</a>. 
+        Ymmärrän, että tilaus on sitova vahvistuksen jälkeen.
+      </span>
+    </label>
+  </div>
+  <div class='calculator-actions' style='margin-top: 1.5rem;'>
     <button type='button' onclick='window.location.href="/order/new/step5"' class='btn btn-ghost'>← Takaisin</button>
-    <button type='submit' class='btn btn-primary btn-large' {submit_disabled_attr}>Vahvista ja lähetä tilaus</button>
+    <button type='submit' class='btn btn-primary btn-large' id='submitOrderBtn' {submit_disabled_attr}>
+      <span class='btn-text'>Vahvista ja lähetä tilaus</span>
+      <span class='btn-spinner' style='display: none;'>
+        <svg class='spinner-icon' viewBox='0 0 24 24' width='20' height='20'>
+          <circle cx='12' cy='12' r='10' stroke='currentColor' stroke-width='3' fill='none' stroke-dasharray='31.4 31.4' stroke-linecap='round'>
+            <animateTransform attributeName='transform' type='rotate' from='0 12 12' to='360 12 12' dur='0.8s' repeatCount='indefinite'/>
+          </circle>
+        </svg>
+        Lähetetään...
+      </span>
+    </button>
   </div>
   {submit_disabled_helper}
 </form>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {{
+  const form = document.getElementById('orderConfirmForm');
+  const submitBtn = document.getElementById('submitOrderBtn');
+  const termsCheckbox = document.getElementById('termsCheckbox');
+  
+  if (form && submitBtn) {{
+    form.addEventListener('submit', function(e) {{
+      if (!termsCheckbox.checked) {{
+        e.preventDefault();
+        termsCheckbox.focus();
+        return;
+      }}
+      
+      // Show loading state
+      submitBtn.disabled = true;
+      submitBtn.querySelector('.btn-text').style.display = 'none';
+      submitBtn.querySelector('.btn-spinner').style.display = 'inline-flex';
+    }});
+  }}
+}});
+</script>
+
+<style>
+.btn-spinner {{
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}}
+.spinner-icon {{
+  animation: spin 0.8s linear infinite;
+}}
+@keyframes spin {{
+  from {{ transform: rotate(0deg); }}
+  to {{ transform: rotate(360deg); }}
+}}
+</style>
 
 <!-- Leaflet CSS and JS for map -->
 <link rel='stylesheet' href='https://unpkg.com/leaflet@1.9.4/dist/leaflet.css' crossorigin='' />

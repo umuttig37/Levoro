@@ -20,14 +20,15 @@ def login():
 
     email = request.form.get("email", "").strip().lower()
     password = request.form.get("password", "")
+    remember_me = request.form.get("remember_me") == "on"
     nxt = request.form.get("next", "")
 
     if not email or not password:
         flash("Sähköposti ja salasana vaaditaan", "error")
         return redirect(url_for("auth.login"))
 
-    # Use auth service for login
-    success, _, error = auth_service.login(email, password)
+    # Use auth service for login with remember_me option
+    success, _, error = auth_service.login(email, password, remember=remember_me)
 
     if not success:
         flash(error, "error")

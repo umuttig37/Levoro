@@ -9,17 +9,20 @@
 {% endblock %}
 
 {% block content %}
-<div class="container">
+<div class="admin-container">
     <div class="admin-order-detail">
-        <!-- Header -->
-        <div class="order-header">
-            <h2>
-              Tilaus #{{ order.id }} - {{ status_fi }}
-              {% if order.trip_type %}
-                <span class="trip-type-badge trip-type-{{ order.trip_type.lower() }}">{{ order.trip_type }}</span>
-              {% endif %}
-            </h2>
-            <a href="/admin" class="btn btn-secondary">Takaisin tilauksiin</a>
+        {% include "admin/navigation.html" %}
+
+        <!-- Order Header -->
+        <div class="order-detail-header">
+            <div class="order-detail-title">
+                <h1>Tilaus #{{ order.id }}</h1>
+                <span class="admin-status admin-status-{{ order.status|lower|replace('_', '-') }}">{{ status_fi
+                    }}</span>
+                {% if order.trip_type %}
+                <span class="order-trip-type">{{ order.trip_type }}</span>
+                {% endif %}
+            </div>
         </div>
 
         <!-- Main Grid: Info + Admin Sections -->
@@ -384,4 +387,5 @@
             }
         });
     </script>
+    <script src="{{ url_for('static', filename='js/admin_navigation.js') }}"></script>
     {% endblock %}

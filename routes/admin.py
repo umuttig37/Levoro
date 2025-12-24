@@ -897,10 +897,8 @@ def discounts():
     """Admin discount management page"""
     from services.discount_service import discount_service
 
-    # Get filter parameters
-    include_inactive = request.args.get('include_inactive', 'false').lower() == 'true'
-
-    all_discounts = discount_service.get_all_discounts(include_inactive=include_inactive)
+    # Always get all discounts including inactive - client-side will filter
+    all_discounts = discount_service.get_all_discounts(include_inactive=True)
 
     # Add formatted labels to discounts
     for d in all_discounts:
@@ -913,7 +911,7 @@ def discounts():
     return render_template(
         "admin/discounts.html",
         discounts=all_discounts,
-        include_inactive=include_inactive,
+        include_inactive=True,  # Always true now, client handles filtering
         current_user=auth_service.get_current_user()
     )
 

@@ -3,69 +3,112 @@
 {% block title %}Alennusten hallinta - Admin{% endblock %}
 
 {% block content %}
-<div class="admin-page discounts-page">
-    <!-- Page Header -->
-    <div class="admin-header">
-        <h2>Alennusten hallinta</h2>
-        <div class="admin-actions">
-            <a class="btn btn-ghost" href="{{ url_for('main.admin_dashboard') }}">Tilaukset</a>
-            <a class="btn btn-ghost" href="/admin/users">Käyttäjät</a>
-            <a class="btn btn-ghost" href="/admin/drivers">Kuljettajat</a>
-            <a class="btn btn-primary" href="{{ url_for('admin.discount_new') }}">
-                <i class="fas fa-plus"></i> Uusi alennus
-            </a>
+<div class="admin-container discounts-page">
+    {% include "admin/navigation.html" %}
+
+    <!-- Action Bar -->
+    <div class="action-bar"
+        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+        <p class="text-muted" style="margin: 0;">Hallitse alennuskoodeja ja kampanjoita</p>
+        <a class="btn btn-success" href="{{ url_for('admin.discount_new') }}">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
+                <line x1="12" y1="5" x2="12" y2="19" />
+                <line x1="5" y1="12" x2="19" y2="12" />
+            </svg>
+            Uusi alennus
+        </a>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-icon stat-icon-blue">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z" />
+                    <line x1="7" y1="7" x2="7.01" y2="7" />
+                </svg>
+            </div>
+            <div class="stat-content">
+                <span class="stat-value">{{ discounts|length }}</span>
+                <span class="stat-label">Alennuksia yhteensä</span>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon stat-icon-green">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M22 11.08V12a10 10 0 11-5.93-9.14" />
+                    <polyline points="22 4 12 14.01 9 11.01" />
+                </svg>
+            </div>
+            <div class="stat-content">
+                <span class="stat-value">{{ discounts|selectattr('active')|list|length }}</span>
+                <span class="stat-label">Aktiivisia</span>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon stat-icon-gray">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10" />
+                    <line x1="4.93" y1="4.93" x2="19.07" y2="19.07" />
+                </svg>
+            </div>
+            <div class="stat-content">
+                <span class="stat-value">{{ discounts|rejectattr('active')|list|length }}</span>
+                <span class="stat-label">Ei käytössä</span>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon stat-icon-purple">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                    <path d="M7 11V7a5 5 0 0110 0v4" />
+                </svg>
+            </div>
+            <div class="stat-content">
+                <span class="stat-value">{{ discounts|selectattr('scope', 'equalto', 'code')|list|length }}</span>
+                <span class="stat-label">Kampanjakoodit</span>
+            </div>
         </div>
     </div>
 
-    <!-- Filters -->
-    <div class="filters-bar">
-        <form method="GET" action="{{ url_for('admin.discounts') }}" class="filters-form">
-            <div class="filter-group">
-                <label class="checkbox-label">
-                    <input type="checkbox" name="include_inactive" value="true" 
-                           {% if include_inactive %}checked{% endif %}
-                           onchange="this.form.submit()">
-                    <span>Näytä myös käytöstä poistetut</span>
-                </label>
-            </div>
-        </form>
-        <div class="filters-info">
-            <span class="badge badge-info">{{ discounts|length }} alennusta</span>
+    <!-- Filters & Search -->
+    <div class="toolbar">
+        <div class="search-box">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
+                <circle cx="11" cy="11" r="8" />
+                <line x1="21" y1="21" x2="16.65" y2="16.65" />
+            </svg>
+            <input type="search" id="discountSearch" placeholder="Hae nimeä, tyyppiä tai koodia...">
+        </div>
+        <div class="filter-controls">
+            <select id="discountFilter" class="filter-select">
+                <option value="">Kaikki alennukset</option>
+                <option value="active">Aktiiviset</option>
+                <option value="inactive">Ei käytössä</option>
+                <option value="account">Asiakaskohtaiset</option>
+                <option value="global">Kaikille</option>
+                <option value="code">Kampanjakoodit</option>
+                <option value="first_order">Ensitilaajille</option>
+            </select>
+            <label class="toggle-label">
+                <input type="checkbox" id="showInactive" {% if include_inactive %}checked{% endif %}>
+                <span class="toggle-text">Näytä poistetut</span>
+            </label>
         </div>
     </div>
 
     <!-- Discounts Table -->
-    <div class="content-section">
+    <div class="table-card">
         {% if discounts %}
-        <div class="table-tools">
-            <div class="search-field">
-                <i class="fas fa-search"></i>
-                <input type="search" id="discountSearch" placeholder="Hae nimeä, tyyppiä tai koodia">
-            </div>
-            <div class="filter-field">
-                <label for="discountFilter">Näytä</label>
-                <select id="discountFilter">
-                    <option value="">Kaikki alennukset</option>
-                    <option value="active">Aktiiviset</option>
-                    <option value="inactive">Ei käytössä</option>
-                    <option value="account">Asiakaskohtaiset</option>
-                    <option value="global">Kaikille</option>
-                    <option value="code">Kampanjakoodit</option>
-                    <option value="first_order">Ensitilaajille</option>
-                </select>
-            </div>
-        </div>
-        <div class="data-table-container">
-            <table class="data-table discounts-table">
+        <div class="table-wrapper">
+            <table class="modern-table">
                 <thead>
                     <tr>
-                        <th>ID</th>
-                        <th>Nimi</th>
+                        <th>Alennus</th>
                         <th>Tyyppi</th>
                         <th>Arvo</th>
                         <th>Laajuus</th>
                         <th>Ehdot</th>
-                        <th>Käyttäjiä</th>
                         <th>Tila</th>
                         <th>Toiminnot</th>
                     </tr>
@@ -79,74 +122,101 @@
                         data-type="{{ discount.type_label|default('', true)|lower }}"
                         data-code="{{ discount.code|default('', true)|lower }}"
                         data-description="{{ discount.description|default('', true)|lower }}">
-                        <td class="id-cell">
-                            <span class="discount-id">#{{ discount.id }}</span>
+                        <td>
+                            <div class="discount-info">
+                                <a href="{{ url_for('admin.discount_detail', discount_id=discount.id) }}"
+                                    class="discount-name">
+                                    {{ discount.name }}
+                                </a>
+                                {% if discount.description %}
+                                <span class="discount-desc">{{ discount.description[:60] }}{% if
+                                    discount.description|length > 60 %}...{% endif %}</span>
+                                {% endif %}
+                                <span class="discount-id">#{{ discount.id }}</span>
+                            </div>
                         </td>
-                        <td class="name-cell">
-                            <a href="{{ url_for('admin.discount_detail', discount_id=discount.id) }}" class="discount-name">
-                                {{ discount.name }}
-                            </a>
-                            {% if discount.description %}
-                            <div class="description-preview">{{ discount.description[:80] }}{% if discount.description|length > 80 %}...{% endif %}</div>
-                            {% endif %}
-                        </td>
-                        <td class="type-cell">
-                            <span class="badge badge-type badge-{{ discount.type }}">
+                        <td>
+                            <span class="badge badge-type-{{ discount.type }}">
                                 {{ discount.type_label }}
                             </span>
                         </td>
-                        <td class="value-cell">
-                            <strong>{{ discount.value_formatted }}</strong>
+                        <td>
+                            <span class="value-display">{{ discount.value_formatted }}</span>
                         </td>
-                        <td class="scope-cell">
-                            <span class="badge badge-scope badge-{{ discount.scope }}">
+                        <td>
+                            <span class="badge badge-scope-{{ discount.scope }}">
                                 {{ discount.scope_label }}
                             </span>
                             {% if discount.scope == 'code' and discount.code %}
-                            <div class="promo-code">
-                                <code>{{ discount.code }}</code>
-                            </div>
+                            <code class="promo-code">{{ discount.code }}</code>
                             {% endif %}
-                        </td>
-                        <td class="conditions-cell">
-                            {% if discount.conditions %}
-                            <div class="conditions-list">
-                                {% for condition in discount.conditions %}
-                                <span class="condition-tag"><i class="fas fa-check"></i> {{ condition }}</span>
-                                {% endfor %}
-                            </div>
-                            {% else %}
-                            <span class="text-muted">Ei ehtoja</span>
-                            {% endif %}
-                        </td>
-                        <td class="users-cell">
-                            {% if discount.scope == 'account' %}
-                            <span class="user-count {% if discount.assigned_count > 0 %}has-users{% endif %}">
-                                <i class="fas fa-user"></i> {{ discount.assigned_count }}
+                            {% if discount.scope == 'account' and discount.assigned_count > 0 %}
+                            <span class="user-badge">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14"
+                                    height="14">
+                                    <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" />
+                                    <circle cx="12" cy="7" r="4" />
+                                </svg>
+                                {{ discount.assigned_count }}
                             </span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if discount.conditions %}
+                            <div class="conditions">
+                                {% for condition in discount.conditions[:2] %}
+                                <span class="condition-chip">{{ condition }}</span>
+                                {% endfor %}
+                                {% if discount.conditions|length > 2 %}
+                                <span class="condition-more">+{{ discount.conditions|length - 2 }}</span>
+                                {% endif %}
+                            </div>
                             {% else %}
                             <span class="text-muted">—</span>
                             {% endif %}
                         </td>
-                        <td class="status-cell">
+                        <td>
                             {% if discount.active %}
-                            <span class="badge badge-success">Aktiivinen</span>
+                            <span class="status-badge status-active">
+                                <span class="status-dot"></span>
+                                Aktiivinen
+                            </span>
                             {% else %}
-                            <span class="badge badge-secondary">Ei käytössä</span>
+                            <span class="status-badge status-inactive">
+                                <span class="status-dot"></span>
+                                Ei käytössä
+                            </span>
                             {% endif %}
                         </td>
-                        <td class="actions-cell">
-                            <div class="action-buttons">
-                                <a href="{{ url_for('admin.discount_detail', discount_id=discount.id) }}" 
-                                   class="btn btn-sm btn-ghost btn-action" title="Muokkaa">
-                                    <i class="fas fa-edit"></i>
-                                    <span>Muokkaa</span>
+                        <td>
+                            <div class="action-group">
+                                <a href="{{ url_for('admin.discount_detail', discount_id=discount.id) }}"
+                                    class="action-btn" title="Muokkaa">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                        width="18" height="18">
+                                        <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
+                                        <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
+                                    </svg>
                                 </a>
-                                <form method="POST" action="{{ url_for('admin.discount_toggle', discount_id=discount.id) }}" class="inline-form">
-                                    <button type="submit" class="btn btn-sm btn-ghost btn-action" 
-                                            title="{% if discount.active %}Poista käytöstä{% else %}Aktivoi{% endif %}">
-                                        <i class="fas {% if discount.active %}fa-toggle-on{% else %}fa-toggle-off{% endif %}"></i>
-                                        <span>{% if discount.active %}Poista käytöstä{% else %}Aktivoi{% endif %}</span>
+                                <form method="POST"
+                                    action="{{ url_for('admin.discount_toggle', discount_id=discount.id) }}"
+                                    class="inline-form">
+                                    <button type="submit"
+                                        class="action-btn {% if discount.active %}action-btn-warning{% else %}action-btn-success{% endif %}"
+                                        title="{% if discount.active %}Poista käytöstä{% else %}Aktivoi{% endif %}">
+                                        {% if discount.active %}
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                            width="18" height="18">
+                                            <rect x="1" y="5" width="22" height="14" rx="7" ry="7" />
+                                            <circle cx="16" cy="12" r="3" />
+                                        </svg>
+                                        {% else %}
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                            width="18" height="18">
+                                            <rect x="1" y="5" width="22" height="14" rx="7" ry="7" />
+                                            <circle cx="8" cy="12" r="3" />
+                                        </svg>
+                                        {% endif %}
                                     </button>
                                 </form>
                             </div>
@@ -155,536 +225,684 @@
                     {% endfor %}
                 </tbody>
             </table>
-            <div id="tableEmptyNotice" class="table-empty-notice hidden">
-                <i class="fas fa-search"></i> Ei tuloksia suodatuksilla.
-            </div>
+        </div>
+        <div id="tableEmptyNotice" class="empty-search hidden">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="48" height="48">
+                <circle cx="11" cy="11" r="8" />
+                <line x1="21" y1="21" x2="16.65" y2="16.65" />
+            </svg>
+            <p>Ei tuloksia hakuehdoilla</p>
         </div>
         {% else %}
         <div class="empty-state">
             <div class="empty-icon">
-                <i class="fas fa-tags"></i>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="64" height="64">
+                    <path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z" />
+                    <line x1="7" y1="7" x2="7.01" y2="7" />
+                </svg>
             </div>
-            <h3>Ei alennuksia</h3>
-            <p>Et ole vielä luonut yhtään alennusta.</p>
+            <h3>Ei alennuksia vielä</h3>
+            <p>Luo ensimmäinen alennus aloittaaksesi kampanjat</p>
             <a href="{{ url_for('admin.discount_new') }}" class="btn btn-primary">
-                <i class="fas fa-plus"></i> Luo ensimmäinen alennus
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
+                    <line x1="12" y1="5" x2="12" y2="19" />
+                    <line x1="5" y1="12" x2="19" y2="12" />
+                </svg>
+                Luo ensimmäinen alennus
             </a>
         </div>
         {% endif %}
     </div>
-
 </div>
 
 <style>
-/* Discounts Page Styles */
-:root {
-    --primary: #2563eb;
-    --primary-dark: #1d4ed8;
-    --success: #10b981;
-    --warning: #f59e0b;
-    --danger: #ef4444;
-    --gray-50: #f9fafb;
-    --gray-100: #f3f4f6;
-    --gray-200: #e5e7eb;
-    --gray-300: #d1d5db;
-    --gray-400: #9ca3af;
-    --gray-500: #6b7280;
-    --gray-600: #4b5563;
-    --gray-700: #374151;
-    --gray-800: #1f2937;
-    --gray-900: #111827;
-}
-
-.discounts-page {
-    padding: 20px;
-    max-width: 1400px;
-    margin: 0 auto;
-}
-
-.admin-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 24px;
-    flex-wrap: wrap;
-    gap: 16px;
-}
-
-.admin-header h2 {
-    margin: 0;
-    font-size: 1.75rem;
-    font-weight: 700;
-    color: var(--gray-900);
-}
-
-.admin-actions {
-    display: flex;
-    gap: 10px;
-    flex-wrap: wrap;
-}
-
-/* Filters Bar */
-.filters-bar {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    background: white;
-    padding: 16px 20px;
-    border-radius: 12px;
-    margin-bottom: 20px;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-    border: 1px solid var(--gray-200);
-}
-
-.checkbox-label {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    cursor: pointer;
-    font-size: 0.9375rem;
-    color: var(--gray-700);
-}
-
-.checkbox-label input[type="checkbox"] {
-    width: 18px;
-    height: 18px;
-    cursor: pointer;
-}
-
-/* Badge Styles */
-.badge {
-    display: inline-flex;
-    align-items: center;
-    padding: 4px 10px;
-    border-radius: 20px;
-    font-size: 0.75rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.02em;
-}
-
-.badge-info {
-    background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
-    color: var(--primary);
-}
-
-.badge-success {
-    background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
-    color: #059669;
-}
-
-.badge-secondary {
-    background: var(--gray-100);
-    color: var(--gray-500);
-}
-
-/* Type Badges */
-.badge-percentage {
-    background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
-    color: #b45309;
-}
-
-.badge-fixed_amount {
-    background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
-    color: #047857;
-}
-
-.badge-free_kilometers {
-    background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
-    color: #1d4ed8;
-}
-
-.badge-price_cap {
-    background: linear-gradient(135deg, #fce7f3 0%, #fbcfe8 100%);
-    color: #be185d;
-}
-
-.badge-custom_rate {
-    background: linear-gradient(135deg, #e9d5ff 0%, #d8b4fe 100%);
-    color: #7c3aed;
-}
-
-.badge-tiered_percentage {
-    background: linear-gradient(135deg, #f3e8ff 0%, #e9d5ff 100%);
-    color: #7e22ce;
-}
-
-/* Scope Badges */
-.badge-scope {
-    font-size: 0.6875rem;
-}
-
-.badge-account {
-    background: #fef3c7;
-    color: #b45309;
-}
-
-.badge-global {
-    background: #d1fae5;
-    color: #047857;
-}
-
-.badge-code {
-    background: #dbeafe;
-    color: #1d4ed8;
-}
-
-.badge-first_order {
-    background: #fce7f3;
-    color: #be185d;
-}
-
-/* Data Table */
-.data-table-container {
-    background: white;
-    border-radius: 12px;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-    border: 1px solid var(--gray-200);
-    overflow: hidden;
-}
-
-.data-table {
-    width: 100%;
-    border-collapse: collapse;
-}
-
-.data-table th {
-    background: var(--gray-50);
-    padding: 14px 16px;
-    text-align: left;
-    font-size: 0.75rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: var(--gray-600);
-    border-bottom: 2px solid var(--gray-200);
-}
-
-.data-table td {
-    padding: 16px;
-    border-bottom: 1px solid var(--gray-100);
-    vertical-align: middle;
-}
-
-.data-table tbody tr:hover {
-    background: var(--gray-50);
-}
-
-.data-table tbody tr:last-child td {
-    border-bottom: none;
-}
-
-.inactive-row {
-    opacity: 0.5;
-}
-
-.inactive-row:hover {
-    opacity: 0.7;
-}
-
-/* Cell Styles */
-.discount-id {
-    font-family: monospace;
-    font-size: 0.8125rem;
-    color: var(--gray-500);
-    background: var(--gray-100);
-    padding: 4px 8px;
-    border-radius: 4px;
-}
-
-.discount-name {
-    font-weight: 600;
-    color: var(--gray-900);
-    text-decoration: none;
-    transition: color 0.2s;
-}
-
-.discount-name:hover {
-    color: var(--primary);
-}
-
-.description-preview {
-    font-size: 0.8125rem;
-    color: var(--gray-500);
-    margin-top: 4px;
-}
-
-.promo-code {
-    margin-top: 6px;
-}
-
-.promo-code code {
-    font-family: monospace;
-    font-size: 0.75rem;
-    background: var(--gray-900);
-    color: #10b981;
-    padding: 4px 8px;
-    border-radius: 4px;
-}
-
-.conditions-list {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 4px;
-    font-size: 0.8125rem;
-}
-
-.condition-tag {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    color: var(--gray-600);
-    background: var(--gray-100);
-    padding: 2px 8px;
-    border-radius: 4px;
-}
-
-.condition-tag i {
-    color: var(--success);
-    font-size: 0.6875rem;
-}
-
-.user-count {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 0.875rem;
-    color: var(--gray-400);
-}
-
-.user-count.has-users {
-    color: var(--primary);
-    font-weight: 600;
-}
-
-.text-muted {
-    color: var(--gray-400);
-}
-
-.action-buttons {
-    display: flex;
-    gap: 8px;
-}
-
-.inline-form {
-    display: inline;
-}
-
-.hidden {
-    display: none;
-}
-
-/* Buttons */
-.btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    padding: 10px 18px;
-    border-radius: 8px;
-    font-weight: 600;
-    font-size: 0.875rem;
-    cursor: pointer;
-    transition: all 0.2s;
-    border: none;
-    text-decoration: none;
-}
-
-.btn-primary {
-    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
-    color: white;
-}
-
-.btn-primary:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
-}
-
-.btn-ghost {
-    background: transparent;
-    color: var(--gray-700);
-    border: 1px solid var(--gray-200);
-}
-
-.btn-ghost:hover {
-    background: var(--gray-50);
-    border-color: var(--gray-300);
-}
-
-.btn-sm {
-    padding: 6px 12px;
-    font-size: 0.8125rem;
-}
-
-.btn-action {
-    background: var(--gray-100);
-    border: 1px solid var(--gray-200);
-    color: var(--gray-800);
-    padding: 6px 14px;
-}
-
-.btn-action:hover {
-    background: var(--gray-200);
-    border-color: var(--gray-300);
-    color: var(--gray-900);
-}
-
-.btn-action i {
-    font-size: 0.875rem;
-}
-
-/* Empty State */
-.empty-state {
-    text-align: center;
-    padding: 60px 20px;
-    background: white;
-    border-radius: 12px;
-    border: 2px dashed var(--gray-300);
-}
-
-.empty-icon {
-    width: 80px;
-    height: 80px;
-    background: var(--gray-100);
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin: 0 auto 20px;
-}
-
-.empty-icon i {
-    font-size: 2rem;
-    color: var(--gray-400);
-}
-
-.empty-state h3 {
-    margin: 0 0 8px;
-    font-size: 1.25rem;
-    color: var(--gray-900);
-}
-
-.empty-state p {
-    margin: 0 0 24px;
-    color: var(--gray-500);
-}
-
-/* Stats Overview */
-.table-tools {
-    margin-bottom: 12px;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 12px;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.search-field {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    background: white;
-    border: 1px solid var(--gray-200);
-    border-radius: var(--radius);
-    padding: 8px 12px;
-    flex: 1;
-    min-width: 240px;
-}
-
-.search-field input {
-    border: none;
-    outline: none;
-    width: 100%;
-    font-size: 0.95rem;
-}
-
-.filter-field {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.filter-field select {
-    padding: 8px 12px;
-    border-radius: var(--radius);
-    border: 1px solid var(--gray-200);
-    background: white;
-}
-
-.table-empty-notice {
-    padding: 16px;
-    text-align: center;
-    color: var(--gray-500);
-}
-
-
-/* Responsive */
-@media (max-width: 768px) {
-    .admin-header {
-        flex-direction: column;
-        align-items: flex-start;
+    /* ===== Modern Discounts Page Styles ===== */
+    .discounts-page {
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 2rem;
     }
-    
-    .filters-bar {
-        flex-direction: column;
-        gap: 12px;
+
+    /* Page Header */
+    .page-header {
+        display: flex;
+        justify-content: space-between;
         align-items: flex-start;
+        margin-bottom: 2rem;
+        flex-wrap: wrap;
+        gap: 1.5rem;
     }
-    
-    .data-table-container {
+
+    .header-content h1 {
+        margin: 0;
+        font-size: 1.875rem;
+        font-weight: 700;
+        color: #1f2937;
+    }
+
+    .header-subtitle {
+        margin: 0.5rem 0 0;
+        color: #6b7280;
+        font-size: 0.9375rem;
+    }
+
+    .header-actions {
+        display: flex;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+    }
+
+    /* Stats Grid */
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .stat-card {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        background: white;
+        padding: 1.25rem;
+        border-radius: 12px;
+        border: 1px solid #e5e7eb;
+        transition: all 0.2s ease;
+    }
+
+    .stat-card:hover {
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        transform: translateY(-2px);
+    }
+
+    .stat-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .stat-icon svg {
+        width: 24px;
+        height: 24px;
+    }
+
+    .stat-icon-blue {
+        background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+        color: #2563eb;
+    }
+
+    .stat-icon-green {
+        background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+        color: #10b981;
+    }
+
+    .stat-icon-gray {
+        background: linear-gradient(135deg, #f9fafb 0%, #e5e7eb 100%);
+        color: #6b7280;
+    }
+
+    .stat-icon-purple {
+        background: linear-gradient(135deg, #f3e8ff 0%, #e9d5ff 100%);
+        color: #8b5cf6;
+    }
+
+    .stat-content {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .stat-value {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: #1f2937;
+        line-height: 1;
+    }
+
+    .stat-label {
+        font-size: 0.8125rem;
+        color: #6b7280;
+        margin-top: 0.25rem;
+    }
+
+    /* Toolbar */
+    .toolbar {
+        display: flex;
+        gap: 1rem;
+        margin-bottom: 1rem;
+        flex-wrap: wrap;
+        align-items: center;
+    }
+
+    .search-box {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        background: white;
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        padding: 0.625rem 1rem;
+        flex: 1;
+        min-width: 280px;
+        transition: all 0.2s;
+    }
+
+    .search-box:focus-within {
+        border-color: #2563eb;
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    }
+
+    .search-box svg {
+        color: #9ca3af;
+        flex-shrink: 0;
+    }
+
+    .search-box input {
+        border: none;
+        outline: none;
+        width: 100%;
+        font-size: 0.9375rem;
+        color: #1f2937;
+    }
+
+    .search-box input::placeholder {
+        color: #9ca3af;
+    }
+
+    .filter-controls {
+        display: flex;
+        gap: 1rem;
+        align-items: center;
+    }
+
+    .filter-select {
+        padding: 0.625rem 1rem;
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        background: white;
+        font-size: 0.875rem;
+        color: #374151;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .filter-select:focus {
+        outline: none;
+        border-color: #2563eb;
+    }
+
+    .toggle-label {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        cursor: pointer;
+        font-size: 0.875rem;
+        color: #6b7280;
+    }
+
+    .toggle-label input {
+        width: 16px;
+        height: 16px;
+        cursor: pointer;
+    }
+
+    /* Table Card */
+    .table-card {
+        background: white;
+        border-radius: 12px;
+        border: 1px solid #e5e7eb;
+        overflow: hidden;
+    }
+
+    .table-wrapper {
         overflow-x: auto;
     }
-    
-    .data-table {
-        min-width: 800px;
+
+    .modern-table {
+        width: 100%;
+        border-collapse: collapse;
     }
-}
+
+    .modern-table th {
+        background: #f9fafb;
+        padding: 0.875rem 1rem;
+        text-align: left;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: #6b7280;
+        border-bottom: 1px solid #e5e7eb;
+    }
+
+    .modern-table td {
+        padding: 1rem;
+        border-bottom: 1px solid #f3f4f6;
+        vertical-align: middle;
+    }
+
+    .modern-table tbody tr {
+        transition: background 0.15s ease;
+    }
+
+    .modern-table tbody tr:hover {
+        background: #f9fafb;
+    }
+
+    .modern-table tbody tr:last-child td {
+        border-bottom: none;
+    }
+
+    .inactive-row {
+        opacity: 0.55;
+    }
+
+    .inactive-row:hover {
+        opacity: 0.75;
+    }
+
+    /* Discount Info Cell */
+    .discount-info {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+    }
+
+    .discount-name {
+        font-weight: 600;
+        color: #1f2937;
+        text-decoration: none;
+        transition: color 0.2s;
+    }
+
+    .discount-name:hover {
+        color: #2563eb;
+    }
+
+    .discount-desc {
+        font-size: 0.8125rem;
+        color: #6b7280;
+    }
+
+    .discount-id {
+        font-family: monospace;
+        font-size: 0.75rem;
+        color: #9ca3af;
+    }
+
+    /* Value Display */
+    .value-display {
+        font-weight: 600;
+        color: #1f2937;
+        font-size: 0.9375rem;
+    }
+
+    /* Badges */
+    .badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.25rem 0.625rem;
+        border-radius: 9999px;
+        font-size: 0.6875rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+    }
+
+    /* Type Badges */
+    .badge-type-percentage {
+        background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+        color: #b45309;
+    }
+
+    .badge-type-fixed_amount {
+        background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+        color: #047857;
+    }
+
+    .badge-type-free_kilometers {
+        background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+        color: #1d4ed8;
+    }
+
+    .badge-type-price_cap {
+        background: linear-gradient(135deg, #fce7f3 0%, #fbcfe8 100%);
+        color: #be185d;
+    }
+
+    .badge-type-custom_rate {
+        background: linear-gradient(135deg, #e9d5ff 0%, #d8b4fe 100%);
+        color: #7c3aed;
+    }
+
+    .badge-type-tiered_percentage {
+        background: linear-gradient(135deg, #f3e8ff 0%, #e9d5ff 100%);
+        color: #7e22ce;
+    }
+
+    /* Scope Badges */
+    .badge-scope-account {
+        background: #fef3c7;
+        color: #b45309;
+    }
+
+    .badge-scope-global {
+        background: #d1fae5;
+        color: #047857;
+    }
+
+    .badge-scope-code {
+        background: #dbeafe;
+        color: #1d4ed8;
+    }
+
+    .badge-scope-first_order {
+        background: #fce7f3;
+        color: #be185d;
+    }
+
+    /* Promo Code */
+    .promo-code {
+        display: inline-block;
+        margin-top: 0.375rem;
+        font-family: monospace;
+        font-size: 0.75rem;
+        background: #1f2937;
+        color: #10b981;
+        padding: 0.25rem 0.5rem;
+        border-radius: 4px;
+    }
+
+    /* User Badge */
+    .user-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+        margin-left: 0.5rem;
+        font-size: 0.8125rem;
+        color: #2563eb;
+        font-weight: 500;
+    }
+
+    /* Conditions */
+    .conditions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.375rem;
+    }
+
+    .condition-chip {
+        font-size: 0.75rem;
+        background: #f3f4f6;
+        color: #4b5563;
+        padding: 0.25rem 0.5rem;
+        border-radius: 4px;
+    }
+
+    .condition-more {
+        font-size: 0.75rem;
+        color: #6b7280;
+        padding: 0.25rem 0.5rem;
+    }
+
+    /* Status Badge */
+    .status-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.375rem;
+        font-size: 0.8125rem;
+        font-weight: 500;
+    }
+
+    .status-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+    }
+
+    .status-active .status-dot {
+        background: #10b981;
+        box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
+    }
+
+    .status-active {
+        color: #059669;
+    }
+
+    .status-inactive .status-dot {
+        background: #9ca3af;
+    }
+
+    .status-inactive {
+        color: #6b7280;
+    }
+
+    /* Action Buttons */
+    .action-group {
+        display: flex;
+        gap: 0.5rem;
+    }
+
+    .action-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 36px;
+        height: 36px;
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        background: white;
+        color: #4b5563;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .action-btn:hover {
+        background: #f3f4f6;
+        border-color: #d1d5db;
+        color: #1f2937;
+    }
+
+    .action-btn-success:hover {
+        background: #ecfdf5;
+        border-color: #a7f3d0;
+        color: #059669;
+    }
+
+    .action-btn-warning:hover {
+        background: #fffbeb;
+        border-color: #fde68a;
+        color: #d97706;
+    }
+
+    .inline-form {
+        display: inline;
+    }
+
+    /* Empty State */
+    .empty-state {
+        text-align: center;
+        padding: 4rem 2rem;
+    }
+
+    .empty-icon {
+        width: 100px;
+        height: 100px;
+        margin: 0 auto 1.5rem;
+        background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #9ca3af;
+    }
+
+    .empty-state h3 {
+        margin: 0 0 0.5rem;
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: #1f2937;
+    }
+
+    .empty-state p {
+        margin: 0 0 1.5rem;
+        color: #6b7280;
+    }
+
+    .empty-search {
+        text-align: center;
+        padding: 2rem;
+        color: #9ca3af;
+    }
+
+    .empty-search p {
+        margin: 1rem 0 0;
+        color: #6b7280;
+    }
+
+    .hidden {
+        display: none !important;
+    }
+
+    .text-muted {
+        color: #9ca3af;
+    }
+
+    /* Buttons */
+    .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.625rem 1rem;
+        border-radius: 8px;
+        font-weight: 500;
+        font-size: 0.875rem;
+        cursor: pointer;
+        transition: all 0.2s;
+        border: none;
+        text-decoration: none;
+    }
+
+    .btn-primary {
+        background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+        color: white;
+    }
+
+    .btn-primary:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+    }
+
+    .btn-ghost {
+        background: white;
+        color: #374151;
+        border: 1px solid #e5e7eb;
+    }
+
+    .btn-ghost:hover {
+        background: #f9fafb;
+        border-color: #d1d5db;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+        .discounts-page {
+            padding: 1rem;
+        }
+
+        .page-header {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .header-actions {
+            flex-wrap: wrap;
+        }
+
+        .stats-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+
+        .toolbar {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .search-box {
+            min-width: 100%;
+        }
+
+        .filter-controls {
+            flex-wrap: wrap;
+        }
+
+        .modern-table {
+            min-width: 900px;
+        }
+    }
 </style>
 
 <script>
-document.addEventListener("DOMContentLoaded", function () {
-    const searchInput = document.getElementById("discountSearch");
-    const filterSelect = document.getElementById("discountFilter");
-    const rows = Array.from(document.querySelectorAll(".discounts-table tbody tr"));
-    const emptyNotice = document.getElementById("tableEmptyNotice");
+    document.addEventListener("DOMContentLoaded", function () {
+        const searchInput = document.getElementById("discountSearch");
+        const filterSelect = document.getElementById("discountFilter");
+        const showInactive = document.getElementById("showInactive");
+        const rows = Array.from(document.querySelectorAll(".modern-table tbody tr"));
+        const emptyNotice = document.getElementById("tableEmptyNotice");
 
-    function applyFilters() {
-        const searchTerm = (searchInput?.value || "").toLowerCase().trim();
-        const filter = filterSelect?.value || "";
-        let visible = 0;
+        function applyFilters() {
+            const searchTerm = (searchInput?.value || "").toLowerCase().trim();
+            const filter = filterSelect?.value || "";
+            const includeInactive = showInactive?.checked || false;
+            let visible = 0;
 
-        rows.forEach(row => {
-            const name = row.dataset.name || "";
-            const type = row.dataset.type || "";
-            const scope = row.dataset.scope || "";
-            const status = row.dataset.status || "";
-            const code = row.dataset.code || "";
-            const description = row.dataset.description || "";
+            rows.forEach(row => {
+                const name = row.dataset.name || "";
+                const type = row.dataset.type || "";
+                const scope = row.dataset.scope || "";
+                const status = row.dataset.status || "";
+                const code = row.dataset.code || "";
+                const description = row.dataset.description || "";
 
-            const matchesText = !searchTerm || [name, type, scope, code, description].some(val => val.includes(searchTerm));
-            let matchesFilter = true;
-            if (filter === "active" || filter === "inactive") {
-                matchesFilter = status === filter;
-            } else if (filter) {
-                matchesFilter = scope === filter;
+                // Check if row matches text search
+                const matchesText = !searchTerm || [name, type, scope, code, description].some(val => val.includes(searchTerm));
+
+                // Check if row matches dropdown filter
+                let matchesFilter = true;
+                if (filter === "active" || filter === "inactive") {
+                    matchesFilter = status === filter;
+                } else if (filter) {
+                    matchesFilter = scope === filter;
+                }
+
+                // Check if row should be hidden based on inactive status
+                const matchesInactive = includeInactive || status !== "inactive";
+
+                if (matchesText && matchesFilter && matchesInactive) {
+                    row.style.display = "";
+                    visible += 1;
+                } else {
+                    row.style.display = "none";
+                }
+            });
+
+            if (emptyNotice) {
+                emptyNotice.classList.toggle("hidden", visible > 0);
             }
-
-            if (matchesText && matchesFilter) {
-                row.style.display = "";
-                visible += 1;
-            } else {
-                row.style.display = "none";
-            }
-        });
-
-        if (emptyNotice) {
-            emptyNotice.style.display = visible ? "none" : "block";
         }
-    }
 
-    searchInput?.addEventListener("input", () => applyFilters());
-    filterSelect?.addEventListener("change", applyFilters);
+        searchInput?.addEventListener("input", () => applyFilters());
+        filterSelect?.addEventListener("change", applyFilters);
+        showInactive?.addEventListener("change", applyFilters);
 
-    applyFilters();
-});
+        applyFilters();
+    });
 </script>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/admin_navigation.js') }}"></script>
 {% endblock %}

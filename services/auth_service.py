@@ -14,9 +14,14 @@ class AuthService:
     def __init__(self):
         self.user_model = user_model
 
-    def login(self, email: str, password: str) -> Tuple[bool, Optional[Dict], Optional[str]]:
+    def login(self, email: str, password: str, remember: bool = False) -> Tuple[bool, Optional[Dict], Optional[str]]:
         """
         Authenticate user and create session
+
+        Args:
+            email: User email
+            password: User password
+            remember: If True, session will persist for 30 days
 
         Returns:
             Tuple[bool, Optional[Dict], Optional[str]]: (success, user_data, error_message)
@@ -30,6 +35,10 @@ class AuthService:
         session["uid"] = user["id"]
         session["user_email"] = user["email"]
         session["user_role"] = user["role"]
+        
+        # Set session as permanent if remember is True (30 days)
+        if remember:
+            session.permanent = True
 
         return True, user, None
 

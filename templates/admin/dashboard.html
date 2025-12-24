@@ -5,16 +5,8 @@
 
 {% block content %}
 <div class="admin-container">
-  <div class="admin-header">
-    <h2>Admin – Tilaukset</h2>
-    <div class="admin-actions">
-      <a class="btn btn-ghost" href="/admin/users">Käyttäjät</a>
-      <a class="btn btn-ghost" href="/admin/drivers">Kuljettajat</a>
-      <a class="btn btn-ghost" href="/admin/driver-applications">Kuljettajahakemukset</a>
-      <a class="btn btn-ghost" href="/admin/discounts">Alennukset</a>
-      <a class="btn btn-secondary" href="/logout">Kirjaudu ulos</a>
-    </div>
-  </div>
+  {% block admin_title %}Tilaukset{% endblock %}
+  {% include "admin/navigation.html" %}
 
   <table class="admin-table">
     <thead>
@@ -67,7 +59,7 @@
         <td>
           <strong>#{{ order.id }}</strong>
           {% if order.trip_type %}
-            <span class="trip-type-badge trip-type-{{ order.trip_type.lower() }}">{{ order.trip_type }}</span>
+          <span class="trip-type-badge trip-type-{{ order.trip_type.lower() }}">{{ order.trip_type }}</span>
           {% endif %}
         </td>
         <td><span class="status {{ order.status }}">{{ status_fi }}</span></td>
@@ -76,7 +68,8 @@
             visibility_icon }}</span></td>
         <td>
           <div>{{ order.get('customer_name', '?') }}</div>
-          {% if order.get('customer_phone') %}<div class="admin-customer-phone">{{ order.get('customer_phone') }}</div>{% endif %}
+          {% if order.get('customer_phone') %}<div class="admin-customer-phone">{{ order.get('customer_phone') }}</div>
+          {% endif %}
         </td>
         <td>{{ driver_info }}</td>
         <td>{{ order.pickup_address }} → {{ order.dropoff_address }}</td>
@@ -99,4 +92,8 @@
     </tbody>
   </table>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/admin_navigation.js') }}"></script>
 {% endblock %}

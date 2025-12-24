@@ -1,33 +1,15 @@
 {% extends "base/layout.html" %}
-{% import 'components/icons.html' as icons %}
 
 {% block title %}Kuljettajien hallinta – Admin{% endblock %}
 
 {% block content %}
 <div class="admin-container">
-  <div class="admin-header">
-    <h2>Kuljettajien hallinta</h2>
-    <div class="admin-actions">
-      <a class="btn btn-ghost" href="{{ url_for('main.admin_dashboard') }}">Takaisin tilauksiin</a>
-      <a class="btn btn-ghost" href="{{ url_for('admin.users') }}">Käyttäjät</a>
-      <a class="btn btn-secondary" href="{{ url_for('auth.logout') }}">Kirjaudu ulos</a>
-    </div>
-  </div>
+  {% include "admin/navigation.html" %}
 
-  {% with messages = get_flashed_messages(with_categories=true) %}
-  {% if messages %}
-  {% for category, message in messages %}
-  <div class="alert alert-{% if category == 'error' %}danger{% else %}{{ category }}{% endif %} mb-4">
-    {{ message }}
-  </div>
-  {% endfor %}
-  {% endif %}
-  {% endwith %}
+  <p class="admin-description">Hallinnoi kuljettajia ja heidän suorituskykytilastojaan.</p>
 
-  <!-- Driver Statistics -->
-  <div class="mb-6">
-    <h3>Kuljettajat</h3>
-    <table class="admin-table admin-users-table">
+  <div class="admin-table-card">
+    <table class="admin-table">
       <thead>
         <tr>
           <th>ID</th>
@@ -44,28 +26,26 @@
       <tbody>
         {% if drivers_performance %}
         {% for driver in drivers_performance %}
-        {% set status_class = 'status-confirmed' if driver.get('status') == 'active' else 'status-new' %}
-        {% set status_text = '✓ Aktiivinen' if driver.get('status') == 'active' else '- Odottaa' %}
+        {% set status_class = 'admin-status-active' if driver.get('status') == 'active' else 'admin-status-pending' %}
+        {% set status_text = 'Aktiivinen' if driver.get('status') == 'active' else 'Odottaa' %}
         <tr>
-          <td>#{{ driver.id }}</td>
+          <td><strong>#{{ driver.id }}</strong></td>
           <td>{{ driver.name }}</td>
           <td>{{ driver.email }}</td>
-          <td><span class="status {{ status_class }}">{{ status_text }}</span></td>
+          <td><span class="admin-status {{ status_class }}">{{ status_text }}</span></td>
           <td>{{ driver.total_jobs }}</td>
           <td>{{ driver.completed_jobs }}</td>
           <td>{{ driver.active_jobs }}</td>
           <td>{{ driver.created_at | helsinki_time if driver.created_at else '-' }}</td>
           <td>
             <form method="POST" action="{{ url_for('admin.delete_driver', driver_id=driver.id) }}"
-                  onsubmit="return confirm('Haluatko varmasti poistaa kuljettajan {{ driver.name }}? Tätä toimintoa ei voi peruuttaa.');"
-                  style="display: inline;">
-              <button type="submit"
-                      class="btn btn-sm btn-danger"
-                      {% if driver.active_jobs > 0 %}
-                      title="Kuljettajalla on aktiivisia tilauksia, ei voi poistaa"
-                      disabled
-                      {% endif %}>
-                {{ icons.alert(16, '#fff', 'icon-inline') }} Poista
+              onsubmit="return confirm('Haluatko varmasti poistaa kuljettajan {{ driver.name }}?');"
+              style="display: inline;">
+              <button type="submit" class="admin-btn admin-btn-danger admin-btn-sm" {% if driver.active_jobs> 0 %}
+                title="Kuljettajalla on aktiivisia tilauksia"
+                disabled
+                {% endif %}>
+                Poista
               </button>
             </form>
           </td>
@@ -73,7 +53,18 @@
         {% endfor %}
         {% else %}
         <tr>
-          <td colspan="9" class="muted">Ei kuljettajia</td>
+          <td colspan="9">
+            <div class="admin-empty">
+              <div class="admin-empty-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
+                  <circle cx="12" cy="7" r="4" />
+                </svg>
+              </div>
+              <h3>Ei kuljettajia</h3>
+              <p>Kuljettajia ei ole vielä rekisteröity.</p>
+            </div>
+          </td>
         </tr>
         {% endif %}
       </tbody>

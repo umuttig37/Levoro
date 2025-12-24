@@ -81,6 +81,12 @@ IMAGE_QUALITY = 80
 app = Flask(__name__)
 app.secret_key = os.getenv("SECRET_KEY", secrets.token_hex(16))
 
+# Session configuration for "remember me" functionality
+from datetime import timedelta
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=30)
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+app.config['SESSION_COOKIE_HTTPONLY'] = True
+
 # Configure email service
 mail = email_service.configure_mail(app)
 # --- Compat: pudota tuntematon 'partitioned' kwarg vanhasta Werkzeugista ---

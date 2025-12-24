@@ -5,13 +5,8 @@
 
 {% block content %}
 <div class="admin-container">
-  <div class="admin-header">
-    <h2>Kuljettajahakemus #{{ application.id }}</h2>
-    <div class="admin-actions">
-      <a class="btn btn-ghost" href="{{ url_for('admin.driver_applications') }}">← Takaisin hakemuksiin</a>
-      <a class="btn btn-secondary" href="{{ url_for('auth.logout') }}">Kirjaudu ulos</a>
-    </div>
-  </div>
+  {% block admin_title %}Kuljettajahakemus #{{ application.id }}{% endblock %}
+  {% include "admin/navigation.html" %}
 
   {% with messages = get_flashed_messages(with_categories=true) %}
   {% if messages %}
@@ -228,4 +223,7 @@
   }
 </script>
 
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/admin_navigation.js') }}"></script>
+{% endblock %}
 {% endblock %}

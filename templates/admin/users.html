@@ -1,116 +1,115 @@
 {% extends "base/layout.html" %}
-{% import 'components/icons.html' as icons %}
 
 {% block title %}Käyttäjien hallinta – Admin{% endblock %}
 
 {% block content %}
 <div class="admin-container">
-  <div class="admin-header">
-    <h2>Käyttäjien hallinta</h2>
-    <div class="admin-actions">
-      <a class="btn btn-ghost" href="{{ url_for('main.admin_dashboard') }}">Takaisin tilauksiin</a>
-      <a class="btn btn-ghost" href="{{ url_for('admin.drivers') }}">Kuljettajat</a>
-      <a class="btn btn-secondary" href="{{ url_for('auth.logout') }}">Kirjaudu ulos</a>
-    </div>
-  </div>
+  {% include "admin/navigation.html" %}
 
-  {% with messages = get_flashed_messages(with_categories=true) %}
-  {% if messages %}
-  {% for category, message in messages %}
-  <div class="alert alert-{% if category == 'error' %}danger{% else %}{{ category }}{% endif %} mb-4">
-    {{ message }}
-  </div>
-  {% endfor %}
-  {% endif %}
-  {% endwith %}
+  <p class="admin-description">Hallinnoi käyttäjätilien hyväksyntää ja hylkäämistä.</p>
 
-  <p class="text-muted">Hallinnoi käyttäjätilien hyväksyntää ja hylkäämistä.</p>
+  <div class="admin-table-card">
+    <table class="admin-table">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Nimi</th>
+          <th>Sähköposti</th>
+          <th>Puhelin</th>
+          <th>Rooli</th>
+          <th>Tila</th>
+          <th>Luotu</th>
+          <th>Toiminnot</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% if users %}
+        {% for user in users %}
+        {% set user_status = user.get('status', 'active') %}
+        {% if user_status == 'active' %}
+        {% set status_text = 'Aktiivinen' %}
+        {% set status_class = 'admin-status-active' %}
+        {% set is_active = true %}
+        {% elif user_status == 'pending' %}
+        {% set status_text = 'Odottaa' %}
+        {% set status_class = 'admin-status-pending' %}
+        {% set is_active = false %}
+        {% else %}
+        {% set status_text = user_status %}
+        {% set status_class = 'admin-status-pending' %}
+        {% set is_active = false %}
+        {% endif %}
 
-  <table class="admin-table admin-users-table">
-    <thead>
-      <tr>
-        <th>ID</th>
-        <th>Nimi</th>
-        <th>Sähköposti</th>
-        <th>Puhelin</th>
-        <th>Rooli</th>
-        <th>Tila</th>
-        <th>Luotu</th>
-        <th>Toiminnot</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% if users %}
-      {% for user in users %}
-      {% set user_status = user.get('status', 'active') %}
-      {% if user_status == 'active' %}
-      {% set status_text = 'Aktiivinen' %}
-      {% set status_class = 'status-confirmed' %}
-      {% set is_active = true %}
-      {% elif user_status == 'pending' %}
-      {% set status_text = '- Odottaa hyväksyntää' %}
-      {% set status_class = 'status-new' %}
-      {% set is_active = false %}
-      {% else %}
-      {% set status_text = '❓ ' + user_status %}
-      {% set status_class = 'status-new' %}
-      {% set is_active = false %}
-      {% endif %}
+        {% if user.get('role') == 'admin' %}
+        {% set role_badge = 'Admin' %}
+        {% set role_class = 'admin-role-admin' %}
+        {% elif user.get('role') == 'driver' %}
+        {% set role_badge = 'Kuljettaja' %}
+        {% set role_class = 'admin-role-driver' %}
+        {% else %}
+        {% set role_badge = 'Asiakas' %}
+        {% set role_class = 'admin-role-customer' %}
+        {% endif %}
 
-      {% if user.get('role') == 'admin' %}
-      {% set role_badge = 'Admin' %}
-      {% set role_class = 'role-admin' %}
-      {% elif user.get('role') == 'driver' %}
-      {% set role_badge = 'Kuljettaja' %}
-      {% set role_class = 'role-driver' %}
-      {% else %}
-      {% set role_badge = 'Asiakas' %}
-      {% set role_class = 'role-customer' %}
-      {% endif %}
-
-      <tr>
-        <td>#{{ user.id }}</td>
-        <td>{{ user.name }}</td>
-        <td>{{ user.email }}</td>
-        <td>{{ user.phone or '-' }}</td>
-        <td><span class="pill {{ role_class }}">{{ role_badge }}</span></td>
-        <td><span class="status {{ status_class }}">{{ status_text }}</span></td>
-        <td>{{ user.created_at | helsinki_time if user.created_at else '-' }}</td>
-        <td>
-          {% if user.get('role') != 'admin' and user.get('role') != 'driver' %}
-          {% if is_active %}
-          <form method="POST" action="{{ url_for('admin.deny_user') }}" class="admin-inline-form">
-            <input type="hidden" name="user_id" value="{{ user.id }}">
-            <button type="submit" class="btn btn-sm" style="background: #dc2626; color: white;"
-              onclick="return confirm('Haluatko varmasti poistaa käyttäjän {{ user.name }} ({{ user.email }})? Tätä toimintoa ei voi peruuttaa.')">
-              Poista käyttäjä
-            </button>
-          </form>
-          {% else %}
-          <div class="admin-inline-form">
-            <form method="POST" action="{{ url_for('admin.approve_user') }}" class="admin-inline-form">
-              <input type="hidden" name="user_id" value="{{ user.id }}">
-              <button type="submit" class="btn btn-success btn-sm">Hyväksy</button>
-            </form>
+        <tr>
+          <td><strong>#{{ user.id }}</strong></td>
+          <td>{{ user.name }}</td>
+          <td>{{ user.email }}</td>
+          <td>{{ user.phone or '-' }}</td>
+          <td><span class="admin-role {{ role_class }}">{{ role_badge }}</span></td>
+          <td><span class="admin-status {{ status_class }}">{{ status_text }}</span></td>
+          <td>{{ user.created_at | helsinki_time if user.created_at else '-' }}</td>
+          <td>
+            {% if user.get('role') != 'admin' and user.get('role') != 'driver' %}
+            {% if is_active %}
             <form method="POST" action="{{ url_for('admin.deny_user') }}" class="admin-inline-form">
               <input type="hidden" name="user_id" value="{{ user.id }}">
-              <button type="submit" class="btn btn-sm" style="background: #dc2626; color: white;"
-                onclick="return confirm('Haluatko varmasti hylätä käyttäjän {{ user.name }} ({{ user.email }})? Käyttäjä poistetaan pysyvästi.')">
-                Hylkää
+              <button type="submit" class="admin-btn admin-btn-danger admin-btn-sm"
+                onclick="return confirm('Haluatko varmasti poistaa käyttäjän {{ user.name }}?')">
+                Poista
               </button>
             </form>
-          </div>
-          {% endif %}
-          {% endif %}
-        </td>
-      </tr>
-      {% endfor %}
-      {% else %}
-      <tr>
-        <td colspan="8" class="muted">Ei käyttäjiä</td>
-      </tr>
-      {% endif %}
-    </tbody>
-  </table>
+            {% else %}
+            <div class="admin-inline-form">
+              <form method="POST" action="{{ url_for('admin.approve_user') }}" class="admin-inline-form">
+                <input type="hidden" name="user_id" value="{{ user.id }}">
+                <button type="submit" class="admin-btn admin-btn-success admin-btn-sm">Hyväksy</button>
+              </form>
+              <form method="POST" action="{{ url_for('admin.deny_user') }}" class="admin-inline-form">
+                <input type="hidden" name="user_id" value="{{ user.id }}">
+                <button type="submit" class="admin-btn admin-btn-danger admin-btn-sm"
+                  onclick="return confirm('Haluatko varmasti hylätä käyttäjän {{ user.name }}?')">
+                  Hylkää
+                </button>
+              </form>
+            </div>
+            {% endif %}
+            {% else %}
+            <span class="text-muted">—</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+        {% else %}
+        <tr>
+          <td colspan="8">
+            <div class="admin-empty">
+              <div class="admin-empty-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                  <circle cx="9" cy="7" r="4" />
+                  <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                  <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                </svg>
+              </div>
+              <h3>Ei käyttäjiä</h3>
+              <p>Käyttäjiä ei löytynyt.</p>
+            </div>
+          </td>
+        </tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
 </div>
 {% endblock %}

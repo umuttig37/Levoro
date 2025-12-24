@@ -1,5 +1,5 @@
 # marketing.py
-from flask import redirect, url_for
+from flask import redirect, url_for, request
 from services.auth_service import auth_service
 
 # Import wrap function and app from app - will be available after app initialization
@@ -15,15 +15,18 @@ app = get_app()
 
 @app.get("/yhteystiedot")
 def contact():
-    u = auth_service.get_current_user()
-    from app import render_template
-    return render_template("contact.html", current_user=u)
+    # Redirect to home page hash anchor since user requested no separate page
+    return redirect(url_for('main.index', _anchor='contact'))
 
 @app.get("/calculator")
 def calculator():
     u = auth_service.get_current_user()
     if not u:
-        return redirect(url_for("auth.login", next="/calculator"))
+        # Preserve query params (pickup, destination) when redirecting to login
+        next_url = "/calculator"
+        if request.query_string:
+            next_url = f"/calculator?{request.query_string.decode('utf-8')}"
+        return redirect(url_for("auth.login", next=next_url))
 
     # Drivers cannot access calculator - redirect to their dashboard
     if u.get('role') == 'driver':
@@ -850,6 +853,26 @@ function initCalculatorAutocomplete() {
         { placeIdInput: document.getElementById('to_place_id') }
       );
     }
+
+    // Pre-fill from URL query params (e.g., after login redirect)
+    const urlParams = new URLSearchParams(window.location.search);
+    const pickupParam = urlParams.get('pickup');
+    const destinationParam = urlParams.get('destination');
+    
+    if (pickupParam && fromInput) {
+      fromInput.value = pickupParam;
+    }
+    if (destinationParam && toInput) {
+      toInput.value = destinationParam;
+    }
+    
+    // Auto-calculate if both addresses are provided from URL params
+    if (pickupParam && destinationParam && fromInput && toInput) {
+      // Small delay to ensure everything is initialized
+      setTimeout(function() {
+        calc();
+      }, 200);
+    }
   }, 50);
 }
 
@@ -1214,4 +1237,18 @@ function editAddress(index) {
 <!-- Load React Saved Addresses Component from Vite Dev Server -->
 <script type="module" src="http://localhost:5173/src/savedAddresses.tsx"></script>
 """
+
+    # Inject autofill values and auto-calc trigger if params are present
+    pickup_val = (request.args.get("pickup") or "").strip()
+    dropoff_val = (request.args.get("destination") or request.args.get("dropoff") or "").strip()
+
+    if pickup_val:
+        body = body.replace('name="from_addr">', f'name="from_addr" value="{pickup_val}">')
+        
+    if dropoff_val:
+        body = body.replace('name="to_addr">', f'name="to_addr" value="{dropoff_val}">')
+
+    if pickup_val and dropoff_val:
+        body += "<script>window.addEventListener('load', function(){ setTimeout(function(){ if(typeof calc === 'function') calc(); }, 800); });</script>"
+
     return get_wrap()(body, u)

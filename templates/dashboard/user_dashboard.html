@@ -17,17 +17,16 @@
       <div class="user-orders-header">
         <h2 class="user-orders-title">
           Tilaushistoria
-          <span class="user-orders-count">{{ orders|length }} tilausta</span>
+          <span class="user-orders-count" id="ordersCount">{{ orders|length }} tilausta</span>
         </h2>
       </div>
 
       <div class="user-dashboard-inner">
-        {% set current_tab = request.args.get('tab', 'active') %}
         <div class="tabs mb-4">
-          <a href="/dashboard?tab=active"
-            class="btn {% if current_tab == 'active' %}btn-primary{% else %}btn-ghost{% endif %} mr-2">Aktiiviset</a>
-          <a href="/dashboard?tab=completed"
-            class="btn {% if current_tab == 'completed' %}btn-primary{% else %}btn-ghost{% endif %}">Valmistuneet</a>
+          <button type="button" class="btn btn-primary mr-2 tab-btn" data-tab="active"
+            id="tabActive">Aktiiviset</button>
+          <button type="button" class="btn btn-ghost tab-btn" data-tab="completed"
+            id="tabCompleted">Valmistuneet</button>
         </div>
 
         <div class="calculator-actions mb-4">
@@ -48,9 +47,9 @@
               <th>Toiminnot</th>
             </tr>
           </thead>
-          <tbody>
-            {% if orders %}
-            {% for order in orders %}
+          <tbody id="ordersTableBody">
+            {% if all_orders %}
+            {% for order in all_orders %}
             {% set status_fi = {
             'NEW': 'Uusi',
             'CONFIRMED': 'Vahvistettu',
@@ -79,11 +78,13 @@
             'CANCELLED': 'cancelled'
             }.get(order.status, 'pending') %}
 
-            <tr>
+            {% set is_completed = order.status in ['DELIVERED', 'COMPLETED', 'CANCELLED'] %}
+
+            <tr class="order-row" data-status="{{ 'completed' if is_completed else 'active' }}">
               <td class="user-orders-id">
                 #{{ order.id }}
                 {% if order.trip_type %}
-                  <span class="trip-type-badge trip-type-{{ order.trip_type.lower() }}">{{ order.trip_type }}</span>
+                <span class="trip-type-badge trip-type-{{ order.trip_type.lower() }}">{{ order.trip_type }}</span>
                 {% endif %}
               </td>
               <td class="user-orders-status">
@@ -105,25 +106,22 @@
               </td>
             </tr>
             {% endfor %}
-            {% else %}
-            <tr>
-              <td colspan="6" class="user-orders-empty">
-                <div class="empty-state">
-                  {{ icons.package(48, '#94a3b8') }}
-                  <div class="empty-title">Ei tilauksia</div>
-                  <div class="empty-text">Luo ensimmäinen tilauksesi yllä olevalla napilla</div>
-                </div>
-              </td>
-            </tr>
             {% endif %}
           </tbody>
         </table>
+        <div id="tableEmpty" class="user-orders-empty" style="display: none;">
+          <div class="empty-state">
+            {{ icons.package(48, '#94a3b8') }}
+            <div class="empty-title">Ei tilauksia</div>
+            <div class="empty-text" id="emptyText">Luo ensimmäinen tilauksesi yllä olevalla napilla</div>
+          </div>
+        </div>
       </div>
 
       <!-- Mobile Card View -->
-      <div class="user-orders-cards">
-        {% if orders %}
-        {% for order in orders %}
+      <div class="user-orders-cards" id="ordersCards">
+        {% if all_orders %}
+        {% for order in all_orders %}
         {% set status_fi = {
         'NEW': 'Uusi',
         'CONFIRMED': 'Vahvistettu',
@@ -152,14 +150,17 @@
         'CANCELLED': 'cancelled'
         }.get(order.status, 'pending') %}
 
-        <article class="order-card" role="article" aria-label="Tilaus {{ order.id }}">
+        {% set is_completed = order.status in ['DELIVERED', 'COMPLETED', 'CANCELLED'] %}
+
+        <article class="order-card order-card-item" data-status="{{ 'completed' if is_completed else 'active' }}"
+          role="article" aria-label="Tilaus {{ order.id }}">
           <!-- Card Header -->
           <div class="order-card-header">
             <div class="order-card-id">
               {{ icons.clipboard(20, '#2563eb') }}
               <span>#{{ order.id }}</span>
               {% if order.trip_type %}
-                <span class="trip-type-badge trip-type-{{ order.trip_type.lower() }}">{{ order.trip_type }}</span>
+              <span class="trip-type-badge trip-type-{{ order.trip_type.lower() }}">{{ order.trip_type }}</span>
               {% endif %}
             </div>
             <span class="user-status-badge {{ status_class }}" role="status" aria-label="Tilauksen tila">{{ status_fi
@@ -226,17 +227,98 @@
           </a>
         </article>
         {% endfor %}
-        {% else %}
-        <div class="user-orders-empty">
-          <div class="empty-state">
-            {{ icons.package(64, '#94a3b8') }}
-            <div class="empty-title">Ei tilauksia</div>
-            <div class="empty-text">Luo ensimmäinen tilauksesi yllä olevalla napilla</div>
-          </div>
-        </div>
         {% endif %}
+      </div>
+      <div id="cardsEmpty" class="user-orders-empty" style="display: none;">
+        <div class="empty-state">
+          {{ icons.package(64, '#94a3b8') }}
+          <div class="empty-title">Ei tilauksia</div>
+          <div class="empty-text">Luo ensimmäinen tilauksesi yllä olevalla napilla</div>
+        </div>
       </div>
     </div>
   </div>
 </div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const tabActive = document.getElementById('tabActive');
+    const tabCompleted = document.getElementById('tabCompleted');
+    const tableRows = document.querySelectorAll('.order-row');
+    const cardItems = document.querySelectorAll('.order-card-item');
+    const tableEmpty = document.getElementById('tableEmpty');
+    const cardsEmpty = document.getElementById('cardsEmpty');
+    const ordersCount = document.getElementById('ordersCount');
+    const emptyText = document.getElementById('emptyText');
+
+    let currentTab = 'active';
+
+    function filterOrders(tab) {
+      currentTab = tab;
+      let visibleCount = 0;
+
+      // Update tab buttons
+      if (tab === 'active') {
+        tabActive.classList.remove('btn-ghost');
+        tabActive.classList.add('btn-primary');
+        tabCompleted.classList.remove('btn-primary');
+        tabCompleted.classList.add('btn-ghost');
+      } else {
+        tabCompleted.classList.remove('btn-ghost');
+        tabCompleted.classList.add('btn-primary');
+        tabActive.classList.remove('btn-primary');
+        tabActive.classList.add('btn-ghost');
+      }
+
+      // Filter table rows
+      tableRows.forEach(row => {
+        if (row.dataset.status === tab) {
+          row.style.display = '';
+          visibleCount++;
+        } else {
+          row.style.display = 'none';
+        }
+      });
+
+      // Filter card items
+      cardItems.forEach(card => {
+        if (card.dataset.status === tab) {
+          card.style.display = '';
+        } else {
+          card.style.display = 'none';
+        }
+      });
+
+      // Update count
+      const tabText = tab === 'active' ? 'aktiivista' : 'valmistunutta';
+      ordersCount.textContent = visibleCount + ' ' + tabText;
+
+      // Show/hide empty state
+      const showEmpty = visibleCount === 0;
+      if (tableEmpty) tableEmpty.style.display = showEmpty ? '' : 'none';
+      if (cardsEmpty) cardsEmpty.style.display = showEmpty ? '' : 'none';
+
+      // Update empty text
+      if (emptyText) {
+        emptyText.textContent = tab === 'active'
+          ? 'Luo ensimmäinen tilauksesi yllä olevalla napilla'
+          : 'Ei valmistuneita tilauksia';
+      }
+
+      // Update URL without reload (for bookmarking)
+      const url = new URL(window.location);
+      url.searchParams.set('tab', tab);
+      window.history.replaceState({}, '', url);
+    }
+
+    // Add click handlers
+    tabActive.addEventListener('click', () => filterOrders('active'));
+    tabCompleted.addEventListener('click', () => filterOrders('completed'));
+
+    // Initialize based on URL param or default to active
+    const urlParams = new URLSearchParams(window.location.search);
+    const initialTab = urlParams.get('tab') || 'active';
+    filterOrders(initialTab);
+  });
+</script>
 {% endblock %}

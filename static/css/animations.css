@@ -1,0 +1,763 @@
+/* ==========================================================================
+   Animations - Professional Animation System
+   ========================================================================== */
+
+/* ==========================================================================
+   Base Keyframes
+   ========================================================================== */
+
+/* Fade Up Animation */
+@keyframes fade-up {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Fade In Animation */
+@keyframes fade-in {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+/* Slide Left Animation */
+@keyframes slide-left {
+    from {
+        opacity: 0;
+        transform: translateX(40px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+/* Slide Right Animation */
+@keyframes slide-right {
+    from {
+        opacity: 0;
+        transform: translateX(-40px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+/* Scale In Animation */
+@keyframes scale-in {
+    from {
+        opacity: 0;
+        transform: scale(0.92);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+/* Bounce Animation */
+@keyframes bounce {
+
+    0%,
+    20%,
+    50%,
+    80%,
+    100% {
+        transform: translateY(0);
+    }
+
+    40% {
+        transform: translateY(-8px);
+    }
+
+    60% {
+        transform: translateY(-4px);
+    }
+}
+
+/* Pulse Animation */
+@keyframes pulse {
+    0% {
+        transform: scale(1);
+        box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4);
+    }
+
+    70% {
+        transform: scale(1.02);
+        box-shadow: 0 0 0 10px rgba(59, 130, 246, 0);
+    }
+
+    100% {
+        transform: scale(1);
+        box-shadow: 0 0 0 0 rgba(59, 130, 246, 0);
+    }
+}
+
+/* Glow Pulse */
+@keyframes glow-pulse {
+
+    0%,
+    100% {
+        box-shadow: 0 0 5px rgba(59, 130, 246, 0.2);
+    }
+
+    50% {
+        box-shadow: 0 0 20px rgba(59, 130, 246, 0.4);
+    }
+}
+
+/* Shake Animation (for errors) */
+@keyframes shake {
+
+    0%,
+    100% {
+        transform: translateX(0);
+    }
+
+    10%,
+    30%,
+    50%,
+    70%,
+    90% {
+        transform: translateX(-5px);
+    }
+
+    20%,
+    40%,
+    60%,
+    80% {
+        transform: translateX(5px);
+    }
+}
+
+/* Spin Animation */
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Float Animation */
+@keyframes float {
+
+    0%,
+    100% {
+        transform: translateY(0);
+    }
+
+    50% {
+        transform: translateY(-10px);
+    }
+}
+
+/* Ripple Animation */
+@keyframes ripple {
+    0% {
+        transform: scale(0);
+        opacity: 0.5;
+    }
+
+    100% {
+        transform: scale(4);
+        opacity: 0;
+    }
+}
+
+/* Progress Bar Animation */
+@keyframes progress-indeterminate {
+    0% {
+        left: -30%;
+        width: 30%;
+    }
+
+    50% {
+        width: 40%;
+    }
+
+    100% {
+        left: 100%;
+        width: 30%;
+    }
+}
+
+/* Success Check Animation */
+@keyframes draw-check {
+    0% {
+        stroke-dashoffset: 50;
+    }
+
+    100% {
+        stroke-dashoffset: 0;
+    }
+}
+
+/* ==========================================================================
+   Animation Classes
+   ========================================================================== */
+
+.animate-fade-up {
+    animation: fade-up 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-fade-in {
+    animation: fade-in 0.5s ease-out forwards;
+}
+
+.animate-slide-left {
+    animation: slide-left 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-slide-right {
+    animation: slide-right 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-scale-in {
+    animation: scale-in 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-bounce {
+    animation: bounce 1s ease-in-out;
+}
+
+.animate-pulse {
+    animation: pulse 2s infinite;
+}
+
+.animate-float {
+    animation: float 3s ease-in-out infinite;
+}
+
+.animate-shake {
+    animation: shake 0.5s ease-in-out;
+}
+
+.animate-spin {
+    animation: spin 1s linear infinite;
+}
+
+/* ==========================================================================
+   Stagger Delays - For sequential element animations
+   ========================================================================== */
+
+.stagger-1 {
+    animation-delay: 0.1s;
+}
+
+.stagger-2 {
+    animation-delay: 0.2s;
+}
+
+.stagger-3 {
+    animation-delay: 0.3s;
+}
+
+.stagger-4 {
+    animation-delay: 0.4s;
+}
+
+.stagger-5 {
+    animation-delay: 0.5s;
+}
+
+.stagger-6 {
+    animation-delay: 0.6s;
+}
+
+.stagger-7 {
+    animation-delay: 0.7s;
+}
+
+.stagger-8 {
+    animation-delay: 0.8s;
+}
+
+/* Initial state for staggered elements */
+.stagger-init {
+    opacity: 0;
+    transform: translateY(20px);
+}
+
+/* ==========================================================================
+   Hover Effects - Smooth interactions
+   ========================================================================== */
+
+/* Lift on hover with shadow */
+.hover-lift {
+    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+        box-shadow 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.hover-lift:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.12);
+}
+
+/* Glow effect on hover */
+.hover-glow {
+    transition: box-shadow 0.3s ease;
+}
+
+.hover-glow:hover {
+    box-shadow: 0 0 20px rgba(59, 130, 246, 0.3);
+}
+
+/* Scale effect */
+.hover-scale {
+    transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.hover-scale:hover {
+    transform: scale(1.05);
+}
+
+/* Scale smaller */
+.hover-scale-sm {
+    transition: transform 0.2s ease;
+}
+
+.hover-scale-sm:hover {
+    transform: scale(1.02);
+}
+
+/* Icon bounce on hover */
+.hover-bounce:hover {
+    animation: bounce 0.6s ease-in-out;
+}
+
+/* Underline animation for links */
+.hover-underline {
+    position: relative;
+}
+
+.hover-underline::after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: 0;
+    width: 0;
+    height: 2px;
+    background: var(--color-primary, #3b82f6);
+    transition: width 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.hover-underline:hover::after {
+    width: 100%;
+}
+
+/* Slide underline from center */
+.hover-underline-center::after {
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+/* Brightness hover */
+.hover-bright {
+    transition: filter 0.3s ease;
+}
+
+.hover-bright:hover {
+    filter: brightness(1.1);
+}
+
+/* ==========================================================================
+   Button Animations
+   ========================================================================== */
+
+/* Button ripple container */
+.btn-ripple {
+    position: relative;
+    overflow: hidden;
+}
+
+.btn-ripple::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 100%;
+    height: 100%;
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 50%;
+    transform: translate(-50%, -50%) scale(0);
+    transition: transform 0.5s, opacity 0.5s;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.btn-ripple:active::after {
+    transform: translate(-50%, -50%) scale(2);
+    opacity: 1;
+    transition: transform 0s, opacity 0s;
+}
+
+/* Button shine effect */
+.btn-shine {
+    position: relative;
+    overflow: hidden;
+}
+
+.btn-shine::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(120deg,
+            transparent,
+            rgba(255, 255, 255, 0.3),
+            transparent);
+    transition: left 0.5s;
+}
+
+.btn-shine:hover::before {
+    left: 100%;
+}
+
+/* ==========================================================================
+   Card Animations
+   ========================================================================== */
+
+/* Card with hover effect */
+.card-animated {
+    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+        box-shadow 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+        border-color 0.3s ease;
+}
+
+.card-animated:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.1);
+}
+
+/* Card with border glow */
+.card-glow {
+    transition: box-shadow 0.3s ease, border-color 0.3s ease;
+}
+
+.card-glow:hover {
+    border-color: var(--color-primary, #3b82f6);
+    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+}
+
+/* ==========================================================================
+   Form Animations
+   ========================================================================== */
+
+/* Input focus animation */
+.input-animated {
+    transition: border-color 0.3s ease,
+        box-shadow 0.3s ease,
+        background-color 0.3s ease;
+}
+
+.input-animated:focus {
+    border-color: var(--color-primary, #3b82f6);
+    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.15);
+    background-color: #fff;
+}
+
+/* Label float animation */
+.input-float-label {
+    position: relative;
+}
+
+.input-float-label label {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    pointer-events: none;
+    color: var(--text-muted, #6b7280);
+    font-size: 1rem;
+}
+
+.input-float-label input:focus+label,
+.input-float-label input:not(:placeholder-shown)+label {
+    top: 0;
+    left: 8px;
+    font-size: 0.75rem;
+    background: #fff;
+    padding: 0 4px;
+    color: var(--color-primary, #3b82f6);
+}
+
+/* ==========================================================================
+   Loading Animations
+   ========================================================================== */
+
+/* Spinner */
+.loading-spinner {
+    width: 24px;
+    height: 24px;
+    border: 3px solid var(--border-light, #e5e7eb);
+    border-top-color: var(--color-primary, #3b82f6);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+.loading-spinner-sm {
+    width: 16px;
+    height: 16px;
+    border-width: 2px;
+}
+
+.loading-spinner-lg {
+    width: 32px;
+    height: 32px;
+    border-width: 4px;
+}
+
+/* Dots loading */
+.loading-dots {
+    display: inline-flex;
+    gap: 4px;
+}
+
+.loading-dots span {
+    width: 8px;
+    height: 8px;
+    background: var(--color-primary, #3b82f6);
+    border-radius: 50%;
+    animation: bounce 1.4s ease-in-out infinite;
+}
+
+.loading-dots span:nth-child(1) {
+    animation-delay: 0s;
+}
+
+.loading-dots span:nth-child(2) {
+    animation-delay: 0.16s;
+}
+
+.loading-dots span:nth-child(3) {
+    animation-delay: 0.32s;
+}
+
+/* Progress bar */
+.progress-bar {
+    height: 4px;
+    background: var(--border-light, #e5e7eb);
+    border-radius: 2px;
+    overflow: hidden;
+}
+
+.progress-bar-fill {
+    height: 100%;
+    background: var(--color-primary, #3b82f6);
+    border-radius: 2px;
+    transition: width 0.3s ease;
+}
+
+.progress-bar-indeterminate .progress-bar-fill {
+    position: relative;
+    width: 100%;
+    background: transparent;
+}
+
+.progress-bar-indeterminate .progress-bar-fill::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    height: 100%;
+    background: var(--color-primary, #3b82f6);
+    animation: progress-indeterminate 1.5s ease-in-out infinite;
+}
+
+/* Skeleton loading */
+.skeleton {
+    background: linear-gradient(90deg,
+            var(--color-gray-200, #e5e7eb) 25%,
+            var(--color-gray-100, #f3f4f6) 50%,
+            var(--color-gray-200, #e5e7eb) 75%);
+    background-size: 200% 100%;
+    animation: skeleton-loading 1.5s ease-in-out infinite;
+    border-radius: var(--radius-md, 0.5rem);
+}
+
+@keyframes skeleton-loading {
+    0% {
+        background-position: 200% 0;
+    }
+
+    100% {
+        background-position: -200% 0;
+    }
+}
+
+/* ==========================================================================
+   Scroll-to-Top Button
+   ========================================================================== */
+
+.scroll-top-btn {
+    position: fixed;
+    bottom: 2rem;
+    right: 2rem;
+    width: 48px;
+    height: 48px;
+    background: var(--color-primary, #3b82f6);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(20px) scale(0.9);
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    z-index: 50;
+}
+
+.scroll-top-btn.visible {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0) scale(1);
+}
+
+.scroll-top-btn:hover {
+    transform: translateY(-4px) scale(1.1);
+    box-shadow: 0 8px 25px rgba(59, 130, 246, 0.5);
+}
+
+.scroll-top-btn svg {
+    width: 24px;
+    height: 24px;
+    transition: transform 0.2s ease;
+}
+
+.scroll-top-btn:hover svg {
+    transform: translateY(-2px);
+}
+
+/* ==========================================================================
+   Page Transitions
+   ========================================================================== */
+
+/* Fade in page content */
+.page-enter {
+    opacity: 0;
+    transform: translateY(20px);
+}
+
+.page-enter-active {
+    opacity: 1;
+    transform: translateY(0);
+    transition: opacity 0.4s ease, transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Scroll margin for anchor links */
+.scroll-mt-16 {
+    scroll-margin-top: 4rem;
+}
+
+.scroll-mt-20 {
+    scroll-margin-top: 5rem;
+}
+
+.scroll-mt-24 {
+    scroll-margin-top: 6rem;
+}
+
+/* ==========================================================================
+   Notification Animations
+   ========================================================================== */
+
+/* Toast slide in */
+.toast-enter {
+    animation: slide-left 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.toast-exit {
+    animation: fade-in 0.3s ease reverse forwards;
+}
+
+/* Flash message animation */
+.flash-message {
+    animation: fade-up 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* ==========================================================================
+   Accessibility - Reduced Motion
+   ========================================================================== */
+
+@media (prefers-reduced-motion: reduce) {
+
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+
+    .hover-lift:hover,
+    .hover-scale:hover,
+    .hover-scale-sm:hover {
+        transform: none !important;
+    }
+}
+
+/* ==========================================================================
+   Smooth Scroll Behavior
+   ========================================================================== */
+
+html {
+    scroll-behavior: smooth;
+}
+
+/* ==========================================================================
+   Initial Hidden State for Scroll Animations
+   ========================================================================== */
+
+[data-animate] {
+    opacity: 0;
+    transform: translateY(20px);
+    transition: opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1),
+        transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+[data-animate].animated {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+[data-animate="fade-left"] {
+    transform: translateX(-30px);
+}
+
+[data-animate="fade-right"] {
+    transform: translateX(30px);
+}
+
+[data-animate="scale"] {
+    transform: scale(0.95);
+}
+
+[data-animate="fade-left"].animated,
+[data-animate="fade-right"].animated,
+[data-animate="scale"].animated {
+    transform: none;
+}
