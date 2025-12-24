@@ -454,7 +454,7 @@
     top: 0;
     background: rgba(255, 255, 255, 0.95);
     border-bottom: 1px solid var(--border-light);
-    z-index: var(--z-sticky);
+    z-index: 9999;
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
