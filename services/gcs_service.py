@@ -128,6 +128,7 @@ class GCSService:
     def upload_private_file(self, local_file_path: str, destination_blob_name: str) -> Tuple[Optional[str], Optional[str]]:
         """
         Upload a file to PRIVATE GCS bucket (not publicly accessible)
+        Falls back to local storage if GCS is not configured.
 
         Args:
             local_file_path: Path to local file
@@ -137,7 +138,8 @@ class GCSService:
             Tuple[Optional[str], Optional[str]]: (blob_name, error_message)
         """
         if not self.enabled:
-            return None, "GCS not enabled"
+            # Fall back to local storage
+            return self._local_upload_private(local_file_path, destination_blob_name)
 
         try:
             # Create blob in PRIVATE bucket (file reference in GCS)
@@ -155,6 +157,47 @@ class GCSService:
             print(error_msg)
             return None, error_msg
 
+    def _local_upload_private(self, local_file_path: str, destination_blob_name: str) -> Tuple[Optional[str], Optional[str]]:
+        """
+        Local storage fallback for private files when GCS is not enabled.
+        Stores files in static/uploads/private/ directory.
+        """
+        import shutil
+        
+        try:
+            # Get the base directory of the application
+            base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            private_upload_dir = os.path.join(base_dir, 'static', 'uploads', 'private')
+            
+            # Create full destination path
+            dest_path = os.path.join(private_upload_dir, destination_blob_name)
+            dest_dir = os.path.dirname(dest_path)
+            
+            # Ensure directory exists
+            os.makedirs(dest_dir, exist_ok=True)
+            
+            # Copy file to destination
+            shutil.copy2(local_file_path, dest_path)
+            
+            print(f"[LOCAL] Private file saved: {dest_path}")
+            return destination_blob_name, None
+            
+        except Exception as e:
+            error_msg = f"Local private upload failed: {str(e)}"
+            print(error_msg)
+            return None, error_msg
+
+    def get_local_private_url(self, blob_name: str) -> Optional[str]:
+        """
+        Get local URL for privately stored files (development only).
+        In production, use generate_signed_url for GCS files.
+        """
+        if not blob_name:
+            return None
+        
+        # Return a URL path that can be served by Flask
+        return f"/static/uploads/private/{blob_name}"
+
     def generate_signed_url(self, blob_name: str, expiration_minutes: int = 60) -> Optional[str]:
         """
         Generate temporary signed URL for private file access
@@ -167,7 +210,8 @@ class GCSService:
             Signed URL valid for specified duration, or None on error
         """
         if not self.enabled:
-            return None
+            # Fall back to local URL for development
+            return self.get_local_private_url(blob_name)
 
         try:
             from datetime import timedelta

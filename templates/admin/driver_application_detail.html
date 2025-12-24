@@ -101,30 +101,44 @@
       {% if application.license_images and (application.license_images.front or application.license_images.back) %}
       <div class="grid cols-2 gap-4">
         <!-- Front Image -->
-        <div>
+        <div class="license-image-box">
           <label class="form-label">Ajokortin etupuoli</label>
           {% if application.license_images.front %}
           <a href="{{ url_for('admin.view_license_image', application_id=application.id, image_type='front') }}"
-            target="_blank" class="btn btn-primary w-full">
-            Näytä etuosa
+            target="_blank" class="license-preview-link">
+            <div class="license-preview">
+              <img src="{{ url_for('admin.view_license_image', application_id=application.id, image_type='front') }}"
+                alt="Ajokortin etupuoli" class="license-thumbnail">
+              <div class="license-preview-overlay">
+                <span>{{ icons.search(24, 'white') }} Näytä suurempana</span>
+              </div>
+            </div>
           </a>
-          <p class="text-sm text-muted mt-2">Klikkaa nähdäksesi kuva uudessa välilehdessä</p>
           {% else %}
-          <p class="text-muted">Ei kuvaa</p>
+          <div class="license-preview-empty">
+            <p class="text-muted">Ei kuvaa</p>
+          </div>
           {% endif %}
         </div>
 
         <!-- Back Image -->
-        <div>
+        <div class="license-image-box">
           <label class="form-label">Ajokortin takapuoli</label>
           {% if application.license_images.back %}
           <a href="{{ url_for('admin.view_license_image', application_id=application.id, image_type='back') }}"
-            target="_blank" class="btn btn-primary w-full">
-            {{ icons.search(18, 'currentColor', 'icon-inline') }} Näytä takaosa
+            target="_blank" class="license-preview-link">
+            <div class="license-preview">
+              <img src="{{ url_for('admin.view_license_image', application_id=application.id, image_type='back') }}"
+                alt="Ajokortin takapuoli" class="license-thumbnail">
+              <div class="license-preview-overlay">
+                <span>{{ icons.search(24, 'white') }} Näytä suurempana</span>
+              </div>
+            </div>
           </a>
-          <p class="text-sm text-muted mt-2">Klikkaa nähdäksesi kuva uudessa välilehdessä</p>
           {% else %}
-          <p class="text-muted">Ei kuvaa</p>
+          <div class="license-preview-empty">
+            <p class="text-muted">Ei kuvaa</p>
+          </div>
           {% endif %}
         </div>
       </div>
@@ -188,15 +202,16 @@
   {% endif %}
 
   <!-- Delete Section (Available for all statuses) -->
-  <div class="card mt-6" style="border-color: #dc2626;">
-    <div class="card-header" style="background: #fef2f2;">
-      <h3 class="card-title" style="color: #dc2626;">{{ icons.alert(20, '#dc2626', 'icon-inline') }} Vaarallinen alue
+  <div class="card mt-6 danger-zone-card">
+    <div class="card-header danger-zone-header">
+      <h3 class="card-title danger-zone-title">
+        {{ icons.alert(20, '#dc2626', 'icon-inline') }}
+        <span>Vaarallinen alue</span>
       </h3>
     </div>
     <div class="card-body">
       <form method="POST" action="{{ url_for('admin.delete_driver_application', application_id=application.id) }}">
-        <button type="submit" class="btn w-full" style="background: #dc2626; color: white;"
-          onclick="return confirmDelete()">
+        <button type="submit" class="btn btn-danger w-full" onclick="return confirmDelete()">
           {{ icons.x(18, 'currentColor', 'icon-inline') }} Poista hakemus ja käyttäjätili
         </button>
       </form>
@@ -209,6 +224,100 @@
     </div>
   </div>
 </div>
+
+<style>
+  /* License Image Preview Styles */
+  .license-image-box {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .license-preview-link {
+    display: block;
+    text-decoration: none;
+  }
+
+  .license-preview {
+    position: relative;
+    border-radius: 0.75rem;
+    overflow: hidden;
+    background: #f8fafc;
+    border: 2px solid #e2e8f0;
+    aspect-ratio: 16 / 10;
+    transition: all 0.3s ease;
+  }
+
+  .license-preview:hover {
+    border-color: #3b82f6;
+    box-shadow: 0 8px 24px rgba(59, 130, 246, 0.15);
+  }
+
+  .license-thumbnail {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .license-preview-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+
+  .license-preview:hover .license-preview-overlay {
+    opacity: 1;
+  }
+
+  .license-preview-overlay span {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: white;
+    font-weight: 600;
+    font-size: 0.9rem;
+  }
+
+  .license-preview-empty {
+    padding: 2rem;
+    background: #f8fafc;
+    border: 2px dashed #e2e8f0;
+    border-radius: 0.75rem;
+    text-align: center;
+  }
+
+  /* Danger Zone Styles */
+  .danger-zone-card {
+    border: 2px solid #dc2626;
+  }
+
+  .danger-zone-header {
+    background: #fef2f2;
+  }
+
+  .danger-zone-title {
+    color: #dc2626;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 0;
+  }
+
+  .btn-danger {
+    background: #dc2626;
+    color: white;
+    border: none;
+  }
+
+  .btn-danger:hover {
+    background: #b91c1c;
+  }
+</style>
 
 <script>
   function confirmDelete() {
