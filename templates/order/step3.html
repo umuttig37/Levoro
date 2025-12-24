@@ -1,0 +1,148 @@
+{% extends "order/wizard_base.html" %}
+
+{% block title %}Ajoneuvo - Uusi tilaus{% endblock %}
+{% block page_title %}Ajoneuvon tiedot{% endblock %}
+{% block page_subtitle %}Minkä auton kuljetamme?{% endblock %}
+
+{% block extra_styles %}
+<style>
+    .input-uppercase {
+        text-transform: uppercase;
+    }
+    .return-vehicle-input {
+        border-color: #bfdbfe;
+    }
+    .return-vehicle-input:focus {
+        border-color: #3b82f6;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<form method="POST" class="space-y-6">
+    <!-- Outbound Vehicle Section -->
+    <div class="bg-slate-50 border border-slate-200 rounded-2xl p-6 animate-fade-in-1 opacity-0">
+        <div class="flex items-center gap-3 mb-6">
+            <div class="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                <span class="material-symbols-outlined text-primary">directions_car</span>
+            </div>
+            <div>
+                <h3 class="font-bold text-slate-900">Menomatkan ajoneuvo</h3>
+                <p class="text-sm text-slate-500">Auto joka kuljetetaan määränpäähän</p>
+            </div>
+        </div>
+
+        <!-- Registration Number -->
+        <div class="space-y-2 mb-4">
+            <label for="reg_number" class="block text-xs font-semibold uppercase tracking-wider text-slate-500 pl-1">
+                Rekisterinumero *
+            </label>
+            <div class="input-group relative">
+                <span class="input-icon material-symbols-outlined text-lg">badge</span>
+                <input 
+                    type="text" 
+                    id="reg_number"
+                    name="reg_number" 
+                    required 
+                    value="{{ reg_number }}"
+                    placeholder="ABC-123"
+                    title="Syötä ajoneuvon rekisterinumero"
+                    class="wizard-input input-uppercase"
+                >
+            </div>
+        </div>
+
+        <!-- Winter Tires Checkbox -->
+        <label for="winter_tires" class="wizard-checkbox">
+            <input type="checkbox" id="winter_tires" name="winter_tires" value="1" {{ 'checked' if winter_tires else '' }} title="Valitse jos autossa on talvirenkaat">
+            <div class="flex-1">
+                <span class="font-semibold text-slate-900">Autossa on talvirenkaat</span>
+                <p class="text-sm text-slate-500 mt-0.5">Vaikuttaa kuljetuksen aikatauluun</p>
+            </div>
+        </label>
+    </div>
+
+    <!-- Return Vehicle Section (shown if paluu_auto is checked) -->
+    {% if paluu_auto %}
+    <div class="bg-blue-50 border border-blue-200 rounded-2xl p-6 animate-fade-in-2 opacity-0">
+        <div class="flex items-center gap-3 mb-6">
+            <div class="w-10 h-10 rounded-xl bg-blue-500/20 flex items-center justify-center">
+                <span class="material-symbols-outlined text-blue-600">sync</span>
+            </div>
+            <div>
+                <h3 class="font-bold text-blue-900">Paluuauton tiedot</h3>
+                <p class="text-sm text-blue-600">Auto joka tuodaan takaisin</p>
+            </div>
+            <span class="ml-auto bg-gradient-to-r from-orange-500 to-orange-600 text-white text-xs font-bold px-3 py-1 rounded-md shadow-sm">-30%</span>
+        </div>
+
+        <!-- Return Registration Number -->
+        <div class="space-y-2 mb-4">
+            <label for="return_reg_number" class="block text-xs font-semibold uppercase tracking-wider text-blue-700 pl-1">
+                Rekisterinumero (paluuauto) *
+            </label>
+            <div class="input-group relative">
+                <span class="input-icon material-symbols-outlined text-lg text-blue-500">badge</span>
+                <input 
+                    type="text" 
+                    name="return_reg_number" 
+                    id="return_reg_number"
+                    required
+                    value="{{ return_reg_number }}"
+                    placeholder="XYZ-456"
+                    title="Syötä paluuauton rekisterinumero"
+                    class="wizard-input input-uppercase return-vehicle-input"
+                >
+            </div>
+        </div>
+
+        <!-- Return Winter Tires Checkbox -->
+        <label for="return_winter_tires" class="flex items-start gap-3 p-4 bg-white border border-blue-200 rounded-xl cursor-pointer hover:bg-blue-50 transition-all duration-200">
+            <input type="checkbox" id="return_winter_tires" name="return_winter_tires" value="1" {{ 'checked' if return_winter_tires else '' }} class="w-5 h-5 mt-0.5 accent-blue-600" title="Valitse jos paluuautossa on talvirenkaat">
+            <div class="flex-1">
+                <span class="font-semibold text-blue-900">Paluuautossa on talvirenkaat</span>
+                <p class="text-sm text-blue-600 mt-0.5">Vaikuttaa kuljetuksen aikatauluun</p>
+            </div>
+        </label>
+    </div>
+    {% endif %}
+
+    <!-- Vehicle Info Box -->
+    <div class="bg-amber-50 border border-amber-200 rounded-xl p-4 animate-fade-in-3 opacity-0">
+        <div class="flex gap-3">
+            <span class="material-symbols-outlined text-amber-600 text-xl flex-shrink-0">info</span>
+            <div class="text-sm text-amber-800">
+                <p class="font-semibold mb-1">Hyvä tietää</p>
+                <ul class="space-y-1 text-amber-700">
+                    <li>• Varmista, että rekisterinumero on oikein kirjoitettu</li>
+                    <li>• Ilmoita talvirenkaat, jos ne vaikuttavat kuljetukseen</li>
+                    <li>• Auton tulee olla ajokunnossa noutopäivänä</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="flex gap-4 pt-4 animate-fade-in-4 opacity-0">
+        <button type="submit" name="action" value="back" class="btn-secondary px-6 py-4 border border-slate-200 rounded-xl text-slate-600 font-semibold hover:bg-slate-50 hover:border-slate-300 flex items-center gap-2">
+            <span class="material-symbols-outlined">arrow_back</span>
+            Takaisin
+        </button>
+        <button type="submit" name="action" value="continue" class="btn-gradient flex-1 inline-flex justify-center items-center rounded-xl from-brand-gradient-start to-brand-gradient-end px-6 py-4 text-base font-bold text-white shadow-lg shadow-blue-500/30 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+            Jatka
+            <span class="material-symbols-outlined ml-2">arrow_forward</span>
+        </button>
+    </div>
+</form>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+// Auto-uppercase registration numbers
+document.querySelectorAll('input[name="reg_number"], input[name="return_reg_number"]').forEach(input => {
+    input.addEventListener('input', function() {
+        this.value = this.value.toUpperCase();
+    });
+});
+</script>
+{% endblock %}

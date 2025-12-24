@@ -108,6 +108,8 @@ try:
 except Exception:
     pass
 
+# Import new order wizard (template-based, v2)
+import order_wizard_new
 
 
 # ----------------- DB HELPERS -----------------
@@ -1411,7 +1413,7 @@ app.register_blueprint(auth_bp)
 app.register_blueprint(admin_bp)
 
 # Import feature modules
-import order_wizard
+# import order_wizard  # OLD WIZARD - replaced by order_wizard_new
 import marketing
 
 # ----------------- START -----------------

@@ -1,0 +1,209 @@
+{% extends "order/wizard_base.html" %}
+
+{% block title %}Yhteystiedot - Uusi tilaus{% endblock %}
+{% block page_title %}Yhteystiedot{% endblock %}
+{% block page_subtitle %}Kuka on tilauksen yhteyshenkilö?{% endblock %}
+
+{% block extra_styles %}
+<style>
+    .orderer-input {
+        border-color: #bfdbfe;
+    }
+    .orderer-input:focus {
+        border-color: #3b82f6;
+    }
+    .customer-input {
+        border-color: #fde68a;
+    }
+    .customer-input:focus {
+        border-color: #f59e0b;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<form method="POST" class="space-y-6">
+    <!-- Orderer Section -->
+    <div class="bg-blue-50 border border-blue-200 rounded-2xl p-6 animate-fade-in-1 opacity-0">
+        <div class="flex items-center gap-3 mb-6">
+            <div class="w-10 h-10 rounded-xl bg-blue-500/20 flex items-center justify-center">
+                <span class="material-symbols-outlined text-blue-600">person</span>
+            </div>
+            <div>
+                <h3 class="font-bold text-blue-900">Tilaajan tiedot</h3>
+                <p class="text-sm text-blue-600">Kuka tilaa kuljetuksen?</p>
+            </div>
+        </div>
+
+        <div class="space-y-4">
+            <!-- Orderer Name -->
+            <div class="space-y-2">
+                <label for="orderer_name" class="block text-xs font-semibold uppercase tracking-wider text-blue-700 pl-1">
+                    Tilaajan nimi *
+                </label>
+                <div class="input-group relative">
+                    <span class="input-icon material-symbols-outlined text-lg text-blue-500">badge</span>
+                    <input 
+                        type="text" 
+                        id="orderer_name"
+                        name="orderer_name" 
+                        required 
+                        value="{{ orderer_name }}"
+                        placeholder="Yrityksen nimi tai yhteyshenkilö"
+                        title="Syötä tilaajan nimi"
+                        class="wizard-input orderer-input"
+                    >
+                </div>
+            </div>
+
+            <!-- Orderer Email -->
+            <div class="space-y-2">
+                <label for="orderer_email" class="block text-xs font-semibold uppercase tracking-wider text-blue-700 pl-1">
+                    Sähköposti *
+                </label>
+                <div class="input-group relative">
+                    <span class="input-icon material-symbols-outlined text-lg text-blue-500">mail</span>
+                    <input 
+                        type="email" 
+                        id="orderer_email"
+                        name="orderer_email" 
+                        required 
+                        value="{{ orderer_email }}"
+                        placeholder="yritys@example.com"
+                        title="Syötä sähköpostiosoite"
+                        class="wizard-input orderer-input"
+                    >
+                </div>
+            </div>
+
+            <!-- Orderer Phone -->
+            <div class="space-y-2">
+                <label for="orderer_phone" class="block text-xs font-semibold uppercase tracking-wider text-blue-700 pl-1">
+                    Puhelinnumero *
+                </label>
+                <div class="input-group relative">
+                    <span class="input-icon material-symbols-outlined text-lg text-blue-500">phone</span>
+                    <input 
+                        type="tel" 
+                        id="orderer_phone"
+                        name="orderer_phone" 
+                        required 
+                        value="{{ orderer_phone }}"
+                        placeholder="+358 40 123 4567"
+                        title="Käytä vain numeroita ja merkkejä +, -, ( )"
+                        class="wizard-input orderer-input"
+                        pattern="[+]?[0-9\s\-()]+"
+                    >
+                </div>
+                <p id="orderer_phone_error" class="text-xs text-red-500 pl-1 hidden">Käytä vain numeroita ja merkkejä +, -, ( )</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Customer Section (Optional) -->
+    <div class="bg-amber-50 border border-amber-200 rounded-2xl p-6 animate-fade-in-2 opacity-0">
+        <div class="flex items-center gap-3 mb-6">
+            <div class="w-10 h-10 rounded-xl bg-amber-500/20 flex items-center justify-center">
+                <span class="material-symbols-outlined text-amber-600">groups</span>
+            </div>
+            <div>
+                <h3 class="font-bold text-amber-900">Asiakkaan tiedot</h3>
+                <p class="text-sm text-amber-600">Valinnainen - jos eri kuin tilaaja</p>
+            </div>
+        </div>
+
+        <div class="space-y-4">
+            <!-- Customer Name -->
+            <div class="space-y-2">
+                <label for="customer_name" class="block text-xs font-semibold uppercase tracking-wider text-amber-700 pl-1">
+                    Asiakkaan nimi
+                </label>
+                <div class="input-group relative">
+                    <span class="input-icon material-symbols-outlined text-lg text-amber-500">person_outline</span>
+                    <input 
+                        type="text" 
+                        id="customer_name"
+                        name="customer_name" 
+                        value="{{ customer_name }}"
+                        placeholder="Vastaanottajan nimi"
+                        title="Syötä asiakkaan nimi (valinnainen)"
+                        class="wizard-input customer-input"
+                    >
+                </div>
+            </div>
+
+            <!-- Customer Phone -->
+            <div class="space-y-2">
+                <label for="customer_phone" class="block text-xs font-semibold uppercase tracking-wider text-amber-700 pl-1">
+                    Asiakkaan puhelinnumero
+                </label>
+                <div class="input-group relative">
+                    <span class="input-icon material-symbols-outlined text-lg text-amber-500">phone</span>
+                    <input 
+                        type="tel" 
+                        id="customer_phone"
+                        name="customer_phone" 
+                        value="{{ customer_phone }}"
+                        placeholder="+358 40 123 4567"
+                        title="Käytä vain numeroita ja merkkejä +, -, ( )"
+                        class="wizard-input customer-input"
+                        pattern="[+]?[0-9\s\-()]+"
+                    >
+                </div>
+                <p id="customer_phone_error" class="text-xs text-red-500 pl-1 hidden">Käytä vain numeroita ja merkkejä +, -, ( )</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Info Box -->
+    <div class="bg-slate-100 border border-slate-200 rounded-xl p-4 animate-fade-in-3 opacity-0">
+        <div class="flex gap-3">
+            <span class="material-symbols-outlined text-slate-500 text-xl flex-shrink-0">info</span>
+            <div class="text-sm text-slate-600">
+                <p>Tilaajan tietoihin lähetetään tilausvahvistus ja kuljetuksen päivitykset. Asiakkaan tiedot voidaan lisätä, jos vastaanottaja on eri henkilö.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="flex gap-4 pt-4 animate-fade-in-4 opacity-0">
+        <button type="submit" name="action" value="back" class="btn-secondary px-6 py-4 border border-slate-200 rounded-xl text-slate-600 font-semibold hover:bg-slate-50 hover:border-slate-300 flex items-center gap-2">
+            <span class="material-symbols-outlined">arrow_back</span>
+            Takaisin
+        </button>
+        <button type="submit" name="action" value="continue" class="btn-gradient flex-1 inline-flex justify-center items-center rounded-xl from-brand-gradient-start to-brand-gradient-end px-6 py-4 text-base font-bold text-white shadow-lg shadow-blue-500/30 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all">
+            Jatka
+            <span class="material-symbols-outlined ml-2">arrow_forward</span>
+        </button>
+    </div>
+</form>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+// Phone number validation
+const phonePattern = /^[+]?[0-9\s\-()]+$/;
+
+document.querySelectorAll('input[type="tel"]').forEach(input => {
+    const errorEl = document.getElementById(input.name + '_error');
+    
+    input.addEventListener('input', function() {
+        const value = this.value.trim();
+        if (value && !phonePattern.test(value)) {
+            if (errorEl) errorEl.classList.remove('hidden');
+            this.setCustomValidity('Virheellinen puhelinnumero');
+        } else {
+            if (errorEl) errorEl.classList.add('hidden');
+            this.setCustomValidity('');
+        }
+    });
+    
+    input.addEventListener('blur', function() {
+        const value = this.value.trim();
+        if (value && !phonePattern.test(value)) {
+            if (errorEl) errorEl.classList.remove('hidden');
+        }
+    });
+});
+</script>
+{% endblock %}
