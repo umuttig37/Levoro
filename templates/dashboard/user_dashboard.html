@@ -3,6 +3,20 @@
 
 {% block title %}Omat tilaukset – Autonkuljetus{% endblock %}
 
+{% block extra_css %}
+<style>
+  /* Hide the default footer on dashboard */
+  .footer-new {
+    display: none !important;
+  }
+
+  /* Hide back to top button */
+  .back-to-top {
+    display: none !important;
+  }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="container">
   <div class="section-padding">
@@ -332,4 +346,6 @@
     filterOrders(initialTab);
   });
 </script>
+
+{% include 'components/dashboard_footer.html' %}
 {% endblock %}

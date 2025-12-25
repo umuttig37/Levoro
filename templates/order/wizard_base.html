@@ -134,53 +134,47 @@
         .step-nav {
             display: flex;
             justify-content: center;
-            gap: 0;
+            align-items: center;
+            gap: 0.5rem;
             margin-bottom: 2rem;
+            padding: 0.5rem;
+            background: #f1f5f9;
+            border-radius: 9999px;
         }
 
         .step-item {
             display: flex;
             align-items: center;
             gap: 0.5rem;
-            padding: 0.75rem 1rem;
-            font-size: 0.875rem;
+            padding: 0.5rem 1rem;
+            font-size: 0.8125rem;
             font-weight: 500;
-            color: #94a3b8;
-            position: relative;
+            color: #64748b;
             text-decoration: none;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            transition: all 0.25s ease;
+            border-radius: 9999px;
+            background: transparent;
         }
 
-        .step-item:not(:last-child)::after {
-            content: '';
-            position: absolute;
-            right: -1rem;
-            top: 50%;
-            transform: translateY(-50%);
-            width: 2rem;
-            height: 2px;
-            background: #e2e8f0;
-            transition: background 0.3s ease;
-        }
-
-        .step-item.completed:not(:last-child)::after {
-            background: #10b981;
+        .step-connector {
+            display: none;
         }
 
         .step-item.active {
-            color: #2563eb;
+            background: white;
+            color: #1e40af;
             font-weight: 600;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
         }
 
         .step-item.active .step-number {
-            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
             color: white;
-            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
-            animation: scaleIn 0.3s ease-out;
+            box-shadow: 0 2px 8px rgba(59, 130, 246, 0.4);
         }
 
         .step-item.completed {
-            color: #10b981;
+            color: #059669;
         }
 
         .step-item.completed .step-number {
@@ -188,36 +182,72 @@
             color: white;
         }
 
+        .step-item.clickable {
+            cursor: pointer;
+        }
+
         .step-item.clickable:hover {
+            background: rgba(255, 255, 255, 0.6);
             color: #3b82f6;
         }
 
         .step-item.clickable:hover .step-number {
-            transform: scale(1.1);
+            transform: scale(1.05);
         }
 
         .step-number {
             display: flex;
             align-items: center;
             justify-content: center;
-            width: 32px;
-            height: 32px;
+            width: 24px;
+            height: 24px;
             border-radius: 50%;
-            background: #f1f5f9;
+            background: #cbd5e1;
+            color: #475569;
             font-weight: 600;
-            font-size: 0.875rem;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            font-size: 0.6875rem;
+            transition: all 0.25s ease;
+            flex-shrink: 0;
         }
 
-        @keyframes scaleIn {
+        .step-label {
+            display: block;
+        }
+
+        @media (max-width: 768px) {
+            .step-label {
+                display: none;
+            }
+
+            .step-item {
+                padding: 0.375rem;
+            }
+        }
+
+        /* ===== CHECKBOX ANIMATION ===== */
+        input[type="checkbox"] {
+            transition: transform 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+        }
+
+        input[type="checkbox"]:active {
+            transform: scale(0.9);
+        }
+
+        input[type="checkbox"]:checked {
+            animation: checkPop 0.2s ease-out;
+        }
+
+        @keyframes checkPop {
             0% {
-                transform: scale(0.8);
-                opacity: 0;
+                transform: scale(1);
+            }
+
+            50% {
+                transform: scale(1.2);
             }
 
             100% {
                 transform: scale(1);
-                opacity: 1;
             }
         }
 
@@ -585,17 +615,18 @@
             ] %}
             {% for step_name, step_num in steps %}
             {% set step_url = '/order/new/confirm' if step_num == 6 else '/order/new/step' ~ step_num %}
-            {% if step_num in accessible_steps %}
-            {% if step_num == active_step %}
-            <div class="step-item active">
+            {% set is_completed = step_num < active_step %} {% set is_active=step_num==active_step %} {% set
+                is_accessible=step_num in accessible_steps %} {% if is_accessible %} {% if is_active %} <div
+                class="step-item active">
                 <span class="step-number">{{ step_num }}</span>
                 <span>{{ step_name }}</span>
-            </div>
-            {% elif step_num < active_step %} <a href="{{ step_url }}" class="step-item completed clickable">
-                <span class="step-number">
-                    <span class="material-symbols-outlined text-sm">check</span>
-                </span>
-                <span>{{ step_name }}</span>
+                </div>
+                {% elif is_completed %}
+                <a href="{{ step_url }}" class="step-item completed clickable">
+                    <span class="step-number">
+                        <span class="material-symbols-outlined text-sm">check</span>
+                    </span>
+                    <span>{{ step_name }}</span>
                 </a>
                 {% else %}
                 <a href="{{ step_url }}" class="step-item clickable">
@@ -608,6 +639,10 @@
                     <span class="step-number">{{ step_num }}</span>
                     <span>{{ step_name }}</span>
                 </div>
+                {% endif %}
+
+                {% if not loop.last %}
+                <div class="step-connector{% if is_completed %} completed{% endif %}"></div>
                 {% endif %}
                 {% endfor %}
         </nav>

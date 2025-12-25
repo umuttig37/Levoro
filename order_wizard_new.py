@@ -133,11 +133,38 @@ def order_step2_v2():
         if d.get("paluu_auto"):
             d["return_delivery_date"] = d.get("last_delivery_date") or d.get("pickup_date")
         
-        session["order_draft"] = d
-        
         action = request.form.get("action")
         if action == "back":
+            session["order_draft"] = d
             return redirect("/order/new/step1")
+        
+        # Validate addresses before proceeding
+        pickup_addr = d.get("pickup", "").strip()
+        dropoff_addr = d.get("dropoff", "").strip()
+        
+        # Check if addresses are the same
+        if pickup_addr.lower() == dropoff_addr.lower():
+            session["error_message"] = "Nouto- ja toimitusosoite eivät voi olla samat. Tarkista osoitteet."
+            session["order_draft"] = d
+            return redirect("/order/new/step2")
+        
+        # Try to calculate route to validate addresses
+        try:
+            km = order_service.route_km(
+                pickup_addr, dropoff_addr,
+                d.get("pickup_place_id", ""),
+                d.get("dropoff_place_id", "")
+            )
+            if km <= 0:
+                session["error_message"] = "Reitin laskenta epäonnistui. Tarkista että osoitteet ovat oikein."
+                session["order_draft"] = d
+                return redirect("/order/new/step2")
+        except Exception as e:
+            session["error_message"] = "Reitin laskenta epäonnistui. Tarkista että osoitteet ovat oikein ja yritä uudelleen."
+            session["order_draft"] = d
+            return redirect("/order/new/step2")
+        
+        session["order_draft"] = d
         return redirect("/order/new/step3")
 
     # GET
@@ -297,6 +324,7 @@ def order_step5_v2():
     if request.method == "POST":
         d = session.get("order_draft", {})
         d["additional_info"] = request.form.get("additional_info", "").strip()
+        d["direct_to_customer"] = bool(request.form.get("direct_to_customer"))
         session["order_draft"] = d
         
         action = request.form.get("action")
@@ -313,7 +341,8 @@ def order_step5_v2():
         active_step=5,
         accessible_steps=get_accessible_steps(d),
         error_message=error_message,
-        additional_info=d.get("additional_info", "")
+        additional_info=d.get("additional_info", ""),
+        direct_to_customer=d.get("direct_to_customer", False)
     )
 
 
@@ -468,6 +497,7 @@ def order_confirm_v2():
             "customer_phone": d.get("customer_phone"),
             "phone": d.get("customer_phone"),
             "additional_info": d.get("additional_info"),
+            "direct_to_customer": d.get("direct_to_customer", False),
             "distance_km": float(round(km, 2)),
             "price_net": float(net),
             "price_vat": float(vat),
@@ -556,6 +586,7 @@ def order_confirm_v2():
         customer_name=d.get("customer_name", ""),
         customer_phone=d.get("customer_phone", ""),
         additional_info=d.get("additional_info", ""),
+        direct_to_customer=d.get("direct_to_customer", False),
         
         # Pricing
         paluu_auto=paluu_auto,
@@ -577,3 +608,138 @@ def order_confirm_v2():
         total_original_net=total_original_net
     )
 
+
+# =============================================================================
+# SPA WIZARD - Single Page Application Version
+# =============================================================================
+@app.route("/order/new", methods=["GET"])
+def order_wizard_spa():
+    """Single-page application version of the order wizard"""
+    u = auth_service.get_current_user()
+    return render_template("order/wizard_spa.html", current_user=u)
+
+
+@app.route("/api/order/submit", methods=["POST"])
+def api_order_submit():
+    """AJAX endpoint for SPA wizard order submission"""
+    from flask import jsonify
+    
+    u = auth_service.get_current_user()
+    if not u:
+        return jsonify({"error": "Kirjaudu sisään luodaksesi tilauksen"}), 401
+    
+    try:
+        data = request.get_json()
+        
+        # Validate required fields
+        required = ["pickup_address", "dropoff_address", "reg_number", "orderer_name", "orderer_email", "orderer_phone"]
+        missing = [k for k in required if not data.get(k)]
+        if missing:
+            return jsonify({"error": f"Pakolliset kentät puuttuvat: {', '.join(missing)}"}), 400
+        
+        # Calculate pricing
+        try:
+            km = order_service.route_km(data["pickup_address"], data["dropoff_address"])
+        except Exception as e:
+            return jsonify({"error": "Reitin laskenta epäonnistui"}), 400
+        
+        user_id = int(u["id"])
+        
+        # Check if first order
+        is_first_order = False
+        try:
+            existing = order_service.get_user_orders(user_id, limit=1)
+            is_first_order = len(existing) == 0
+        except:
+            pass
+        
+        # Calculate pricing
+        pricing = order_service.price_from_km_with_discounts(
+            km,
+            pickup_addr=data.get("pickup_address"),
+            dropoff_addr=data.get("dropoff_address"),
+            return_leg=False,
+            user_id=user_id,
+            is_first_order=is_first_order
+        )
+        
+        # Create order
+        order_data = {
+            "pickup_address": data.get("pickup_address"),
+            "dropoff_address": data.get("dropoff_address"),
+            "reg_number": data.get("reg_number", "").upper(),
+            "pickup_date": data.get("pickup_date"),
+            "last_delivery_date": data.get("delivery_date"),
+            "pickup_time": data.get("pickup_time"),
+            "delivery_time": data.get("delivery_time"),
+            "orderer_name": data.get("orderer_name"),
+            "orderer_email": data.get("orderer_email"),
+            "orderer_phone": data.get("orderer_phone"),
+            "customer_name": data.get("customer_name"),
+            "customer_phone": data.get("customer_phone"),
+            "phone": data.get("customer_phone"),
+            "additional_info": data.get("additional_info"),
+            "distance_km": float(round(km, 2)),
+            "price_net": float(pricing.get("final_net", 0)),
+            "price_vat": float(pricing.get("final_vat", 0)),
+            "price_gross": float(pricing.get("final_gross", 0)),
+            "winter_tires": data.get("winter_tires", False),
+            "trip_type": order_model.TRIP_TYPE_OUTBOUND if data.get("paluu_auto") else None
+        }
+        
+        success, order, error = order_service.create_order(user_id, order_data)
+        
+        if success and order:
+            outbound_order_id = order['id']
+            
+            # Create return order if needed
+            if data.get("paluu_auto"):
+                try:
+                    return_km = order_service.route_km(data["dropoff_address"], data["pickup_address"])
+                    return_pricing = order_service.price_from_km_with_discounts(
+                        return_km,
+                        pickup_addr=data.get("dropoff_address"),
+                        dropoff_addr=data.get("pickup_address"),
+                        return_leg=True,
+                        user_id=user_id,
+                        is_first_order=is_first_order
+                    )
+                    
+                    return_data = {
+                        "pickup_address": data.get("dropoff_address"),
+                        "dropoff_address": data.get("pickup_address"),
+                        "reg_number": data.get("return_reg_number", "").upper() or data.get("reg_number", "").upper(),
+                        "pickup_date": data.get("delivery_date") or data.get("pickup_date"),
+                        "orderer_name": data.get("orderer_name"),
+                        "orderer_email": data.get("orderer_email"),
+                        "orderer_phone": data.get("orderer_phone"),
+                        "customer_name": data.get("customer_name"),
+                        "customer_phone": data.get("customer_phone"),
+                        "phone": data.get("customer_phone"),
+                        "additional_info": data.get("additional_info"),
+                        "distance_km": float(round(return_km, 2)),
+                        "price_net": float(return_pricing.get("final_net", 0)),
+                        "price_vat": float(return_pricing.get("final_vat", 0)),
+                        "price_gross": float(return_pricing.get("final_gross", 0)),
+                        "winter_tires": data.get("return_winter_tires", False),
+                        "trip_type": order_model.TRIP_TYPE_RETURN,
+                        "parent_order_id": outbound_order_id,
+                        "return_leg": True
+                    }
+                    
+                    ret_success, ret_order, ret_error = order_service.create_order(user_id, return_data)
+                    
+                    if ret_success and ret_order:
+                        db_manager.get_collection("orders").update_one(
+                            {"id": outbound_order_id},
+                            {"$set": {"return_order_id": ret_order['id']}}
+                        )
+                except Exception as e:
+                    pass  # Return trip creation failed, but main order succeeded
+            
+            return jsonify({"success": True, "order_id": outbound_order_id})
+        else:
+            return jsonify({"error": f"Tilauksen luominen epäonnistui: {error}"}), 500
+            
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500

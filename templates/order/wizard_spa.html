@@ -1,0 +1,1063 @@
+<!DOCTYPE html>
+<html lang="fi">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>Levoro - Uusi tilaus</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com?plugins=forms,typography,container-queries"></script>
+    <script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        primary: "#2563eb",
+                        secondary: "#10b981",
+                        "brand-gradient-start": "#3b82f6",
+                        "brand-gradient-end": "#2563eb",
+                        "background-light": "#f3f6fa",
+                        "surface-light": "#ffffff",
+                    },
+                    fontFamily: {
+                        sans: ["Inter", "sans-serif"],
+                    },
+                },
+            },
+        };
+    </script>
+
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0"
+        rel="stylesheet" />
+
+    <!-- Main CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}" />
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-image: radial-gradient(circle at top center, #f8fafc 0%, #eff6ff 40%, #f3f6fa 100%);
+            min-height: 100vh;
+        }
+
+        .header-wizard {
+            z-index: 99999;
+            background: white;
+        }
+
+        /* Step Container */
+        .step-container {
+            display: none;
+            animation: fadeSlideIn 0.4s ease-out forwards;
+        }
+
+        .step-container.active {
+            display: block;
+        }
+
+        @keyframes fadeSlideIn {
+            from {
+                opacity: 0;
+                transform: translateX(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        @keyframes fadeSlideOut {
+            from {
+                opacity: 1;
+                transform: translateX(0);
+            }
+
+            to {
+                opacity: 0;
+                transform: translateX(-20px);
+            }
+        }
+
+        /* Progress Bar */
+        .step-nav {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 2rem;
+            padding: 0.5rem;
+            background: #f1f5f9;
+            border-radius: 9999px;
+        }
+
+        .step-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            font-size: 0.8125rem;
+            font-weight: 500;
+            color: #64748b;
+            text-decoration: none;
+            transition: all 0.25s ease;
+            border-radius: 9999px;
+            background: transparent;
+            cursor: pointer;
+        }
+
+        .step-item.active {
+            background: white;
+            color: #1e40af;
+            font-weight: 600;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .step-item.active .step-number {
+            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+            color: white;
+            box-shadow: 0 2px 8px rgba(59, 130, 246, 0.4);
+        }
+
+        .step-item.completed {
+            color: #059669;
+        }
+
+        .step-item.completed .step-number {
+            background: #10b981;
+            color: white;
+        }
+
+        .step-item:hover:not(.active):not(:disabled) {
+            background: rgba(255, 255, 255, 0.6);
+            color: #3b82f6;
+        }
+
+        .step-number {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: #cbd5e1;
+            color: #475569;
+            font-weight: 600;
+            font-size: 0.6875rem;
+            transition: all 0.25s ease;
+        }
+
+        @media (max-width: 768px) {
+            .step-label {
+                display: none;
+            }
+
+            .step-item {
+                padding: 0.375rem;
+            }
+        }
+
+        /* Button Styles */
+        .btn-gradient {
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            transition: all 0.3s ease;
+        }
+
+        .btn-gradient:hover {
+            box-shadow: 0 10px 25px -5px rgba(59, 130, 246, 0.4);
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary {
+            transition: all 0.25s ease;
+        }
+
+        .btn-secondary:hover {
+            background: #f1f5f9;
+            transform: translateY(-1px);
+        }
+
+        /* Form Styles */
+        .wizard-input {
+            width: 100%;
+            padding: 1rem 1rem 1rem 2.75rem;
+            border: 1px solid #e2e8f0;
+            border-radius: 0.75rem;
+            background: rgba(249, 250, 251, 0.5);
+            font-size: 0.9375rem;
+            color: #0f172a;
+            transition: all 0.25s ease;
+        }
+
+        .wizard-input:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+            background: white;
+        }
+
+        /* Autocomplete */
+        .autocomplete {
+            position: relative;
+        }
+
+        .ac-list {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-top: none;
+            z-index: 1000;
+            display: none;
+            max-height: 300px;
+            overflow-y: auto;
+            border-radius: 0 0 12px 12px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+        }
+
+        .ac-list.show {
+            display: block;
+        }
+
+        .ac-item {
+            padding: 12px 16px;
+            cursor: pointer;
+            border-bottom: 1px solid #f1f5f9;
+            font-size: 0.95rem;
+            color: #334155;
+            transition: all 0.2s;
+        }
+
+        .ac-item:hover {
+            background: #f8fafc;
+            color: #2563eb;
+        }
+
+        /* Suggestion buttons */
+        .suggestion-btn {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1rem;
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 0.75rem;
+            font-size: 0.875rem;
+            color: #475569;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: left;
+        }
+
+        .suggestion-btn:hover {
+            border-color: #3b82f6;
+            background: #eff6ff;
+            color: #2563eb;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Header -->
+    <header class="header header-wizard">
+        <div class="container">
+            <div class="header-inner">
+                <div class="brand">
+                    <a href="/" class="brand-link" aria-label="Etusivu">
+                        <img src="{{ url_for('static', filename='LevoroLogo.png') }}" alt="" class="brand-logo">
+                    </a>
+                </div>
+                <nav class="nav" id="nav-menu">
+                    <a href="/" class="nav-link">Etusivu</a>
+                    {% if current_user %}
+                    <span class="pill">Hei, {{ current_user.get('name', 'Käyttäjä') }}</span>
+                    <a class="nav-link" href="/logout">Ulos</a>
+                    {% else %}
+                    <a href="/login" class="nav-link">Kirjaudu</a>
+                    {% endif %}
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Page Header -->
+        <div class="text-center mb-8">
+            <h1 class="text-3xl md:text-4xl font-extrabold text-slate-900 tracking-tight">Luo uusi tilaus</h1>
+            <p id="stepSubtitle" class="text-slate-500 mt-2 text-base">Mistä auto noudetaan?</p>
+        </div>
+
+        <!-- Step Navigation -->
+        <nav class="step-nav" id="stepNav">
+            <div class="step-item active" data-step="1" onclick="goToStep(1)">
+                <span class="step-number">1</span>
+                <span class="step-label">Nouto</span>
+            </div>
+            <div class="step-item" data-step="2" onclick="goToStep(2)">
+                <span class="step-number">2</span>
+                <span class="step-label">Toimitus</span>
+            </div>
+            <div class="step-item" data-step="3" onclick="goToStep(3)">
+                <span class="step-number">3</span>
+                <span class="step-label">Ajoneuvo</span>
+            </div>
+            <div class="step-item" data-step="4" onclick="goToStep(4)">
+                <span class="step-number">4</span>
+                <span class="step-label">Yhteystiedot</span>
+            </div>
+            <div class="step-item" data-step="5" onclick="goToStep(5)">
+                <span class="step-number">5</span>
+                <span class="step-label">Lisätiedot</span>
+            </div>
+            <div class="step-item" data-step="6" onclick="goToStep(6)">
+                <span class="step-number">6</span>
+                <span class="step-label">Vahvistus</span>
+            </div>
+        </nav>
+
+        <!-- Main Content Card -->
+        <div class="bg-white rounded-2xl shadow-lg p-6 md:p-8">
+
+            <!-- Step 1: Pickup Details -->
+            <div class="step-container active" id="step1">
+                <div class="space-y-6">
+                    <div class="group">
+                        <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2 pl-1">
+                            Nouto-osoite *
+                        </label>
+                        <div class="relative autocomplete">
+                            <span class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                <span class="material-symbols-outlined text-lg text-slate-400">my_location</span>
+                            </span>
+                            <input
+                                class="block w-full rounded-xl border border-gray-200 bg-gray-50/50 text-slate-900 placeholder-gray-400 focus:border-blue-400 focus:ring-4 focus:ring-blue-100 sm:text-sm py-4 pl-12 pr-4 transition-all"
+                                id="pickup_address" placeholder="Esim. Mannerheimintie 1, Helsinki" type="text"
+                                autocomplete="off">
+                            <div id="ac_pickup" class="ac-list"></div>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div class="group">
+                            <label
+                                class="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2 pl-1">
+                                Noutopäivä *
+                            </label>
+                            <div class="relative">
+                                <span class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                    <span
+                                        class="material-symbols-outlined text-lg text-emerald-500">calendar_today</span>
+                                </span>
+                                <input
+                                    class="block w-full rounded-xl border border-gray-200 bg-gray-50/50 text-slate-900 focus:border-blue-400 focus:ring-4 focus:ring-blue-100 sm:text-sm py-4 pl-12 pr-4 transition-all"
+                                    type="date" id="pickup_date" required>
+                            </div>
+                        </div>
+                        <div class="group">
+                            <label
+                                class="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2 pl-1">
+                                Noutoaika <span class="text-slate-400 font-normal normal-case">(valinnainen)</span>
+                            </label>
+                            <div class="relative">
+                                <span class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                    <span class="material-symbols-outlined text-lg text-slate-400">schedule</span>
+                                </span>
+                                <input
+                                    class="block w-full rounded-xl border border-gray-200 bg-gray-50/50 text-slate-900 focus:border-blue-400 focus:ring-4 focus:ring-blue-100 sm:text-sm py-4 pl-12 pr-4 transition-all"
+                                    type="time" id="pickup_time">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Return Trip Checkbox -->
+                    <div class="bg-white border border-slate-200 rounded-xl p-4 hover:border-blue-300 transition-all cursor-pointer"
+                        onclick="document.getElementById('paluu_auto').click()">
+                        <label class="flex items-start gap-3 cursor-pointer">
+                            <input type="checkbox" id="paluu_auto"
+                                class="w-5 h-5 mt-0.5 rounded border-slate-300 text-blue-600 focus:ring-blue-500">
+                            <div>
+                                <div class="font-semibold text-slate-700 flex items-center gap-2">
+                                    <span class="material-symbols-outlined text-blue-500 text-lg">sync</span>
+                                    Paluuajo
+                                    <span
+                                        class="text-xs bg-orange-100 text-orange-600 px-2 py-0.5 rounded-full font-medium">-30%</span>
+                                </div>
+                                <p class="text-sm text-slate-500 mt-1">Auto palautetaan lähtöpaikkaan</p>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="flex gap-4 pt-6">
+                    <button type="button" onclick="nextStep()"
+                        class="btn-gradient flex-1 inline-flex justify-center items-center rounded-xl px-6 py-4 text-base font-bold text-white shadow-lg">
+                        Jatka
+                        <span class="material-symbols-outlined ml-2">arrow_forward</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Step 2: Delivery Details -->
+            <div class="step-container" id="step2">
+                <div class="space-y-6">
+                    <div class="group">
+                        <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2 pl-1">
+                            Toimitusosoite *
+                        </label>
+                        <div class="relative autocomplete">
+                            <span class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                <span class="material-symbols-outlined text-lg text-primary">location_on</span>
+                            </span>
+                            <input
+                                class="block w-full rounded-xl border border-gray-200 bg-gray-50/50 text-slate-900 placeholder-gray-400 focus:border-blue-400 focus:ring-4 focus:ring-blue-100 sm:text-sm py-4 pl-12 pr-4 transition-all"
+                                id="dropoff_address" placeholder="Esim. Hämeenkatu 1, Tampere" type="text"
+                                autocomplete="off">
+                            <div id="ac_dropoff" class="ac-list"></div>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div class="group">
+                            <label
+                                class="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2 pl-1">
+                                Toimituspäivä *
+                            </label>
+                            <div class="relative">
+                                <span class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                    <span
+                                        class="material-symbols-outlined text-lg text-emerald-500">calendar_today</span>
+                                </span>
+                                <input
+                                    class="block w-full rounded-xl border border-gray-200 bg-gray-50/50 text-slate-900 focus:border-blue-400 focus:ring-4 focus:ring-blue-100 sm:text-sm py-4 pl-12 pr-4 transition-all"
+                                    type="date" id="delivery_date" required>
+                            </div>
+                        </div>
+                        <div class="group">
+                            <label
+                                class="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2 pl-1">
+                                Toimitusaika <span class="text-slate-400 font-normal normal-case">(valinnainen)</span>
+                            </label>
+                            <div class="relative">
+                                <span class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                    <span class="material-symbols-outlined text-lg text-slate-400">schedule</span>
+                                </span>
+                                <input
+                                    class="block w-full rounded-xl border border-gray-200 bg-gray-50/50 text-slate-900 focus:border-blue-400 focus:ring-4 focus:ring-blue-100 sm:text-sm py-4 pl-12 pr-4 transition-all"
+                                    type="time" id="delivery_time">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex gap-4 pt-6">
+                    <button type="button" onclick="prevStep()"
+                        class="btn-secondary px-6 py-4 border border-slate-200 rounded-xl text-slate-600 font-semibold flex items-center gap-2">
+                        <span class="material-symbols-outlined">arrow_back</span>
+                        Takaisin
+                    </button>
+                    <button type="button" onclick="nextStep()"
+                        class="btn-gradient flex-1 inline-flex justify-center items-center rounded-xl px-6 py-4 text-base font-bold text-white shadow-lg">
+                        Jatka
+                        <span class="material-symbols-outlined ml-2">arrow_forward</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Step 3: Vehicle Details -->
+            <div class="step-container" id="step3">
+                <div class="space-y-6">
+                    <div class="group">
+                        <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2 pl-1">
+                            Rekisterinumero *
+                        </label>
+                        <div class="relative">
+                            <span class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                <span class="material-symbols-outlined text-lg text-slate-400">directions_car</span>
+                            </span>
+                            <input
+                                class="block w-full rounded-xl border border-gray-200 bg-gray-50/50 text-slate-900 placeholder-gray-400 focus:border-blue-400 focus:ring-4 focus:ring-blue-100 sm:text-sm py-4 pl-12 pr-4 transition-all uppercase"
+                                id="reg_number" placeholder="ABC-123" type="text" required
+                                oninput="this.value = this.value.toUpperCase()">
+                        </div>
+                    </div>
+
+                    <div class="bg-white border border-slate-200 rounded-xl p-4 hover:border-blue-300 transition-all cursor-pointer"
+                        onclick="document.getElementById('winter_tires').click()">
+                        <label class="flex items-start gap-3 cursor-pointer">
+                            <input type="checkbox" id="winter_tires"
+                                class="w-5 h-5 mt-0.5 rounded border-slate-300 text-blue-600 focus:ring-blue-500">
+                            <div>
+                                <div class="font-semibold text-slate-700 flex items-center gap-2">
+                                    <span class="material-symbols-outlined text-blue-500 text-lg">ac_unit</span>
+                                    Talvirenkaat
+                                </div>
+                                <p class="text-sm text-slate-500 mt-1">Autossa on talvirenkaat</p>
+                            </div>
+                        </label>
+                    </div>
+
+                    <!-- Return Vehicle (shown if paluu_auto checked) -->
+                    <div id="returnVehicleSection"
+                        class="hidden bg-blue-50 border border-blue-200 rounded-xl p-5 space-y-4">
+                        <h4 class="font-semibold text-blue-800 flex items-center gap-2">
+                            <span class="material-symbols-outlined">sync</span>
+                            Paluuajoneuvon tiedot
+                        </h4>
+                        <div class="group">
+                            <label
+                                class="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2 pl-1">
+                                Rekisterinumero
+                            </label>
+                            <div class="relative">
+                                <span class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                    <span class="material-symbols-outlined text-lg text-slate-400">directions_car</span>
+                                </span>
+                                <input
+                                    class="block w-full rounded-xl border border-gray-200 bg-white text-slate-900 placeholder-gray-400 focus:border-blue-400 focus:ring-4 focus:ring-blue-100 sm:text-sm py-4 pl-12 pr-4 transition-all uppercase"
+                                    id="return_reg_number" placeholder="XYZ-789" type="text"
+                                    oninput="this.value = this.value.toUpperCase()">
+                            </div>
+                        </div>
+                        <div class="bg-white border border-slate-200 rounded-xl p-4 cursor-pointer"
+                            onclick="document.getElementById('return_winter_tires').click()">
+                            <label class="flex items-start gap-3 cursor-pointer">
+                                <input type="checkbox" id="return_winter_tires"
+                                    class="w-5 h-5 mt-0.5 rounded border-slate-300 text-blue-600 focus:ring-blue-500">
+                                <div>
+                                    <div class="font-semibold text-slate-700 flex items-center gap-2">
+                                        <span class="material-symbols-outlined text-blue-500 text-lg">ac_unit</span>
+                                        Talvirenkaat
+                                    </div>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex gap-4 pt-6">
+                    <button type="button" onclick="prevStep()"
+                        class="btn-secondary px-6 py-4 border border-slate-200 rounded-xl text-slate-600 font-semibold flex items-center gap-2">
+                        <span class="material-symbols-outlined">arrow_back</span>
+                        Takaisin
+                    </button>
+                    <button type="button" onclick="nextStep()"
+                        class="btn-gradient flex-1 inline-flex justify-center items-center rounded-xl px-6 py-4 text-base font-bold text-white shadow-lg">
+                        Jatka
+                        <span class="material-symbols-outlined ml-2">arrow_forward</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Step 4: Contact Details -->
+            <div class="step-container" id="step4">
+                <div class="space-y-6">
+                    <div class="bg-white border border-slate-200 rounded-xl p-5 space-y-4">
+                        <h4 class="font-semibold text-slate-700">Tilaajan tiedot</h4>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div class="group">
+                                <label
+                                    class="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2 pl-1">Nimi
+                                    *</label>
+                                <input
+                                    class="block w-full rounded-xl border border-gray-200 bg-gray-50/50 text-slate-900 placeholder-gray-400 focus:border-blue-400 focus:ring-4 focus:ring-blue-100 sm:text-sm py-3 px-4 transition-all"
+                                    id="orderer_name" placeholder="Matti Meikäläinen" type="text" required>
+                            </div>
+                            <div class="group">
+                                <label
+                                    class="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2 pl-1">Sähköposti
+                                    *</label>
+                                <input
+                                    class="block w-full rounded-xl border border-gray-200 bg-gray-50/50 text-slate-900 placeholder-gray-400 focus:border-blue-400 focus:ring-4 focus:ring-blue-100 sm:text-sm py-3 px-4 transition-all"
+                                    id="orderer_email" placeholder="matti@example.com" type="email" required>
+                            </div>
+                        </div>
+                        <div class="group">
+                            <label
+                                class="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2 pl-1">Puhelinnumero
+                                *</label>
+                            <input
+                                class="block w-full rounded-xl border border-gray-200 bg-gray-50/50 text-slate-900 placeholder-gray-400 focus:border-blue-400 focus:ring-4 focus:ring-blue-100 sm:text-sm py-3 px-4 transition-all"
+                                id="orderer_phone" placeholder="+358 40 123 4567" type="tel" required>
+                        </div>
+                    </div>
+
+                    <!-- Different Customer Checkbox -->
+                    <div class="bg-white border border-slate-200 rounded-xl p-4 cursor-pointer"
+                        onclick="toggleCustomerSection()">
+                        <label class="flex items-start gap-3 cursor-pointer">
+                            <input type="checkbox" id="different_customer"
+                                class="w-5 h-5 mt-0.5 rounded border-slate-300 text-amber-600 focus:ring-amber-500">
+                            <div>
+                                <div class="font-semibold text-slate-700">Asiakas on eri henkilö</div>
+                                <p class="text-sm text-slate-500 mt-1">Tilaan kuljetuksen toisen henkilön puolesta</p>
+                            </div>
+                        </label>
+                    </div>
+
+                    <!-- Customer Section (hidden by default) -->
+                    <div id="customerSection"
+                        class="hidden bg-amber-50 border border-amber-200 rounded-xl p-5 space-y-4">
+                        <h4 class="font-semibold text-amber-800">Asiakkaan tiedot</h4>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div class="group">
+                                <label
+                                    class="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2 pl-1">Nimi</label>
+                                <input
+                                    class="block w-full rounded-xl border border-gray-200 bg-white text-slate-900 placeholder-gray-400 focus:border-amber-400 focus:ring-4 focus:ring-amber-100 sm:text-sm py-3 px-4 transition-all"
+                                    id="customer_name" placeholder="Asiakkaan nimi" type="text">
+                            </div>
+                            <div class="group">
+                                <label
+                                    class="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2 pl-1">Sähköposti</label>
+                                <input
+                                    class="block w-full rounded-xl border border-gray-200 bg-white text-slate-900 placeholder-gray-400 focus:border-amber-400 focus:ring-4 focus:ring-amber-100 sm:text-sm py-3 px-4 transition-all"
+                                    id="customer_email" placeholder="asiakas@example.com" type="email">
+                            </div>
+                        </div>
+                        <div class="group">
+                            <label
+                                class="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2 pl-1">Puhelinnumero</label>
+                            <input
+                                class="block w-full rounded-xl border border-gray-200 bg-white text-slate-900 placeholder-gray-400 focus:border-amber-400 focus:ring-4 focus:ring-amber-100 sm:text-sm py-3 px-4 transition-all"
+                                id="customer_phone" placeholder="+358 40 123 4567" type="tel">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex gap-4 pt-6">
+                    <button type="button" onclick="prevStep()"
+                        class="btn-secondary px-6 py-4 border border-slate-200 rounded-xl text-slate-600 font-semibold flex items-center gap-2">
+                        <span class="material-symbols-outlined">arrow_back</span>
+                        Takaisin
+                    </button>
+                    <button type="button" onclick="nextStep()"
+                        class="btn-gradient flex-1 inline-flex justify-center items-center rounded-xl px-6 py-4 text-base font-bold text-white shadow-lg">
+                        Jatka
+                        <span class="material-symbols-outlined ml-2">arrow_forward</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Step 5: Additional Info -->
+            <div class="step-container" id="step5">
+                <div class="space-y-6">
+                    <div class="group">
+                        <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2 pl-1">
+                            Lisätiedot tai erityistoiveet
+                        </label>
+                        <textarea id="additional_info" rows="5"
+                            placeholder="Esim. Joustava aikataulu, erityiset noutoohjeet..."
+                            class="w-full px-4 py-4 border border-slate-200 rounded-xl bg-gray-50/50 text-slate-900 placeholder-slate-400 focus:border-blue-400 focus:ring-4 focus:ring-blue-100 outline-none transition-all resize-none"></textarea>
+                    </div>
+
+                    <div class="bg-slate-50 border border-slate-200 rounded-xl p-5">
+                        <h4 class="font-semibold text-slate-700 mb-3 text-sm">Mitä voit kertoa?</h4>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <button type="button" onclick="addSuggestion('Aikataulu joustava')" class="suggestion-btn">
+                                <span class="material-symbols-outlined text-blue-500 text-lg">event_available</span>
+                                <span>Joustava aikataulu</span>
+                            </button>
+                            <button type="button" onclick="addSuggestion('Toimitus on kiireellinen')"
+                                class="suggestion-btn">
+                                <span class="material-symbols-outlined text-orange-500 text-lg">schedule</span>
+                                <span>Kiireellinen toimitus</span>
+                            </button>
+                            <button type="button" onclick="addSuggestion('Nouto takapihalta')" class="suggestion-btn">
+                                <span class="material-symbols-outlined text-green-500 text-lg">home</span>
+                                <span>Erityinen noutopaikka</span>
+                            </button>
+                            <button type="button" onclick="addSuggestion('Soita ennen noutoa')" class="suggestion-btn">
+                                <span class="material-symbols-outlined text-purple-500 text-lg">call</span>
+                                <span>Soita ennen noutoa</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex gap-4 pt-6">
+                    <button type="button" onclick="prevStep()"
+                        class="btn-secondary px-6 py-4 border border-slate-200 rounded-xl text-slate-600 font-semibold flex items-center gap-2">
+                        <span class="material-symbols-outlined">arrow_back</span>
+                        Takaisin
+                    </button>
+                    <button type="button" onclick="nextStep()"
+                        class="btn-gradient flex-1 inline-flex justify-center items-center rounded-xl px-6 py-4 text-base font-bold text-white shadow-lg">
+                        Jatka vahvistukseen
+                        <span class="material-symbols-outlined ml-2">arrow_forward</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Step 6: Confirmation -->
+            <div class="step-container" id="step6">
+                <div class="space-y-6">
+                    <!-- Summary Card -->
+                    <div class="bg-slate-50 border border-slate-200 rounded-xl p-5">
+                        <h4 class="font-semibold text-slate-700 mb-4 flex items-center gap-2">
+                            <span class="material-symbols-outlined text-blue-500">summarize</span>
+                            Tilauksen yhteenveto
+                        </h4>
+                        <div id="orderSummary" class="space-y-3 text-sm">
+                            <!-- Filled dynamically -->
+                        </div>
+                    </div>
+
+                    <!-- Terms Checkbox -->
+                    <div class="bg-white border border-slate-200 rounded-xl p-4 cursor-pointer"
+                        onclick="document.getElementById('accept_terms').click()">
+                        <label class="flex items-start gap-3 cursor-pointer">
+                            <input type="checkbox" id="accept_terms"
+                                class="w-5 h-5 mt-0.5 rounded border-slate-300 text-blue-600 focus:ring-blue-500">
+                            <div>
+                                <div class="font-semibold text-slate-700">Hyväksyn ehdot</div>
+                                <p class="text-sm text-slate-500 mt-1">Olen lukenut ja hyväksyn <a href="/terms"
+                                        class="text-blue-600 hover:underline"
+                                        onclick="event.stopPropagation()">käyttöehdot</a></p>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="flex gap-4 pt-6">
+                    <button type="button" onclick="prevStep()"
+                        class="btn-secondary px-6 py-4 border border-slate-200 rounded-xl text-slate-600 font-semibold flex items-center gap-2">
+                        <span class="material-symbols-outlined">arrow_back</span>
+                        Takaisin
+                    </button>
+                    <button type="button" onclick="submitOrder()" id="submitBtn"
+                        class="btn-gradient flex-1 inline-flex justify-center items-center rounded-xl px-6 py-4 text-base font-bold text-white shadow-lg disabled:opacity-50"
+                        disabled>
+                        <span class="material-symbols-outlined mr-2">check_circle</span>
+                        Lähetä tilaus
+                    </button>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-slate-900 text-white pt-12 pb-12 mt-auto">
+        <div class="max-w-7xl mx-auto px-6 text-center">
+            <p class="text-sm text-slate-400">© 2025 Levoro - Tiyouba Oy | Y-tunnus: 1541430-2</p>
+        </div>
+    </footer>
+
+    <script>
+        // State
+        let currentStep = 1;
+        const totalSteps = 6;
+        const subtitles = {
+            1: 'Mistä auto noudetaan?',
+            2: 'Minne auto toimitetaan?',
+            3: 'Ajoneuvon tiedot',
+            4: 'Yhteystiedot',
+            5: 'Lisätiedot',
+            6: 'Vahvista tilaus'
+        };
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            loadFromStorage();
+            updateUI();
+            setupAutoSave();
+            setupValidation();
+
+            // Show return vehicle section if needed
+            document.getElementById('paluu_auto').addEventListener('change', function () {
+                document.getElementById('returnVehicleSection').classList.toggle('hidden', !this.checked);
+            });
+
+            // Enable submit when terms accepted
+            document.getElementById('accept_terms').addEventListener('change', function () {
+                document.getElementById('submitBtn').disabled = !this.checked;
+            });
+        });
+
+        function goToStep(step) {
+            if (step < 1 || step > totalSteps) return;
+            if (step > currentStep && !validateCurrentStep()) return;
+
+            // Hide current
+            document.getElementById(`step${currentStep}`).classList.remove('active');
+            document.querySelectorAll('.step-item').forEach(el => el.classList.remove('active'));
+
+            // Mark completed
+            for (let i = 1; i < step; i++) {
+                document.querySelector(`.step-item[data-step="${i}"]`).classList.add('completed');
+            }
+
+            // Show new
+            currentStep = step;
+            document.getElementById(`step${currentStep}`).classList.add('active');
+            document.querySelector(`.step-item[data-step="${currentStep}"]`).classList.add('active');
+            document.querySelector(`.step-item[data-step="${currentStep}"]`).classList.remove('completed');
+
+            // Update subtitle
+            document.getElementById('stepSubtitle').textContent = subtitles[currentStep];
+
+            // Update URL without refresh
+            history.pushState({ step: currentStep }, '', `/order/new?step=${currentStep}`);
+
+            // Scroll to top
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+
+            // If confirmation step, build summary
+            if (currentStep === 6) buildSummary();
+
+            saveToStorage();
+        }
+
+        function nextStep() {
+            goToStep(currentStep + 1);
+        }
+
+        function prevStep() {
+            goToStep(currentStep - 1);
+        }
+
+        function validateCurrentStep() {
+            // Basic validation per step
+            switch (currentStep) {
+                case 1:
+                    if (!document.getElementById('pickup_address').value) {
+                        alert('Syötä nouto-osoite');
+                        return false;
+                    }
+                    if (!document.getElementById('pickup_date').value) {
+                        alert('Valitse noutopäivä');
+                        return false;
+                    }
+                    break;
+                case 2:
+                    if (!document.getElementById('dropoff_address').value) {
+                        alert('Syötä toimitusosoite');
+                        return false;
+                    }
+                    if (!document.getElementById('delivery_date').value) {
+                        alert('Valitse toimituspäivä');
+                        return false;
+                    }
+                    break;
+                case 3:
+                    if (!document.getElementById('reg_number').value) {
+                        alert('Syötä rekisterinumero');
+                        return false;
+                    }
+                    break;
+                case 4:
+                    if (!document.getElementById('orderer_name').value ||
+                        !document.getElementById('orderer_email').value ||
+                        !document.getElementById('orderer_phone').value) {
+                        alert('Täytä kaikki yhteystiedot');
+                        return false;
+                    }
+                    break;
+            }
+            return true;
+        }
+
+        function updateUI() {
+            // Set active step
+            document.querySelectorAll('.step-container').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.step-item').forEach(el => el.classList.remove('active', 'completed'));
+
+            document.getElementById(`step${currentStep}`).classList.add('active');
+            document.querySelector(`.step-item[data-step="${currentStep}"]`).classList.add('active');
+
+            for (let i = 1; i < currentStep; i++) {
+                const item = document.querySelector(`.step-item[data-step="${i}"]`);
+                item.classList.add('completed');
+                item.querySelector('.step-number').innerHTML = '<span class="material-symbols-outlined text-sm">check</span>';
+            }
+
+            document.getElementById('stepSubtitle').textContent = subtitles[currentStep];
+        }
+
+        function buildSummary() {
+            const summary = document.getElementById('orderSummary');
+            const data = getFormData();
+
+            let html = `
+                <div class="flex justify-between py-2 border-b border-slate-200">
+                    <span class="text-slate-500">Nouto</span>
+                    <span class="font-medium text-slate-700">${data.pickup_address}</span>
+                </div>
+                <div class="flex justify-between py-2 border-b border-slate-200">
+                    <span class="text-slate-500">Toimitus</span>
+                    <span class="font-medium text-slate-700">${data.dropoff_address}</span>
+                </div>
+                <div class="flex justify-between py-2 border-b border-slate-200">
+                    <span class="text-slate-500">Rekisterinumero</span>
+                    <span class="font-medium text-slate-700">${data.reg_number}</span>
+                </div>
+                <div class="flex justify-between py-2 border-b border-slate-200">
+                    <span class="text-slate-500">Noutopäivä</span>
+                    <span class="font-medium text-slate-700">${formatDate(data.pickup_date)}</span>
+                </div>
+                <div class="flex justify-between py-2 border-b border-slate-200">
+                    <span class="text-slate-500">Tilaaja</span>
+                    <span class="font-medium text-slate-700">${data.orderer_name}</span>
+                </div>
+            `;
+
+            if (data.paluu_auto) {
+                html += `
+                    <div class="flex justify-between py-2 border-b border-slate-200">
+                        <span class="text-slate-500">Paluuajo</span>
+                        <span class="font-medium text-green-600">Kyllä (-30%)</span>
+                    </div>
+                `;
+            }
+
+            summary.innerHTML = html;
+        }
+
+        function getFormData() {
+            return {
+                pickup_address: document.getElementById('pickup_address').value,
+                pickup_date: document.getElementById('pickup_date').value,
+                pickup_time: document.getElementById('pickup_time').value,
+                dropoff_address: document.getElementById('dropoff_address').value,
+                delivery_date: document.getElementById('delivery_date').value,
+                delivery_time: document.getElementById('delivery_time').value,
+                reg_number: document.getElementById('reg_number').value,
+                winter_tires: document.getElementById('winter_tires').checked,
+                paluu_auto: document.getElementById('paluu_auto').checked,
+                return_reg_number: document.getElementById('return_reg_number').value,
+                return_winter_tires: document.getElementById('return_winter_tires').checked,
+                orderer_name: document.getElementById('orderer_name').value,
+                orderer_email: document.getElementById('orderer_email').value,
+                orderer_phone: document.getElementById('orderer_phone').value,
+                different_customer: document.getElementById('different_customer').checked,
+                customer_name: document.getElementById('customer_name').value,
+                customer_email: document.getElementById('customer_email').value,
+                customer_phone: document.getElementById('customer_phone').value,
+                additional_info: document.getElementById('additional_info').value
+            };
+        }
+
+        function formatDate(dateStr) {
+            if (!dateStr) return '';
+            const d = new Date(dateStr);
+            return d.toLocaleDateString('fi-FI');
+        }
+
+        function saveToStorage() {
+            const data = getFormData();
+            data.currentStep = currentStep;
+            localStorage.setItem('wizardData', JSON.stringify(data));
+        }
+
+        function loadFromStorage() {
+            const saved = localStorage.getItem('wizardData');
+            if (saved) {
+                const data = JSON.parse(saved);
+
+                // Restore values
+                Object.keys(data).forEach(key => {
+                    const el = document.getElementById(key);
+                    if (el) {
+                        if (el.type === 'checkbox') {
+                            el.checked = data[key];
+                        } else {
+                            el.value = data[key];
+                        }
+                    }
+                });
+
+                currentStep = data.currentStep || 1;
+
+                // Show/hide conditional sections
+                if (data.paluu_auto) {
+                    document.getElementById('returnVehicleSection').classList.remove('hidden');
+                }
+                if (data.different_customer) {
+                    document.getElementById('customerSection').classList.remove('hidden');
+                }
+            }
+        }
+
+        function setupAutoSave() {
+            document.querySelectorAll('input, textarea').forEach(el => {
+                el.addEventListener('change', saveToStorage);
+                el.addEventListener('input', debounce(saveToStorage, 500));
+            });
+        }
+
+        function setupValidation() {
+            // Phone validation, etc. can be added here
+        }
+
+        function debounce(func, wait) {
+            let timeout;
+            return function (...args) {
+                clearTimeout(timeout);
+                timeout = setTimeout(() => func.apply(this, args), wait);
+            };
+        }
+
+        function addSuggestion(text) {
+            const textarea = document.getElementById('additional_info');
+            const currentValue = textarea.value.trim();
+            if (currentValue && currentValue.toLowerCase().includes(text.toLowerCase())) return;
+            textarea.value = currentValue ? currentValue + '\n' + text : text;
+            saveToStorage();
+        }
+
+        function toggleCustomerSection() {
+            const checkbox = document.getElementById('different_customer');
+            const section = document.getElementById('customerSection');
+            checkbox.checked = !checkbox.checked;
+            section.classList.toggle('hidden', !checkbox.checked);
+            saveToStorage();
+        }
+
+        async function submitOrder() {
+            if (!document.getElementById('accept_terms').checked) {
+                alert('Hyväksy ehdot jatkaaksesi');
+                return;
+            }
+
+            const btn = document.getElementById('submitBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner mr-2"></span> Lähetetään...';
+
+            try {
+                const response = await fetch('/api/order/submit', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(getFormData())
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+                    localStorage.removeItem('wizardData');
+                    window.location.href = `/order/success/${result.order_id}`;
+                } else {
+                    throw new Error('Submission failed');
+                }
+            } catch (error) {
+                alert('Virhe tilauksen lähetyksessä. Yritä uudelleen.');
+                btn.disabled = false;
+                btn.innerHTML = '<span class="material-symbols-outlined mr-2">check_circle</span> Lähetä tilaus';
+            }
+        }
+
+        // Handle browser back/forward
+        window.addEventListener('popstate', (e) => {
+            if (e.state && e.state.step) {
+                currentStep = e.state.step;
+                updateUI();
+            }
+        });
+    </script>
+</body>
+
+</html>

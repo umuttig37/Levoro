@@ -4,106 +4,254 @@
 {% block page_title %}Auton nouto{% endblock %}
 {% block page_subtitle %}Mistä auto noudetaan?{% endblock %}
 
+{% block extra_styles %}
+<style>
+    /* AutoComplete Styles - matching calculator */
+    .autocomplete {
+        position: relative;
+    }
+
+    .ac-list {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        background: white;
+        border: 1px solid #ddd;
+        border-top: none;
+        z-index: 1000;
+        display: none;
+        max-height: 300px;
+        overflow-y: auto;
+        border-radius: 0 0 12px 12px;
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+    }
+
+    .ac-item {
+        padding: 12px 16px;
+        cursor: pointer;
+        border-bottom: 1px solid #f1f5f9;
+        font-size: 0.95rem;
+        color: #334155;
+        transition: all 0.2s;
+    }
+
+    .ac-item:last-child {
+        border-bottom: none;
+    }
+
+    .ac-item:hover,
+    .ac-item.active {
+        background: #f8fafc;
+        color: #2563eb;
+        padding-left: 20px;
+    }
+
+    .ac-loading {
+        padding: 12px;
+        color: #64748b;
+        font-size: 0.9rem;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .spinner {
+        width: 16px;
+        height: 16px;
+        border: 2px solid #e0e0e0;
+        border-top: 2px solid #3b82f6;
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+        0% {
+            transform: rotate(0deg);
+        }
+
+        100% {
+            transform: rotate(360deg);
+        }
+    }
+
+    /* Move native picker indicator to the left to overlay the custom icon */
+    input[type="date"]::-webkit-calendar-picker-indicator,
+    input[type="time"]::-webkit-calendar-picker-indicator {
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 2.5rem;
+        height: 100%;
+        margin: 0;
+        padding: 0;
+        opacity: 0;
+        cursor: pointer;
+        z-index: 20;
+    }
+
+    /* Checkbox animation */
+    input[type="checkbox"] {
+        transition: transform 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+    }
+
+    input[type="checkbox"]:active {
+        transform: scale(0.9);
+    }
+
+    input[type="checkbox"]:checked {
+        animation: checkPop 0.2s ease-out;
+    }
+
+    @keyframes checkPop {
+        0% {
+            transform: scale(1);
+        }
+
+        50% {
+            transform: scale(1.2);
+        }
+
+        100% {
+            transform: scale(1);
+        }
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <form method="POST" class="space-y-6">
-    <!-- Pickup Address -->
-    <div class="space-y-2 animate-fade-in-1 opacity-0">
-        <label for="from_step" class="block text-xs font-semibold uppercase tracking-wider text-slate-500 pl-1">
+    <!-- Pickup Address - Matching calculator styling -->
+    <div class="group">
+        <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2 pl-1" for="from_step">
             Nouto-osoite *
         </label>
-        <div class="input-group relative">
-            <span class="input-icon material-symbols-outlined text-lg">my_location</span>
-            <input 
-                type="text" 
-                id="from_step" 
-                name="pickup" 
-                required 
-                value="{{ pickup_value }}"
-                placeholder="Esim. Mannerheimintie 1, Helsinki"
-                title="Syötä nouto-osoite"
-                class="wizard-input"
-                autocomplete="off" 
-                autocorrect="off"
-                spellcheck="false"
-            >
+        <div
+            class="relative transition-all duration-300 focus-within:transform focus-within:-translate-y-0.5 autocomplete">
+            <span class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                <span
+                    class="material-symbols-outlined text-lg text-slate-400 group-focus-within:text-primary transition-colors">my_location</span>
+            </span>
+            <input
+                class="block w-full rounded-xl border-gray-200 bg-gray-50/50 text-slate-900 placeholder-gray-400 focus:border-blue-400 focus:ring-4 focus:ring-blue-100 sm:text-sm py-4 pl-10 pr-4 shadow-input transition-all"
+                id="from_step" name="pickup" placeholder="Esim. Mannerheimintie 1, Helsinki" type="text"
+                autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" value="{{ pickup_value }}"
+                required>
             <input type="hidden" id="pickup_place_id" name="pickup_place_id" value="{{ pickup_place_id }}">
-            <div id="ac_from_step" class="ac-list" role="listbox" aria-label="Osoite-ehdotukset"></div>
+            <div id="ac_from_step" class="ac-list"></div>
         </div>
     </div>
 
-    <!-- Date and Time -->
-    <div class="datetime-grid animate-fade-in-2 opacity-0">
-        <div class="space-y-2">
-            <label for="pickup_date" class="block text-xs font-semibold uppercase tracking-wider text-slate-500 pl-1">
+    <!-- Date and Time - Two column grid -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div class="group">
+            <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2 pl-1"
+                for="pickup_date">
                 Noutopäivä *
             </label>
-            <div class="datetime-input relative">
-                <span class="input-icon material-symbols-outlined text-lg">calendar_today</span>
-                <input 
-                    type="date" 
-                    id="pickup_date" 
-                    name="pickup_date" 
-                    required 
-                    value="{{ pickup_date }}"
-                    title="Valitse noutopäivä"
-                >
+            <div class="relative transition-all duration-300 focus-within:transform focus-within:-translate-y-0.5">
+                <span class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                    <span class="material-symbols-outlined text-lg text-emerald-500">calendar_today</span>
+                </span>
+                <input
+                    class="block w-full rounded-xl border-gray-200 bg-gray-50/50 text-slate-900 placeholder-gray-400 focus:border-blue-400 focus:ring-4 focus:ring-blue-100 sm:text-sm py-4 pl-10 pr-4 shadow-input transition-all"
+                    type="date" id="pickup_date" name="pickup_date" required value="{{ pickup_date }}"
+                    title="Valitse noutopäivä">
             </div>
         </div>
-        <div class="space-y-2">
-            <label for="pickup_time" class="block text-xs font-semibold uppercase tracking-wider text-slate-500 pl-1">
+        <div class="group">
+            <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2 pl-1"
+                for="pickup_time">
                 Noutoaika <span class="text-slate-400 font-normal normal-case">(valinnainen)</span>
             </label>
-            <div class="datetime-input relative">
-                <span class="input-icon material-symbols-outlined text-lg">schedule</span>
-                <input 
-                    type="time" 
-                    id="pickup_time" 
-                    name="pickup_time" 
-                    value="{{ pickup_time }}"
-                    title="Valitse noutoaika"
-                >
+            <div class="relative transition-all duration-300 focus-within:transform focus-within:-translate-y-0.5">
+                <span class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                    <span class="material-symbols-outlined text-lg text-slate-400">schedule</span>
+                </span>
+                <input
+                    class="block w-full rounded-xl border-gray-200 bg-gray-50/50 text-slate-900 placeholder-gray-400 focus:border-blue-400 focus:ring-4 focus:ring-blue-100 sm:text-sm py-4 pl-10 pr-10 shadow-input transition-all"
+                    type="time" id="pickup_time" name="pickup_time" value="{{ pickup_time }}" title="Valitse noutoaika"
+                    oninput="toggleTimeClearBtn()">
+
+                <!-- Clear Button -->
+                <button type="button" id="clearTimeBtn" onclick="clearTime()"
+                    class="absolute inset-y-0 right-0 pr-3 flex items-center hidden z-[25]">
+                    <span
+                        class="flex items-center justify-center w-6 h-6 rounded-full bg-slate-200 hover:bg-red-100 text-slate-500 hover:text-red-500 transition-colors">
+                        <span class="material-symbols-outlined text-sm">close</span>
+                    </span>
+                </button>
             </div>
         </div>
     </div>
 
-    <!-- Saved Addresses -->
+    <!-- Saved Addresses - Matching calculator styling exactly -->
     {% if current_user %}
-    <div class="space-y-2 animate-fade-in-3 opacity-0">
-        <button type="button" onclick="toggleSavedAddresses()" class="saved-addresses-toggle" id="savedAddressesBtn">
-            <span class="flex items-center gap-2 text-sm text-slate-600">
-                <span class="material-symbols-outlined text-primary text-lg icon-filled">bookmark</span>
-                Tallennetut osoitteet
-            </span>
-            <div class="flex items-center gap-2">
-                <button type="button" onclick="event.stopPropagation(); openAddressModal();" class="text-xs font-semibold text-primary hover:text-blue-700 transition-colors">
-                    + Lisää
+    <div class="group pt-2">
+        <div class="relative transition-all duration-300 focus-within:transform focus-within:-translate-y-0.5">
+            <button onclick="toggleSavedAddresses()" type="button"
+                class="w-full flex justify-between items-center bg-white border-2 border-solid border-slate-300 rounded-xl pl-12 pr-4 py-4 text-sm font-medium text-slate-600 shadow-sm hover:border-primary/50 hover:shadow-md focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all group/btn">
+                <span class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                    <span class="material-symbols-outlined text-primary/70 text-xl"
+                        style="font-variation-settings: 'FILL' 1;">bookmark</span>
+                </span>
+                <span class="text-slate-600">Tallennetut osoitteet</span>
+                <span id="savedAddressesChevron"
+                    class="material-symbols-outlined text-slate-400 group-hover/btn:text-primary transition-transform duration-300 text-lg">expand_more</span>
+            </button>
+        </div>
+        <!-- Dropdown container for saved addresses -->
+        <div id="savedAddressesContainer"
+            class="transition-all duration-300 ease-out overflow-hidden max-h-0 opacity-0 -translate-y-2 p-0 border-0 bg-white rounded-xl border-gray-200 shadow-lg">
+            <!-- Header with Add button -->
+            <div class="flex justify-between items-center mb-3 pb-3 border-b border-gray-200">
+                <span class="text-sm font-semibold text-slate-700">Valitse osoite</span>
+                <button type="button" onclick="openAddressModal()"
+                    class="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:text-blue-700 transition-colors">
+                    <span class="material-symbols-outlined text-sm">add</span>
+                    Lisää uusi
                 </button>
-                <span id="savedAddressesChevron" class="material-symbols-outlined text-slate-400 text-lg toggle-icon">expand_more</span>
             </div>
-        </button>
-        <div id="savedAddressesContainer" class="saved-addresses-content">
-            <div id="addressesContainer" class="max-h-48 overflow-y-auto space-y-2"></div>
+            <!-- List of addresses (populated by JS) -->
+            <div id="addressesList" class="space-y-2 max-h-64 overflow-y-auto">
+                <p class="text-slate-400 text-center text-sm py-4">Ei tallennettuja osoitteita.</p>
+            </div>
         </div>
     </div>
     {% endif %}
 
-    <!-- Return Trip Option -->
-    <div class="animate-fade-in-4 opacity-0">
-        <label for="paluu_auto_checkbox" class="wizard-checkbox">
-            <input type="checkbox" id="paluu_auto_checkbox" name="paluu_auto" value="1" {{ 'checked' if paluu_auto else '' }} title="Valitse paluuajo">
+    <!-- Divider -->
+    <div class="border-t border-gray-200 my-2"></div>
+
+    <!-- Return Trip Option - Paluuajo (Clean with accent) -->
+    <div class="rounded-xl border border-gray-200 bg-white p-4 transition-all hover:border-orange-300 hover:shadow-sm">
+        <label for="paluu_auto_checkbox" class="flex items-start gap-4 cursor-pointer">
+            <div class="flex-shrink-0 mt-0.5">
+                <input type="checkbox" id="paluu_auto_checkbox" name="paluu_auto" value="1" {{ 'checked' if paluu_auto
+                    else '' }} class="w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-200 cursor-pointer">
+            </div>
             <div class="flex-1">
-                <div class="flex items-center gap-3">
-                    <span class="font-semibold text-slate-900">Paluuajo</span>
-                    <span class="bg-gradient-to-r from-orange-500 to-orange-600 text-white text-xs font-bold px-3 py-1 rounded-md shadow-sm">-30% Alennus</span>
+                <div class="flex items-center gap-3 flex-wrap">
+                    <span class="font-bold text-slate-900 text-base">Paluuajo</span>
+                    <span
+                        class="inline-flex items-center gap-1 bg-gradient-to-r from-orange-500 to-orange-600 text-white text-xs font-bold px-2.5 py-1 rounded-full shadow-sm">
+                        -30% Alennus
+                    </span>
                 </div>
                 <p class="text-sm text-slate-500 mt-1">Säästä 30% paluukuljetuksesta</p>
+            </div>
+            <!-- Sync icon -->
+            <div class="hidden sm:flex items-center justify-center w-9 h-9 rounded-full bg-orange-50 flex-shrink-0">
+                <span class="material-symbols-outlined text-orange-500 text-xl">sync_alt</span>
             </div>
         </label>
     </div>
 
     <!-- Actions -->
-    <div class="flex gap-4 pt-4 animate-fade-in-5 opacity-0">
-        <button type="submit" class="btn-gradient flex-1 inline-flex justify-center items-center rounded-xl from-brand-gradient-start to-brand-gradient-end px-6 py-4 text-base font-bold text-white shadow-lg shadow-blue-500/30 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+    <div class="flex gap-4 pt-4">
+        <button type="submit"
+            class="btn-gradient flex-1 inline-flex justify-center items-center rounded-xl from-brand-gradient-start to-brand-gradient-end px-6 py-4 text-base font-bold text-white shadow-lg shadow-blue-500/30 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
             Jatka
             <span class="material-symbols-outlined ml-2">arrow_forward</span>
         </button>
@@ -113,334 +261,459 @@
 
 {% block extra_scripts %}
 <script>
-// Saved Addresses Logic
-const STORAGE_KEY = 'levoro.savedAddresses.v1';
-window.savedAddresses = [];
+    // Saved Addresses State
+    window.savedAddresses = [];
 
-async function apiCall(url, options = {}) {
-    const res = await fetch(url, options);
-    let data = null;
-    try { data = await res.json(); } catch {}
-    if (!res.ok) throw new Error((data && (data.error || data.message)) || ('HTTP ' + res.status));
-    return data;
-}
-
-async function fetchServerAddresses() {
-    const data = await apiCall('/api/saved_addresses', { method: 'GET' });
-    return Array.isArray(data.items) ? data.items : [];
-}
-
-async function createServerAddress(displayName, fullAddress, phone) {
-    const payload = { displayName, fullAddress };
-    if (phone) payload.phone = phone;
-    const data = await apiCall('/api/saved_addresses', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-    });
-    return data.item;
-}
-
-async function deleteServerAddress(id) {
-    await apiCall(`/api/saved_addresses/${encodeURIComponent(id)}`, { method: 'DELETE' });
-}
-
-function renderAddresses() {
-    const container = document.getElementById('addressesContainer');
-    if (!container) return;
-    const list = window.savedAddresses || [];
-    
-    if (!list.length) {
-        container.innerHTML = '<p class="text-slate-400 text-center text-sm py-4">Ei vielä tallennettuja osoitteita.</p>';
-        return;
+    // --- API Functions ---
+    async function apiCall(url, options = {}) {
+        const res = await fetch(url, options);
+        let data = null;
+        try { data = await res.json(); } catch { }
+        if (!res.ok) throw new Error((data && (data.error || data.message)) || ('HTTP ' + res.status));
+        return data;
     }
-    
-    container.innerHTML = list.map((a, i) => `
-        <div class="flex items-start justify-between p-3 bg-white border border-slate-200 rounded-lg hover:border-primary/50 transition-colors cursor-pointer group" onclick="useAddress('${a.id}')">
-            <div class="flex-1 min-w-0">
-                <div class="font-semibold text-slate-900 text-sm">${a.displayName}</div>
-                <div class="text-slate-500 text-sm truncate">${a.fullAddress}</div>
-                ${a.phone ? `<div class="text-slate-400 text-xs mt-1">Puhelin: ${a.phone}</div>` : ''}
-            </div>
-            <button type="button" onclick="event.stopPropagation(); deleteAddressDirectly(${i});" class="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded transition-colors">
-                <span class="material-symbols-outlined text-lg">delete</span>
-            </button>
-        </div>
-    `).join('');
-}
 
-function toggleSavedAddresses() {
-    const container = document.getElementById('savedAddressesContainer');
-    const icon = document.getElementById('savedAddressesChevron');
-    if (!container) return;
-    
-    const isOpen = container.classList.contains('open');
-    container.classList.toggle('open');
-    if (icon) icon.style.transform = isOpen ? '' : 'rotate(180deg)';
-}
-
-function useAddress(id) {
-    const addr = (window.savedAddresses || []).find(x => String(x.id) === String(id));
-    if (!addr) return;
-    const input = document.getElementById('from_step');
-    if (input) {
-        input.value = addr.fullAddress;
-        input.dispatchEvent(new Event('change'));
+    async function fetchServerAddresses() {
+        const data = await apiCall('/api/saved_addresses', { method: 'GET' });
+        return Array.isArray(data.items) ? data.items : [];
     }
-}
 
-async function deleteAddressDirectly(index) {
-    const item = (window.savedAddresses || [])[index];
-    if (!item) return;
-    try { if (item.id) await deleteServerAddress(item.id); } catch(e) {}
-    window.savedAddresses.splice(index, 1);
-    renderAddresses();
-}
-
-function openAddressModal() {
-    const html = `
-    <div id="addressModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-        <div class="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl">
-            <h3 class="text-lg font-bold text-slate-900 mb-4">Lisää uusi osoite</h3>
-            <div class="space-y-4">
-                <div>
-                    <label class="block text-sm font-medium text-slate-700 mb-1">Nimi *</label>
-                    <input id="addrName" class="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-100 focus:border-blue-400 outline-none" placeholder="Esim. Koti, Toimisto">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-slate-700 mb-1">Osoite *</label>
-                    <input id="addrFull" class="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-100 focus:border-blue-400 outline-none" placeholder="Esim. Mannerheimintie 1, Helsinki">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-slate-700 mb-1">Puhelinnumero <span class="text-slate-400 font-normal">(valinnainen)</span></label>
-                    <input id="addrPhone" type="tel" class="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-100 focus:border-blue-400 outline-none" placeholder="+358...">
-                </div>
-            </div>
-            <div class="flex gap-3 mt-6">
-                <button type="button" onclick="closeAddressModal()" class="flex-1 px-4 py-3 border border-slate-200 rounded-xl text-slate-600 font-medium hover:bg-slate-50 transition-colors">Peruuta</button>
-                <button type="button" onclick="saveAddress()" class="flex-1 px-4 py-3 bg-primary text-white rounded-xl font-semibold hover:bg-blue-700 transition-colors">Tallenna</button>
-            </div>
-        </div>
-    </div>`;
-    document.body.insertAdjacentHTML('beforeend', html);
-    document.getElementById('addrName').focus();
-}
-
-function closeAddressModal() {
-    const m = document.getElementById('addressModal');
-    if (m) m.remove();
-}
-
-async function saveAddress() {
-    const name = document.getElementById('addrName').value.trim();
-    const addr = document.getElementById('addrFull').value.trim();
-    const phoneInput = document.getElementById('addrPhone');
-    const phone = phoneInput ? phoneInput.value.trim() : '';
-    
-    if (!name || !addr) {
-        alert('Täytä molemmat kentät');
-        return;
+    async function createServerAddress(displayName, fullAddress, phone) {
+        const payload = { displayName, fullAddress };
+        if (phone) payload.phone = phone;
+        const data = await apiCall('/api/saved_addresses', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        return data.item;
     }
-    
-    if (phone && !/^[+]?[0-9\s\-()]+$/.test(phone)) {
-        alert('Syötä vain numeroita ja merkit +, -, ( )');
-        return;
-    }
-    
-    let created = null;
-    try { created = await createServerAddress(name, addr, phone); } catch(e) {}
-    const item = created || { id: Date.now(), displayName: name, fullAddress: addr, phone };
-    window.savedAddresses.push(item);
-    renderAddresses();
-    closeAddressModal();
-}
 
-async function loadSavedAddresses() {
-    try {
-        const server = await fetchServerAddresses();
-        if (Array.isArray(server)) {
-            window.savedAddresses = server;
-            renderAddresses();
+    async function updateServerAddress(id, displayName, fullAddress, phone) {
+        const payload = { displayName, fullAddress };
+        if (phone !== undefined) payload.phone = phone;
+        const data = await apiCall(`/api/saved_addresses/${encodeURIComponent(id)}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        return data.item;
+    }
+
+    async function deleteServerAddress(id) {
+        await apiCall(`/api/saved_addresses/${encodeURIComponent(id)}`, { method: 'DELETE' });
+    }
+
+    // --- Toggle Saved Addresses Dropdown (matching calculator) ---
+    function toggleSavedAddresses() {
+        const container = document.getElementById('savedAddressesContainer');
+        const icon = document.getElementById('savedAddressesChevron');
+
+        if (!container) return;
+
+        // Check if currently closed (using max-h-0 as indicator)
+        const isClosed = container.classList.contains('max-h-0');
+
+        if (isClosed) {
+            // Open - slide down
+            container.classList.remove('max-h-0', 'opacity-0', '-translate-y-2', 'p-0', 'border-0');
+            container.classList.add('max-h-[500px]', 'opacity-100', 'translate-y-0', 'p-4', 'border', 'mt-2');
+            if (icon) icon.style.transform = 'rotate(180deg)';
+        } else {
+            // Close - slide up
+            container.classList.remove('max-h-[500px]', 'opacity-100', 'translate-y-0', 'p-4', 'border', 'mt-2');
+            container.classList.add('max-h-0', 'opacity-0', '-translate-y-2', 'p-0', 'border-0');
+            if (icon) icon.style.transform = 'rotate(0deg)';
         }
-    } catch(e) {}
-}
-
-// Google Places Autocomplete
-class WizardAutocomplete {
-    constructor(input, listEl, placeIdInput) {
-        this.input = input;
-        this.list = listEl;
-        this.placeIdInput = placeIdInput;
-        this.timer = null;
-        this.items = [];
-        this.cache = new Map();
-        this.isRequestInProgress = false;
-
-        input.setAttribute('autocomplete', 'off');
-        input.addEventListener('input', () => this.onInput());
-        input.addEventListener('focus', () => this.onFocus());
-        input.addEventListener('keydown', (e) => this.onKey(e));
-        document.addEventListener('mousedown', (e) => {
-            if (!e.target.closest('#' + this.list.id) && e.target !== this.input) {
-                this.hide();
-            }
-        });
-        this.list.addEventListener('mousedown', (e) => {
-            const el = e.target.closest('.ac-item');
-            if (!el) return;
-            e.preventDefault();
-            const type = el.getAttribute('data-type');
-            if (type === 'saved') {
-                this.pickSaved(el.getAttribute('data-id'));
-            } else {
-                this.pick(+el.getAttribute('data-i'));
-            }
-        });
     }
 
-    onFocus() {
-        if (!this.input.value.trim()) this.showSavedAddresses();
-    }
+    // --- Populate Saved Addresses (matching calculator) ---
+    function populateSavedAddresses() {
+        const container = document.getElementById('addressesList');
+        if (!container) return;
 
-    onInput() {
-        clearTimeout(this.timer);
-        if (this.placeIdInput) this.placeIdInput.value = '';
-        const q = this.input.value.trim();
-        if (!q) { this.showSavedAddresses(); return; }
+        const list = window.savedAddresses || [];
 
-        const cached = this.cache.get(q.toLowerCase());
-        if (cached && (Date.now() - cached.timestamp < 300000)) {
-            this.items = cached.results;
-            this.render();
+        if (list.length === 0) {
+            container.innerHTML = '<p class="text-slate-400 text-center text-sm py-4">Ei tallennettuja osoitteita.</p>';
             return;
         }
 
-        this.timer = setTimeout(() => {
-            if (this.isRequestInProgress) return;
-            this.showLoading();
-            this.fetch(q);
-        }, 400);
+        let html = '';
+        list.forEach((addr, index) => {
+            const displayName = addr.displayName || addr.name || addr.address || 'Tallennettu osoite';
+            const fullAddress = addr.fullAddress || addr.address || addr;
+            const phone = addr.phone || '';
+            const addrId = addr.id || index;
+
+            html += `
+            <div class="flex items-start gap-3 p-3 bg-white rounded-lg border border-gray-200 hover:border-primary/50 hover:shadow-sm transition-all group cursor-pointer" onclick="useAddress('${addrId}')">
+                <div class="flex items-start gap-2 flex-1 min-w-0">
+                    <span class="material-symbols-outlined text-primary text-lg mt-0.5 flex-shrink-0" style="font-variation-settings: 'FILL' 1;">bookmark</span>
+                    <div class="min-w-0">
+                        <div class="font-semibold text-slate-800 text-sm truncate">${displayName}</div>
+                        <div class="text-xs text-slate-500 truncate">${fullAddress}</div>
+                        ${phone ? `<div class="text-xs text-slate-400 mt-0.5">📞 ${phone}</div>` : ''}
+                    </div>
+                </div>
+                <div class="flex items-center gap-1 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button type="button" onclick="event.stopPropagation(); editAddress('${addrId}')" 
+                        class="p-1.5 text-slate-400 hover:text-primary hover:bg-blue-50 rounded-md transition-colors" title="Muokkaa">
+                        <span class="material-symbols-outlined text-sm">edit</span>
+                    </button>
+                    <button type="button" onclick="event.stopPropagation(); deleteAddress('${addrId}')" 
+                        class="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-md transition-colors" title="Poista">
+                        <span class="material-symbols-outlined text-sm">delete</span>
+                    </button>
+                </div>
+            </div>`;
+        });
+        container.innerHTML = html;
     }
 
-    showLoading() {
-        this.list.innerHTML = '<div class="ac-loading"><div class="spinner"></div>Haetaan osoitteita...</div>';
-        this.list.style.display = 'block';
+    // --- Use Address ---
+    function useAddress(id) {
+        const addr = (window.savedAddresses || []).find(x => String(x.id) === String(id));
+        if (!addr) return;
+        const input = document.getElementById('from_step');
+        if (input) {
+            input.value = addr.fullAddress;
+            input.dispatchEvent(new Event('change'));
+        }
+        // Close dropdown
+        toggleSavedAddresses();
     }
 
-    async fetch(q) {
-        this.isRequestInProgress = true;
+    // --- Open Add/Edit Address Modal ---
+    function openAddressModal(editId = null) {
+        const isEdit = !!editId;
+        let existingAddr = null;
+        if (isEdit) {
+            existingAddr = (window.savedAddresses || []).find(a => String(a.id) === String(editId));
+        }
+
+        const html = `
+        <div id="addressModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onclick="if(event.target===this) closeAddressModal()">
+            <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6" onclick="event.stopPropagation()">
+                <div class="flex justify-between items-center mb-5">
+                    <h3 class="text-lg font-bold text-slate-900">${isEdit ? 'Muokkaa osoitetta' : 'Lisää uusi osoite'}</h3>
+                    <button type="button" onclick="closeAddressModal()" class="text-slate-400 hover:text-slate-600 transition-colors">
+                        <span class="material-symbols-outlined">close</span>
+                    </button>
+                </div>
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">Nimi *</label>
+                        <input id="addrName" type="text" class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-primary transition-colors" placeholder="Esim. Koti, Toimisto" value="${existingAddr ? existingAddr.displayName : ''}">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">Osoite *</label>
+                        <input id="addrFull" type="text" class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-primary transition-colors" placeholder="Esim. Mannerheimintie 1, Helsinki" value="${existingAddr ? existingAddr.fullAddress : ''}">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">Puhelinnumero (valinnainen)</label>
+                        <input id="addrPhone" type="tel" class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-primary transition-colors" placeholder="+358..." value="${existingAddr && existingAddr.phone ? existingAddr.phone : ''}">
+                        <p class="text-xs text-slate-500 mt-1">Täytetään automaattisesti tilaajan puhelinnumeroksi</p>
+                    </div>
+                </div>
+                <input type="hidden" id="addrEditId" value="${editId || ''}">
+                <div class="flex gap-3 mt-6">
+                    <button type="button" onclick="closeAddressModal()" class="flex-1 px-4 py-3 border border-gray-300 rounded-xl text-slate-600 font-medium hover:bg-gray-50 transition-colors">Peruuta</button>
+                    <button type="button" onclick="saveAddressFromModal()" class="flex-1 px-4 py-3 bg-primary text-white rounded-xl font-semibold hover:bg-blue-600 transition-colors shadow-lg shadow-blue-500/30">Tallenna</button>
+                </div>
+            </div>
+        </div>`;
+        document.body.insertAdjacentHTML('beforeend', html);
+        document.getElementById('addrName').focus();
+    }
+
+    function closeAddressModal() {
+        const m = document.getElementById('addressModal');
+        if (m) m.remove();
+    }
+
+    async function saveAddressFromModal() {
+        const name = document.getElementById('addrName').value.trim();
+        const addr = document.getElementById('addrFull').value.trim();
+        const phone = document.getElementById('addrPhone').value.trim();
+        const editId = document.getElementById('addrEditId').value;
+
+        if (!name || !addr) {
+            alert('Täytä nimi ja osoite.');
+            return;
+        }
+        if (phone && !/^[+]?[0-9\s\-()]+$/.test(phone)) {
+            alert('Virheellinen puhelinnumero. Käytä vain numeroita ja merkkejä +, -, ( ).');
+            return;
+        }
+
         try {
-            const response = await fetch('/api/places_autocomplete', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ query: q })
-            });
-            if (!response.ok) throw new Error();
-            const data = await response.json();
-            this.items = data.predictions || [];
-            this.cache.set(q.toLowerCase(), { results: this.items, timestamp: Date.now() });
-            this.render();
-        } catch(e) {
-            this.items = [];
-            this.list.innerHTML = '<div class="ac-error p-3 text-red-500 text-sm">Osoitetta ei löytynyt</div>';
-        } finally {
-            this.isRequestInProgress = false;
+            if (editId) {
+                // Update existing
+                const updated = await updateServerAddress(editId, name, addr, phone);
+                const idx = window.savedAddresses.findIndex(a => String(a.id) === String(editId));
+                if (idx >= 0) window.savedAddresses[idx] = updated;
+            } else {
+                // Create new
+                const created = await createServerAddress(name, addr, phone);
+                window.savedAddresses.push(created);
+            }
+            populateSavedAddresses();
+            closeAddressModal();
+        } catch (e) {
+            alert('Tallennus epäonnistui: ' + e.message);
         }
     }
 
-    render() {
-        const q = this.input.value.trim().toLowerCase();
-        let html = '';
+    function editAddress(id) {
+        openAddressModal(id);
+    }
 
-        // Filter saved addresses
-        const filteredSaved = window.savedAddresses?.filter(a =>
-            a.displayName?.toLowerCase().includes(q) || a.fullAddress?.toLowerCase().includes(q)
-        ).slice(0, 3) || [];
+    async function deleteAddress(id) {
+        if (!confirm('Haluatko varmasti poistaa tämän osoitteen?')) return;
 
-        if (filteredSaved.length) {
-            html += '<div class="px-3 py-2 text-xs font-semibold text-slate-500 bg-slate-50 border-b">Tallennetut osoitteet</div>';
-            html += filteredSaved.map(a => `
+        try {
+            await deleteServerAddress(id);
+            window.savedAddresses = window.savedAddresses.filter(a => String(a.id) !== String(id));
+            populateSavedAddresses();
+        } catch (e) {
+            alert('Poistaminen epäonnistui: ' + e.message);
+        }
+    }
+
+    // --- Load Saved Addresses ---
+    async function loadSavedAddresses() {
+        try {
+            const addresses = await fetchServerAddresses();
+            window.savedAddresses = addresses;
+            populateSavedAddresses();
+        } catch (e) {
+            console.error('Failed to load saved addresses:', e);
+        }
+    }
+
+    // --- Google Places Autocomplete ---
+    class WizardAutocomplete {
+        constructor(input, listEl, placeIdInput) {
+            this.input = input;
+            this.list = listEl;
+            this.placeIdInput = placeIdInput;
+            this.timer = null;
+            this.items = [];
+            this.cache = new Map();
+            this.isRequestInProgress = false;
+
+            input.setAttribute('autocomplete', 'off');
+            input.addEventListener('input', () => this.onInput());
+            input.addEventListener('focus', () => this.onFocus());
+            input.addEventListener('keydown', (e) => this.onKey(e));
+            document.addEventListener('mousedown', (e) => {
+                if (!e.target.closest('#' + this.list.id) && e.target !== this.input) {
+                    this.hide();
+                }
+            });
+            this.list.addEventListener('mousedown', (e) => {
+                const el = e.target.closest('.ac-item');
+                if (!el) return;
+                e.preventDefault();
+                const type = el.getAttribute('data-type');
+                if (type === 'saved') {
+                    this.pickSaved(el.getAttribute('data-id'));
+                } else {
+                    this.pick(+el.getAttribute('data-i'));
+                }
+            });
+        }
+
+        onFocus() {
+            if (!this.input.value.trim()) this.showSavedAddresses();
+        }
+
+        onInput() {
+            clearTimeout(this.timer);
+            if (this.placeIdInput) this.placeIdInput.value = '';
+            const q = this.input.value.trim();
+            if (!q) { this.showSavedAddresses(); return; }
+
+            const cached = this.cache.get(q.toLowerCase());
+            if (cached && (Date.now() - cached.timestamp < 300000)) {
+                this.items = cached.results;
+                this.render();
+                return;
+            }
+
+            this.timer = setTimeout(() => {
+                if (this.isRequestInProgress) return;
+                this.showLoading();
+                this.fetch(q);
+            }, 400);
+        }
+
+        showLoading() {
+            this.list.innerHTML = '<div class="ac-loading"><div class="spinner"></div>Haetaan osoitteita...</div>';
+            this.list.style.display = 'block';
+        }
+
+        async fetch(q) {
+            this.isRequestInProgress = true;
+            try {
+                const response = await fetch('/api/places_autocomplete', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ query: q })
+                });
+                if (!response.ok) throw new Error();
+                const data = await response.json();
+                this.items = data.predictions || [];
+                this.cache.set(q.toLowerCase(), { results: this.items, timestamp: Date.now() });
+                this.render();
+            } catch (e) {
+                this.items = [];
+                this.list.innerHTML = '<div class="ac-error p-3 text-red-500 text-sm">Osoitetta ei löytynyt</div>';
+            } finally {
+                this.isRequestInProgress = false;
+            }
+        }
+
+        render() {
+            const q = this.input.value.trim().toLowerCase();
+            let html = '';
+
+            // Filter saved addresses
+            const filteredSaved = window.savedAddresses?.filter(a =>
+                a.displayName?.toLowerCase().includes(q) || a.fullAddress?.toLowerCase().includes(q)
+            ).slice(0, 3) || [];
+
+            if (filteredSaved.length) {
+                html += '<div class="px-3 py-2 text-xs font-semibold text-slate-500 bg-slate-50 border-b">Tallennetut osoitteet</div>';
+                html += filteredSaved.map(a => `
                 <div class="ac-item saved-address" data-type="saved" data-id="${a.id}">
                     <div class="font-semibold text-slate-900">${a.displayName}</div>
                     <div class="text-sm text-slate-500">${a.fullAddress}</div>
                 </div>
             `).join('');
-        }
-
-        if (this.items.length) {
-            if (filteredSaved.length) {
-                html += '<div class="px-3 py-2 text-xs font-semibold text-slate-500 bg-slate-50 border-b border-t">Karttahaku</div>';
             }
-            html += this.items.slice(0, 6).map((item, i) => `
+
+            if (this.items.length) {
+                if (filteredSaved.length) {
+                    html += '<div class="px-3 py-2 text-xs font-semibold text-slate-500 bg-slate-50 border-b border-t">Karttahaku</div>';
+                }
+                html += this.items.slice(0, 6).map((item, i) => `
                 <div class="ac-item" data-type="map" data-i="${i}">${item.description}</div>
             `).join('');
+            }
+
+            if (!html) {
+                this.list.innerHTML = '<div class="p-3 text-slate-400 text-sm">Ei ehdotuksia</div>';
+            } else {
+                this.list.innerHTML = html;
+            }
+            this.show();
         }
 
-        if (!html) {
-            this.list.innerHTML = '<div class="p-3 text-slate-400 text-sm">Ei ehdotuksia</div>';
-        } else {
-            this.list.innerHTML = html;
-        }
-        this.show();
-    }
-
-    showSavedAddresses() {
-        if (!window.savedAddresses?.length) return;
-        let html = '<div class="px-3 py-2 text-xs font-semibold text-slate-500 bg-slate-50 border-b">Tallennetut osoitteet</div>';
-        html += window.savedAddresses.slice(0, 6).map(a => `
+        showSavedAddresses() {
+            if (!window.savedAddresses?.length) return;
+            let html = '<div class="px-3 py-2 text-xs font-semibold text-slate-500 bg-slate-50 border-b">Tallennetut osoitteet</div>';
+            html += window.savedAddresses.slice(0, 6).map(a => `
             <div class="ac-item saved-address" data-type="saved" data-id="${a.id}">
                 <div class="font-semibold text-slate-900">${a.displayName}</div>
                 <div class="text-sm text-slate-500">${a.fullAddress}</div>
             </div>
         `).join('');
-        this.list.innerHTML = html;
-        this.show();
+            this.list.innerHTML = html;
+            this.show();
+        }
+
+        pickSaved(id) {
+            const addr = window.savedAddresses?.find(a => String(a.id) === String(id));
+            if (!addr) return;
+            this.input.value = addr.fullAddress;
+            if (this.placeIdInput) this.placeIdInput.value = '';
+            this.hide();
+        }
+
+        pick(i) {
+            const item = this.items[i];
+            if (!item) return;
+            this.input.value = item.description;
+            if (this.placeIdInput) this.placeIdInput.value = item.place_id || '';
+            this.hide();
+        }
+
+        onKey(e) {
+            if (this.list.style.display !== 'block') return;
+            if (e.key === 'Escape') this.hide();
+        }
+
+        show() { this.list.style.display = 'block'; }
+        hide() { this.list.style.display = 'none'; }
     }
 
-    pickSaved(id) {
-        const addr = window.savedAddresses?.find(a => String(a.id) === String(id));
-        if (!addr) return;
-        this.input.value = addr.fullAddress;
-        if (this.placeIdInput) this.placeIdInput.value = '';
-        this.hide();
-    }
+    // Initialize
+    document.addEventListener('DOMContentLoaded', function () {
+        loadSavedAddresses();
 
-    pick(i) {
-        const item = this.items[i];
-        if (!item) return;
-        this.input.value = item.description;
-        if (this.placeIdInput) this.placeIdInput.value = item.place_id || '';
-        this.hide();
-    }
+        new WizardAutocomplete(
+            document.getElementById('from_step'),
+            document.getElementById('ac_from_step'),
+            document.getElementById('pickup_place_id')
+        );
 
-    onKey(e) {
-        if (this.list.style.display !== 'block') return;
-        if (e.key === 'Escape') this.hide();
-    }
+        // Date validation
+        const pickupDate = document.getElementById('pickup_date');
+        if (pickupDate) {
+            const today = new Date().toISOString().split('T')[0];
+            pickupDate.min = today;
+            if (!pickupDate.value || pickupDate.value < today) {
+                pickupDate.value = today;
+            }
+        }
 
-    show() { this.list.style.display = 'block'; }
-    hide() { this.list.style.display = 'none'; }
-}
+        // Initial check for clear button
+        toggleTimeClearBtn();
+    });
 
-// Initialize
-document.addEventListener('DOMContentLoaded', function() {
-    loadSavedAddresses();
-    
-    new WizardAutocomplete(
-        document.getElementById('from_step'),
-        document.getElementById('ac_from_step'),
-        document.getElementById('pickup_place_id')
-    );
+    // Time Picker Logic with localStorage persistence
+    const TIME_STORAGE_KEY = 'levoro.wizard.pickupTime';
 
-    // Date validation
-    const pickupDate = document.getElementById('pickup_date');
-    if (pickupDate) {
-        const today = new Date().toISOString().split('T')[0];
-        pickupDate.min = today;
-        if (!pickupDate.value || pickupDate.value < today) {
-            pickupDate.value = today;
+    function toggleTimeClearBtn() {
+        const input = document.getElementById('pickup_time');
+        const btn = document.getElementById('clearTimeBtn');
+        if (input && btn) {
+            if (input.value) {
+                btn.classList.remove('hidden');
+                // Save to localStorage
+                localStorage.setItem(TIME_STORAGE_KEY, input.value);
+            } else {
+                btn.classList.add('hidden');
+                localStorage.removeItem(TIME_STORAGE_KEY);
+            }
         }
     }
-});
+
+    function clearTime() {
+        const input = document.getElementById('pickup_time');
+        if (input) {
+            input.value = '';
+            localStorage.removeItem(TIME_STORAGE_KEY);
+            toggleTimeClearBtn();
+        }
+    }
+
+    function restoreTime() {
+        const input = document.getElementById('pickup_time');
+        if (input && !input.value) {
+            const saved = localStorage.getItem(TIME_STORAGE_KEY);
+            if (saved) {
+                input.value = saved;
+            }
+        }
+        toggleTimeClearBtn();
+    }
+
+    // Call restore on page load
+    document.addEventListener('DOMContentLoaded', function () {
+        restoreTime();
+    });
 </script>
 {% endblock %}
