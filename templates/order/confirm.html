@@ -14,20 +14,20 @@
         overflow: hidden;
         transition: all 0.2s;
     }
-    
+
     .trip-card:hover {
-        box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
     }
-    
+
     .trip-card--return {
         border-color: #fde68a;
     }
-    
+
     .route-timeline {
         position: relative;
         padding-left: 2rem;
     }
-    
+
     .route-timeline::before {
         content: '';
         position: absolute;
@@ -38,20 +38,20 @@
         background: linear-gradient(to bottom, #3b82f6, #10b981);
         border-radius: 1px;
     }
-    
+
     .trip-card--return .route-timeline::before {
         background: linear-gradient(to bottom, #f59e0b, #10b981);
     }
-    
+
     .route-point {
         position: relative;
         padding-bottom: 1.5rem;
     }
-    
+
     .route-point:last-child {
         padding-bottom: 0;
     }
-    
+
     .route-marker {
         position: absolute;
         left: -1.5rem;
@@ -62,33 +62,33 @@
         background: #3b82f6;
         box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.15);
     }
-    
+
     .route-point--end .route-marker {
         background: #10b981;
         box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.15);
     }
-    
+
     .trip-card--return .route-marker {
         background: #f59e0b;
         box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.15);
     }
-    
+
     .trip-card--return .route-point--end .route-marker {
         background: #10b981;
     }
-    
+
     .confirmation-map {
         height: 200px;
         border-radius: 0.75rem;
         overflow: hidden;
         background: #f1f5f9;
     }
-    
+
     .distance-label {
         background: transparent;
         border: none;
     }
-    
+
     .distance-text {
         background: rgba(59, 130, 246, 0.95);
         color: white;
@@ -99,17 +99,17 @@
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
         white-space: nowrap;
     }
-    
+
     .price-highlight {
         background: linear-gradient(135deg, #f8fafc, #fff);
     }
-    
+
     @media (max-width: 1024px) {
         .confirm-grid-custom {
             grid-template-columns: 1fr;
         }
     }
-    
+
     @media (min-width: 1025px) {
         .confirm-grid-custom {
             grid-template-columns: 1fr 380px;
@@ -253,7 +253,7 @@
         <!-- Pricing Card -->
         <div class="bg-white border border-slate-200 rounded-xl p-5 price-highlight sticky top-4">
             <div class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4">Yhteenveto</div>
-            
+
             <!-- Price Breakdown -->
             <div class="bg-slate-50 rounded-xl p-4 space-y-3">
                 <div class="flex justify-between items-center pb-3 border-b border-slate-200">
@@ -264,11 +264,12 @@
                     <div class="text-right">
                         <div class="font-bold text-slate-900">{{ "%.2f"|format(net) }} €</div>
                         {% if outbound_original_net and outbound_original_net > net + 0.01 %}
-                        <div class="text-sm text-slate-400 line-through">{{ "%.2f"|format(outbound_original_net) }} €</div>
+                        <div class="text-sm text-slate-400 line-through">{{ "%.2f"|format(outbound_original_net) }} €
+                        </div>
                         {% endif %}
                     </div>
                 </div>
-                
+
                 {% if paluu_auto %}
                 <div class="flex justify-between items-center pb-3 border-b border-slate-200">
                     <div>
@@ -278,7 +279,8 @@
                     <div class="text-right">
                         <div class="font-bold text-slate-900">{{ "%.2f"|format(return_net) }} €</div>
                         {% if return_original_net and return_original_net > return_net + 0.01 %}
-                        <div class="text-sm text-slate-400 line-through">{{ "%.2f"|format(return_original_net) }} €</div>
+                        <div class="text-sm text-slate-400 line-through">{{ "%.2f"|format(return_original_net) }} €
+                        </div>
                         {% endif %}
                     </div>
                 </div>
@@ -287,7 +289,8 @@
 
             <!-- Total -->
             <div class="text-center py-5">
-                <div class="inline-flex items-center gap-1 px-3 py-1.5 bg-blue-50 text-blue-700 rounded-full text-sm font-semibold mb-2">
+                <div
+                    class="inline-flex items-center gap-1 px-3 py-1.5 bg-blue-50 text-blue-700 rounded-full text-sm font-semibold mb-2">
                     {{ "%.1f"|format(total_km) }} km yhteensä
                 </div>
                 <div class="text-4xl font-extrabold text-slate-900">{{ "%.2f"|format(total_net) }} €</div>
@@ -325,23 +328,29 @@
         <label class="flex items-start gap-3 cursor-pointer">
             <input type="checkbox" id="termsCheckbox" required class="w-5 h-5 mt-0.5 accent-blue-600 cursor-pointer">
             <span class="text-sm text-slate-600">
-                Hyväksyn <a href="/ehdot" target="_blank" class="text-primary underline hover:no-underline">käyttöehdot</a> ja 
-                <a href="/tietosuoja" target="_blank" class="text-primary underline hover:no-underline">tietosuojakäytännön</a>. 
+                Hyväksyn <a href="/ehdot" target="_blank"
+                    class="text-primary underline hover:no-underline">käyttöehdot</a> ja
+                <a href="/tietosuoja" target="_blank"
+                    class="text-primary underline hover:no-underline">tietosuojakäytännön</a>.
                 Ymmärrän, että tilaus on sitova vahvistuksen jälkeen.
             </span>
         </label>
     </div>
 
     <div class="flex gap-4">
-        <a href="/order/new/step5" class="px-6 py-4 border border-slate-200 rounded-xl text-slate-600 font-semibold hover:bg-slate-50 hover:border-slate-300 transition-all flex items-center gap-2">
+        <a href="/order/new/step5"
+            class="btn-secondary px-6 py-4 border border-slate-200 rounded-xl text-slate-600 font-semibold hover:bg-slate-50 hover:border-slate-300 transition-all flex items-center gap-2">
             <span class="material-symbols-outlined">arrow_back</span>
             Takaisin
         </a>
-        <button type="submit" class="btn-gradient flex-1 inline-flex justify-center items-center rounded-xl from-secondary to-emerald-600 px-6 py-4 text-base font-bold text-white shadow-lg shadow-emerald-500/30 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed" id="submitOrderBtn" {{ 'disabled' if pricing_error else '' }}>
+        <button type="submit"
+            class="btn-gradient flex-1 inline-flex justify-center items-center rounded-xl from-secondary to-emerald-600 px-6 py-4 text-base font-bold text-white shadow-lg shadow-emerald-500/30 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            id="submitOrderBtn" {{ 'disabled' if pricing_error else '' }}>
             <span class="btn-text">Vahvista ja lähetä tilaus</span>
             <span class="btn-spinner hidden items-center gap-2">
                 <svg class="animate-spin" viewBox="0 0 24 24" width="20" height="20">
-                    <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" fill="none" stroke-dasharray="31.4 31.4" stroke-linecap="round"></circle>
+                    <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" fill="none"
+                        stroke-dasharray="31.4 31.4" stroke-linecap="round"></circle>
                 </svg>
                 Lähetetään...
             </span>
@@ -350,7 +359,8 @@
     </div>
 
     {% if pricing_error %}
-    <p class="text-center text-sm text-red-500 mt-4">Hinnanlaskenta epäonnistui, joten tilausta ei voi lähettää. Yritä myöhemmin uudelleen.</p>
+    <p class="text-center text-sm text-red-500 mt-4">Hinnanlaskenta epäonnistui, joten tilausta ei voi lähettää. Yritä
+        myöhemmin uudelleen.</p>
     {% endif %}
 </form>
 {% endblock %}
@@ -358,90 +368,90 @@
 {% block extra_scripts %}
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
 <script>
-// Form submission handling
-document.addEventListener('DOMContentLoaded', function() {
-    const form = document.getElementById('orderConfirmForm');
-    const submitBtn = document.getElementById('submitOrderBtn');
-    const termsCheckbox = document.getElementById('termsCheckbox');
-    
-    if (form && submitBtn) {
-        form.addEventListener('submit', function(e) {
-            if (!termsCheckbox.checked) {
-                e.preventDefault();
-                termsCheckbox.focus();
-                return;
-            }
-            
-            // Show loading state
-            submitBtn.disabled = true;
-            submitBtn.querySelectorAll('.btn-text').forEach(el => el.classList.add('hidden'));
-            submitBtn.querySelector('.btn-spinner').classList.remove('hidden');
-            submitBtn.querySelector('.btn-spinner').classList.add('inline-flex');
-        });
-    }
+    // Form submission handling
+    document.addEventListener('DOMContentLoaded', function () {
+        const form = document.getElementById('orderConfirmForm');
+        const submitBtn = document.getElementById('submitOrderBtn');
+        const termsCheckbox = document.getElementById('termsCheckbox');
 
-    // Initialize map
-    initConfirmationMap();
-});
+        if (form && submitBtn) {
+            form.addEventListener('submit', function (e) {
+                if (!termsCheckbox.checked) {
+                    e.preventDefault();
+                    termsCheckbox.focus();
+                    return;
+                }
 
-function initConfirmationMap() {
-    const mapEl = document.getElementById('confirmation_map');
-    if (!mapEl) return;
+                // Show loading state
+                submitBtn.disabled = true;
+                submitBtn.querySelectorAll('.btn-text').forEach(el => el.classList.add('hidden'));
+                submitBtn.querySelector('.btn-spinner').classList.remove('hidden');
+                submitBtn.querySelector('.btn-spinner').classList.add('inline-flex');
+            });
+        }
 
-    const map = L.map('confirmation_map', {
-        zoomControl: false,
-        dragging: false,
-        touchZoom: false,
-        scrollWheelZoom: false,
-        doubleClickZoom: false,
-        boxZoom: false,
-        keyboard: false
+        // Initialize map
+        initConfirmationMap();
     });
 
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        maxZoom: 19
-    }).addTo(map);
+    function initConfirmationMap() {
+        const mapEl = document.getElementById('confirmation_map');
+        if (!mapEl) return;
 
-    map.setView([61.9241, 25.7482], 5);
+        const map = L.map('confirmation_map', {
+            zoomControl: false,
+            dragging: false,
+            touchZoom: false,
+            scrollWheelZoom: false,
+            doubleClickZoom: false,
+            boxZoom: false,
+            keyboard: false
+        });
 
-    // Fetch route
-    const pickup = '{{ pickup_address }}';
-    const dropoff = '{{ dropoff_address }}';
-    const pickupPlaceId = '{{ pickup_place_id or "" }}';
-    const dropoffPlaceId = '{{ dropoff_place_id or "" }}';
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19
+        }).addTo(map);
 
-    fetch('/api/route_geo', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            pickup: pickup,
-            dropoff: dropoff,
-            pickup_place_id: pickupPlaceId,
-            dropoff_place_id: dropoffPlaceId
+        map.setView([61.9241, 25.7482], 5);
+
+        // Fetch route
+        const pickup = '{{ pickup_address }}';
+        const dropoff = '{{ dropoff_address }}';
+        const pickupPlaceId = '{{ pickup_place_id or "" }}';
+        const dropoffPlaceId = '{{ dropoff_place_id or "" }}';
+
+        fetch('/api/route_geo', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                pickup: pickup,
+                dropoff: dropoff,
+                pickup_place_id: pickupPlaceId,
+                dropoff_place_id: dropoffPlaceId
+            })
         })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.latlngs && data.start && data.end) {
-            const polyline = L.polyline(data.latlngs, { weight: 4, opacity: 0.8, color: '#3b82f6' }).addTo(map);
-            L.marker([data.start[0], data.start[1]]).addTo(map);
-            L.marker([data.end[0], data.end[1]]).addTo(map);
-            map.fitBounds(polyline.getBounds(), { padding: [20, 20] });
+            .then(response => response.json())
+            .then(data => {
+                if (data.latlngs && data.start && data.end) {
+                    const polyline = L.polyline(data.latlngs, { weight: 4, opacity: 0.8, color: '#3b82f6' }).addTo(map);
+                    L.marker([data.start[0], data.start[1]]).addTo(map);
+                    L.marker([data.end[0], data.end[1]]).addTo(map);
+                    map.fitBounds(polyline.getBounds(), { padding: [20, 20] });
 
-            // Add distance label
-            const center = polyline.getBounds().getCenter();
-            L.marker(center, {
-                icon: L.divIcon({
-                    className: 'distance-label',
-                    html: '<div class="distance-text">{{ "%.1f"|format(total_km) }} km</div>',
-                    iconSize: [100, 35],
-                    iconAnchor: [50, 17]
-                }),
-                zIndexOffset: 1000
-            }).addTo(map);
-        }
-    })
-    .catch(err => console.error('Map error:', err));
-}
+                    // Add distance label
+                    const center = polyline.getBounds().getCenter();
+                    L.marker(center, {
+                        icon: L.divIcon({
+                            className: 'distance-label',
+                            html: '<div class="distance-text">{{ "%.1f"|format(total_km) }} km</div>',
+                            iconSize: [100, 35],
+                            iconAnchor: [50, 17]
+                        }),
+                        zIndexOffset: 1000
+                    }).addTo(map);
+                }
+            })
+            .catch(err => console.error('Map error:', err));
+    }
 </script>
 {% endblock %}

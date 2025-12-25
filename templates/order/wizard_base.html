@@ -82,8 +82,10 @@
     </script>
 
     <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
-    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0"
+        rel="stylesheet" />
 
     <!-- Main CSS (for header styles) -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}" />
@@ -208,8 +210,15 @@
         }
 
         @keyframes scaleIn {
-            0% { transform: scale(0.8); opacity: 0; }
-            100% { transform: scale(1); opacity: 1; }
+            0% {
+                transform: scale(0.8);
+                opacity: 0;
+            }
+
+            100% {
+                transform: scale(1);
+                opacity: 1;
+            }
         }
 
         /* ===== FORM INPUT STYLES ===== */
@@ -327,8 +336,13 @@
         }
 
         @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
         }
 
         /* ===== CHECKBOX STYLES ===== */
@@ -441,9 +455,17 @@
             animation: slideUp 0.5s ease-out;
         }
 
-        .wizard-card-stagger-1 { animation-delay: 0.1s; }
-        .wizard-card-stagger-2 { animation-delay: 0.2s; }
-        .wizard-card-stagger-3 { animation-delay: 0.3s; }
+        .wizard-card-stagger-1 {
+            animation-delay: 0.1s;
+        }
+
+        .wizard-card-stagger-2 {
+            animation-delay: 0.2s;
+        }
+
+        .wizard-card-stagger-3 {
+            animation-delay: 0.3s;
+        }
 
         /* ===== ERROR MESSAGE ===== */
         .error-message {
@@ -469,7 +491,7 @@
                 flex-wrap: wrap;
                 gap: 0.5rem;
             }
-            
+
             .step-item {
                 padding: 0.5rem 0.75rem;
                 font-size: 0.75rem;
@@ -554,47 +576,47 @@
         <!-- Step Navigation -->
         <nav class="step-nav animate-fade-in-1 opacity-0">
             {% set steps = [
-                ('Nouto', 1),
-                ('Toimitus', 2),
-                ('Ajoneuvo', 3),
-                ('Yhteystiedot', 4),
-                ('Lisätiedot', 5),
-                ('Vahvistus', 6)
+            ('Nouto', 1),
+            ('Toimitus', 2),
+            ('Ajoneuvo', 3),
+            ('Yhteystiedot', 4),
+            ('Lisätiedot', 5),
+            ('Vahvistus', 6)
             ] %}
             {% for step_name, step_num in steps %}
-                {% set step_url = '/order/new-v2/confirm' if step_num == 6 else '/order/new-v2/step' ~ step_num %}
-                {% if step_num in accessible_steps %}
-                    {% if step_num == active_step %}
-                    <div class="step-item active">
-                        <span class="step-number">{{ step_num }}</span>
-                        <span>{{ step_name }}</span>
-                    </div>
-                    {% elif step_num < active_step %}
-                    <a href="{{ step_url }}" class="step-item completed clickable">
-                        <span class="step-number">
-                            <span class="material-symbols-outlined text-sm">check</span>
-                        </span>
-                        <span>{{ step_name }}</span>
-                    </a>
-                    {% else %}
-                    <a href="{{ step_url }}" class="step-item clickable">
-                        <span class="step-number">{{ step_num }}</span>
-                        <span>{{ step_name }}</span>
-                    </a>
-                    {% endif %}
+            {% set step_url = '/order/new/confirm' if step_num == 6 else '/order/new/step' ~ step_num %}
+            {% if step_num in accessible_steps %}
+            {% if step_num == active_step %}
+            <div class="step-item active">
+                <span class="step-number">{{ step_num }}</span>
+                <span>{{ step_name }}</span>
+            </div>
+            {% elif step_num < active_step %} <a href="{{ step_url }}" class="step-item completed clickable">
+                <span class="step-number">
+                    <span class="material-symbols-outlined text-sm">check</span>
+                </span>
+                <span>{{ step_name }}</span>
+                </a>
+                {% else %}
+                <a href="{{ step_url }}" class="step-item clickable">
+                    <span class="step-number">{{ step_num }}</span>
+                    <span>{{ step_name }}</span>
+                </a>
+                {% endif %}
                 {% else %}
                 <div class="step-item opacity-50 cursor-not-allowed">
                     <span class="step-number">{{ step_num }}</span>
                     <span>{{ step_name }}</span>
                 </div>
                 {% endif %}
-            {% endfor %}
+                {% endfor %}
         </nav>
 
         <!-- Main Content Card -->
         <div class="bg-surface-light rounded-2xl shadow-card p-6 md:p-8 wizard-card animate-slide-up opacity-0">
             {% if error_message %}
-            <div class="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm flex items-center gap-3 error-message">
+            <div
+                class="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm flex items-center gap-3 error-message">
                 <span class="material-symbols-outlined text-red-500">error</span>
                 <span>{{ error_message }}</span>
             </div>
@@ -606,7 +628,8 @@
 
     <!-- Footer -->
     <footer class="bg-background-dark text-white pt-12 pb-12 mt-auto relative overflow-hidden">
-        <div class="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-gray-700 to-transparent"></div>
+        <div class="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-gray-700 to-transparent">
+        </div>
         <div class="max-w-7xl mx-auto px-6 text-center">
             <p class="text-sm text-slate-400">© 2025 Levoro - Tiyouba Oy | Y-tunnus: 1541430-2</p>
         </div>
@@ -614,4 +637,5 @@
 
     {% block extra_scripts %}{% endblock %}
 </body>
+
 </html>

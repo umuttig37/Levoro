@@ -12,12 +12,9 @@
             Lisätiedot tai erityistoiveet
         </label>
         <div class="relative">
-            <textarea 
-                name="additional_info" 
-                rows="6"
+            <textarea name="additional_info" rows="6"
                 placeholder="Esim. Autossa on talvirenkaat mukana, toimitus kiireellinen, erityiset noutoohjeet..."
-                class="w-full px-4 py-4 border border-slate-200 rounded-xl bg-gray-50/50 text-slate-900 placeholder-slate-400 focus:border-blue-400 focus:ring-4 focus:ring-blue-100 focus:bg-white outline-none transition-all resize-none"
-            >{{ additional_info }}</textarea>
+                class="w-full px-4 py-4 border border-slate-200 rounded-xl bg-gray-50/50 text-slate-900 placeholder-slate-400 focus:border-blue-400 focus:ring-4 focus:ring-blue-100 focus:bg-white outline-none transition-all resize-none">{{ additional_info }}</textarea>
         </div>
         <p class="text-xs text-slate-400 pl-1">Kerro meille kaikki mikä voi helpottaa kuljetusta</p>
     </div>
@@ -51,18 +48,21 @@
             <span class="material-symbols-outlined text-blue-500 text-xl flex-shrink-0">lightbulb</span>
             <div class="text-sm text-blue-700">
                 <p class="font-semibold mb-1">Vinkki</p>
-                <p>Mitä tarkemmat tiedot annat, sitä sujuvammin kuljetus onnistuu. Kuljettaja näkee nämä tiedot ennen noutoa.</p>
+                <p>Mitä tarkemmat tiedot annat, sitä sujuvammin kuljetus onnistuu. Kuljettaja näkee nämä tiedot ennen
+                    noutoa.</p>
             </div>
         </div>
     </div>
 
     <!-- Actions -->
     <div class="flex gap-4 pt-4">
-        <button type="submit" name="action" value="back" class="px-6 py-4 border border-slate-200 rounded-xl text-slate-600 font-semibold hover:bg-slate-50 hover:border-slate-300 transition-all flex items-center gap-2">
+        <button type="submit" name="action" value="back"
+            class="btn-secondary px-6 py-4 border border-slate-200 rounded-xl text-slate-600 font-semibold hover:bg-slate-50 hover:border-slate-300 transition-all flex items-center gap-2">
             <span class="material-symbols-outlined">arrow_back</span>
             Takaisin
         </button>
-        <button type="submit" name="action" value="continue" class="btn-gradient flex-1 inline-flex justify-center items-center rounded-xl from-brand-gradient-start to-brand-gradient-end px-6 py-4 text-base font-bold text-white shadow-lg shadow-blue-500/30 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all">
+        <button type="submit" name="action" value="continue"
+            class="btn-gradient flex-1 inline-flex justify-center items-center rounded-xl from-brand-gradient-start to-brand-gradient-end px-6 py-4 text-base font-bold text-white shadow-lg shadow-blue-500/30 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all">
             Jatka vahvistukseen
             <span class="material-symbols-outlined ml-2">arrow_forward</span>
         </button>
@@ -86,7 +86,7 @@
         transition: all 0.2s;
         text-align: left;
     }
-    
+
     .suggestion-btn:hover {
         border-color: #3b82f6;
         background: #eff6ff;
@@ -97,22 +97,22 @@
 
 {% block extra_scripts %}
 <script>
-function addSuggestion(text) {
-    const textarea = document.querySelector('textarea[name="additional_info"]');
-    if (!textarea) return;
-    
-    const currentValue = textarea.value.trim();
-    if (currentValue) {
-        // Check if suggestion already exists
-        if (currentValue.toLowerCase().includes(text.toLowerCase())) return;
-        textarea.value = currentValue + '\n' + text;
-    } else {
-        textarea.value = text;
+    function addSuggestion(text) {
+        const textarea = document.querySelector('textarea[name="additional_info"]');
+        if (!textarea) return;
+
+        const currentValue = textarea.value.trim();
+        if (currentValue) {
+            // Check if suggestion already exists
+            if (currentValue.toLowerCase().includes(text.toLowerCase())) return;
+            textarea.value = currentValue + '\n' + text;
+        } else {
+            textarea.value = text;
+        }
+
+        // Focus and scroll to end
+        textarea.focus();
+        textarea.scrollTop = textarea.scrollHeight;
     }
-    
-    // Focus and scroll to end
-    textarea.focus();
-    textarea.scrollTop = textarea.scrollHeight;
-}
 </script>
 {% endblock %}
