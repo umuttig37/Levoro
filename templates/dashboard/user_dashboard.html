@@ -4,140 +4,350 @@
 {% block title %}Omat tilaukset – Autonkuljetus{% endblock %}
 
 {% block extra_css %}
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,typography,container-queries"></script>
+<script>
+    tailwind.config = {
+        darkMode: "class",
+        theme: {
+            extend: {
+                colors: {
+                    primary: "#2563eb",
+                    secondary: "#10b981",
+                    "brand-gradient-start": "#3b82f6",
+                    "brand-gradient-end": "#2563eb",
+                    "background-light": "#f3f6fa",
+                },
+                fontFamily: {
+                    sans: ["Inter", "sans-serif"],
+                },
+                borderRadius: {
+                    DEFAULT: "0.6rem",
+                    xl: "1.25rem",
+                    '2xl': "1.75rem",
+                },
+                boxShadow: {
+                    'soft': '0 4px 20px -2px rgba(0, 0, 0, 0.03), 0 2px 8px -2px rgba(0, 0, 0, 0.02)',
+                    'card': '0 0 0 1px rgba(0,0,0,0.03), 0 8px 30px rgba(0,0,0,0.04)',
+                    'card-hover': '0 0 0 1px rgba(0,0,0,0.03), 0 20px 40px rgba(0,0,0,0.06)',
+                },
+                animation: {
+                    'fade-in': 'fadeIn 0.4s ease-out forwards',
+                    'fade-in-1': 'fadeIn 0.4s ease-out 0.1s forwards',
+                    'fade-in-2': 'fadeIn 0.4s ease-out 0.2s forwards',
+                    'fade-in-3': 'fadeIn 0.4s ease-out 0.3s forwards',
+                    'slide-up': 'slideUp 0.5s ease-out forwards',
+                },
+                keyframes: {
+                    fadeIn: {
+                        '0%': { opacity: '0', transform: 'translateY(8px)' },
+                        '100%': { opacity: '1', transform: 'translateY(0)' },
+                    },
+                    slideUp: {
+                        '0%': { opacity: '0', transform: 'translateY(20px)' },
+                        '100%': { opacity: '1', transform: 'translateY(0)' },
+                    },
+                },
+            },
+        },
+    };
+</script>
+
+<!-- Google Fonts -->
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet" />
+
 <style>
+  body {
+    font-family: 'Inter', sans-serif;
+    background-image: radial-gradient(circle at top center, #f8fafc 0%, #eff6ff 40%, #f3f6fa 100%);
+    min-height: 100vh;
+  }
+
   /* Hide the default footer on dashboard */
   .footer-new {
     display: none !important;
+  }
+
+  /* Filled icon style */
+  .icon-filled {
+    font-variation-settings: 'FILL' 1;
   }
 
   /* Hide back to top button */
   .back-to-top {
     display: none !important;
   }
+
+  /* Custom animations */
+  @keyframes fadeInUp {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  /* Tab button hover effect */
+  .tab-btn {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .tab-btn::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.1);
+    transform: translate(-50%, -50%);
+    transition: width 0.6s, height 0.6s;
+  }
+
+  .tab-btn:hover::before {
+    width: 300px;
+    height: 300px;
+  }
+
+  /* Card hover animation enhancement */
+  .order-card-item {
+    transform-origin: center;
+  }
+
+  /* Smooth scrolling */
+  html {
+    scroll-behavior: smooth;
+  }
+
+  /* Loading shimmer effect for empty states */
+  @keyframes shimmer {
+    0% {
+      background-position: -200% 0;
+    }
+    100% {
+      background-position: 200% 0;
+    }
+  }
+
+  /* Custom scrollbar for webkit browsers */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: #f1f5f9;
+    border-radius: 4px;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 4px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+  }
+
+  /* Material icons filled style */
+  .material-symbols-outlined.filled {
+    font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+  }
+
+  /* Ensure animations play on initial load */
+  .opacity-0.animate-fade-in,
+  .opacity-0.animate-fade-in-1,
+  .opacity-0.animate-fade-in-2,
+  .opacity-0.animate-fade-in-3 {
+    animation-fill-mode: forwards;
+  }
+
+  /* Print styles */
+  @media print {
+    .tab-btn,
+    a[href^="/order/new"] {
+      display: none;
+    }
+
+    .order-card-item,
+    .order-row {
+      break-inside: avoid;
+    }
+  }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="container">
-  <div class="section-padding">
-    <div class="text-center mb-8">
-      <h1 class="calculator-title">Omat tilaukset</h1>
-      <p class="calculator-subtitle">Hallinnoi kuljetustilauksiasi ja seuraa niiden etenemistä</p>
-    </div>
+<div class="container mx-auto px-4 py-8 max-w-7xl">
+  <!-- Header Section - Modern Design with Animation -->
+  <div class="text-center mb-12 animate-fade-in">
+    <h1 class="text-4xl md:text-5xl font-bold text-slate-900 mb-3 tracking-tight">
+      Omat tilaukset
+    </h1>
+    <p class="text-lg text-slate-600 max-w-2xl mx-auto">
+      Hallinnoi kuljetustilauksiasi ja seuraa niiden etenemistä
+    </p>
   </div>
 
-  <div class="user-dashboard-wrapper">
-    <div class="user-orders-section">
-      <div class="user-orders-header">
-        <h2 class="user-orders-title">
-          Tilaushistoria
-          <span class="user-orders-count" id="ordersCount">{{ orders|length }} tilausta</span>
-        </h2>
-      </div>
-
-      <div class="user-dashboard-inner">
-        <div class="tabs mb-4">
-          <button type="button" class="btn btn-primary mr-2 tab-btn" data-tab="active"
-            id="tabActive">Aktiiviset</button>
-          <button type="button" class="btn btn-ghost tab-btn" data-tab="completed"
-            id="tabCompleted">Valmistuneet</button>
+  <div class="user-dashboard-wrapper animate-fade-in-1">
+    <!-- Control Section - Modern Pills with Gradients -->
+    <div class="bg-white rounded-2xl shadow-card p-6 mb-6">
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <!-- Tab Buttons - Modern Pill Style -->
+        <div class="inline-flex items-center gap-2 p-1.5 bg-slate-100 rounded-xl">
+          <button type="button" 
+                  class="tab-btn px-6 py-2.5 rounded-lg font-semibold text-sm transition-all duration-300 ease-out" 
+                  data-tab="active"
+                  id="tabActive">
+            <span class="flex items-center gap-2">
+              <span class="material-symbols-outlined text-lg">pending_actions</span>
+              Aktiiviset
+            </span>
+          </button>
+          <button type="button" 
+                  class="tab-btn px-6 py-2.5 rounded-lg font-semibold text-sm transition-all duration-300 ease-out" 
+                  data-tab="completed"
+                  id="tabCompleted">
+            <span class="flex items-center gap-2">
+              <span class="material-symbols-outlined text-lg">check_circle</span>
+              Valmistuneet
+            </span>
+          </button>
         </div>
 
-        <div class="calculator-actions mb-4">
-          <a class="btn btn-primary" href="/order/new/step1">+ Uusi tilaus</a>
+        <!-- New Order Button -->
+        <a href="/order/new/step1" 
+           class="inline-flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-brand-gradient-start to-brand-gradient-end text-white font-bold rounded-xl shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300 group">
+          <span class="material-symbols-outlined text-xl group-hover:rotate-90 transition-transform duration-300">add</span>
+          <span>Uusi tilaus</span>
+        </a>
+      </div>
+
+      <!-- Orders Count Badge -->
+      <div class="mt-4 pt-4 border-t border-slate-100">
+        <div class="inline-flex items-center gap-2 px-4 py-2 bg-slate-50 rounded-lg">
+          <span class="material-symbols-outlined text-primary text-sm icon-filled">inventory</span>
+          <span class="text-sm font-semibold text-slate-700" id="ordersCount">{{ orders|length }} tilausta</span>
         </div>
       </div>
+    </div>
 
       <!-- Desktop Table View -->
-      <div class="user-orders-table-wrapper">
-        <table class="user-orders-table">
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>Tila</th>
-              <th>Reitti</th>
-              <th>Matka</th>
-              <th>Hinta</th>
-              <th>Toiminnot</th>
-            </tr>
-          </thead>
-          <tbody id="ordersTableBody">
-            {% if all_orders %}
-            {% for order in all_orders %}
-            {% set status_fi = {
-            'NEW': 'Uusi',
-            'CONFIRMED': 'Vahvistettu',
-            'ASSIGNED_TO_DRIVER': 'Noudossa',
-            'DRIVER_ARRIVED': 'Kuljettaja paikalla',
-            'PICKUP_IMAGES_ADDED': 'Noutokuva lisätty',
-            'IN_TRANSIT': 'Kuljetuksessa',
-            'DELIVERY_ARRIVED': 'Toimitus paikalla',
-            'DELIVERY_IMAGES_ADDED': 'Toimituskuva lisätty',
-            'DELIVERED': 'Toimitettu',
-            'COMPLETED': 'Valmis',
-            'CANCELLED': 'Peruutettu'
-            }.get(order.status, order.status) %}
+      <div class="user-orders-table-wrapper hidden lg:block animate-fade-in-2">
+        <div class="bg-white rounded-2xl shadow-card overflow-hidden">
+          <table class="w-full">
+            <thead>
+              <tr class="bg-slate-50 border-b border-slate-200">
+                <th class="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-slate-600">ID</th>
+                <th class="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-slate-600">Tila</th>
+                <th class="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-slate-600">Reitti</th>
+                <th class="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-slate-600">Matka</th>
+                <th class="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-slate-600">Hinta</th>
+                <th class="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-slate-600">Toiminnot</th>
+              </tr>
+            </thead>
+            <tbody id="ordersTableBody" class="divide-y divide-slate-100">
+              {% if all_orders %}
+              {% for order in all_orders %}
+              {% set status_fi = {
+              'NEW': 'Uusi',
+              'CONFIRMED': 'Vahvistettu',
+              'ASSIGNED_TO_DRIVER': 'Noudossa',
+              'DRIVER_ARRIVED': 'Kuljettaja paikalla',
+              'PICKUP_IMAGES_ADDED': 'Noutokuva lisätty',
+              'IN_TRANSIT': 'Kuljetuksessa',
+              'DELIVERY_ARRIVED': 'Toimitus paikalla',
+              'DELIVERY_IMAGES_ADDED': 'Toimituskuva lisätty',
+              'DELIVERED': 'Toimitettu',
+              'COMPLETED': 'Valmis',
+              'CANCELLED': 'Peruutettu'
+              }.get(order.status, order.status) %}
 
-            {% set status_class = {
-            'NEW': 'pending',
-            'CONFIRMED': 'confirmed',
-            'ASSIGNED_TO_DRIVER': 'confirmed',
-            'DRIVER_ARRIVED': 'in-progress',
-            'PICKUP_IMAGES_ADDED': 'in-progress',
-            'IN_TRANSIT': 'in-progress',
-            'DELIVERY_ARRIVED': 'in-progress',
-            'DELIVERY_IMAGES_ADDED': 'in-progress',
-            'DELIVERED': 'completed',
-            'COMPLETED': 'completed',
-            'CANCELLED': 'cancelled'
-            }.get(order.status, 'pending') %}
+              {% set status_class = {
+              'NEW': 'bg-blue-50 text-blue-700 border-blue-200',
+              'CONFIRMED': 'bg-emerald-50 text-emerald-700 border-emerald-200',
+              'ASSIGNED_TO_DRIVER': 'bg-emerald-50 text-emerald-700 border-emerald-200',
+              'DRIVER_ARRIVED': 'bg-amber-50 text-amber-700 border-amber-200',
+              'PICKUP_IMAGES_ADDED': 'bg-amber-50 text-amber-700 border-amber-200',
+              'IN_TRANSIT': 'bg-amber-50 text-amber-700 border-amber-200',
+              'DELIVERY_ARRIVED': 'bg-amber-50 text-amber-700 border-amber-200',
+              'DELIVERY_IMAGES_ADDED': 'bg-amber-50 text-amber-700 border-amber-200',
+              'DELIVERED': 'bg-green-50 text-green-700 border-green-200',
+              'COMPLETED': 'bg-green-50 text-green-700 border-green-200',
+              'CANCELLED': 'bg-red-50 text-red-700 border-red-200'
+              }.get(order.status, 'bg-blue-50 text-blue-700 border-blue-200') %}
 
-            {% set is_completed = order.status in ['DELIVERED', 'COMPLETED', 'CANCELLED'] %}
+              {% set is_completed = order.status in ['DELIVERED', 'COMPLETED', 'CANCELLED'] %}
 
-            <tr class="order-row" data-status="{{ 'completed' if is_completed else 'active' }}">
-              <td class="user-orders-id">
-                #{{ order.id }}
-                {% if order.trip_type %}
-                <span class="trip-type-badge trip-type-{{ order.trip_type.lower() }}">{{ order.trip_type }}</span>
-                {% endif %}
-              </td>
-              <td class="user-orders-status">
-                <span class="user-status-badge {{ status_class }}">{{ status_fi }}</span>
-              </td>
-              <td class="user-orders-route">{{ order.pickup_address }} → {{ order.dropoff_address }}</td>
-              <td class="user-orders-distance">{{ "%.1f"|format(order.distance_km|float) }} km</td>
-              <td class="user-orders-price">
-                <div class="price-display">
-                  <div class="price-main">{{ "%.2f"|format((order.price_gross|float) / 1.255) }} €</div>
-                  <div class="price-vat">ALV 0%</div>
-                  <div class="price-details">ALV 25,5%: {{ "%.2f"|format((order.price_gross|float) -
-                    ((order.price_gross|float) / 1.255)) }} € | Yhteensä: {{ "%.2f"|format(order.price_gross|float) }} €
+              <tr class="order-row hover:bg-slate-50 transition-all duration-200" data-status="{{ 'completed' if is_completed else 'active' }}">
+                <td class="px-6 py-4">
+                  <div class="flex items-center gap-2">
+                    <span class="font-bold text-primary">#{{ order.id }}</span>
+                    {% if order.trip_type %}
+                    <span class="px-2 py-0.5 text-xs font-semibold bg-blue-100 text-blue-700 rounded-full">{{ order.trip_type }}</span>
+                    {% endif %}
                   </div>
-                </div>
-              </td>
-              <td class="user-orders-actions">
-                <a class="user-action-btn" href="/order/{{ order.id }}">Avaa</a>
-                {% if order.status in ['DELIVERED', 'COMPLETED'] and order.driver_id %}
-                <a class="user-action-btn user-action-rate" href="/order/{{ order.id }}/rate"
-                  title="Arvostele kuljetus">⭐</a>
-                {% endif %}
-              </td>
-            </tr>
-            {% endfor %}
-            {% endif %}
-          </tbody>
-        </table>
-        <div id="tableEmpty" class="user-orders-empty" style="display: none;">
-          <div class="empty-state">
-            {{ icons.package(48, '#94a3b8') }}
-            <div class="empty-title">Ei tilauksia</div>
-            <div class="empty-text" id="emptyText">Luo ensimmäinen tilauksesi yllä olevalla napilla</div>
+                </td>
+                <td class="px-6 py-4">
+                  <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold border {{ status_class }}">
+                    {{ status_fi }}
+                  </span>
+                </td>
+                <td class="px-6 py-4">
+                  <div class="flex items-center gap-2 text-sm">
+                    <span class="material-symbols-outlined text-blue-500 text-base">my_location</span>
+                    <span class="font-medium text-slate-700">{{ order.pickup_address[:30] }}...</span>
+                    <span class="text-slate-400">→</span>
+                    <span class="material-symbols-outlined text-green-500 text-base">location_on</span>
+                    <span class="font-medium text-slate-700">{{ order.dropoff_address[:30] }}...</span>
+                  </div>
+                </td>
+                <td class="px-6 py-4 text-sm font-semibold text-slate-700">{{ "%.1f"|format(order.distance_km|float) }} km</td>
+                <td class="px-6 py-4">
+                  <div class="text-sm">
+                    <div class="font-bold text-slate-900">{{ "%.2f"|format((order.price_gross|float) / 1.255) }} €</div>
+                    <div class="text-xs text-slate-500">ALV 0%</div>
+                  </div>
+                </td>
+                <td class="px-6 py-4">
+                  <div class="flex items-center gap-2">
+                    <a href="/order/{{ order.id }}" 
+                       class="inline-flex items-center gap-1 px-3 py-1.5 bg-primary text-white text-sm font-semibold rounded-lg hover:bg-blue-700 hover:-translate-y-0.5 transition-all duration-200">
+                      <span class="material-symbols-outlined text-sm">visibility</span>
+                      Avaa
+                    </a>
+                    {% if order.status in ['DELIVERED', 'COMPLETED'] and order.driver_id %}
+                    <a href="/order/{{ order.id }}/rate" 
+                       class="inline-flex items-center gap-1 px-3 py-1.5 bg-amber-50 text-amber-700 text-sm font-semibold rounded-lg hover:bg-amber-100 hover:-translate-y-0.5 transition-all duration-200"
+                       title="Arvostele kuljetus">
+                      <span>⭐</span>
+                    </a>
+                    {% endif %}
+                  </div>
+                </td>
+              </tr>
+              {% endfor %}
+              {% endif %}
+            </tbody>
+          </table>
+          <div id="tableEmpty" class="hidden p-12 text-center">
+            <div class="inline-flex flex-col items-center gap-4 opacity-0 animate-fade-in">
+              {{ icons.package(64, '#94a3b8') }}
+              <div class="text-xl font-semibold text-slate-700">Ei tilauksia</div>
+              <div class="text-sm text-slate-500" id="emptyText">Luo ensimmäinen tilauksesi yllä olevalla napilla</div>
+            </div>
           </div>
         </div>
       </div>
 
       <!-- Mobile Card View -->
-      <div class="user-orders-cards" id="ordersCards">
+      <div class="lg:hidden space-y-4 animate-fade-in-2" id="ordersCards">
         {% if all_orders %}
         {% for order in all_orders %}
         {% set status_fi = {
@@ -155,98 +365,123 @@
         }.get(order.status, order.status) %}
 
         {% set status_class = {
-        'NEW': 'pending',
-        'CONFIRMED': 'confirmed',
-        'ASSIGNED_TO_DRIVER': 'confirmed',
-        'DRIVER_ARRIVED': 'in-progress',
-        'PICKUP_IMAGES_ADDED': 'in-progress',
-        'IN_TRANSIT': 'in-progress',
-        'DELIVERY_ARRIVED': 'in-progress',
-        'DELIVERY_IMAGES_ADDED': 'in-progress',
-        'DELIVERED': 'completed',
-        'COMPLETED': 'completed',
-        'CANCELLED': 'cancelled'
-        }.get(order.status, 'pending') %}
+        'NEW': 'bg-blue-50 text-blue-700 border-blue-200',
+        'CONFIRMED': 'bg-emerald-50 text-emerald-700 border-emerald-200',
+        'ASSIGNED_TO_DRIVER': 'bg-emerald-50 text-emerald-700 border-emerald-200',
+        'DRIVER_ARRIVED': 'bg-amber-50 text-amber-700 border-amber-200',
+        'PICKUP_IMAGES_ADDED': 'bg-amber-50 text-amber-700 border-amber-200',
+        'IN_TRANSIT': 'bg-amber-50 text-amber-700 border-amber-200',
+        'DELIVERY_ARRIVED': 'bg-amber-50 text-amber-700 border-amber-200',
+        'DELIVERY_IMAGES_ADDED': 'bg-amber-50 text-amber-700 border-amber-200',
+        'DELIVERED': 'bg-green-50 text-green-700 border-green-200',
+        'COMPLETED': 'bg-green-50 text-green-700 border-green-200',
+        'CANCELLED': 'bg-red-50 text-red-700 border-red-200'
+        }.get(order.status, 'bg-blue-50 text-blue-700 border-blue-200') %}
 
         {% set is_completed = order.status in ['DELIVERED', 'COMPLETED', 'CANCELLED'] %}
 
-        <article class="order-card order-card-item" data-status="{{ 'completed' if is_completed else 'active' }}"
-          role="article" aria-label="Tilaus {{ order.id }}">
-          <!-- Card Header -->
-          <div class="order-card-header">
-            <div class="order-card-id">
-              {{ icons.clipboard(20, '#2563eb') }}
-              <span>#{{ order.id }}</span>
-              {% if order.trip_type %}
-              <span class="trip-type-badge trip-type-{{ order.trip_type.lower() }}">{{ order.trip_type }}</span>
-              {% endif %}
-            </div>
-            <span class="user-status-badge {{ status_class }}" role="status" aria-label="Tilauksen tila">{{ status_fi
-              }}</span>
-          </div>
-
-          <!-- Route Section -->
-          <div class="order-card-route" aria-label="Kuljetusreitti">
-            <div class="route-point">
-              <div class="route-icon pickup">{{ icons.location(20, '#3b82f6') }}</div>
-              <div class="route-text">
-                <div class="route-label">Nouto</div>
-                <div class="route-address">{{ order.pickup_address }}</div>
+        <article class="order-card order-card-item bg-white rounded-2xl shadow-card hover:shadow-card-hover transition-all duration-300 hover:-translate-y-1 overflow-hidden" 
+                 data-status="{{ 'completed' if is_completed else 'active' }}"
+                 role="article" 
+                 aria-label="Tilaus {{ order.id }}">
+          <!-- Card Header with Gradient Background -->
+          <div class="bg-gradient-to-r from-slate-50 to-blue-50 px-5 py-4 border-b border-slate-100">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <span class="material-symbols-outlined text-primary text-xl icon-filled">inventory_2</span>
+                <span class="font-bold text-primary text-lg">#{{ order.id }}</span>
+                {% if order.trip_type %}
+                <span class="px-2 py-0.5 text-xs font-semibold bg-blue-100 text-blue-700 rounded-full">{{ order.trip_type }}</span>
+                {% endif %}
               </div>
-            </div>
-            <div class="route-arrow">↓</div>
-            <div class="route-point">
-              <div class="route-icon delivery">{{ icons.location(20, '#10b981') }}</div>
-              <div class="route-text">
-                <div class="route-label">Toimitus</div>
-                <div class="route-address">{{ order.dropoff_address }}</div>
-              </div>
+              <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold border {{ status_class }}" role="status" aria-label="Tilauksen tila">
+                {{ status_fi }}
+              </span>
             </div>
           </div>
 
-          <!-- Info Grid -->
-          <div class="order-card-info">
-            <div class="info-item">
-              <div class="info-label">Matka</div>
-              <div class="info-value">{{ "%.1f"|format(order.distance_km|float) }} km</div>
-            </div>
-            <div class="info-item price-item">
-              <div class="info-label">Hinta</div>
-              <div class="info-value price-value">
-                <div class="price-main-mobile">{{ "%.2f"|format((order.price_gross|float) / 1.255) }} €</div>
-                <div class="price-vat-mobile">ALV 0%</div>
+          <!-- Route Section with Modern Design -->
+          <div class="px-5 py-4" aria-label="Kuljetusreitti">
+            <div class="space-y-3">
+              <div class="flex items-start gap-3">
+                <div class="flex-shrink-0 w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                  <span class="material-symbols-outlined text-blue-600 text-lg icon-filled">my_location</span>
+                </div>
+                <div class="flex-1 min-w-0">
+                  <div class="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1">Nouto</div>
+                  <div class="text-sm font-medium text-slate-900 leading-snug">{{ order.pickup_address }}</div>
+                </div>
               </div>
+              
+              <div class="flex items-center justify-center">
+                <span class="material-symbols-outlined text-slate-300 text-2xl">arrow_downward</span>
+              </div>
+              
+              <div class="flex items-start gap-3">
+                <div class="flex-shrink-0 w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+                  <span class="material-symbols-outlined text-green-600 text-lg icon-filled">location_on</span>
+                </div>
+                <div class="flex-1 min-w-0">
+                <div class="flex-1 min-w-0">
+                  <div class="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1">Toimitus</div>
+                  <div class="text-sm font-medium text-slate-900 leading-snug">{{ order.dropoff_address }}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Info Grid with Modern Design -->
+          <div class="grid grid-cols-2 gap-3 px-5 py-4 bg-slate-50/50 border-y border-slate-100">
+            <div class="flex flex-col gap-1">
+              <div class="text-xs font-semibold uppercase tracking-wider text-slate-500">Matka</div>
+              <div class="text-lg font-bold text-slate-900">{{ "%.1f"|format(order.distance_km|float) }} km</div>
+            </div>
+            <div class="flex flex-col gap-1 bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg px-3 py-2 -my-2">
+              <div class="text-xs font-semibold uppercase tracking-wider text-blue-700">Hinta</div>
+              <div class="flex items-baseline gap-1">
+                <span class="text-lg font-bold text-blue-900">{{ "%.2f"|format((order.price_gross|float) / 1.255) }}</span>
+                <span class="text-sm font-semibold text-blue-700">€</span>
+              </div>
+              <div class="text-xs text-blue-600">ALV 0%</div>
             </div>
           </div>
 
           <!-- Price Details (Expandable) -->
-          <details class="price-details-toggle">
-            <summary class="price-details-summary">Näytä hinnan erittely</summary>
-            <div class="price-details-content">
-              <div class="price-detail-row">
-                <span>Hinta (ALV 0%)</span>
-                <span>{{ "%.2f"|format((order.price_gross|float) / 1.255) }} €</span>
+          <details class="px-5 py-3 border-b border-slate-100 group">
+            <summary class="flex items-center justify-between cursor-pointer text-sm font-semibold text-slate-600 hover:text-primary transition-colors">
+              <span>Hinnan erittely</span>
+              <span class="material-symbols-outlined text-slate-400 group-open:rotate-180 transition-transform duration-300">expand_more</span>
+            </summary>
+            <div class="mt-3 space-y-2 pt-3 border-t border-slate-100">
+              <div class="flex justify-between text-sm">
+                <span class="text-slate-600">Hinta (ALV 0%)</span>
+                <span class="font-semibold text-slate-900">{{ "%.2f"|format((order.price_gross|float) / 1.255) }} €</span>
               </div>
-              <div class="price-detail-row">
-                <span>ALV 25,5%</span>
-                <span>{{ "%.2f"|format((order.price_gross|float) - ((order.price_gross|float) / 1.255)) }} €</span>
+              <div class="flex justify-between text-sm">
+                <span class="text-slate-600">ALV 25,5%</span>
+                <span class="font-semibold text-slate-900">{{ "%.2f"|format((order.price_gross|float) - ((order.price_gross|float) / 1.255)) }} €</span>
               </div>
-              <div class="price-detail-row total">
-                <span>Yhteensä</span>
-                <span>{{ "%.2f"|format(order.price_gross|float) }} €</span>
+              <div class="flex justify-between text-sm pt-2 border-t border-slate-200">
+                <span class="font-bold text-slate-900">Yhteensä</span>
+                <span class="font-bold text-primary">{{ "%.2f"|format(order.price_gross|float) }} €</span>
               </div>
             </div>
           </details>
 
           <!-- Action Buttons -->
-          <div class="order-card-actions">
-            <a href="/order/{{ order.id }}" class="order-card-action" aria-label="Avaa tilaus {{ order.id }}">
-              Avaa tilaus
-              {{ icons.eye(18, '#ffffff') }}
+          <div class="px-5 py-4 flex gap-2">
+            <a href="/order/{{ order.id }}" 
+               class="flex-1 inline-flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-brand-gradient-start to-brand-gradient-end text-white font-bold rounded-xl hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 group"
+               aria-label="Avaa tilaus {{ order.id }}">
+              <span>Avaa tilaus</span>
+              <span class="material-symbols-outlined text-lg group-hover:translate-x-0.5 transition-transform">arrow_forward</span>
             </a>
             {% if order.status in ['DELIVERED', 'COMPLETED'] and order.driver_id %}
-            <a href="/order/{{ order.id }}/rate" class="order-card-rate" aria-label="Arvostele kuljetus">
-              ⭐ Arvostele
+            <a href="/order/{{ order.id }}/rate" 
+               class="inline-flex items-center justify-center gap-1 px-4 py-3 bg-amber-50 text-amber-700 font-bold rounded-xl hover:bg-amber-100 hover:-translate-y-0.5 transition-all duration-300"
+               aria-label="Arvostele kuljetus">
+              <span class="text-lg">⭐</span>
+              <span>Arvostele</span>
             </a>
             {% endif %}
           </div>
@@ -254,11 +489,15 @@
         {% endfor %}
         {% endif %}
       </div>
-      <div id="cardsEmpty" class="user-orders-empty" style="display: none;">
-        <div class="empty-state">
-          {{ icons.package(64, '#94a3b8') }}
-          <div class="empty-title">Ei tilauksia</div>
-          <div class="empty-text">Luo ensimmäinen tilauksesi yllä olevalla napilla</div>
+      
+      <!-- Empty State for Cards -->
+      <div id="cardsEmpty" class="lg:hidden hidden">
+        <div class="bg-white rounded-2xl shadow-card p-12 text-center">
+          <div class="inline-flex flex-col items-center gap-4 opacity-0 animate-fade-in">
+            {{ icons.package(64, '#94a3b8') }}
+            <div class="text-xl font-semibold text-slate-700">Ei tilauksia</div>
+            <div class="text-sm text-slate-500">Luo ensimmäinen tilauksesi yllä olevalla napilla</div>
+          </div>
         </div>
       </div>
     </div>
@@ -274,7 +513,6 @@
     const tableEmpty = document.getElementById('tableEmpty');
     const cardsEmpty = document.getElementById('cardsEmpty');
     const ordersCount = document.getElementById('ordersCount');
-    const emptyText = document.getElementById('emptyText');
 
     let currentTab = 'active';
 
@@ -282,33 +520,37 @@
       currentTab = tab;
       let visibleCount = 0;
 
-      // Update tab buttons
+      // Update tab buttons with modern styling
       if (tab === 'active') {
-        tabActive.classList.remove('btn-ghost');
-        tabActive.classList.add('btn-primary');
-        tabCompleted.classList.remove('btn-primary');
-        tabCompleted.classList.add('btn-ghost');
+        tabActive.classList.add('bg-gradient-to-r', 'from-brand-gradient-start', 'to-brand-gradient-end', 'text-white', 'shadow-lg');
+        tabActive.classList.remove('text-slate-600', 'hover:bg-slate-50');
+        tabCompleted.classList.remove('bg-gradient-to-r', 'from-brand-gradient-start', 'to-brand-gradient-end', 'text-white', 'shadow-lg');
+        tabCompleted.classList.add('text-slate-600', 'hover:bg-slate-50');
       } else {
-        tabCompleted.classList.remove('btn-ghost');
-        tabCompleted.classList.add('btn-primary');
-        tabActive.classList.remove('btn-primary');
-        tabActive.classList.add('btn-ghost');
+        tabCompleted.classList.add('bg-gradient-to-r', 'from-brand-gradient-start', 'to-brand-gradient-end', 'text-white', 'shadow-lg');
+        tabCompleted.classList.remove('text-slate-600', 'hover:bg-slate-50');
+        tabActive.classList.remove('bg-gradient-to-r', 'from-brand-gradient-start', 'to-brand-gradient-end', 'text-white', 'shadow-lg');
+        tabActive.classList.add('text-slate-600', 'hover:bg-slate-50');
       }
 
       // Filter table rows
       tableRows.forEach(row => {
         if (row.dataset.status === tab) {
-          row.style.display = '';
+          row.style.display = 'table-row';
           visibleCount++;
         } else {
           row.style.display = 'none';
         }
       });
 
-      // Filter card items
+      // Filter card items with staggered animation
+      let visibleIndex = 0;
       cardItems.forEach(card => {
         if (card.dataset.status === tab) {
-          card.style.display = '';
+          card.style.display = 'block';
+          card.style.opacity = '1';
+          card.style.transform = 'translateY(0)';
+          visibleIndex++;
         } else {
           card.style.display = 'none';
         }
@@ -320,14 +562,11 @@
 
       // Show/hide empty state
       const showEmpty = visibleCount === 0;
-      if (tableEmpty) tableEmpty.style.display = showEmpty ? '' : 'none';
-      if (cardsEmpty) cardsEmpty.style.display = showEmpty ? '' : 'none';
-
-      // Update empty text
-      if (emptyText) {
-        emptyText.textContent = tab === 'active'
-          ? 'Luo ensimmäinen tilauksesi yllä olevalla napilla'
-          : 'Ei valmistuneita tilauksia';
+      if (tableEmpty) {
+        tableEmpty.classList.toggle('hidden', !showEmpty);
+      }
+      if (cardsEmpty) {
+        cardsEmpty.classList.toggle('hidden', !showEmpty);
       }
 
       // Update URL without reload (for bookmarking)

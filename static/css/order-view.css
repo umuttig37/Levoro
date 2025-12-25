@@ -526,7 +526,7 @@
     .simple-progress {
         padding: 0 10px;
         overflow-x: auto;
-        -webkit-overflow-scrolling: touch;
+        overflow-y: hidden;
     }
 
     .step-circle {

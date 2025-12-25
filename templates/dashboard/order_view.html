@@ -3,9 +3,66 @@
 {% block title %}Tilaus #{{ order.id }} – Levoro{% endblock %}
 
 {% block extra_css %}
-<link rel='stylesheet' href='/static/css/order-view.css'>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,typography,container-queries"></script>
+<script>
+    tailwind.config = {
+        darkMode: "class",
+        theme: {
+            extend: {
+                colors: {
+                    primary: "#2563eb",
+                    secondary: "#10b981",
+                    "brand-gradient-start": "#3b82f6",
+                    "brand-gradient-end": "#2563eb",
+                    "background-light": "#f3f6fa",
+                },
+                fontFamily: {
+                    sans: ["Inter", "sans-serif"],
+                },
+                borderRadius: {
+                    DEFAULT: "0.6rem",
+                    xl: "1.25rem",
+                    '2xl': "1.75rem",
+                },
+                boxShadow: {
+                    'soft': '0 4px 20px -2px rgba(0, 0, 0, 0.03), 0 2px 8px -2px rgba(0, 0, 0, 0.02)',
+                    'card': '0 0 0 1px rgba(0,0,0,0.03), 0 8px 30px rgba(0,0,0,0.04)',
+                    'card-hover': '0 0 0 1px rgba(0,0,0,0.03), 0 20px 40px rgba(0,0,0,0.06)',
+                },
+                animation: {
+                    'fade-in': 'fadeIn 0.4s ease-out forwards',
+                    'fade-in-1': 'fadeIn 0.4s ease-out 0.1s forwards',
+                    'fade-in-2': 'fadeIn 0.4s ease-out 0.2s forwards',
+                    'slide-up': 'slideUp 0.5s ease-out forwards',
+                },
+                keyframes: {
+                    fadeIn: {
+                        '0%': { opacity: '0', transform: 'translateY(8px)' },
+                        '100%': { opacity: '1', transform: 'translateY(0)' },
+                    },
+                    slideUp: {
+                        '0%': { opacity: '0', transform: 'translateY(20px)' },
+                        '100%': { opacity: '1', transform: 'translateY(0)' },
+                    },
+                },
+            },
+        },
+    };
+</script>
+
+<!-- Google Fonts -->
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet" />
 <link rel='stylesheet' href='/static/css/client-images.css'>
+
 <style>
+  body {
+    font-family: 'Inter', sans-serif;
+    background-image: radial-gradient(circle at top center, #f8fafc 0%, #eff6ff 40%, #f3f6fa 100%);
+    min-height: 100vh;
+  }
+
   /* Hide the default footer on this page */
   .footer-new {
     display: none !important;
@@ -15,394 +72,381 @@
   .back-to-top {
     display: none !important;
   }
+
+  /* Custom scrollbar */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: #f1f5f9;
+    border-radius: 4px;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 4px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+  }
+
+  /* Filled icon style */
+  .icon-filled {
+    font-variation-settings: 'FILL' 1;
+  }
 </style>
 {% endblock %}
 
 {% block content %}
-<article class="order-container" role="main" aria-labelledby="order-title">
-  <!-- Hero Section with Key Information -->
-  <header class="order-hero status-{{ order.status.lower() }}">
-    <div class="hero-content">
-      <div class="hero-header">
-        <h1 id="order-title" class="order-title">
-          Tilaus #{{ order.id }}
-          {% if order.trip_type %}
-          <span class="trip-type-badge trip-type-{{ order.trip_type.lower() }}">{{ order.trip_type }}</span>
+{% set status_class_map = {
+  'NEW': 'bg-blue-50 text-blue-700 border-blue-300',
+  'CONFIRMED': 'bg-emerald-50 text-emerald-700 border-emerald-300',
+  'ASSIGNED_TO_DRIVER': 'bg-indigo-50 text-indigo-700 border-indigo-300',
+  'DRIVER_ARRIVED': 'bg-purple-50 text-purple-700 border-purple-300',
+  'PICKUP_IMAGES_ADDED': 'bg-amber-50 text-amber-700 border-amber-300',
+  'IN_TRANSIT': 'bg-orange-50 text-orange-700 border-orange-300',
+  'DELIVERY_ARRIVED': 'bg-teal-50 text-teal-700 border-teal-300',
+  'DELIVERY_IMAGES_ADDED': 'bg-cyan-50 text-cyan-700 border-cyan-300',
+  'DELIVERED': 'bg-green-50 text-green-700 border-green-300',
+  'COMPLETED': 'bg-green-50 text-green-700 border-green-300',
+  'CANCELLED': 'bg-red-50 text-red-700 border-red-300'
+} %}
+{% set status_class = status_class_map.get(order.status, 'bg-blue-50 text-blue-700 border-blue-300') %}
+
+<div class="container mx-auto px-4 py-8 max-w-7xl">
+  <!-- Back Button -->
+  <div class="mb-6 animate-fade-in">
+    <a href="/dashboard" class="inline-flex items-center gap-2 text-slate-600 hover:text-primary transition-colors duration-200 group">
+      <span class="material-symbols-outlined group-hover:-translate-x-1 transition-transform duration-200">arrow_back</span>
+      <span class="font-semibold">Takaisin tilauksiin</span>
+    </a>
+  </div>
+
+  <!-- Hero Section with Order Details -->
+  <article class="bg-white rounded-2xl shadow-card overflow-hidden mb-6 animate-fade-in-1" role="main" aria-labelledby="order-title">
+    <!-- Header with Status -->
+    <header class="bg-gradient-to-r from-blue-50 to-indigo-50 px-6 md:px-8 py-6 border-b border-slate-200">
+      <div class="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
+        <div>
+          <h1 id="order-title" class="text-3xl md:text-4xl font-bold text-slate-900 mb-2 flex flex-wrap items-center gap-3">
+            <span class="material-symbols-outlined text-primary text-4xl icon-filled">inventory_2</span>
+            <span>Tilaus #{{ order.id }}</span>
+            {% if order.trip_type %}
+            <span class="px-3 py-1 text-sm font-semibold bg-blue-100 text-blue-700 rounded-full">{{ order.trip_type }}</span>
+            {% endif %}
+          </h1>
+        </div>
+        <div class="flex flex-col items-start md:items-end">
+          <span class="inline-flex items-center px-4 py-2 rounded-full text-sm font-bold border-2 {{ status_class }}" role="status" aria-label="Tilauksen tila: {{ status_fi }}">
+            {{ status_fi }}
+          </span>
+          {% if status_description %}
+          <p class="text-sm text-slate-600 mt-2">{{ status_description }}</p>
           {% endif %}
-        </h1>
-        <div class="order-status-main">
-          <span class="status-badge status-{{ order.status.lower() }}" role="status"
-            aria-label="Tilauksen tila: {{ status_fi }}">{{ status_fi }}</span>
-          <p class="status-description">{{ status_description }}</p>
         </div>
       </div>
+    </header>
 
-      <!-- Route Display - Most Important Information -->
-      <section class="hero-route" aria-label="Kuljetusreitti">
-        <div class="route-card">
-          <div class="route-point pickup" role="group" aria-label="Noudon osoite">
-            <div class="point-icon" aria-hidden="true">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                stroke-linecap="round" stroke-linejoin="round">
-                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
-                <circle cx="12" cy="10" r="3"></circle>
-              </svg>
+    <!-- Route and Metrics Section -->
+    <div class="px-6 md:px-8 py-6">
+      <!-- Route Display -->
+      <section class="mb-6" aria-label="Kuljetusreitti">
+        <div class="bg-gradient-to-r from-slate-50 to-blue-50 rounded-xl p-6">
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <!-- Pickup -->
+            <div class="flex gap-4" role="group" aria-label="Noudon osoite">
+              <div class="flex-shrink-0 w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
+                <span class="material-symbols-outlined text-blue-600 text-xl icon-filled">my_location</span>
+              </div>
+              <div class="flex-1 min-w-0">
+                <div class="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Nouto</div>
+                <div class="text-sm font-semibold text-slate-900 leading-snug break-words">{{ order.pickup_address or '?' }}</div>
+                {% if pickup_date_fi %}
+                <div class="text-xs text-slate-600 mt-1">
+                  <span class="material-symbols-outlined text-xs align-middle">calendar_today</span>
+                  {{ pickup_date_fi }}{% if pickup_time %} klo {{ pickup_time }}{% endif %}
+                </div>
+                {% endif %}
+              </div>
             </div>
-            <div class="point-details">
-              <span class="point-label">Nouto</span>
-              <span class="point-address">{{ order.pickup_address or '?' }}</span>
-              {% if pickup_date_fi %}
-              <span class="point-meta">{{ pickup_date_fi }}{% if pickup_time %} klo {{ pickup_time }}{% endif %}</span>
-              {% endif %}
 
+            <!-- Arrow -->
+            <div class="hidden md:flex items-center justify-center">
+              <span class="material-symbols-outlined text-slate-300 text-4xl">arrow_forward</span>
             </div>
-          </div>
-          <div class="route-connector" aria-hidden="true">
-            <div class="route-arrow">→</div>
-          </div>
-          <div class="route-point" role="group" aria-label="Toimituksen osoite">
-            <div class="point-icon" aria-hidden="true">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                stroke-linecap="round" stroke-linejoin="round">
-                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
-                <circle cx="12" cy="10" r="3"></circle>
-              </svg>
+            <div class="md:hidden flex items-center justify-center py-2">
+              <span class="material-symbols-outlined text-slate-300 text-3xl">arrow_downward</span>
             </div>
-            <div class="point-details">
-              <span class="point-label">Toimitus</span>
-              <span class="point-address">{{ order.dropoff_address or '?' }}</span>
-              {% if last_delivery_date_fi %}
-              <span class="point-meta">{{ last_delivery_date_fi }}{% if delivery_time %} klo {{ delivery_time }}{% endif
-                %}</span>
-              {% endif %}
 
+            <!-- Delivery -->
+            <div class="flex gap-4" role="group" aria-label="Toimituksen osoite">
+              <div class="flex-shrink-0 w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
+                <span class="material-symbols-outlined text-green-600 text-xl icon-filled">location_on</span>
+              </div>
+              <div class="flex-1 min-w-0">
+                <div class="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Toimitus</div>
+                <div class="text-sm font-semibold text-slate-900 leading-snug break-words">{{ order.dropoff_address or '?' }}</div>
+                {% if last_delivery_date_fi %}
+                <div class="text-xs text-slate-600 mt-1">
+                  <span class="material-symbols-outlined text-xs align-middle">calendar_today</span>
+                  {{ last_delivery_date_fi }}{% if delivery_time %} klo {{ delivery_time }}{% endif %}
+                </div>
+                {% endif %}
+              </div>
             </div>
           </div>
-        </div>
-
-        <!-- Key Metrics -->
-        <div class="hero-metrics" role="group" aria-label="Tilauksen tiedot">
-          <div class="metric-card" role="group" aria-label="Matkan pituus">
-            <span class="metric-label">Matka</span>
-            <span class="metric-value" aria-label="{{ '%.1f'|format(distance_km) }} kilometriä">{{
-              "%.1f"|format(distance_km) }} km</span>
-          </div>
-          <div class="metric-card price-card" role="group"
-            aria-label="Tilauksen hinta: {{ '%.2f'|format(price_gross) }} euroa">
-            <span class="metric-label">Hinta</span>
-            <span class="metric-value">{{
-              price_gross|format_price_with_vat|safe }}</span>
-          </div>
-          {% if order.status in ['ASSIGNED_TO_DRIVER', 'DRIVER_ARRIVED', 'PICKUP_IMAGES_ADDED', 'IN_TRANSIT',
-          'DELIVERY_ARRIVED', 'DELIVERY_IMAGES_ADDED', 'DELIVERED'] %}
-          <div class="metric-card driver-card" role="group" aria-label="Kuljettajan tiedot">
-            <span class="metric-value">
-              {% if order.driver_name %}
-              {{ order.driver_name }}
-              {% if order.driver_phone %}
-              <br><a href="tel:{{ order.driver_phone }}" class="driver-phone-link"
-                aria-label="Soita kuljettajalle: {{ order.driver_phone }}">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                  stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                  <path
-                    d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z">
-                  </path>
-                </svg>
-                {{ order.driver_phone }}
-              </a>
-              {% endif %}
-              {% else %}
-              Kuljettaja
-              {% endif %}
-            </span>
-            <span class="metric-label">Kuljettaja</span>
-          </div>
-          {% endif %}
         </div>
       </section>
+
+      <!-- Key Metrics -->
+      <section class="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6" role="group" aria-label="Tilauksen tiedot">
+        <div class="bg-slate-50 rounded-xl p-4" role="group" aria-label="Matkan pituus">
+          <div class="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Matka</div>
+          <div class="text-2xl font-bold text-slate-900" aria-label="{{ '%.1f'|format(distance_km) }} kilometriä">{{ "%.1f"|format(distance_km) }} km</div>
+        </div>
+        
+        <div class="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-4" role="group" aria-label="Tilauksen hinta">
+          <div class="text-xs font-bold uppercase tracking-wider text-blue-700 mb-1">Hinta</div>
+          <div class="text-2xl font-bold text-blue-900">{{ price_gross|format_price_with_vat|safe }}</div>
+        </div>
+
+        {% if order.status in ['ASSIGNED_TO_DRIVER', 'DRIVER_ARRIVED', 'PICKUP_IMAGES_ADDED', 'IN_TRANSIT', 'DELIVERY_ARRIVED', 'DELIVERY_IMAGES_ADDED', 'DELIVERED'] %}
+        <div class="bg-indigo-50 rounded-xl p-4 col-span-2 md:col-span-1" role="group" aria-label="Kuljettajan tiedot">
+          <div class="text-xs font-bold uppercase tracking-wider text-indigo-700 mb-1">Kuljettaja</div>
+          {% if order.driver_name %}
+          <div class="text-lg font-bold text-indigo-900">{{ order.driver_name }}</div>
+          {% if order.driver_phone %}
+          <a href="tel:{{ order.driver_phone }}" class="inline-flex items-center gap-1 text-sm text-indigo-600 hover:text-indigo-800 mt-1 font-semibold" aria-label="Soita kuljettajalle">
+            <span class="material-symbols-outlined text-sm">call</span>
+            {{ order.driver_phone }}
+          </a>
+          {% endif %}
+          {% else %}
+          <div class="text-lg font-bold text-indigo-900">Määritetään</div>
+          {% endif %}
+        </div>
+        {% endif %}
+      </section>
     </div>
-  </header>
+  </article>
 
   <!-- Progress Section -->
-  <section class="progress-section" aria-label="Tilauksen eteneminen">
+  <section class="bg-white rounded-2xl shadow-card p-6 md:p-8 mb-6 animate-fade-in-2" aria-label="Tilauksen eteneminen">
+    <h2 class="text-xl font-bold text-slate-900 mb-6 flex items-center gap-2">
+      <span class="material-symbols-outlined text-primary icon-filled">timeline</span>
+      Tilauksen eteneminen
+    </h2>
     {{ progress_bar|safe }}
   </section>
 
   <!-- Secondary Information -->
-  <section class="order-details" aria-label="Tilauksen lisätiedot">
-    <div class="details-grid">
-      {% if has_customer_info or order.status == 'NEW' %}
-      <article class="detail-card" role="group" aria-labelledby="contact-title">
-        <h3 id="contact-title" class="card-title">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-            stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-            <circle cx="12" cy="7" r="4"></circle>
-          </svg>
-          Yhteystiedot
-        </h3>
-        <div class="card-content">
-          <div class="contact-sections-grid">
-            <!-- Orderer Section -->
-            {% if order.orderer_name or order.orderer_email or order.orderer_phone %}
-            <div class="contact-section orderer">
-              <h4 class="contact-section-title">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                  stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                  <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
-                  <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
-                </svg>
-                Tilaaja
-              </h4>
-              {% if order.orderer_name and order.orderer_name.strip() %}
-              <div class="detail-row">
-                <span class="detail-label">Nimi</span>
-                <span class="detail-value">{{ order.orderer_name }}</span>
-              </div>
-              {% endif %}
-              {% if order.orderer_email and order.orderer_email.strip() %}
-              <div class="detail-row">
-                <span class="detail-label">Sähköposti</span>
-                <span class="detail-value">{{ order.orderer_email }}</span>
-              </div>
-              {% endif %}
-              {% if order.orderer_phone and order.orderer_phone.strip() %}
-              <div class="detail-row">
-                <span class="detail-label">Puhelin</span>
-                <span class="detail-value">{{ order.orderer_phone }}</span>
-              </div>
-              {% endif %}
-            </div>
-            {% endif %}
-
-            <!-- Customer Section -->
-            {% if order.customer_name or order.customer_phone %}
-            <div class="contact-section customer">
-              <h4 class="contact-section-title">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                  stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                  <circle cx="12" cy="7" r="4"></circle>
-                </svg>
-                Asiakas (vastaanottaja)
-              </h4>
-              {% if order.customer_name and order.customer_name.strip() %}
-              <div class="detail-row">
-                <span class="detail-label">Nimi</span>
-                <span class="detail-value">{{ order.customer_name }}</span>
-              </div>
-              {% endif %}
-              {% if order.customer_phone and order.customer_phone.strip() %}
-              <div class="detail-row">
-                <span class="detail-label">Puhelin</span>
-                <span class="detail-value">{{ order.customer_phone }}</span>
-              </div>
-              {% endif %}
-            </div>
-            {% endif %}
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+    {% if has_customer_info or order.status == 'NEW' %}
+    <article class="bg-white rounded-2xl shadow-card p-6 animate-fade-in-2" role="group" aria-labelledby="contact-title">
+      <h3 id="contact-title" class="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
+        <span class="material-symbols-outlined text-primary">contact_page</span>
+        Yhteystiedot
+      </h3>
+      <div class="space-y-6">
+        <!-- Orderer Section -->
+        {% if order.orderer_name or order.orderer_email or order.orderer_phone %}
+        <div class="border-l-4 border-blue-400 pl-4">
+          <h4 class="text-sm font-bold uppercase tracking-wider text-slate-500 mb-3 flex items-center gap-2">
+            <span class="material-symbols-outlined text-sm">business</span>
+            Tilaaja
+          </h4>
+          {% if order.orderer_name and order.orderer_name.strip() %}
+          <div class="flex justify-between items-center py-2 border-b border-slate-100">
+            <span class="text-sm font-medium text-slate-600">Nimi</span>
+            <span class="text-sm font-semibold text-slate-900">{{ order.orderer_name }}</span>
           </div>
+          {% endif %}
+          {% if order.orderer_email and order.orderer_email.strip() %}
+          <div class="flex justify-between items-center py-2 border-b border-slate-100">
+            <span class="text-sm font-medium text-slate-600">Sähköposti</span>
+            <span class="text-sm font-semibold text-slate-900 break-all">{{ order.orderer_email }}</span>
+          </div>
+          {% endif %}
+          {% if order.orderer_phone and order.orderer_phone.strip() %}
+          <div class="flex justify-between items-center py-2">
+            <span class="text-sm font-medium text-slate-600">Puhelin</span>
+            <a href="tel:{{ order.orderer_phone }}" class="text-sm font-semibold text-primary hover:text-blue-700">{{ order.orderer_phone }}</a>
+          </div>
+          {% endif %}
+        </div>
+        {% endif %}
 
-          <!-- Fallback for legacy data using old fields -->
-          {% if not (order.orderer_name or order.orderer_email or order.orderer_phone or order.customer_name or
-          order.customer_phone) %}
+        <!-- Customer Section -->
+        {% if order.customer_name or order.customer_phone %}
+        <div class="border-l-4 border-green-400 pl-4">
+          <h4 class="text-sm font-bold uppercase tracking-wider text-slate-500 mb-3 flex items-center gap-2">
+            <span class="material-symbols-outlined text-sm">person</span>
+            Asiakas (vastaanottaja)
+          </h4>
+          {% if order.customer_name and order.customer_name.strip() %}
+          <div class="flex justify-between items-center py-2 border-b border-slate-100">
+            <span class="text-sm font-medium text-slate-600">Nimi</span>
+            <span class="text-sm font-semibold text-slate-900">{{ order.customer_name }}</span>
+          </div>
+          {% endif %}
+          {% if order.customer_phone and order.customer_phone.strip() %}
+          <div class="flex justify-between items-center py-2">
+            <span class="text-sm font-medium text-slate-600">Puhelin</span>
+            <a href="tel:{{ order.customer_phone }}" class="text-sm font-semibold text-primary hover:text-blue-700">{{ order.customer_phone }}</a>
+          </div>
+          {% endif %}
+        </div>
+        {% endif %}
+        {% endif %}
+
+        <!-- Fallback for legacy data -->
+        {% if not (order.orderer_name or order.orderer_email or order.orderer_phone or order.customer_name or order.customer_phone) %}
           {% if order.email and order.email.strip() %}
-          <div class="detail-row">
-            <span class="detail-label">Sähköposti</span>
-            <span class="detail-value">{{ order.email }}</span>
+          <div class="flex justify-between items-center py-2 border-b border-slate-100">
+            <span class="text-sm font-medium text-slate-600">Sähköposti</span>
+            <span class="text-sm font-semibold text-slate-900 break-all">{{ order.email }}</span>
           </div>
           {% endif %}
           {% if order.phone and order.phone.strip() %}
-          <div class="detail-row">
-            <span class="detail-label">Puhelin</span>
-            <span class="detail-value">{{ order.phone }}</span>
+          <div class="flex justify-between items-center py-2">
+            <span class="text-sm font-medium text-slate-600">Puhelin</span>
+            <a href="tel:{{ order.phone }}" class="text-sm font-semibold text-primary hover:text-blue-700">{{ order.phone }}</a>
           </div>
           {% endif %}
-          {% endif %}
+        {% endif %}
 
-          {% if not has_customer_info %}
-          <div class="detail-row empty-state">
-            <span class="detail-label" aria-hidden="true">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                stroke-linecap="round" stroke-linejoin="round">
-                <path
-                  d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z">
-                </path>
-              </svg>
-            </span>
-            <span class="detail-value">Yhteystiedot päivitetään tilauksen käsittelyn yhteydessä</span>
-          </div>
-          {% endif %}
+        {% if not has_customer_info %}
+        <div class="flex items-center gap-3 p-4 bg-slate-50 rounded-lg">
+          <span class="material-symbols-outlined text-slate-400">info</span>
+          <span class="text-sm text-slate-600">Yhteystiedot päivitetään tilauksen käsittelyn yhteydessä</span>
         </div>
-      </article>
-      {% endif %}
-      {% if show_vehicle_section or order.status == 'NEW' %}
-      <article class="detail-card" role="group" aria-labelledby="vehicle-title">
-        <h3 id="vehicle-title" class="card-title">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-            stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path
-              d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2">
-            </path>
-            <circle cx="7" cy="17" r="2"></circle>
-            <path d="M9 17h6"></path>
-            <circle cx="17" cy="17" r="2"></circle>
-          </svg>
-          Ajoneuvo
-        </h3>
-        <div class="card-content">
-          {% if has_reg_number %}
-          <div class="detail-row">
-            <span class="detail-label">Rekisterinumero</span>
-            <span class="detail-value">{{ order.reg_number or '' }}</span>
-          </div>
-          {% endif %}
-          {% if has_winter_tires %}
-          <div class="detail-row">
-            <span class="detail-label">Talvirenkaat</span>
-            <span class="detail-value">{{ 'Kyllä' if order.winter_tires else 'Ei' }}</span>
-          </div>
-          {% endif %}
-          {% if not show_vehicle_section %}
-          <div class="detail-row empty-state">
-            <span class="detail-label" aria-hidden="true">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                stroke-linecap="round" stroke-linejoin="round">
-                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                <polyline points="14 2 14 8 20 8"></polyline>
-              </svg>
-            </span>
-            <span class="detail-value">Ajoneuvotiedot täydennetään noudettaessa</span>
-          </div>
-          {% endif %}
+        {% endif %}
+      </div>
+    </article>
+    {% endif %}
+
+    {% if show_vehicle_section or order.status == 'NEW' %}
+    <article class="bg-white rounded-2xl shadow-card p-6 animate-fade-in-2" role="group" aria-labelledby="vehicle-title">
+      <h3 id="vehicle-title" class="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
+        <span class="material-symbols-outlined text-primary">directions_car</span>
+        Ajoneuvo
+      </h3>
+      <div class="space-y-3">
+        {% if has_reg_number %}
+        <div class="flex justify-between items-center py-3 border-b border-slate-100">
+          <span class="text-sm font-medium text-slate-600">Rekisterinumero</span>
+          <span class="text-sm font-bold text-slate-900 uppercase">{{ order.reg_number or '' }}</span>
         </div>
+        {% endif %}
+        {% if has_winter_tires %}
+        <div class="flex justify-between items-center py-3">
+          <span class="text-sm font-medium text-slate-600">Talvirenkaat</span>
+          <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold {{ 'bg-blue-100 text-blue-700' if order.winter_tires else 'bg-slate-100 text-slate-700' }}">
+            {{ 'Kyllä' if order.winter_tires else 'Ei' }}
+          </span>
+        </div>
+        {% endif %}
+        {% if not show_vehicle_section %}
+        <div class="flex items-center gap-3 p-4 bg-slate-50 rounded-lg">
+          <span class="material-symbols-outlined text-slate-400">info</span>
+          <span class="text-sm text-slate-600">Ajoneuvotiedot täydennetään noudettaessa</span>
+        </div>
+        {% endif %}
+      </div>
+    </article>
+    {% endif %}
+  </div>
+
+  {% if order.additional_info %}
+  <article class="bg-white rounded-2xl shadow-card p-6 mb-6 animate-fade-in-2" role="group" aria-labelledby="additional-info-title">
+    <h3 id="additional-info-title" class="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
+      <span class="material-symbols-outlined text-primary">description</span>
+      Lisätiedot
+    </h3>
+    <div class="bg-slate-50 rounded-lg p-4">
+      <p class="text-sm text-slate-700 leading-relaxed whitespace-pre-wrap">{{ order.additional_info or 'Ei lisätietoja' }}</p>
+    </div>
+  </article>
+  {% endif %}
+
+  {% if has_images or order.status in ['NEW', 'CONFIRMED', 'IN_TRANSIT'] %}
+  <article class="bg-white rounded-2xl shadow-card p-6 mb-6 animate-fade-in-2" role="group" aria-labelledby="images-title">
+    <h3 id="images-title" class="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
+      <span class="material-symbols-outlined text-primary">photo_camera</span>
+      Kuljetuskuvat
+    </h3>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div>
+        <h4 class="text-sm font-bold uppercase tracking-wider text-slate-600 mb-3 flex items-center gap-2">
+          <span class="material-symbols-outlined text-blue-500 text-sm">my_location</span>
+          Nouto
+        </h4>
+        {% set image_type = 'pickup' %}
+        {% set images_data = order.images.pickup if order.images else [] %}
+        {% include 'components/client_image_section.html' with context %}
+      </div>
+      <div>
+        <h4 class="text-sm font-bold uppercase tracking-wider text-slate-600 mb-3 flex items-center gap-2">
+          <span class="material-symbols-outlined text-green-500 text-sm">location_on</span>
+          Toimitus
+        </h4>
+        {% set image_type = 'delivery' %}
+        {% set images_data = order.images.delivery if order.images else [] %}
+        {% include 'components/client_image_section.html' with context %}
+      </div>
+    </div>
+    {% if not has_images and order.status in ['NEW', 'CONFIRMED'] %}
+    <div class="mt-4 flex items-center gap-3 p-4 bg-blue-50 rounded-lg" role="status">
+      <span class="material-symbols-outlined text-blue-500">info</span>
+      <p class="text-sm text-blue-900 font-medium">Kuljetuskuvat lisätään kuljetuksen aikana</p>
     </div>
     {% endif %}
-    </div>
-
-    {% if order.additional_info %}
-    <article class="detail-card full-width" role="group" aria-labelledby="additional-info-title">
-      <h3 id="additional-info-title" class="card-title">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-          stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-          <polyline points="14 2 14 8 20 8"></polyline>
-          <line x1="16" y1="13" x2="8" y2="13"></line>
-          <line x1="16" y1="17" x2="8" y2="17"></line>
-          <polyline points="10 9 9 9 8 9"></polyline>
-        </svg>
-        Lisätiedot
-      </h3>
-      <div class="card-content">
-        <p class="additional-info-text">{{ order.additional_info or 'Ei lisätietoja' }}</p>
-      </div>
-      </div>
-      {% endif %}
-
-      {% if has_images or order.status in ['NEW', 'CONFIRMED', 'IN_TRANSIT'] %}
-      <article class="detail-card full-width" role="group" aria-labelledby="images-title">
-        <h3 id="images-title" class="card-title">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-            stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
-            <circle cx="12" cy="13" r="4"></circle>
-          </svg>
-          Kuljetuskuvat
-        </h3>
-        <div class="card-content">
-          <div class="images-grid">
-            <div class="image-section">
-              <h4 class="image-section-title">Nouto</h4>
-              {% set image_type = 'pickup' %}
-              {% set images_data = order.images.pickup if order.images else [] %}
-              {% include 'components/client_image_section.html' with context %}
-            </div>
-            <div class="image-section">
-              <h4 class="image-section-title">Toimitus</h4>
-              {% set image_type = 'delivery' %}
-              {% set images_data = order.images.delivery if order.images else [] %}
-              {% include 'components/client_image_section.html' with context %}
-            </div>
-          </div>
-          {% if not has_images and order.status in ['NEW', 'CONFIRMED'] %}
-          <div class="images-status" role="status">
-            <p class="status-info">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
-                <circle cx="12" cy="13" r="4"></circle>
-              </svg>
-              Kuljetuskuvat lisätään kuljetuksen aikana
-            </p>
-          </div>
-          {% endif %}
-        </div>
-      </article>
-      {% endif %}
-  </section>
+  </article>
+  {% endif %}
 
   <!-- Rating Section for Delivered Orders -->
   {% if order.status == 'DELIVERED' %}
-  <section class="rating-section" aria-label="Arvostele kuljetus">
+  <section class="mb-6 animate-fade-in-2" aria-label="Arvostele kuljetus">
     {% if can_rate %}
-    <div class="rating-cta">
-      <div class="rating-cta-content">
-        <div class="rating-cta-icon">
-          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-            stroke-linecap="round" stroke-linejoin="round">
-            <polygon
-              points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2">
-            </polygon>
-          </svg>
+    <div class="bg-gradient-to-r from-amber-50 to-orange-50 rounded-2xl shadow-card p-6 md:p-8">
+      <div class="flex flex-col md:flex-row items-center gap-6">
+        <div class="flex-shrink-0">
+          <div class="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center">
+            <span class="material-symbols-outlined text-amber-600 text-4xl icon-filled">star</span>
+          </div>
         </div>
-        <div class="rating-cta-text">
-          <h3>Miten kuljetus sujui?</h3>
-          <p>Jätä arvostelu kuljettajalle ja auta muita asiakkaita</p>
+        <div class="flex-1 text-center md:text-left">
+          <h3 class="text-2xl font-bold text-slate-900 mb-2">Miten kuljetus sujui?</h3>
+          <p class="text-slate-600">Jätä arvostelu kuljettajalle ja auta muita asiakkaita</p>
         </div>
-        <a href="{{ url_for('rate_order_page', order_id=order.id) }}" class="btn btn-primary rating-cta-btn">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-            stroke-linecap="round" stroke-linejoin="round">
-            <polygon
-              points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2">
-            </polygon>
-          </svg>
-          Arvostele kuljettaja
+        <a href="{{ url_for('rate_order_page', order_id=order.id) }}" 
+           class="inline-flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-amber-500 to-orange-500 text-white font-bold rounded-xl shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300 group whitespace-nowrap">
+          <span class="material-symbols-outlined text-xl">star</span>
+          <span>Arvostele kuljettaja</span>
         </a>
       </div>
     </div>
     {% elif existing_rating %}
-    <div class="rating-submitted">
-      <div class="rating-submitted-content">
-        <div class="rating-stars">
+    <div class="bg-white rounded-2xl shadow-card p-6 md:p-8">
+      <div class="text-center">
+        <div class="inline-flex gap-2 mb-4">
           {% for i in range(1, 6) %}
-          <svg class="star {% if existing_rating.rating >= i %}filled{% endif %}" width="24" height="24"
-            viewBox="0 0 24 24" fill="{% if existing_rating.rating >= i %}currentColor{% else %}none{% endif %}"
-            stroke="currentColor" stroke-width="2">
-            <polygon
-              points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2">
-            </polygon>
-          </svg>
+          <span class="material-symbols-outlined text-3xl icon-filled {{ 'text-amber-400' if existing_rating.rating >= i else 'text-slate-300' }}">star</span>
           {% endfor %}
         </div>
-        <p class="rating-thanks">Kiitos arvostelustasi!</p>
+        <p class="text-lg font-semibold text-slate-900 mb-2">Kiitos arvostelustasi!</p>
         {% if existing_rating.comment %}
-        <p class="rating-comment">"{{ existing_rating.comment }}"</p>
+        <p class="text-slate-600 max-w-2xl mx-auto italic">"{{ existing_rating.comment }}"</p>
         {% endif %}
       </div>
     </div>
     {% endif %}
   </section>
   {% endif %}
-
-  <footer class="order-actions">
-    <a href="/dashboard" class="btn-back" aria-label="Palaa takaisin tilausten listaukseen">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
-        stroke-linecap="round" stroke-linejoin="round">
-        <path d="M19 12H5M12 19l-7-7 7-7" />
-      </svg>
-      Takaisin tilauksiin
-    </a>
-  </footer>
-</article>
+</div>
 
 {% include 'components/simple_footer.html' %}
 
