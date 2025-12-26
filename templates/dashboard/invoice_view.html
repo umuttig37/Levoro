@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Invoice #{{ order.user_order_number or order.id }}-{{ order.created_at.year }}</title>
+    <style>
+        /* Base Reset & Typography */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
+
+        * {
+            box-sizing: border-box;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            font-size: 10pt;
+            color: #333;
+            margin: 0;
+            padding: 0;
+            line-height: 1.5;
+            background: #fff;
+        }
+
+        /* A4 Page Setup */
+        @page {
+            size: A4;
+            margin: 0;
+        }
+
+        .page {
+            width: 210mm;
+            min-height: 297mm;
+            margin: 0 auto;
+            padding: 15mm 20mm;
+            background: white;
+            position: relative;
+        }
+
+        /* Screen Preview */
+        @media screen {
+            body {
+                background: #f0f0f0;
+                padding: 20px;
+            }
+
+            .page {
+                box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+                margin-bottom: 20px;
+            }
+        }
+
+        /* Header */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 60px;
+        }
+
+        .company-info h1 {
+            font-size: 14pt;
+            font-weight: 600;
+            margin: 0;
+            color: #333;
+        }
+
+        .invoice-title {
+            font-size: 12pt;
+            color: #666;
+            margin-top: 4px;
+        }
+
+        .logo img {
+            height: 40px;
+            object-fit: contain;
+        }
+
+        /* Recipient */
+        .recipient {
+            margin-bottom: 60px;
+            font-size: 10pt;
+        }
+
+        .recipient p {
+            margin: 0;
+        }
+
+        /* Meta Data Grid */
+        .meta-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px 40px;
+            margin-bottom: 40px;
+            max-width: 600px;
+            margin-left: auto;
+        }
+
+        .meta-item {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .meta-label {
+            font-size: 8pt;
+            color: #666;
+            margin-bottom: 2px;
+        }
+
+        .meta-value {
+            font-size: 10pt;
+            font-weight: 500;
+        }
+
+        /* Items Table */
+        .items-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 40px;
+        }
+
+        .items-table th {
+            text-align: left;
+            font-size: 8pt;
+            color: #666;
+            font-weight: normal;
+            border-bottom: 1px solid #eee;
+            padding: 10px 0;
+        }
+
+        .items-table td {
+            padding: 15px 0;
+            border-bottom: 1px solid #eee;
+            vertical-align: top;
+        }
+
+        .col-item {
+            width: 45%;
+        }
+
+        .col-qty {
+            width: 10%;
+            text-align: center;
+        }
+
+        .col-price {
+            width: 15%;
+            text-align: right;
+        }
+
+        .col-vat {
+            width: 10%;
+            text-align: right;
+        }
+
+        .col-total {
+            width: 20%;
+            text-align: right;
+        }
+
+        .item-row:last-child td {
+            border-bottom: 2px solid #ddd;
+            /* Thicker line at end of items */
+        }
+
+        .item-desc {
+            font-weight: 500;
+            font-size: 10pt;
+            text-transform: uppercase;
+        }
+
+        .item-sub {
+            font-size: 8pt;
+            color: #666;
+            margin-top: 4px;
+        }
+
+        /* Totals */
+        .totals {
+            margin-left: auto;
+            width: 250px;
+            text-align: right;
+        }
+
+        .total-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 5px 0;
+            font-size: 10pt;
+        }
+
+        .total-row.big {
+            font-weight: 600;
+            font-size: 12pt;
+            margin-top: 10px;
+            border-top: 1px solid #eee;
+            padding-top: 15px;
+        }
+
+        /* Payment Footer (A4 Bottom) */
+        .payment-footer {
+            margin-top: 100px;
+            border-top: 2px solid #3b82f6;
+            /* Blue line */
+            padding-top: 20px;
+        }
+
+        .pay-label {
+            font-size: 8pt;
+            color: #3b82f6;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 600;
+            margin-bottom: 20px;
+        }
+
+        .payment-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 20px;
+            font-size: 9pt;
+            color: #666;
+        }
+
+        .payment-col strong {
+            display: block;
+            color: #333;
+            font-weight: 500;
+            margin-bottom: 4px;
+        }
+
+        .qr-area {
+            text-align: right;
+        }
+
+        /* Simulated CSS Barcode */
+        .barcode-strip {
+            height: 40px;
+            margin-top: 30px;
+            background-image: repeating-linear-gradient(90deg,
+                    #000 0px, #000 1px,
+                    transparent 1px, transparent 3px,
+                    #000 3px, #000 4px,
+                    transparent 4px, transparent 6px,
+                    #000 6px, #000 8px,
+                    transparent 8px, transparent 9px,
+                    #000 9px, #000 12px);
+            background-size: 100% 100%;
+            width: 80%;
+            margin-left: auto;
+            margin-right: auto;
+            max-width: 400px;
+        }
+
+        .barcode-text {
+            text-align: center;
+            font-family: monospace;
+            font-size: 8pt;
+            margin-top: 5px;
+        }
+
+        /* Print Trigger */
+        @media print {
+            .no-print {
+                display: none;
+            }
+        }
+    </style>
+</head>
+
+<body onload="window.print()">
+
+    <div class="page">
+        <div class="header">
+            <div class="company-info">
+                <h1>Tiyouba Oy</h1>
+                <div class="invoice-title">Invoice #{{ order.user_order_number or order.id }}-{{ order.created_at.year
+                    }}</div>
+            </div>
+            <div class="logo">
+                <!-- Use absolute path or base64 usually better for PDF, but URL works for browser print -->
+                <img src="/static/LevoroLogo.png" alt="Levoro">
+            </div>
+        </div>
+
+        <!-- Receiver info -->
+        <div class="recipient">
+            <p><strong>{{ order.customer_name or order.email }}</strong></p>
+            <!-- Add user address if available, otherwise just name -->
+        </div>
+
+        <!-- Meta Grid -->
+        <div class="meta-grid">
+            <div class="meta-item">
+                <span class="meta-label">Due date</span>
+                <span class="meta-value">{{ due_date }}</span>
+            </div>
+            <div class="meta-item">
+                <span class="meta-label">Issue date</span>
+                <span class="meta-value">{{ issue_date }}</span>
+            </div>
+            <div class="meta-item">
+                <span class="meta-label">Delivery date</span>
+                <span class="meta-value">{{ delivery_date }}</span>
+            </div>
+            <div class="meta-item">
+                <span class="meta-label">Reference #</span>
+                <span class="meta-value">700 {{ order.id }}02</span> <!-- Dummy reference generation -->
+            </div>
+        </div>
+
+        <!-- Items -->
+        <table class="items-table">
+            <thead>
+                <tr>
+                    <th class="col-item">Item</th>
+                    <th class="col-qty">Quantity</th>
+                    <th class="col-price">Price</th>
+                    <th class="col-vat">VAT %</th>
+                    <th class="col-total">Total</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr class="item-row">
+                    <td>
+                        <div class="item-desc">Kuljetus: {{ order.pickup_address | extract_city }} - {{
+                            order.dropoff_address | extract_city }}</div>
+                        <div class="item-sub">Auton rekisteritunnus: {{ order.reg_number or 'Ei määritelty' }}</div>
+                    </td>
+                    <td class="col-qty">1</td>
+                    <td class="col-price">{{ "%.2f"|format(net_price) }} €</td>
+                    <td class="col-vat">24.0%</td>
+                    <td class="col-total">{{ "%.2f"|format(final_gross) }} €</td>
+                </tr>
+                <!-- Example extra item if needed -->
+            </tbody>
+        </table>
+
+        <!-- Totals -->
+        <div class="totals">
+            <div class="total-row">
+                <span>Net total</span>
+                <span>{{ "%.2f"|format(net_price) }} €</span>
+            </div>
+            <div class="total-row">
+                <span>VAT 24.0%</span>
+                <span>{{ "%.2f"|format(final_vat) }} €</span>
+            </div>
+            <div class="total-row big">
+                <span>Total</span>
+                <span>{{ "%.2f"|format(final_gross) }} €</span>
+            </div>
+        </div>
+
+        <!-- Payment Footer -->
+        <div class="payment-footer">
+            <div class="pay-label">PAY TO:</div>
+            <div class="payment-grid">
+                <div class="payment-col">
+                    <strong>Payee</strong>
+                    Tiyouba Oy
+                </div>
+                <div class="payment-col">
+                    <strong>IBAN/BIC</strong>
+                    FI38 7997 7996 7164 08<br>
+                    HOLVFIHH
+                </div>
+                <div class="payment-col">
+                    <strong>Reference #</strong>
+                    700 {{ order.id }}02
+                </div>
+                <div class="payment-col" style="grid-column: 3; text-align: right;">
+                    <!-- QR Code Image Placeholder -->
+                    <img src="https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=FI3879977996716408" alt="QR"
+                        width="60">
+                </div>
+            </div>
+
+            <!-- Virtual Barcode -->
+            <div class="barcode-strip"></div>
+            <div class="barcode-text">4387997799671640800014...</div>
+        </div>
+    </div>
+
+</body>
+
+</html>

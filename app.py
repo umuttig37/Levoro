@@ -848,6 +848,53 @@ def order_view(order_id: int):
     )
 
 
+@app.get("/order/<int:order_id>/invoice")
+def invoice_view(order_id: int):
+    u = current_user()
+    if not u:
+        return redirect(url_for("auth.login", next=f"/order/{order_id}/invoice"))
+
+    # Reuse aggregation logic (simplified for invoice)
+    from models.order import order_model
+    from datetime import datetime, timedelta
+    
+    # Simple find first to check access
+    r = orders_col().find_one({"id": int(order_id), "user_id": int(u["id"])})
+    if not r:
+        return render_with_context('errors/no_access.html')
+
+    # Calculate pricing
+    price_gross = float(r.get("price_gross", 0.0))
+    vat_rate = 0.24 # hardcoded or from config
+    net_price = price_gross / (1 + vat_rate)
+    final_vat = price_gross - net_price
+    
+    # Dates
+    issue_date = datetime.now().strftime("%d.%m.%Y")
+    due_date = (datetime.now() + timedelta(days=14)).strftime("%d.%m.%Y")
+    
+    # Delivery date fallback
+    delivery_date_raw = r.get("pickup_date")
+    if delivery_date_raw:
+        if isinstance(delivery_date_raw, str):
+             # Try to parse or just use
+             delivery_date = delivery_date_raw
+        else:
+             delivery_date = delivery_date_raw.strftime("%d.%m.%Y")
+    else:
+        delivery_date = issue_date
+
+    return render_template('dashboard/invoice_view.html',
+        order=r,
+        net_price=net_price,
+        final_vat=final_vat,
+        final_gross=price_gross,
+        issue_date=issue_date,
+        due_date=due_date,
+        delivery_date=delivery_date
+    )
+
+
 
 
 
@@ -993,16 +1040,29 @@ def _get_user_required():
 
 @app.get("/api/saved_addresses")
 def api_saved_addresses_list():
+    import uuid
     u = _get_user_required()
     user_doc = users_col().find_one({"id": int(u["id"])}, {"_id": 0, "saved_addresses": 1}) or {}
-    addrs = user_doc.get("saved_addresses") or []
-    # Normalize
+    addrs = list(user_doc.get("saved_addresses") or [])
+    
+    # Self-healing: Ensure all addresses have IDs
+    modified = False
     for a in addrs:
-        a["id"] = str(a.get("id"))
+        if not a.get("id") or str(a.get("id")) == "None":
+            a["id"] = str(uuid.uuid4())
+            modified = True
+        else:
+            a["id"] = str(a.get("id"))
+
+        # Normalize other fields
         a["displayName"] = a.get("displayName") or a.get("name") or ""
         a["fullAddress"] = a.get("fullAddress") or a.get("address") or ""
         phone_raw = a.get("phone")
         a["phone"] = str(phone_raw).strip() if phone_raw else ""
+            
+    if modified:
+        users_col().update_one({"id": int(u["id"])}, {"$set": {"saved_addresses": addrs}})
+        
     return jsonify({"items": addrs})
 
 @app.post("/api/saved_addresses")
@@ -1067,9 +1127,12 @@ def api_saved_addresses_delete(addr_id: str):
     u = _get_user_required()
     doc = users_col().find_one({"id": int(u["id"])}, {"_id": 0, "saved_addresses": 1}) or {}
     arr = list(doc.get("saved_addresses") or [])
+    
     new_arr = [a for a in arr if str(a.get("id")) != str(addr_id)]
+
     if len(new_arr) == len(arr):
         return jsonify({"error": "not found"}), 404
+    
     users_col().update_one({"id": int(u["id"])}, {"$set": {"saved_addresses": new_arr}})
     return jsonify({"ok": True})
 

@@ -1,460 +1,482 @@
 {% extends "base/layout.html" %}
 
-{% block title %}Tilaus #{{ order.id }} – Levoro{% endblock %}
+{% block title %}Tilaus #{{ order.user_order_number or order.id }} – Levoro{% endblock %}
 
 {% block extra_css %}
-<!-- Tailwind CSS -->
-<script src="https://cdn.tailwindcss.com?plugins=forms,typography,container-queries"></script>
+<!-- Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect" />
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;display=swap"
+    rel="stylesheet" />
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+    rel="stylesheet" />
+
+<!-- Tailwind CSS (Preflight Disabled to protect layout) -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
 <script>
     tailwind.config = {
         darkMode: "class",
+        corePlugins: {
+            preflight: false, // Disable preflight to avoid breaking existing layout
+        },
         theme: {
             extend: {
                 colors: {
-                    primary: "#2563eb",
-                    secondary: "#10b981",
-                    "brand-gradient-start": "#3b82f6",
-                    "brand-gradient-end": "#2563eb",
-                    "background-light": "#f3f6fa",
+                    "primary": "#1392ec",
+                    "background-light": "#f6f7f8",
+                    "background-dark": "#101a22",
                 },
                 fontFamily: {
-                    sans: ["Inter", "sans-serif"],
+                    "display": ["Inter", "sans-serif"]
                 },
-                borderRadius: {
-                    DEFAULT: "0.6rem",
-                    xl: "1.25rem",
-                    '2xl': "1.75rem",
-                },
-                boxShadow: {
-                    'soft': '0 4px 20px -2px rgba(0, 0, 0, 0.03), 0 2px 8px -2px rgba(0, 0, 0, 0.02)',
-                    'card': '0 0 0 1px rgba(0,0,0,0.03), 0 8px 30px rgba(0,0,0,0.04)',
-                    'card-hover': '0 0 0 1px rgba(0,0,0,0.03), 0 20px 40px rgba(0,0,0,0.06)',
-                },
-                animation: {
-                    'fade-in': 'fadeIn 0.4s ease-out forwards',
-                    'fade-in-1': 'fadeIn 0.4s ease-out 0.1s forwards',
-                    'fade-in-2': 'fadeIn 0.4s ease-out 0.2s forwards',
-                    'slide-up': 'slideUp 0.5s ease-out forwards',
-                },
-                keyframes: {
-                    fadeIn: {
-                        '0%': { opacity: '0', transform: 'translateY(8px)' },
-                        '100%': { opacity: '1', transform: 'translateY(0)' },
-                    },
-                    slideUp: {
-                        '0%': { opacity: '0', transform: 'translateY(20px)' },
-                        '100%': { opacity: '1', transform: 'translateY(0)' },
-                    },
-                },
+                borderRadius: { "DEFAULT": "0.5rem", "lg": "1rem", "xl": "1.5rem", "full": "9999px" },
             },
         },
-    };
+    }
 </script>
-
-<!-- Google Fonts -->
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
-<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet" />
-<link rel='stylesheet' href='/static/css/client-images.css'>
-
 <style>
-  body {
-    font-family: 'Inter', sans-serif;
-    background-image: radial-gradient(circle at top center, #f8fafc 0%, #eff6ff 40%, #f3f6fa 100%);
-    min-height: 100vh;
-  }
+    /* Scoped Tailwind-like utilities if needed, or fixes for preflight disabled */
+    .tw-reset *,
+    .tw-reset ::before,
+    .tw-reset ::after {
+        box-sizing: border-box;
+        border-width: 0;
+        border-style: solid;
+        border-color: #e5e7eb;
+    }
 
-  /* Hide the default footer on this page */
-  .footer-new {
-    display: none !important;
-  }
-
-  /* Hide back to top button */
-  .back-to-top {
-    display: none !important;
-  }
-
-  /* Custom scrollbar */
-  ::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
-  }
-
-  ::-webkit-scrollbar-track {
-    background: #f1f5f9;
-    border-radius: 4px;
-  }
-
-  ::-webkit-scrollbar-thumb {
-    background: #cbd5e1;
-    border-radius: 4px;
-  }
-
-  ::-webkit-scrollbar-thumb:hover {
-    background: #94a3b8;
-  }
-
-  /* Filled icon style */
-  .icon-filled {
-    font-variation-settings: 'FILL' 1;
-  }
+    /* Hide the default site footer */
+    .footer-new {
+        display: none !important;
+    }
 </style>
 {% endblock %}
 
 {% block content %}
-{% set status_class_map = {
-  'NEW': 'bg-blue-50 text-blue-700 border-blue-300',
-  'CONFIRMED': 'bg-emerald-50 text-emerald-700 border-emerald-300',
-  'ASSIGNED_TO_DRIVER': 'bg-indigo-50 text-indigo-700 border-indigo-300',
-  'DRIVER_ARRIVED': 'bg-purple-50 text-purple-700 border-purple-300',
-  'PICKUP_IMAGES_ADDED': 'bg-amber-50 text-amber-700 border-amber-300',
-  'IN_TRANSIT': 'bg-orange-50 text-orange-700 border-orange-300',
-  'DELIVERY_ARRIVED': 'bg-teal-50 text-teal-700 border-teal-300',
-  'DELIVERY_IMAGES_ADDED': 'bg-cyan-50 text-cyan-700 border-cyan-300',
-  'DELIVERED': 'bg-green-50 text-green-700 border-green-300',
-  'COMPLETED': 'bg-green-50 text-green-700 border-green-300',
-  'CANCELLED': 'bg-red-50 text-red-700 border-red-300'
-} %}
-{% set status_class = status_class_map.get(order.status, 'bg-blue-50 text-blue-700 border-blue-300') %}
+<div
+    class="tw-reset font-display text-slate-900 dark:text-slate-100 bg-background-light dark:bg-background-dark min-h-screen flex flex-col">
 
-<div class="container mx-auto px-4 py-8 max-w-7xl">
-  <!-- Back Button -->
-  <div class="mb-6 animate-fade-in">
-    <a href="/dashboard" class="inline-flex items-center gap-2 text-slate-600 hover:text-primary transition-colors duration-200 group">
-      <span class="material-symbols-outlined group-hover:-translate-x-1 transition-transform duration-200">arrow_back</span>
-      <span class="font-semibold">Takaisin tilauksiin</span>
-    </a>
-  </div>
-
-  <!-- Hero Section with Order Details -->
-  <article class="bg-white rounded-2xl shadow-card overflow-hidden mb-6 animate-fade-in-1" role="main" aria-labelledby="order-title">
-    <!-- Header with Status -->
-    <header class="bg-gradient-to-r from-blue-50 to-indigo-50 px-6 md:px-8 py-6 border-b border-slate-200">
-      <div class="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
-        <div>
-          <h1 id="order-title" class="text-3xl md:text-4xl font-bold text-slate-900 mb-2 flex flex-wrap items-center gap-3">
-            <span class="material-symbols-outlined text-primary text-4xl icon-filled">inventory_2</span>
-            <span>Tilaus #{{ order.id }}</span>
-            {% if order.trip_type %}
-            <span class="px-3 py-1 text-sm font-semibold bg-blue-100 text-blue-700 rounded-full">{{ order.trip_type }}</span>
-            {% endif %}
-          </h1>
+    <!-- Main Content Area -->
+    <main class="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-grow">
+        <!-- Breadcrumb / Header -->
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+            <div class="flex flex-col gap-1">
+                <a href="/dashboard"
+                    class="inline-flex items-center text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 transition-colors group mb-2 w-fit px-3 py-1.5 -ml-3 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800">
+                    <span
+                        class="material-symbols-outlined mr-1.5 text-[20px] transition-transform group-hover:-translate-x-1">arrow_back</span>
+                    Takaisin tilauksiin
+                </a>
+                <h2 class="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">
+                    Tilaus #{{ order.user_order_number or order.id }}
+                </h2>
+            </div>
+            <div class="flex flex-row gap-3 mt-4 sm:mt-0 w-full sm:w-auto">
+                <a href="/order/{{ order.id }}/invoice" target="_blank"
+                    class="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-4 py-2 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 text-sm font-medium rounded-lg border border-slate-300 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors shadow-sm">
+                    <span class="material-symbols-outlined text-[20px]">print</span>
+                    Tulosta lasku
+                </a>
+                <a href="mailto:support@levoro.fi"
+                    class="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-4 py-2 bg-primary text-white text-sm font-medium rounded-lg hover:bg-primary-dark transition-colors shadow-sm shadow-primary/20">
+                    <span class="material-symbols-outlined text-[18px]">help</span>
+                    Tuki
+                </a>
+            </div>
         </div>
-        <div class="flex flex-col items-start md:items-end">
-          <span class="inline-flex items-center px-4 py-2 rounded-full text-sm font-bold border-2 {{ status_class }}" role="status" aria-label="Tilauksen tila: {{ status_fi }}">
-            {{ status_fi }}
-          </span>
-          {% if status_description %}
-          <p class="text-sm text-slate-600 mt-2">{{ status_description }}</p>
-          {% endif %}
-        </div>
-      </div>
-    </header>
 
-    <!-- Route and Metrics Section -->
-    <div class="px-6 md:px-8 py-6">
-      <!-- Route Display -->
-      <section class="mb-6" aria-label="Kuljetusreitti">
-        <div class="bg-gradient-to-r from-slate-50 to-blue-50 rounded-xl p-6">
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <!-- Pickup -->
-            <div class="flex gap-4" role="group" aria-label="Noudon osoite">
-              <div class="flex-shrink-0 w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-                <span class="material-symbols-outlined text-blue-600 text-xl icon-filled">my_location</span>
-              </div>
-              <div class="flex-1 min-w-0">
-                <div class="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Nouto</div>
-                <div class="text-sm font-semibold text-slate-900 leading-snug break-words">{{ order.pickup_address or '?' }}</div>
-                {% if pickup_date_fi %}
-                <div class="text-xs text-slate-600 mt-1">
-                  <span class="material-symbols-outlined text-xs align-middle">calendar_today</span>
-                  {{ pickup_date_fi }}{% if pickup_time %} klo {{ pickup_time }}{% endif %}
+        <!-- Grid Layout: 2/3 Main Content, 1/3 Sidebar -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+            <!-- Left Column: The Journey & Details (lg:col-span-8) -->
+            <div class="lg:col-span-8 space-y-6">
+                <!-- Integrated Route & Progress Card -->
+                <div
+                    class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-100 dark:border-slate-700/50 overflow-hidden">
+                    <div class="p-6 sm:p-8">
+                        <div class="flex items-center justify-between mb-8">
+                            <h3 class="text-lg font-semibold text-slate-900 dark:text-white flex items-center gap-2">
+                                <span class="material-symbols-outlined text-primary">route</span>
+                                Reitti &amp; Matka
+                            </h3>
+                            {% if order.status == 'DELIVERED' %}
+                            <div
+                                class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300 text-xs font-medium border border-green-100 dark:border-green-800/30">
+                                <span class="material-symbols-outlined text-[16px]">check_circle</span>
+                                Toimitettu
+                            </div>
+                            {% else %}
+                            <div
+                                class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 text-xs font-medium border border-slate-200 dark:border-slate-600">
+                                <span class="material-symbols-outlined text-[16px]">schedule</span>
+                                Odottaa
+                            </div>
+                            {% endif %}
+                        </div>
+                        <!-- Custom Vertical Timeline -->
+                        <div class="relative pl-4 sm:pl-8 border-l-2 border-slate-100 dark:border-slate-700 space-y-12">
+
+                            <!-- Step 1: Origin -->
+                            <div class="relative">
+                                <div class="absolute -left-[25px] sm:-left-[41px] top-1 bg-white dark:bg-slate-800 p-1">
+                                    <div
+                                        class="size-4 rounded-full border-2 border-primary bg-primary shadow-[0_0_0_4px_rgba(19,146,236,0.1)]">
+                                    </div>
+                                </div>
+                                <div class="flex flex-col sm:flex-row justify-between sm:items-start gap-4">
+                                    <div>
+                                        <p class="text-xs font-semibold text-primary uppercase tracking-wider mb-1">
+                                            Nouto</p>
+                                        <h4 class="text-xl font-bold text-slate-900 dark:text-white">{{
+                                            order.pickup_address }}</h4>
+                                        <p class="text-slate-500 dark:text-slate-400 text-sm mt-1">{{ pickup_date_fi }}
+                                            {{ pickup_time }}</p>
+                                    </div>
+                                    <div class="text-left sm:text-right">
+                                        {% if order.status != 'NEW' and order.status != 'CANCELLED' %}
+                                        <div
+                                            class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300 text-xs font-medium border border-green-100 dark:border-green-800/30">
+                                            <span class="material-symbols-outlined text-[16px]">check_circle</span>
+                                            Suoritettu
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <!-- Sub-progress steps visual -->
+                                <div class="mt-6 flex flex-wrap gap-3">
+                                    <div
+                                        class="flex items-center gap-2 text-xs font-medium text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-700/50 px-3 py-1.5 rounded-full border border-slate-100 dark:border-slate-700">
+                                        <span class="material-symbols-outlined text-[14px] text-primary">check</span>
+                                        Tilaus luotu
+                                    </div>
+                                    {% if order.status != 'NEW' and order.status != 'CANCELLED' %}
+                                    <div
+                                        class="flex items-center gap-2 text-xs font-medium text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-700/50 px-3 py-1.5 rounded-full border border-slate-100 dark:border-slate-700">
+                                        <span class="material-symbols-outlined text-[14px] text-primary">check</span>
+                                        Vahvistettu
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                            <!-- Step 2: Transit / Status Info -->
+                            {% if order.status == 'IN_TRANSIT' or order.status == 'ASSIGNED_TO_DRIVER' %}
+                            <div class="relative">
+                                <div class="absolute -left-[25px] sm:-left-[41px] top-1 bg-white dark:bg-slate-800 p-1">
+                                    <div
+                                        class="flex items-center justify-center size-4 rounded-full bg-primary animate-pulse">
+                                        <div class="size-2 bg-white rounded-full"></div>
+                                    </div>
+                                </div>
+                                <div class="flex flex-col sm:flex-row justify-between sm:items-start gap-4">
+                                    <div>
+                                        <p class="text-xs font-semibold text-primary uppercase tracking-wider mb-1">Tila
+                                        </p>
+                                        <h4 class="text-xl font-bold text-slate-900 dark:text-white">{{ status_fi }}
+                                        </h4>
+                                        <p class="text-slate-500 dark:text-slate-400 text-sm mt-1">{{ status_description
+                                            }}</p>
+                                    </div>
+                                    <div class="text-left sm:text-right">
+                                        <div
+                                            class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 text-xs font-medium border border-blue-100 dark:border-blue-800/30">
+                                            <span class="material-symbols-outlined text-[16px] animate-spin">sync</span>
+                                            Käynnissä
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endif %}
+
+                            <!-- Step 3: Destination -->
+                            <div class="relative pb-4">
+                                <div class="absolute -left-[25px] sm:-left-[41px] top-1 bg-white dark:bg-slate-800 p-1">
+                                    <div
+                                        class="size-4 rounded-full border-2 border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800">
+                                    </div>
+                                </div>
+                                <div class="opacity-100">
+                                    <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">
+                                        Toimitus</p>
+                                    <!-- Address and date -->
+                                    <h4 class="text-xl font-bold text-slate-900 dark:text-white">{{
+                                        order.dropoff_address }}</h4>
+                                    <p class="text-slate-500 dark:text-slate-400 text-sm mt-1">
+                                        {% if last_delivery_date_fi %}Arvioitu: {{ last_delivery_date_fi }} {{
+                                        delivery_time }}{% else %}Ei aika-arviota{% endif %}
+                                    </p>
+                                </div>
+                            </div>
+
+                        </div>
+
+                        <!-- Map Preview -->
+                        <div
+                            class="mt-6 w-full h-48 rounded-xl overflow-hidden relative shadow-inner bg-slate-100 flex items-center justify-center">
+                            {% if google_places_api_key %}
+                            <!-- Simple static map fallback or placeholder since Google Static Maps requires signing usually -->
+                            <div class="absolute inset-0 bg-cover bg-center opacity-80"
+                                style="background-image: url('https://maps.googleapis.com/maps/api/staticmap?size=800x400&maptype=roadmap&markers=color:blue%7Clabel:A%7C{{ order.pickup_address }}&markers=color:red%7Clabel:B%7C{{ order.dropoff_address }}&path=color:0x1392ec|weight:4|{{ order.pickup_address }}|{{ order.dropoff_address }}&key={{ google_places_api_key }}');">
+                            </div>
+                            {% else %}
+                            <p class="text-slate-500 text-sm z-10"><span
+                                    class="material-symbols-outlined align-middle mr-1">map</span> Kartta ei saatavilla
+                            </p>
+                            {% endif %}
+
+                            <div class="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent"></div>
+                            <div
+                                class="absolute bottom-3 left-3 flex items-center gap-2 text-white text-xs font-medium bg-black/40 backdrop-blur-sm px-2 py-1 rounded-md">
+                                <span class="material-symbols-outlined text-[14px]">distance</span>
+                                {{ distance_km }} km
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Vehicle Info Card (Conditional) -->
+                {% if show_vehicle_section %}
+                <div
+                    class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-100 dark:border-slate-700/50 overflow-hidden">
+                    <div class="p-6">
+                        <div class="flex items-center justify-between mb-6">
+                            <h3 class="text-lg font-semibold text-slate-900 dark:text-white flex items-center gap-2">
+                                <span class="material-symbols-outlined text-primary">directions_car</span>
+                                Ajoneuvo
+                            </h3>
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                            <!-- Registration Number -->
+                            <div class="flex items-start gap-4">
+                                <div
+                                    class="p-2.5 bg-slate-50 dark:bg-slate-700/50 rounded-lg text-slate-400 dark:text-slate-500 flex-shrink-0">
+                                    <span class="material-symbols-outlined text-[20px]">pin</span>
+                                </div>
+                                <div>
+                                    <p
+                                        class="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wider font-semibold mb-1">
+                                        Rekisterinumero
+                                    </p>
+                                    <p class="text-base font-bold text-slate-900 dark:text-white">
+                                        {{ order.reg_number or 'Ei ilmoitettu' }}
+                                    </p>
+                                </div>
+                            </div>
+                            <!-- Tires -->
+                            <div class="flex items-start gap-4">
+                                <div
+                                    class="p-2.5 bg-slate-50 dark:bg-slate-700/50 rounded-lg text-slate-400 dark:text-slate-500 flex-shrink-0">
+                                    <span class="material-symbols-outlined text-[20px]">ac_unit</span>
+                                </div>
+                                <div>
+                                    <p
+                                        class="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wider font-semibold mb-1">
+                                        Talvirenkaat
+                                    </p>
+                                    <p class="text-sm font-medium text-slate-700 dark:text-slate-300">
+                                        {% if order.winter_tires %}Kyllä{% else %}Ei{% endif %}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
                 {% endif %}
-              </div>
-            </div>
 
-            <!-- Arrow -->
-            <div class="hidden md:flex items-center justify-center">
-              <span class="material-symbols-outlined text-slate-300 text-4xl">arrow_forward</span>
-            </div>
-            <div class="md:hidden flex items-center justify-center py-2">
-              <span class="material-symbols-outlined text-slate-300 text-3xl">arrow_downward</span>
-            </div>
+                <!-- Photos Grid (Conditional) -->
+                <div
+                    class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-100 dark:border-slate-700/50 overflow-hidden">
+                    <div class="p-6">
+                        <div class="flex items-center justify-between mb-6">
+                            <h3 class="text-lg font-semibold text-slate-900 dark:text-white flex items-center gap-2">
+                                <span class="material-symbols-outlined text-primary">photo_camera</span>
+                                Valokuvat
+                            </h3>
+                        </div>
+                        <div class="grid grid-cols-2 gap-6">
+                            <!-- Pickup Photos -->
+                            <div class="col-span-2 sm:col-span-1 space-y-3">
+                                <p class="text-sm font-medium text-slate-500 dark:text-slate-400">Nouto</p>
+                                <div class="grid grid-cols-2 gap-3">
+                                    {% if order.images and order.images.get('pickup') %}
+                                    {% for img in order.images.get('pickup') %}
+                                    <div
+                                        class="group relative aspect-square bg-slate-100 dark:bg-slate-700 rounded-lg overflow-hidden cursor-pointer">
+                                        <a href="/static/uploads/orders/{{ img.filename }}" target="_blank">
+                                            <div class="absolute inset-0 bg-cover bg-center group-hover:scale-110 transition-transform duration-500"
+                                                style='background-image: url("/static/uploads/orders/{{ img.filename }}");'>
+                                            </div>
+                                        </a>
+                                    </div>
+                                    {% endfor %}
+                                    {% else %}
+                                    <!-- Skeletons -->
+                                    <div
+                                        class="aspect-square bg-slate-50 dark:bg-slate-900 rounded-lg border border-dashed border-slate-300 dark:border-slate-600 flex flex-col items-center justify-center text-slate-400">
+                                        <span class="material-symbols-outlined mb-1">image</span>
+                                        <span class="text-xs">Odottaa</span>
+                                    </div>
+                                    <div
+                                        class="aspect-square bg-slate-50 dark:bg-slate-900 rounded-lg border border-dashed border-slate-300 dark:border-slate-600 flex flex-col items-center justify-center text-slate-400">
+                                        <span class="material-symbols-outlined mb-1">image</span>
+                                        <span class="text-xs">Odottaa</span>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
 
-            <!-- Delivery -->
-            <div class="flex gap-4" role="group" aria-label="Toimituksen osoite">
-              <div class="flex-shrink-0 w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
-                <span class="material-symbols-outlined text-green-600 text-xl icon-filled">location_on</span>
-              </div>
-              <div class="flex-1 min-w-0">
-                <div class="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Toimitus</div>
-                <div class="text-sm font-semibold text-slate-900 leading-snug break-words">{{ order.dropoff_address or '?' }}</div>
-                {% if last_delivery_date_fi %}
-                <div class="text-xs text-slate-600 mt-1">
-                  <span class="material-symbols-outlined text-xs align-middle">calendar_today</span>
-                  {{ last_delivery_date_fi }}{% if delivery_time %} klo {{ delivery_time }}{% endif %}
+                            <!-- Delivery Photos -->
+                            <div class="col-span-2 sm:col-span-1 space-y-3">
+                                <p class="text-sm font-medium text-slate-500 dark:text-slate-400">Toimitus</p>
+                                <div class="grid grid-cols-2 gap-3">
+                                    {% if order.images and order.images.get('delivery') %}
+                                    {% for img in order.images.get('delivery') %}
+                                    <div
+                                        class="group relative aspect-square bg-slate-100 dark:bg-slate-700 rounded-lg overflow-hidden cursor-pointer">
+                                        <a href="/static/uploads/orders/{{ img.filename }}" target="_blank">
+                                            <div class="absolute inset-0 bg-cover bg-center group-hover:scale-110 transition-transform duration-500"
+                                                style='background-image: url("/static/uploads/orders/{{ img.filename }}");'>
+                                            </div>
+                                        </a>
+                                    </div>
+                                    {% endfor %}
+                                    {% else %}
+                                    <!-- Skeletons -->
+                                    <div
+                                        class="aspect-square bg-slate-50 dark:bg-slate-900 rounded-lg border border-dashed border-slate-300 dark:border-slate-600 flex flex-col items-center justify-center text-slate-400">
+                                        <span class="material-symbols-outlined mb-1">image</span>
+                                        <span class="text-xs">Odottaa</span>
+                                    </div>
+                                    <div
+                                        class="aspect-square bg-slate-50 dark:bg-slate-900 rounded-lg border border-dashed border-slate-300 dark:border-slate-600 flex flex-col items-center justify-center text-slate-400">
+                                        <span class="material-symbols-outlined mb-1">image</span>
+                                        <span class="text-xs">Odottaa</span>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                {% endif %}
-              </div>
+
             </div>
-          </div>
-        </div>
-      </section>
 
-      <!-- Key Metrics -->
-      <section class="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6" role="group" aria-label="Tilauksen tiedot">
-        <div class="bg-slate-50 rounded-xl p-4" role="group" aria-label="Matkan pituus">
-          <div class="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Matka</div>
-          <div class="text-2xl font-bold text-slate-900" aria-label="{{ '%.1f'|format(distance_km) }} kilometriä">{{ "%.1f"|format(distance_km) }} km</div>
-        </div>
-        
-        <div class="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-4" role="group" aria-label="Tilauksen hinta">
-          <div class="text-xs font-bold uppercase tracking-wider text-blue-700 mb-1">Hinta</div>
-          <div class="text-2xl font-bold text-blue-900">{{ price_gross|format_price_with_vat|safe }}</div>
+            <!-- Right Column: Sticky Sidebar Summary (lg:col-span-4) -->
+            <div class="lg:col-span-4 space-y-6 lg:sticky lg:top-24">
+                <!-- Status & Price Card -->
+                <div
+                    class="bg-white dark:bg-slate-800 rounded-xl shadow-lg shadow-slate-200/50 dark:shadow-black/20 border border-slate-100 dark:border-slate-700/50 p-6">
+                    <div class="flex items-center justify-between mb-6">
+                        <span class="text-sm font-medium text-slate-500 dark:text-slate-400">Hinta (ALV 0%)</span>
+                    </div>
+                    <div class="text-4xl font-bold text-slate-900 dark:text-white mb-1">
+                        {{ "{:,.2f}".format(price_gross / 1.255).replace('.', ',') }} €
+                    </div>
+                    <p class="text-sm text-slate-500 dark:text-slate-400 mb-6">sis. alv {{
+                        "{:,.2f}".format(price_gross).replace('.', ',') }} €</p>
+
+                    <button
+                        class="w-full bg-slate-900 dark:bg-slate-700 text-white rounded-lg py-3 text-sm font-medium hover:bg-slate-800 dark:hover:bg-slate-600 transition-colors shadow-sm">
+                        Lataa kuitti (PDF)
+                    </button>
+
+                    {% if can_rate %}
+                    <div class="mt-4 pt-4 border-t border-slate-100">
+                        <a href="/rate/{{ order.id }}"
+                            class="block w-full text-center bg-yellow-400 text-black font-medium py-3 rounded-lg hover:bg-yellow-500 transition-colors">
+                            Arvostele kuljetus
+                        </a>
+                    </div>
+                    {% endif %}
+
+                    {% if existing_rating %}
+                    <div class="mt-4 pt-4 border-t border-slate-100 text-center">
+                        <p class="text-sm text-slate-500">Arvostelusi:</p>
+                        <div class="flex justify-center gap-1 mt-1">
+                            {% for i in range(existing_rating.rating) %}
+                            <span class="material-symbols-outlined text-yellow-400 fill-current">star</span>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- Driver/Contact Card -->
+                <div
+                    class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-100 dark:border-slate-700/50 p-6">
+                    <h3 class="text-sm font-semibold text-slate-900 dark:text-white mb-4 uppercase tracking-wide">
+                        Kuljettajan tiedot</h3>
+
+                    {% if order.driver_name %}
+                    <div class="flex items-center gap-4 mb-6">
+                        <div class="size-12 rounded-full bg-slate-200 flex items-center justify-center text-slate-500">
+                            <span class="material-symbols-outlined text-2xl">person</span>
+                        </div>
+                        <div>
+                            <p class="text-base font-bold text-slate-900 dark:text-white">{{ order.driver_name }}</p>
+                            <div class="flex items-center gap-1">
+                                <span class="material-symbols-outlined text-slate-400 text-[16px]">verified</span>
+                                <span class="text-sm text-slate-600 dark:text-slate-300 font-medium">Vahvistettu
+                                    kuski</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        {% if order.driver_phone %}
+                        <a class="flex items-center justify-center gap-2 px-4 py-2 bg-slate-50 dark:bg-slate-700/50 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-lg text-sm font-medium transition-colors border border-slate-200 dark:border-slate-700"
+                            href="tel:{{ order.driver_phone }}">
+                            <span class="material-symbols-outlined text-[18px]">call</span>
+                            Soita
+                        </a>
+                        {% endif %}
+                        {% if order.driver_email %}
+                        <a class="flex items-center justify-center gap-2 px-4 py-2 bg-slate-50 dark:bg-slate-700/50 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-lg text-sm font-medium transition-colors border border-slate-200 dark:border-slate-700"
+                            href="mailto:{{ order.driver_email }}">
+                            <span class="material-symbols-outlined text-[18px]">mail</span>
+                            Viesti
+                        </a>
+                        {% endif %}
+                    </div>
+                    {% else %}
+                    <div class="text-center py-4 text-slate-500">
+                        <span class="material-symbols-outlined text-3xl mb-2 opacity-50">schedule</span>
+                        <p class="text-sm">Odottaa kuljettajan vahvistusta</p>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- Customer Details (Read-only) -->
+                <div
+                    class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-100 dark:border-slate-700/50 p-6">
+                    <h3 class="text-sm font-semibold text-slate-900 dark:text-white mb-4 uppercase tracking-wide">
+                        Asiakas</h3>
+                    <div class="space-y-3">
+                        <div class="flex items-start gap-3">
+                            <span class="material-symbols-outlined text-slate-400 text-[20px] mt-0.5">person</span>
+                            <div>
+                                <p class="text-sm font-medium text-slate-900 dark:text-white">{{ order.customer_name or
+                                    current_user.name }}</p>
+                            </div>
+                        </div>
+                        <div class="flex items-start gap-3">
+                            <span class="material-symbols-outlined text-slate-400 text-[20px] mt-0.5">call</span>
+                            <p class="text-sm text-slate-600 dark:text-slate-300">{{ order.customer_phone or order.phone
+                                or current_user.phone or '-' }}</p>
+                        </div>
+                        <div class="flex items-start gap-3">
+                            <span class="material-symbols-outlined text-slate-400 text-[20px] mt-0.5">mail</span>
+                            <p class="text-sm text-slate-600 dark:text-slate-300">{{ order.email or current_user.email
+                                }}</p>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
         </div>
 
-        {% if order.status in ['ASSIGNED_TO_DRIVER', 'DRIVER_ARRIVED', 'PICKUP_IMAGES_ADDED', 'IN_TRANSIT', 'DELIVERY_ARRIVED', 'DELIVERY_IMAGES_ADDED', 'DELIVERED'] %}
-        <div class="bg-indigo-50 rounded-xl p-4 col-span-2 md:col-span-1" role="group" aria-label="Kuljettajan tiedot">
-          <div class="text-xs font-bold uppercase tracking-wider text-indigo-700 mb-1">Kuljettaja</div>
-          {% if order.driver_name %}
-          <div class="text-lg font-bold text-indigo-900">{{ order.driver_name }}</div>
-          {% if order.driver_phone %}
-          <a href="tel:{{ order.driver_phone }}" class="inline-flex items-center gap-1 text-sm text-indigo-600 hover:text-indigo-800 mt-1 font-semibold" aria-label="Soita kuljettajalle">
-            <span class="material-symbols-outlined text-sm">call</span>
-            {{ order.driver_phone }}
-          </a>
-          {% endif %}
-          {% else %}
-          <div class="text-lg font-bold text-indigo-900">Määritetään</div>
-          {% endif %}
-        </div>
-        {% endif %}
-      </section>
-    </div>
-  </article>
+    </main>
 
-  <!-- Progress Section -->
-  <section class="bg-white rounded-2xl shadow-card p-6 md:p-8 mb-6 animate-fade-in-2" aria-label="Tilauksen eteneminen">
-    <h2 class="text-xl font-bold text-slate-900 mb-6 flex items-center gap-2">
-      <span class="material-symbols-outlined text-primary icon-filled">timeline</span>
-      Tilauksen eteneminen
-    </h2>
-    {{ progress_bar|safe }}
-  </section>
-
-  <!-- Secondary Information -->
-  <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-    {% if has_customer_info or order.status == 'NEW' %}
-    <article class="bg-white rounded-2xl shadow-card p-6 animate-fade-in-2" role="group" aria-labelledby="contact-title">
-      <h3 id="contact-title" class="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
-        <span class="material-symbols-outlined text-primary">contact_page</span>
-        Yhteystiedot
-      </h3>
-      <div class="space-y-6">
-        <!-- Orderer Section -->
-        {% if order.orderer_name or order.orderer_email or order.orderer_phone %}
-        <div class="border-l-4 border-blue-400 pl-4">
-          <h4 class="text-sm font-bold uppercase tracking-wider text-slate-500 mb-3 flex items-center gap-2">
-            <span class="material-symbols-outlined text-sm">business</span>
-            Tilaaja
-          </h4>
-          {% if order.orderer_name and order.orderer_name.strip() %}
-          <div class="flex justify-between items-center py-2 border-b border-slate-100">
-            <span class="text-sm font-medium text-slate-600">Nimi</span>
-            <span class="text-sm font-semibold text-slate-900">{{ order.orderer_name }}</span>
-          </div>
-          {% endif %}
-          {% if order.orderer_email and order.orderer_email.strip() %}
-          <div class="flex justify-between items-center py-2 border-b border-slate-100">
-            <span class="text-sm font-medium text-slate-600">Sähköposti</span>
-            <span class="text-sm font-semibold text-slate-900 break-all">{{ order.orderer_email }}</span>
-          </div>
-          {% endif %}
-          {% if order.orderer_phone and order.orderer_phone.strip() %}
-          <div class="flex justify-between items-center py-2">
-            <span class="text-sm font-medium text-slate-600">Puhelin</span>
-            <a href="tel:{{ order.orderer_phone }}" class="text-sm font-semibold text-primary hover:text-blue-700">{{ order.orderer_phone }}</a>
-          </div>
-          {% endif %}
-        </div>
-        {% endif %}
-
-        <!-- Customer Section -->
-        {% if order.customer_name or order.customer_phone %}
-        <div class="border-l-4 border-green-400 pl-4">
-          <h4 class="text-sm font-bold uppercase tracking-wider text-slate-500 mb-3 flex items-center gap-2">
-            <span class="material-symbols-outlined text-sm">person</span>
-            Asiakas (vastaanottaja)
-          </h4>
-          {% if order.customer_name and order.customer_name.strip() %}
-          <div class="flex justify-between items-center py-2 border-b border-slate-100">
-            <span class="text-sm font-medium text-slate-600">Nimi</span>
-            <span class="text-sm font-semibold text-slate-900">{{ order.customer_name }}</span>
-          </div>
-          {% endif %}
-          {% if order.customer_phone and order.customer_phone.strip() %}
-          <div class="flex justify-between items-center py-2">
-            <span class="text-sm font-medium text-slate-600">Puhelin</span>
-            <a href="tel:{{ order.customer_phone }}" class="text-sm font-semibold text-primary hover:text-blue-700">{{ order.customer_phone }}</a>
-          </div>
-          {% endif %}
-        </div>
-        {% endif %}
-        {% endif %}
-
-        <!-- Fallback for legacy data -->
-        {% if not (order.orderer_name or order.orderer_email or order.orderer_phone or order.customer_name or order.customer_phone) %}
-          {% if order.email and order.email.strip() %}
-          <div class="flex justify-between items-center py-2 border-b border-slate-100">
-            <span class="text-sm font-medium text-slate-600">Sähköposti</span>
-            <span class="text-sm font-semibold text-slate-900 break-all">{{ order.email }}</span>
-          </div>
-          {% endif %}
-          {% if order.phone and order.phone.strip() %}
-          <div class="flex justify-between items-center py-2">
-            <span class="text-sm font-medium text-slate-600">Puhelin</span>
-            <a href="tel:{{ order.phone }}" class="text-sm font-semibold text-primary hover:text-blue-700">{{ order.phone }}</a>
-          </div>
-          {% endif %}
-        {% endif %}
-
-        {% if not has_customer_info %}
-        <div class="flex items-center gap-3 p-4 bg-slate-50 rounded-lg">
-          <span class="material-symbols-outlined text-slate-400">info</span>
-          <span class="text-sm text-slate-600">Yhteystiedot päivitetään tilauksen käsittelyn yhteydessä</span>
-        </div>
-        {% endif %}
-      </div>
-    </article>
-    {% endif %}
-
-    {% if show_vehicle_section or order.status == 'NEW' %}
-    <article class="bg-white rounded-2xl shadow-card p-6 animate-fade-in-2" role="group" aria-labelledby="vehicle-title">
-      <h3 id="vehicle-title" class="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
-        <span class="material-symbols-outlined text-primary">directions_car</span>
-        Ajoneuvo
-      </h3>
-      <div class="space-y-3">
-        {% if has_reg_number %}
-        <div class="flex justify-between items-center py-3 border-b border-slate-100">
-          <span class="text-sm font-medium text-slate-600">Rekisterinumero</span>
-          <span class="text-sm font-bold text-slate-900 uppercase">{{ order.reg_number or '' }}</span>
-        </div>
-        {% endif %}
-        {% if has_winter_tires %}
-        <div class="flex justify-between items-center py-3">
-          <span class="text-sm font-medium text-slate-600">Talvirenkaat</span>
-          <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold {{ 'bg-blue-100 text-blue-700' if order.winter_tires else 'bg-slate-100 text-slate-700' }}">
-            {{ 'Kyllä' if order.winter_tires else 'Ei' }}
-          </span>
-        </div>
-        {% endif %}
-        {% if not show_vehicle_section %}
-        <div class="flex items-center gap-3 p-4 bg-slate-50 rounded-lg">
-          <span class="material-symbols-outlined text-slate-400">info</span>
-          <span class="text-sm text-slate-600">Ajoneuvotiedot täydennetään noudettaessa</span>
-        </div>
-        {% endif %}
-      </div>
-    </article>
-    {% endif %}
-  </div>
-
-  {% if order.additional_info %}
-  <article class="bg-white rounded-2xl shadow-card p-6 mb-6 animate-fade-in-2" role="group" aria-labelledby="additional-info-title">
-    <h3 id="additional-info-title" class="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
-      <span class="material-symbols-outlined text-primary">description</span>
-      Lisätiedot
-    </h3>
-    <div class="bg-slate-50 rounded-lg p-4">
-      <p class="text-sm text-slate-700 leading-relaxed whitespace-pre-wrap">{{ order.additional_info or 'Ei lisätietoja' }}</p>
-    </div>
-  </article>
-  {% endif %}
-
-  {% if has_images or order.status in ['NEW', 'CONFIRMED', 'IN_TRANSIT'] %}
-  <article class="bg-white rounded-2xl shadow-card p-6 mb-6 animate-fade-in-2" role="group" aria-labelledby="images-title">
-    <h3 id="images-title" class="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
-      <span class="material-symbols-outlined text-primary">photo_camera</span>
-      Kuljetuskuvat
-    </h3>
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-      <div>
-        <h4 class="text-sm font-bold uppercase tracking-wider text-slate-600 mb-3 flex items-center gap-2">
-          <span class="material-symbols-outlined text-blue-500 text-sm">my_location</span>
-          Nouto
-        </h4>
-        {% set image_type = 'pickup' %}
-        {% set images_data = order.images.pickup if order.images else [] %}
-        {% include 'components/client_image_section.html' with context %}
-      </div>
-      <div>
-        <h4 class="text-sm font-bold uppercase tracking-wider text-slate-600 mb-3 flex items-center gap-2">
-          <span class="material-symbols-outlined text-green-500 text-sm">location_on</span>
-          Toimitus
-        </h4>
-        {% set image_type = 'delivery' %}
-        {% set images_data = order.images.delivery if order.images else [] %}
-        {% include 'components/client_image_section.html' with context %}
-      </div>
-    </div>
-    {% if not has_images and order.status in ['NEW', 'CONFIRMED'] %}
-    <div class="mt-4 flex items-center gap-3 p-4 bg-blue-50 rounded-lg" role="status">
-      <span class="material-symbols-outlined text-blue-500">info</span>
-      <p class="text-sm text-blue-900 font-medium">Kuljetuskuvat lisätään kuljetuksen aikana</p>
-    </div>
-    {% endif %}
-  </article>
-  {% endif %}
-
-  <!-- Rating Section for Delivered Orders -->
-  {% if order.status == 'DELIVERED' %}
-  <section class="mb-6 animate-fade-in-2" aria-label="Arvostele kuljetus">
-    {% if can_rate %}
-    <div class="bg-gradient-to-r from-amber-50 to-orange-50 rounded-2xl shadow-card p-6 md:p-8">
-      <div class="flex flex-col md:flex-row items-center gap-6">
-        <div class="flex-shrink-0">
-          <div class="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center">
-            <span class="material-symbols-outlined text-amber-600 text-4xl icon-filled">star</span>
-          </div>
-        </div>
-        <div class="flex-1 text-center md:text-left">
-          <h3 class="text-2xl font-bold text-slate-900 mb-2">Miten kuljetus sujui?</h3>
-          <p class="text-slate-600">Jätä arvostelu kuljettajalle ja auta muita asiakkaita</p>
-        </div>
-        <a href="{{ url_for('rate_order_page', order_id=order.id) }}" 
-           class="inline-flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-amber-500 to-orange-500 text-white font-bold rounded-xl shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300 group whitespace-nowrap">
-          <span class="material-symbols-outlined text-xl">star</span>
-          <span>Arvostele kuljettaja</span>
-        </a>
-      </div>
-    </div>
-    {% elif existing_rating %}
-    <div class="bg-white rounded-2xl shadow-card p-6 md:p-8">
-      <div class="text-center">
-        <div class="inline-flex gap-2 mb-4">
-          {% for i in range(1, 6) %}
-          <span class="material-symbols-outlined text-3xl icon-filled {{ 'text-amber-400' if existing_rating.rating >= i else 'text-slate-300' }}">star</span>
-          {% endfor %}
-        </div>
-        <p class="text-lg font-semibold text-slate-900 mb-2">Kiitos arvostelustasi!</p>
-        {% if existing_rating.comment %}
-        <p class="text-slate-600 max-w-2xl mx-auto italic">"{{ existing_rating.comment }}"</p>
-        {% endif %}
-      </div>
-    </div>
-    {% endif %}
-  </section>
-  {% endif %}
+    <!-- Simple Dashboard Footer -->
+    {% include 'components/dashboard_footer.html' %}
 </div>
-
-{% include 'components/simple_footer.html' %}
-
-<!-- Include Image Modal Component -->
-{% include 'components/image_modal.html' %}
-{% endblock %}
-
-{% block extra_js %}
-<!-- Client Image Modal -->
-<script src="{{ url_for('static', filename='js/components/image-modal.js') }}"></script>
 {% endblock %}

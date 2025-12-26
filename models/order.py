@@ -52,10 +52,15 @@ class OrderModel(BaseModel):
             # Generate new order ID
             order_id = counter_manager.get_next_id("orders")
 
+            # Calculate user-specific order number (1, 2, 3... for each user)
+            user_order_count = self.count_documents({"user_id": int(user_id)})
+            user_order_number = user_order_count + 1
+
             # Prepare order document
             order_doc = {
                 "id": order_id,
                 "user_id": int(user_id),
+                "user_order_number": user_order_number,  # User's own order sequence
                 "status": self.STATUS_NEW,
                 "created_at": datetime.now(timezone.utc),
                 "updated_at": datetime.now(timezone.utc),

@@ -516,9 +516,22 @@
             .then(data => {
                 if (data.latlngs && data.start && data.end) {
                     const polyline = L.polyline(data.latlngs, { weight: 4, opacity: 0.8, color: '#3b82f6' }).addTo(map);
-                    L.marker([data.start[0], data.start[1]]).addTo(map);
-                    L.marker([data.end[0], data.end[1]]).addTo(map);
-                    map.fitBounds(polyline.getBounds(), { padding: [20, 20] });
+
+                    // Custom icons matching calculator page
+                    const startIcon = L.divIcon({
+                        className: 'bg-transparent',
+                        html: `<div class="w-4 h-4 rounded-full bg-white border-4 border-blue-600 shadow-sm"></div>`,
+                        iconSize: [16, 16], iconAnchor: [8, 8]
+                    });
+                    const endIcon = L.divIcon({
+                        className: 'bg-transparent',
+                        html: `<span class="material-symbols-outlined text-blue-600 text-3xl drop-shadow-md" style="font-variation-settings: 'FILL' 1;">location_on</span>`,
+                        iconSize: [30, 30], iconAnchor: [15, 30]
+                    });
+
+                    L.marker([data.start[0], data.start[1]], { icon: startIcon }).addTo(map);
+                    L.marker([data.end[0], data.end[1]], { icon: endIcon }).addTo(map);
+                    map.fitBounds(polyline.getBounds(), { padding: [40, 40] });
 
                     // Add distance label
                     const center = polyline.getBounds().getCenter();
