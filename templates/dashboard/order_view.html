@@ -50,6 +50,27 @@
     .footer-new {
         display: none !important;
     }
+
+    /* Breathing animation for in-progress status badges */
+    @keyframes status-breathing {
+
+        0%,
+        100% {
+            opacity: 1;
+            transform: scale(1);
+            box-shadow: 0 0 0 0 rgba(19, 146, 236, 0.4);
+        }
+
+        50% {
+            opacity: 0.85;
+            transform: scale(1.02);
+            box-shadow: 0 0 0 6px rgba(19, 146, 236, 0);
+        }
+    }
+
+    .status-badge-breathing {
+        animation: status-breathing 3.5s ease-in-out infinite;
+    }
 </style>
 {% endblock %}
 
@@ -90,145 +111,186 @@
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
             <!-- Left Column: The Journey & Details (lg:col-span-8) -->
             <div class="lg:col-span-8 space-y-6">
-                <!-- Integrated Route & Progress Card -->
+                <!-- Integrated Route & Progress Card - New Design -->
                 <div
                     class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-100 dark:border-slate-700/50 overflow-hidden">
-                    <div class="p-6 sm:p-8">
-                        <div class="flex items-center justify-between mb-8">
-                            <h3 class="text-lg font-semibold text-slate-900 dark:text-white flex items-center gap-2">
-                                <span class="material-symbols-outlined text-primary">route</span>
-                                Reitti &amp; Matka
-                            </h3>
-                            {% if order.status == 'DELIVERED' %}
-                            <div
-                                class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300 text-xs font-medium border border-green-100 dark:border-green-800/30">
-                                <span class="material-symbols-outlined text-[16px]">check_circle</span>
-                                Toimitettu
-                            </div>
-                            {% else %}
-                            <div
-                                class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 text-xs font-medium border border-slate-200 dark:border-slate-600">
-                                <span class="material-symbols-outlined text-[16px]">schedule</span>
-                                Odottaa
-                            </div>
-                            {% endif %}
-                        </div>
-                        <!-- Custom Vertical Timeline -->
-                        <div class="relative pl-4 sm:pl-8 border-l-2 border-slate-100 dark:border-slate-700 space-y-12">
 
-                            <!-- Step 1: Origin -->
-                            <div class="relative">
-                                <div class="absolute -left-[25px] sm:-left-[41px] top-1 bg-white dark:bg-slate-800 p-1">
-                                    <div
-                                        class="size-4 rounded-full border-2 border-primary bg-primary shadow-[0_0_0_4px_rgba(19,146,236,0.1)]">
-                                    </div>
+                    <!-- Map Section at Top -->
+                    <div
+                        class="relative w-full h-52 bg-gradient-to-br from-sky-100 via-cyan-50 to-teal-50 dark:from-slate-700 dark:to-slate-800">
+                        {% if google_places_api_key %}
+                        <!-- Simplified map showing just the destination area with terrain style -->
+                        <div class="absolute inset-0 bg-cover bg-center opacity-90"
+                            style="background-image: url('https://maps.googleapis.com/maps/api/staticmap?size=800x400&maptype=terrain&style=feature:all|saturation:-20|lightness:30&style=feature:water|color:0xc8e8f5&style=feature:road|visibility:simplified&zoom=8&center={{ order.dropoff_address }}&markers=size:mid|color:0x1392ec|{{ order.dropoff_address }}&key={{ google_places_api_key }}');">
+                        </div>
+                        {% else %}
+                        <!-- Fallback gradient background resembling a map -->
+                        <div
+                            class="absolute inset-0 bg-gradient-to-br from-sky-100 via-cyan-100 to-teal-100 dark:from-slate-700 dark:to-slate-800">
+                        </div>
+                        {% endif %}
+
+                        <!-- Soft gradient overlay for smooth transition -->
+                        <div
+                            class="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-white/90 dark:to-slate-800/90">
+                        </div>
+
+                        <!-- Total Distance Badge -->
+                        <div
+                            class="absolute bottom-6 left-6 inline-flex items-center gap-2 px-4 py-2 bg-white/95 dark:bg-slate-800/95 rounded-full shadow-lg border border-slate-100 dark:border-slate-600 z-10 backdrop-blur-sm">
+                            <span class="material-symbols-outlined text-[18px] text-primary">route</span>
+                            <span class="text-sm font-semibold text-primary">{{ distance_km }} km Matka</span>
+                        </div>
+                    </div>
+
+                    <!-- Status Progress Badges -->
+                    <div class="px-6 pt-6 pb-2 sm:px-8 sm:pt-8 border-b border-slate-100 dark:border-slate-700">
+                        <div class="flex flex-wrap items-center gap-2">
+                            {% set status_steps = [
+                            {'key': 'NEW', 'label': 'Tilaus luotu', 'icon': 'add_circle'},
+                            {'key': 'CONFIRMED', 'label': 'Vahvistettu', 'icon': 'check_circle'},
+                            {'key': 'ASSIGNED_TO_DRIVER', 'label': 'Noudossa', 'icon': 'local_shipping'},
+                            {'key': 'IN_TRANSIT', 'label': 'Kuljetuksessa', 'icon': 'directions_car'},
+                            {'key': 'DELIVERED', 'label': 'Toimitettu', 'icon': 'where_to_vote'}
+                            ] %}
+                            {% set current_status = order.status|default('NEW') %}
+                            {% set status_order = ['NEW', 'CONFIRMED', 'ASSIGNED_TO_DRIVER', 'DRIVER_ARRIVED',
+                            'PICKUP_IMAGES_ADDED', 'IN_TRANSIT', 'DELIVERY_ARRIVED', 'DELIVERY_IMAGES_ADDED',
+                            'DELIVERED'] %}
+                            {% set current_index = status_order.index(current_status) if current_status in status_order
+                            else 0 %}
+
+                            {% for step in status_steps %}
+                            {% set step_index = status_order.index(step.key) if step.key in status_order else 0 %}
+                            {% set is_completed = current_index > step_index %}
+                            {% set is_current = (current_status == step.key) or (step.key == 'ASSIGNED_TO_DRIVER' and
+                            current_status in ['ASSIGNED_TO_DRIVER', 'DRIVER_ARRIVED', 'PICKUP_IMAGES_ADDED']) or
+                            (step.key == 'IN_TRANSIT' and current_status in ['IN_TRANSIT', 'DELIVERY_ARRIVED',
+                            'DELIVERY_IMAGES_ADDED']) %}
+                            {% set is_order_completed = current_status == 'DELIVERED' %}
+
+                            <div class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all
+                                    {% if is_completed %}
+                                        bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800
+                                    {% elif is_current %}
+                                        bg-primary/10 text-primary border border-primary/30 ring-2 ring-primary/20 {% if not is_order_completed %}status-badge-breathing{% endif %}
+                                    {% else %}
+                                        bg-slate-50 dark:bg-slate-700 text-slate-400 dark:text-slate-500 border border-slate-200 dark:border-slate-600
+                                    {% endif %}">
+                                <span class="material-symbols-outlined text-[14px]">
+                                    {% if is_completed %}check_circle{% else %}{{ step.icon }}{% endif %}
+                                </span>
+                                <span>{{ step.label }}</span>
+                            </div>
+
+                            {% if not loop.last %}
+                            <span class="text-slate-300 dark:text-slate-600 text-xs">→</span>
+                            {% endif %}
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <!-- Timeline Content -->
+                    <div class="p-6 sm:p-8">
+
+                        <!-- Pickup Section -->
+                        <div class="flex items-start gap-4 mb-8">
+                            <!-- Pickup Icon -->
+                            <div class="flex-shrink-0 mt-1">
+                                <div
+                                    class="size-10 rounded-full border-2 border-primary bg-white dark:bg-slate-800 flex items-center justify-center shadow-sm">
+                                    <div class="size-4 rounded-full bg-primary"></div>
                                 </div>
-                                <div class="flex flex-col sm:flex-row justify-between sm:items-start gap-4">
+                            </div>
+                            <!-- Pickup Info -->
+                            <div class="flex-grow">
+                                <p class="text-xs font-semibold text-primary uppercase tracking-wider mb-1">NOUTO</p>
+                                <h4 class="text-lg font-bold text-slate-900 dark:text-white mb-2">{{
+                                    order.pickup_address }}</h4>
+                                <div class="flex items-center gap-2 text-slate-500 dark:text-slate-400 text-sm">
+                                    <span class="material-symbols-outlined text-[16px]">calendar_today</span>
+                                    <span>{{ pickup_date_fi }}{% if pickup_time %} • {{ pickup_time }}{% endif %}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Estimated Days Connector -->
+                        <div class="flex items-center gap-4 mb-8 ml-5">
+                            <!-- Dashed Line -->
+                            <div class="w-px h-12 border-l-2 border-dashed border-slate-300 dark:border-slate-600">
+                            </div>
+                            <!-- Est. Days Badge -->
+                            <div
+                                class="inline-flex items-center px-3 py-1.5 bg-slate-50 dark:bg-slate-700 rounded-full border border-slate-200 dark:border-slate-600">
+                                <span class="text-xs font-medium text-slate-600 dark:text-slate-300">
+                                    {% if estimated_days is not none %}
+                                    {% if estimated_days <= 0 %} Samana päivänä {% elif estimated_days==1 %} Arv. 1
+                                        päivä {% else %} Arv. {{ estimated_days }} päivää {% endif %} {% else %} Arv.
+                                        1-2 päivää {% endif %} </span>
+                            </div>
+                        </div>
+
+                        <!-- Delivery Section -->
+                        <div class="flex items-start gap-4 relative">
+                            <!-- Delivery Icon -->
+                            <div class="flex-shrink-0 mt-1">
+                                <div
+                                    class="size-10 rounded-full border-2 border-primary bg-white dark:bg-slate-800 flex items-center justify-center shadow-sm">
+                                    <span class="material-symbols-outlined text-[18px] text-primary">flag</span>
+                                </div>
+                            </div>
+                            <!-- Delivery Info -->
+                            <div class="flex-grow">
+                                <div class="flex items-start justify-between gap-4">
                                     <div>
                                         <p class="text-xs font-semibold text-primary uppercase tracking-wider mb-1">
-                                            Nouto</p>
-                                        <h4 class="text-xl font-bold text-slate-900 dark:text-white">{{
-                                            order.pickup_address }}</h4>
-                                        <p class="text-slate-500 dark:text-slate-400 text-sm mt-1">{{ pickup_date_fi }}
-                                            {{ pickup_time }}</p>
-                                    </div>
-                                    <div class="text-left sm:text-right">
-                                        {% if order.status != 'NEW' and order.status != 'CANCELLED' %}
-                                        <div
-                                            class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300 text-xs font-medium border border-green-100 dark:border-green-800/30">
-                                            <span class="material-symbols-outlined text-[16px]">check_circle</span>
-                                            Suoritettu
+                                            TOIMITUS</p>
+                                        <h4 class="text-lg font-bold text-slate-900 dark:text-white mb-2">{{
+                                            order.dropoff_address }}</h4>
+                                        <div class="flex items-center gap-2 text-slate-500 dark:text-slate-400 text-sm">
+                                            <span class="material-symbols-outlined text-[16px]">calendar_today</span>
+                                            <span>{% if last_delivery_date_fi %}{{ last_delivery_date_fi }}{% if
+                                                delivery_time %} • Arv. {{ delivery_time }}{% endif %}{% else %}Ei
+                                                aika-arviota{% endif %}</span>
                                         </div>
-                                        {% endif %}
                                     </div>
-                                </div>
-                                <!-- Sub-progress steps visual -->
-                                <div class="mt-6 flex flex-wrap gap-3">
+                                    <!-- Status Badge -->
+                                    {% if order.status == 'DELIVERED' %}
                                     <div
-                                        class="flex items-center gap-2 text-xs font-medium text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-700/50 px-3 py-1.5 rounded-full border border-slate-100 dark:border-slate-700">
-                                        <span class="material-symbols-outlined text-[14px] text-primary">check</span>
-                                        Tilaus luotu
+                                        class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300 text-xs font-medium border border-green-100 dark:border-green-800/30">
+                                        <span class="material-symbols-outlined text-[14px]">check_circle</span>
+                                        Toimitettu
                                     </div>
-                                    {% if order.status != 'NEW' and order.status != 'CANCELLED' %}
+                                    {% else %}
                                     <div
-                                        class="flex items-center gap-2 text-xs font-medium text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-700/50 px-3 py-1.5 rounded-full border border-slate-100 dark:border-slate-700">
-                                        <span class="material-symbols-outlined text-[14px] text-primary">check</span>
-                                        Vahvistettu
+                                        class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 text-xs font-medium border border-slate-200 dark:border-slate-600">
+                                        <span class="material-symbols-outlined text-[14px]">schedule</span>
+                                        Odottaa
                                     </div>
                                     {% endif %}
                                 </div>
                             </div>
-
-                            <!-- Step 2: Transit / Status Info -->
-                            {% if order.status == 'IN_TRANSIT' or order.status == 'ASSIGNED_TO_DRIVER' %}
-                            <div class="relative">
-                                <div class="absolute -left-[25px] sm:-left-[41px] top-1 bg-white dark:bg-slate-800 p-1">
-                                    <div
-                                        class="flex items-center justify-center size-4 rounded-full bg-primary animate-pulse">
-                                        <div class="size-2 bg-white rounded-full"></div>
-                                    </div>
-                                </div>
-                                <div class="flex flex-col sm:flex-row justify-between sm:items-start gap-4">
-                                    <div>
-                                        <p class="text-xs font-semibold text-primary uppercase tracking-wider mb-1">Tila
-                                        </p>
-                                        <h4 class="text-xl font-bold text-slate-900 dark:text-white">{{ status_fi }}
-                                        </h4>
-                                        <p class="text-slate-500 dark:text-slate-400 text-sm mt-1">{{ status_description
-                                            }}</p>
-                                    </div>
-                                    <div class="text-left sm:text-right">
-                                        <div
-                                            class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 text-xs font-medium border border-blue-100 dark:border-blue-800/30">
-                                            <span class="material-symbols-outlined text-[16px] animate-spin">sync</span>
-                                            Käynnissä
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            {% endif %}
-
-                            <!-- Step 3: Destination -->
-                            <div class="relative pb-4">
-                                <div class="absolute -left-[25px] sm:-left-[41px] top-1 bg-white dark:bg-slate-800 p-1">
-                                    <div
-                                        class="size-4 rounded-full border-2 border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800">
-                                    </div>
-                                </div>
-                                <div class="opacity-100">
-                                    <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">
-                                        Toimitus</p>
-                                    <!-- Address and date -->
-                                    <h4 class="text-xl font-bold text-slate-900 dark:text-white">{{
-                                        order.dropoff_address }}</h4>
-                                    <p class="text-slate-500 dark:text-slate-400 text-sm mt-1">
-                                        {% if last_delivery_date_fi %}Arvioitu: {{ last_delivery_date_fi }} {{
-                                        delivery_time }}{% else %}Ei aika-arviota{% endif %}
-                                    </p>
-                                </div>
-                            </div>
-
                         </div>
+                    </div>
 
-                        <!-- Map Preview -->
-                        <div
-                            class="mt-6 w-full h-48 rounded-xl overflow-hidden relative shadow-inner bg-slate-100 flex items-center justify-center">
-                            {% if google_places_api_key %}
-                            <!-- Simple static map fallback or placeholder since Google Static Maps requires signing usually -->
-                            <div class="absolute inset-0 bg-cover bg-center opacity-80"
-                                style="background-image: url('https://maps.googleapis.com/maps/api/staticmap?size=800x400&maptype=roadmap&markers=color:blue%7Clabel:A%7C{{ order.pickup_address }}&markers=color:red%7Clabel:B%7C{{ order.dropoff_address }}&path=color:0x1392ec|weight:4|{{ order.pickup_address }}|{{ order.dropoff_address }}&key={{ google_places_api_key }}');">
+                    <!-- Support Section -->
+                    <div class="border-t border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 p-6">
+                        <div class="flex items-start gap-4">
+                            <!-- Headset Icon -->
+                            <div class="flex-shrink-0">
+                                <div
+                                    class="size-12 rounded-full bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center">
+                                    <span class="material-symbols-outlined text-[24px] text-primary">headset_mic</span>
+                                </div>
                             </div>
-                            {% else %}
-                            <p class="text-slate-500 text-sm z-10"><span
-                                    class="material-symbols-outlined align-middle mr-1">map</span> Kartta ei saatavilla
-                            </p>
-                            {% endif %}
-
-                            <div class="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent"></div>
-                            <div
-                                class="absolute bottom-3 left-3 flex items-center gap-2 text-white text-xs font-medium bg-black/40 backdrop-blur-sm px-2 py-1 rounded-md">
-                                <span class="material-symbols-outlined text-[14px]">distance</span>
-                                {{ distance_km }} km
+                            <!-- Support Content -->
+                            <div class="flex-grow">
+                                <h5 class="text-base font-semibold text-slate-900 dark:text-white mb-1">Kysymyksiä
+                                    toimituksesta?</h5>
+                                <p class="text-sm text-slate-500 dark:text-slate-400 mb-2">Tukitiimimme auttaa sinua
+                                    mielellään kaikissa kysymyksissä.</p>
+                                <a href="/#contact" class="text-sm font-semibold text-primary hover:underline">Ota
+                                    yhteyttä tukeen</a>
                             </div>
                         </div>
                     </div>

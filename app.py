@@ -794,16 +794,63 @@ def order_view(order_id: int):
     status_description = get_status_description(r.get('status', 'NEW'))
     
     # Format dates to Finnish format
-    pickup_date_fi = r.get('pickup_date', None)
-    last_delivery_date_fi = r.get('last_delivery_date', None)
+    pickup_date_raw = r.get('pickup_date', None)
+    last_delivery_date_raw = r.get('last_delivery_date', None)
     pickup_time = (r.get('pickup_time') or '').strip()
     delivery_time = (r.get('delivery_time') or '').strip()
     
-    if pickup_date_fi and hasattr(pickup_date_fi, 'strftime'):
-        pickup_date_fi = pickup_date_fi.strftime('%d.%m.%Y')
+    # Calculate estimated days between pickup and delivery
+    estimated_days = None
+    if pickup_date_raw and last_delivery_date_raw:
+        try:
+            # Handle both datetime and date objects
+            from datetime import datetime, date
+            if hasattr(pickup_date_raw, 'date'):
+                pickup_dt = pickup_date_raw.date() if isinstance(pickup_date_raw, datetime) else pickup_date_raw
+            elif isinstance(pickup_date_raw, str):
+                pickup_dt = datetime.strptime(pickup_date_raw, '%Y-%m-%d').date()
+            else:
+                pickup_dt = pickup_date_raw
+                
+            if hasattr(last_delivery_date_raw, 'date'):
+                delivery_dt = last_delivery_date_raw.date() if isinstance(last_delivery_date_raw, datetime) else last_delivery_date_raw
+            elif isinstance(last_delivery_date_raw, str):
+                delivery_dt = datetime.strptime(last_delivery_date_raw, '%Y-%m-%d').date()
+            else:
+                delivery_dt = last_delivery_date_raw
+                
+            estimated_days = (delivery_dt - pickup_dt).days
+        except Exception as e:
+            print(f"Error calculating estimated days: {e}")
+            estimated_days = None
     
-    if last_delivery_date_fi and hasattr(last_delivery_date_fi, 'strftime'):
-        last_delivery_date_fi = last_delivery_date_fi.strftime('%d.%m.%Y')
+    # Format dates for display (handle both datetime objects and strings)
+    from datetime import datetime
+    
+    def format_date_fi(date_val):
+        """Convert date to Finnish format DD.MM.YYYY"""
+        if not date_val:
+            return None
+        # If it's a datetime/date object
+        if hasattr(date_val, 'strftime'):
+            return date_val.strftime('%d.%m.%Y')
+        # If it's a string in ISO format (YYYY-MM-DD)
+        if isinstance(date_val, str):
+            try:
+                # Try to parse ISO format
+                parsed = datetime.strptime(date_val, '%Y-%m-%d')
+                return parsed.strftime('%d.%m.%Y')
+            except ValueError:
+                # Try DD.MM.YYYY format (already Finnish)
+                try:
+                    datetime.strptime(date_val, '%d.%m.%Y')
+                    return date_val  # Already in correct format
+                except ValueError:
+                    return date_val  # Return as-is if can't parse
+        return str(date_val) if date_val else None
+    
+    pickup_date_fi = format_date_fi(pickup_date_raw)
+    last_delivery_date_fi = format_date_fi(last_delivery_date_raw)
 
     # Smart content logic
     has_reg_number = bool(r.get('reg_number', '').strip())
@@ -838,6 +885,7 @@ def order_view(order_id: int):
         last_delivery_date_fi=last_delivery_date_fi,
         pickup_time=pickup_time,
         delivery_time=delivery_time,
+        estimated_days=estimated_days,
         has_reg_number=has_reg_number,
         has_winter_tires=has_winter_tires,
         has_customer_info=has_customer_info,

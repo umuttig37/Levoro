@@ -493,24 +493,31 @@ def order_detail(order_id):
     from models.user import user_model
     available_drivers = user_model.get_all_drivers(limit=100)
 
-    # Format pickup date
-    pickup_date_fi = order.get('pickup_date', 'Ei asetettu')
-    if pickup_date_fi and pickup_date_fi != 'Ei asetettu':
-        try:
-            # Try to format the date if it's a datetime object
-            if hasattr(pickup_date_fi, 'strftime'):
-                pickup_date_fi = pickup_date_fi.strftime('%d.%m.%Y')
-        except:
-            pass
+    # Format dates to Finnish format (handle both datetime objects and strings)
+    from datetime import datetime
     
-    # Format last delivery date
-    last_delivery_date_fi = order.get('last_delivery_date', None)
-    if last_delivery_date_fi:
-        try:
-            if hasattr(last_delivery_date_fi, 'strftime'):
-                last_delivery_date_fi = last_delivery_date_fi.strftime('%d.%m.%Y')
-        except Exception:
-            pass
+    def format_date_fi(date_val):
+        """Convert date to Finnish format DD.MM.YYYY"""
+        if not date_val or date_val == 'Ei asetettu':
+            return 'Ei asetettu' if date_val == 'Ei asetettu' else None
+        # If it's a datetime/date object
+        if hasattr(date_val, 'strftime'):
+            return date_val.strftime('%d.%m.%Y')
+        # If it's a string in ISO format (YYYY-MM-DD)
+        if isinstance(date_val, str):
+            try:
+                parsed = datetime.strptime(date_val, '%Y-%m-%d')
+                return parsed.strftime('%d.%m.%Y')
+            except ValueError:
+                try:
+                    datetime.strptime(date_val, '%d.%m.%Y')
+                    return date_val  # Already in Finnish format
+                except ValueError:
+                    return date_val
+        return str(date_val) if date_val else None
+    
+    pickup_date_fi = format_date_fi(order.get('pickup_date', 'Ei asetettu'))
+    last_delivery_date_fi = format_date_fi(order.get('last_delivery_date', None))
     pickup_time = (order.get('pickup_time') or '').strip()
     delivery_time = (order.get('delivery_time') or '').strip()
 
