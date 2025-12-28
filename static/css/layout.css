@@ -449,6 +449,11 @@
 }
 
 /* Header and footer layouts */
+main {
+    flex: 1;
+    width: 100%;
+}
+
 .header {
     position: sticky;
     top: 0;

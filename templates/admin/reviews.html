@@ -1,364 +1,593 @@
-{% extends "base/layout.html" %}
+<!DOCTYPE html>
+<html class="light" lang="fi">
 
-{% block title %}Arvostelut – Admin{% endblock %}
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>Levoro Admin - Arvostelut</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+        rel="stylesheet" />
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#1392ec",
+                        "background-light": "#f6f7f8",
+                        "background-dark": "#101a22",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: { "DEFAULT": "0.5rem", "lg": "1rem", "xl": "1.5rem", "full": "9999px" },
+                },
+            },
+        }
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&amp;display=swap"
+        rel="stylesheet" />
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
 
-{% block content %}
-<div class="admin-container">
-    {% include "admin/navigation.html" %}
+        /* Hide global scrollbar */
+        body::-webkit-scrollbar,
+        html::-webkit-scrollbar {
+            display: none;
+        }
 
-    <div class="page-header">
-        <h1>Asiakasarvostelut</h1>
+        body,
+        html {
+            -ms-overflow-style: none;
+            /* IE and Edge */
+            scrollbar-width: none;
+            /* Firefox */
+        }
+
+        /* Custom scrollbar */
+        .custom-scrollbar::-webkit-scrollbar {
+            height: 8px;
+            width: 8px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background-color: #cbd5e1;
+            border-radius: 4px;
+        }
+
+        .dark .custom-scrollbar::-webkit-scrollbar-thumb {
+            background-color: #475569;
+        }
+
+        /* Flash messages */
+        .flash-messages {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
+
+        .flash-message {
+            padding: 1rem;
+            margin-bottom: 1rem;
+            border-radius: 0.5rem;
+            color: white;
+            font-weight: 500;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        .flash-message.success {
+            background-color: #10b981;
+        }
+
+        .flash-message.error {
+            background-color: #ef4444;
+        }
+
+        .flash-message.warning {
+            background-color: #f59e0b;
+        }
+
+        /* Flash message styling */
+        .flash-message.info {
+            background-color: #3b82f6;
+        }
+
+        /* Custom Dropdown Styles */
+        :root {
+            --dash-primary: #1392ec;
+        }
+
+        .custom-select-container {
+            position: relative;
+            width: 100%;
+        }
+
+        .custom-select-container.open {
+            z-index: 20;
+        }
+
+        .custom-select-trigger {
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.5rem 0.75rem;
+            background: white;
+            border: none;
+
+            border-radius: 0.75rem;
+            font-size: 0.875rem;
+            color: #0d161b;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            user-select: none;
+            box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+        }
+
+        .dark .custom-select-trigger {
+            background: #1e2936;
+            color: white;
+        }
+
+        .custom-select-trigger.open {
+            box-shadow: 0 0 0 2px rgba(19, 146, 236, 0.5);
+            border-bottom-left-radius: 0;
+            border-bottom-right-radius: 0;
+        }
+
+        .custom-select-arrow {
+            width: 16px;
+            height: 16px;
+            color: #94a3b8;
+            transition: transform 0.2s ease;
+        }
+
+        .custom-select-trigger.open .custom-select-arrow {
+            transform: rotate(180deg);
+            color: var(--dash-primary);
+        }
+
+        .custom-select-options {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border: 1px solid var(--dash-primary);
+            border-top: none;
+            border-bottom-left-radius: 0.75rem;
+            border-bottom-right-radius: 0.75rem;
+            z-index: 100;
+            display: none;
+            max-height: 250px;
+            overflow-y: auto;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            margin-top: 0;
+        }
+
+        .dark .custom-select-options {
+            background: #1e2936;
+            border-color: rgba(19, 146, 236, 0.5);
+        }
+
+        .custom-select-container.open .custom-select-options {
+            display: block;
+            animation: fadeIn 0.1s ease-out;
+        }
+
+        .custom-option {
+            padding: 0.5rem 0.75rem;
+            cursor: pointer;
+            color: #0d161b;
+            font-size: 0.875rem;
+            transition: background 0.15s;
+        }
+
+        .dark .custom-option {
+            color: white;
+        }
+
+        .custom-option:hover {
+            background: #f1f5f9;
+            color: var(--dash-primary);
+        }
+
+        .dark .custom-option:hover {
+            background: #334155;
+        }
+
+        .custom-option.selected {
+            background: var(--dash-primary);
+            color: white;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-5px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
+</head>
+
+<body
+    class="bg-background-light dark:bg-background-dark min-h-screen w-full flex flex-col text-[#0d161b] dark:text-white transition-colors duration-200">
+
+    <!-- Flash Messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    <div class="flash-messages">
+        {% for category, message in messages %}
+        <div class="flash-message {{ category }}">
+            {{ message }}
+        </div>
+        {% endfor %}
     </div>
+    {% endif %}
+    {% endwith %}
 
-    <!-- Stats Cards -->
-    <div class="admin-stats-row">
-        <div class="admin-stat-card">
-            <div class="admin-stat-value">{{ reviews|length }}</div>
-            <div class="admin-stat-label">Arvosteluja yhteensä</div>
-        </div>
-        <div class="admin-stat-card">
-            <div class="admin-stat-value">{{ "%.1f"|format(avg_rating) if avg_rating else '-' }}</div>
-            <div class="admin-stat-label">Keskiarvo</div>
-        </div>
-        <div class="admin-stat-card">
-            <div class="admin-stat-value">{{ pending_count }}</div>
-            <div class="admin-stat-label">Odottaa käsittelyä</div>
-        </div>
-    </div>
+    <!-- Top Navigation -->
+    <header
+        class="sticky top-0 z-50 border-b border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-[#101a22]/80 backdrop-blur-md">
+        <div class="flex items-center justify-between px-6 py-3 lg:px-10 w-full max-w-[1440px] mx-auto">
+            <a href="/" class="flex items-center gap-4">
+                <img src="/static/LevoroLogo.png" alt="Levoro" class="h-20 w-auto">
+            </a>
+            <div class="flex flex-1 justify-end gap-8">
+                <nav class="hidden md:flex items-center gap-2">
 
-    <!-- Reviews List -->
-    <div class="reviews-list">
-        {% if reviews %}
-        {% for review in reviews %}
-        <div class="review-card" data-review-id="{{ review.id }}">
-            <div class="review-header">
-                <div class="review-rating">
-                    {% for i in range(5) %}
-                    <svg class="star-icon {% if i < review.rating %}star-filled{% endif %}" viewBox="0 0 20 20">
-                        <path
-                            d="M10 1l2.39 4.84 5.34.78-3.87 3.77.91 5.32L10 13.27l-4.77 2.51.91-5.32L2.27 6.69l5.34-.78L10 1z" />
-                    </svg>
-                    {% endfor %}
-                    <span class="rating-number">{{ review.rating }}/5</span>
+                    <a class="px-3 py-2 rounded-md text-slate-700 hover:text-primary hover:bg-slate-100 font-semibold transition-colors"
+                        href="{{ url_for('main.admin_dashboard') }}">Tilaukset</a>
+
+                    <a class="px-3 py-2 rounded-md text-slate-700 hover:text-primary hover:bg-slate-100 font-semibold transition-colors"
+                        href="{{ url_for('admin.users') }}">Käyttäjät</a>
+
+                    <a class="px-3 py-2 rounded-md text-slate-700 hover:text-primary hover:bg-slate-100 font-semibold transition-colors"
+                        href="{{ url_for('admin.drivers') }}">Kuljettajat</a>
+
+                    <a class="px-3 py-2 rounded-md text-slate-700 hover:text-primary hover:bg-slate-100 font-semibold transition-colors"
+                        href="{{ url_for('admin.driver_applications') }}">Hakemukset</a>
+
+                    <a class="px-3 py-2 rounded-md text-slate-700 hover:text-primary hover:bg-slate-100 font-semibold transition-colors"
+                        href="{{ url_for('admin.discounts') }}">Alennukset</a>
+
+                    <a class="px-3 py-2 rounded-md bg-slate-100 text-primary font-semibold transition-colors"
+                        href="{{ url_for('admin.reviews') }}">Arvostelut</a>
+
+                    {% if current_user.is_authenticated %}
+                    <div class="px-3 py-2 rounded-full bg-slate-100 text-slate-600 font-medium text-sm">
+                        Hei, {{ current_user.name }}
+                    </div>
+                    {% endif %}
+
+                    <a class="px-3 py-2 rounded-md text-slate-700 hover:text-primary hover:bg-slate-100 font-semibold transition-colors"
+                        href="{{ url_for('auth.logout') }}">Ulos</a>
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-1 w-full max-w-[1440px] mx-auto p-6 lg:p-10 flex flex-col gap-8">
+        <!-- Header Section -->
+        <div class="flex flex-col md:flex-row md:items-end justify-between gap-4">
+            <div class="flex flex-col gap-2">
+                <h1 class="text-3xl font-black leading-tight tracking-[-0.033em] text-slate-900 dark:text-white">
+                    Asiakasarvostelut</h1>
+                <p class="text-slate-500 dark:text-slate-400 text-base font-normal">Hallitse ja moderoi asiakkaiden
+                    antamia arvosteluja.</p>
+            </div>
+        </div>
+
+        <!-- Stats Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <!-- Total -->
+            <div
+                class="bg-white dark:bg-[#1e2936] p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center gap-4">
+                <div class="p-3 rounded-lg bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400">
+                    <span class="material-symbols-outlined text-[24px]">reviews</span>
                 </div>
-                <div class="review-status">
-                    {% if review.status == 'approved' %}
-                    <span class="status-badge status-approved">Hyväksytty</span>
-                    {% elif review.status == 'hidden' %}
-                    <span class="status-badge status-hidden">Piilotettu</span>
-                    {% else %}
-                    <span class="status-badge status-pending">Odottaa</span>
+                <div>
+                    <div class="text-2xl font-bold text-slate-900 dark:text-white leading-none mb-1">{{
+                        reviews|length }}</div>
+                    <div class="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">
+                        Arvosteluja yhteensä</div>
+                </div>
+            </div>
+            <!-- Average -->
+            <div
+                class="bg-white dark:bg-[#1e2936] p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center gap-4">
+                <div class="p-3 rounded-lg bg-amber-50 text-amber-500 dark:bg-amber-900/30 dark:text-amber-400">
+                    <span class="material-symbols-outlined text-[24px]">star</span>
+                </div>
+                <div>
+                    <div class="text-2xl font-bold text-slate-900 dark:text-white leading-none mb-1">{{
+                        "%.1f"|format(avg_rating) if avg_rating else '-' }}</div>
+                    <div class="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">
+                        Keskiarvo</div>
+                </div>
+            </div>
+            <!-- Pending -->
+            <div
+                class="bg-white dark:bg-[#1e2936] p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center gap-4">
+                <div class="p-3 rounded-lg bg-purple-50 text-purple-500 dark:bg-purple-900/30 dark:text-purple-400">
+                    <span class="material-symbols-outlined text-[24px]">pending_actions</span>
+                </div>
+                <div>
+                    <div class="text-2xl font-bold text-slate-900 dark:text-white leading-none mb-1">{{
+                        pending_count }}</div>
+                    <div class="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">Odottaa
+                        käsittelyä</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Reviews List -->
+        <div class="flex flex-col gap-4">
+            {% if reviews %}
+            {% for review in reviews %}
+            <div class="bg-white dark:bg-[#1e2936] rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden p-6 transition-all hover:shadow-md review-card"
+                data-driver="{{ review.driver_name|lower }}" data-customer="{{ review.customer_name|lower }}"
+                data-status="{{ review.status }}">
+                <!-- Header -->
+                <div class="flex justify-between items-start mb-4">
+                    <div class="flex items-center gap-2">
+                        <div class="flex text-amber-400">
+                            {% for i in range(5) %}
+                            <span
+                                class="material-symbols-outlined text-[20px] {% if i < review.rating %}fill-current{% endif %}">
+                                star
+                            </span>
+                            {% endfor %}
+                        </div>
+                        <span class="text-sm font-bold text-slate-700 dark:text-slate-300">{{ review.rating }}/5</span>
+                    </div>
+
+                    <div>
+                        {% if review.status == 'approved' %}
+                        <span
+                            class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-green-50 text-green-700 border border-green-100 dark:bg-green-900/20 dark:border-green-800/50 dark:text-green-300">
+                            <span class="w-1.5 h-1.5 rounded-full bg-green-500"></span> Hyväksytty
+                        </span>
+                        {% elif review.status == 'hidden' %}
+                        <span
+                            class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-red-50 text-red-700 border border-red-100 dark:bg-red-900/20 dark:border-red-800/50 dark:text-red-300">
+                            <span class="w-1.5 h-1.5 rounded-full bg-red-500"></span> Piilotettu
+                        </span>
+                        {% else %}
+                        <span
+                            class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-amber-50 text-amber-700 border border-amber-100 dark:bg-amber-900/20 dark:border-amber-800/50 dark:text-amber-300">
+                            <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span> Odottaa
+                        </span>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Meta Data -->
+                <div
+                    class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4 pb-4 border-b border-slate-100 dark:border-slate-700/50">
+                    <div>
+                        <span class="block text-xs text-slate-400 uppercase tracking-wider font-semibold">Asiakas</span>
+                        <span class="text-sm font-medium text-slate-900 dark:text-white">{{ review.customer_name
+                            }}</span>
+                    </div>
+                    <div>
+                        <span
+                            class="block text-xs text-slate-400 uppercase tracking-wider font-semibold">Kuljettaja</span>
+                        <span class="text-sm font-medium text-slate-900 dark:text-white">{{ review.driver_name }}</span>
+                    </div>
+                    <div>
+                        <span class="block text-xs text-slate-400 uppercase tracking-wider font-semibold">Tilaus</span>
+                        <a href="{{ url_for('admin.order_detail', order_id=review.order_id) }}"
+                            class="text-sm font-medium text-primary hover:underline">#{{ review.order_id }}</a>
+                    </div>
+                    <div>
+                        <span
+                            class="block text-xs text-slate-400 uppercase tracking-wider font-semibold">Päivämäärä</span>
+                        <span class="text-sm text-slate-500 dark:text-slate-400">{{ review.created_at|helsinki_time
+                            }}</span>
+                    </div>
+                </div>
+
+                <!-- Comment -->
+                {% if review.comment %}
+                <div class="mb-6">
+                    <span
+                        class="block text-xs text-slate-400 uppercase tracking-wider font-semibold mb-2">Kommentti</span>
+                    <div
+                        class="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-lg text-slate-700 dark:text-slate-300 text-sm leading-relaxed border border-slate-100 dark:border-slate-700">
+                        {{ review.comment }}
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Actions -->
+                <div class="flex justify-end gap-3">
+                    {% if review.status != 'approved' %}
+                    <form method="POST" action="{{ url_for('admin.moderate_review') }}">
+                        <input type="hidden" name="rating_id" value="{{ review.id }}">
+                        <input type="hidden" name="action" value="approve">
+                        <button type="submit"
+                            class="flex items-center gap-2 px-4 py-2 rounded-lg bg-green-50 text-green-700 hover:bg-green-100 dark:bg-green-900/20 dark:text-green-300 dark:hover:bg-green-900/40 text-sm font-medium transition-colors">
+                            <span class="material-symbols-outlined text-[18px]">check</span>
+                            Hyväksy
+                        </button>
+                    </form>
+                    {% endif %}
+
+                    {% if review.status != 'hidden' %}
+                    <form method="POST" action="{{ url_for('admin.moderate_review') }}">
+                        <input type="hidden" name="rating_id" value="{{ review.id }}">
+                        <input type="hidden" name="action" value="hide">
+                        <button type="submit"
+                            class="flex items-center gap-2 px-4 py-2 rounded-lg bg-red-50 text-red-700 hover:bg-red-100 dark:bg-red-900/20 dark:text-red-300 dark:hover:bg-red-900/40 text-sm font-medium transition-colors">
+                            <span class="material-symbols-outlined text-[18px]">visibility_off</span>
+                            Piilota
+                        </button>
+                    </form>
                     {% endif %}
                 </div>
             </div>
-
-            <div class="review-meta">
-                <div class="review-meta-item">
-                    <span class="meta-label">Asiakas:</span>
-                    <span class="meta-value">{{ review.customer_name }}</span>
+            {% endfor %}
+            {% else %}
+            <div
+                class="bg-white dark:bg-[#1e2936] rounded-xl border border-slate-200 dark:border-slate-800 p-12 text-center">
+                <div class="flex flex-col items-center justify-center gap-3">
+                    <div
+                        class="size-16 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400">
+                        <span class="material-symbols-outlined text-[32px]">rate_review</span>
+                    </div>
+                    <h3 class="text-lg font-semibold text-slate-900 dark:text-white">Ei arvosteluja</h3>
+                    <p class="text-slate-500 dark:text-slate-400 text-sm max-w-sm mx-auto">Täällä näet asiakkaiden
+                        antamat arvostelut kuljetuksista.</p>
                 </div>
-                <div class="review-meta-item">
-                    <span class="meta-label">Kuljettaja:</span>
-                    <span class="meta-value">{{ review.driver_name }}</span>
-                </div>
-                <div class="review-meta-item">
-                    <span class="meta-label">Tilaus:</span>
-                    <span class="meta-value">#{{ review.order_id }}</span>
-                </div>
-                <div class="review-meta-item">
-                    <span class="meta-label">Päivämäärä:</span>
-                    <span class="meta-value">{{ review.created_at|helsinki_time }}</span>
-                </div>
-            </div>
-
-            {% if review.comment %}
-            <div class="review-comment">
-                <div class="comment-label">Kommentti:</div>
-                <div class="comment-text">{{ review.comment }}</div>
             </div>
             {% endif %}
-
-            <div class="review-actions">
-                {% if review.status != 'approved' %}
-                <form method="POST" action="{{ url_for('admin.moderate_review') }}" class="inline-form">
-                    <input type="hidden" name="rating_id" value="{{ review.id }}">
-                    <input type="hidden" name="action" value="approve">
-                    <button type="submit" class="btn-action btn-approve">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                            stroke-width="2">
-                            <polyline points="20 6 9 17 4 12"></polyline>
-                        </svg>
-                        Hyväksy
-                    </button>
-                </form>
-                {% endif %}
-                {% if review.status != 'hidden' %}
-                <form method="POST" action="{{ url_for('admin.moderate_review') }}" class="inline-form">
-                    <input type="hidden" name="rating_id" value="{{ review.id }}">
-                    <input type="hidden" name="action" value="hide">
-                    <button type="submit" class="btn-action btn-hide">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                            stroke-width="2">
-                            <line x1="18" y1="6" x2="6" y2="18"></line>
-                            <line x1="6" y1="6" x2="18" y2="18"></line>
-                        </svg>
-                        Piilota
-                    </button>
-                </form>
-                {% endif %}
-            </div>
         </div>
-        {% endfor %}
-        {% else %}
-        <div class="empty-state">
-            <svg class="empty-icon" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#94a3b8"
-                stroke-width="1.5">
-                <polygon
-                    points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2">
-                </polygon>
-            </svg>
-            <h3>Ei arvosteluja</h3>
-            <p>Arvostelut näkyvät täällä kun asiakkaat arvioivat kuljetuksia.</p>
-        </div>
-        {% endif %}
-    </div>
-</div>
+    </main>
 
-<style>
-    .page-header {
-        margin-bottom: 1.5rem;
-    }
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const searchInput = document.getElementById('reviewSearch');
+            const hiddenSelect = document.getElementById('reviewFilter');
+            const reviewCards = document.querySelectorAll('.review-card');
 
-    .page-header h1 {
-        font-size: 1.5rem;
-        font-weight: 700;
-        color: #111827;
-        margin: 0;
-    }
+            // --- Initialize Custom Dropdowns ---
+            function initCustomDropdowns() {
+                document.querySelectorAll('.custom-select-container').forEach(container => {
+                    const trigger = container.querySelector('.custom-select-trigger');
+                    const options = container.querySelector('.custom-select-options');
+                    const hiddenSelect = container.querySelector('select');
+                    const label = container.querySelector('.custom-select-label');
 
-    .admin-stats-row {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-        gap: 1rem;
-        margin-bottom: 1.5rem;
-    }
+                    if (!trigger || !options || !hiddenSelect || !label) return;
 
-    .admin-stat-card {
-        background: white;
-        border-radius: 0.75rem;
-        padding: 1.25rem;
-        text-align: center;
-        border: 1px solid #e5e7eb;
-    }
+                    // Set initial label based on selected option
+                    const selectedOption = Array.from(hiddenSelect.options).find(opt => opt.selected);
+                    if (selectedOption && selectedOption.value !== "") {
+                        label.textContent = selectedOption.text;
+                        // Mark corresponding custom option as selected
+                        const customOption = options.querySelector(`.custom-option[data-value="${selectedOption.value}"]`);
+                        if (customOption) {
+                            options.querySelectorAll('.custom-option').forEach(opt => opt.classList.remove('selected'));
+                            customOption.classList.add('selected');
+                        }
+                    }
 
-    .admin-stat-value {
-        font-size: 2rem;
-        font-weight: 700;
-        color: #111827;
-    }
+                    // Toggle dropdown
+                    trigger.onclick = (e) => {
+                        e.stopPropagation();
 
-    .admin-stat-label {
-        font-size: 0.875rem;
-        color: #6b7280;
-        margin-top: 0.25rem;
-    }
+                        // Close other dropdowns
+                        document.querySelectorAll('.custom-select-container').forEach(c => {
+                            if (c !== container) {
+                                c.classList.remove('open');
+                                const t = c.querySelector('.custom-select-trigger');
+                                if (t) t.classList.remove('open');
+                            }
+                        });
 
-    .reviews-list {
-        display: flex;
-        flex-direction: column;
-        gap: 1rem;
-    }
+                        const isOpen = container.classList.contains('open');
+                        container.classList.toggle('open', !isOpen);
+                        trigger.classList.toggle('open', !isOpen);
+                    };
 
-    .review-card {
-        background: white;
-        border-radius: 0.75rem;
-        padding: 1.5rem;
-        border: 1px solid #e5e7eb;
-        transition: box-shadow 0.15s ease;
-    }
+                    // Handle option click
+                    options.querySelectorAll('.custom-option').forEach(option => {
+                        option.onclick = (e) => {
+                            e.stopPropagation();
 
-    .review-card:hover {
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-    }
+                            // Update UI
+                            options.querySelectorAll('.custom-option').forEach(opt => opt.classList.remove('selected'));
+                            option.classList.add('selected');
+                            label.textContent = option.textContent;
 
-    .review-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 1rem;
-    }
+                            // Update hidden select and trigger change
+                            if (hiddenSelect.value !== option.dataset.value) {
+                                hiddenSelect.value = option.dataset.value;
+                                hiddenSelect.dispatchEvent(new Event('change'));
+                            }
 
-    .review-rating {
-        display: flex;
-        align-items: center;
-        gap: 4px;
-    }
+                            // Close dropdown
+                            container.classList.remove('open');
+                            trigger.classList.remove('open');
+                        };
+                    });
+                });
+            }
 
-    .star-icon {
-        width: 20px;
-        height: 20px;
-        fill: #e5e7eb;
-    }
+            // Close dropdowns when clicking outside
+            document.addEventListener('click', () => {
+                document.querySelectorAll('.custom-select-container').forEach(c => {
+                    c.classList.remove('open');
+                    const trigger = c.querySelector('.custom-select-trigger');
+                    if (trigger) trigger.classList.remove('open');
+                });
+            });
 
-    .star-icon.star-filled {
-        fill: #fbbf24;
-    }
+            initCustomDropdowns();
 
-    .rating-number {
-        margin-left: 0.5rem;
-        font-weight: 600;
-        color: #374151;
-        font-size: 0.875rem;
-    }
 
-    .status-badge {
-        padding: 0.375rem 0.75rem;
-        border-radius: 9999px;
-        font-size: 0.75rem;
-        font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: 0.03em;
-    }
+            function filterReviews() {
+                const searchTerm = searchInput.value.toLowerCase();
+                const filterValue = hiddenSelect.value;
 
-    .status-approved {
-        background: #dcfce7;
-        color: #166534;
-    }
+                reviewCards.forEach(card => {
+                    const driver = card.dataset.driver || '';
+                    const customer = card.dataset.customer || '';
+                    const status = card.dataset.status || '';
 
-    .status-hidden {
-        background: #fee2e2;
-        color: #991b1b;
-    }
+                    // Filter by Dropdown (Status)
+                    let matchesFilter = true;
+                    if (filterValue) {
+                        if (filterValue === 'pending') matchesFilter = (status === 'pending'); // Assuming 'pending' might differ or match
+                        else matchesFilter = (status === filterValue);
+                    }
 
-    .status-pending {
-        background: #fef3c7;
-        color: #92400e;
-    }
+                    // Search
+                    let matchesSearch = true;
+                    if (searchTerm) {
+                        matchesSearch = driver.includes(searchTerm) || customer.includes(searchTerm);
+                    }
 
-    .review-meta {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 1rem;
-        margin-bottom: 1rem;
-        padding-bottom: 1rem;
-        border-bottom: 1px solid #f3f4f6;
-    }
+                    if (matchesFilter && matchesSearch) {
+                        card.style.display = '';
+                    } else {
+                        card.style.display = 'none';
+                    }
+                });
+            }
 
-    .review-meta-item {
-        display: flex;
-        gap: 0.375rem;
-    }
+            if (searchInput) searchInput.addEventListener('input', filterReviews);
+            if (hiddenSelect) hiddenSelect.addEventListener('change', filterReviews);
 
-    .meta-label {
-        color: #6b7280;
-        font-size: 0.875rem;
-    }
+            // Flash message auto-dismiss
+            setTimeout(function () {
+                const messages = document.querySelector('.flash-messages');
+                if (messages) {
+                    messages.style.transition = 'opacity 1s';
+                    messages.style.opacity = '0';
+                    setTimeout(() => messages.remove(), 1000);
+                }
+            }, 5000);
+        });
+    </script>
+    {% set footer_button_text = 'Laskuri' %}
+    {% include 'components/dashboard_footer.html' %}
+</body>
 
-    .meta-value {
-        color: #111827;
-        font-weight: 500;
-        font-size: 0.875rem;
-    }
-
-    .review-comment {
-        background: #f8fafc;
-        border-radius: 0.5rem;
-        padding: 1rem;
-        margin-bottom: 1rem;
-    }
-
-    .comment-label {
-        font-size: 0.75rem;
-        font-weight: 600;
-        color: #6b7280;
-        text-transform: uppercase;
-        letter-spacing: 0.03em;
-        margin-bottom: 0.5rem;
-    }
-
-    .comment-text {
-        color: #374151;
-        font-size: 0.95rem;
-        line-height: 1.6;
-        white-space: pre-wrap;
-    }
-
-    .review-actions {
-        display: flex;
-        gap: 0.75rem;
-    }
-
-    .inline-form {
-        display: inline;
-    }
-
-    .btn-action {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.375rem;
-        padding: 0.5rem 1rem;
-        border-radius: 0.5rem;
-        font-size: 0.875rem;
-        font-weight: 500;
-        border: none;
-        cursor: pointer;
-        transition: all 0.15s ease;
-    }
-
-    .btn-approve {
-        background: #dcfce7;
-        color: #166534;
-    }
-
-    .btn-approve:hover {
-        background: #bbf7d0;
-    }
-
-    .btn-hide {
-        background: #fee2e2;
-        color: #991b1b;
-    }
-
-    .btn-hide:hover {
-        background: #fecaca;
-    }
-
-    .empty-state {
-        text-align: center;
-        padding: 3rem;
-        background: white;
-        border-radius: 0.75rem;
-        border: 1px solid #e5e7eb;
-    }
-
-    .empty-icon {
-        margin-bottom: 1rem;
-    }
-
-    .empty-state h3 {
-        color: #374151;
-        margin: 0 0 0.5rem 0;
-    }
-
-    .empty-state p {
-        color: #6b7280;
-        margin: 0;
-    }
-
-    @media (max-width: 768px) {
-        .review-meta {
-            flex-direction: column;
-            gap: 0.5rem;
-        }
-
-        .review-actions {
-            flex-direction: column;
-        }
-
-        .btn-action {
-            width: 100%;
-            justify-content: center;
-        }
-    }
-</style>
-{% endblock %}
+</html>

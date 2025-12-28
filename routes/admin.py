@@ -419,18 +419,42 @@ def view_license_image(application_id, image_type):
 @admin_required
 def update_order():
     """Update order status"""
-    order_id = int(request.form.get("id"))
-    new_status = request.form.get("status")
+    # Handle both JSON (AJAX) and Form data
+    if request.is_json:
+        data = request.get_json()
+        order_id = int(data.get("id"))
+        new_status = data.get("status")
+    else:
+        order_id = int(request.form.get("id"))
+        new_status = request.form.get("status")
 
     # Validate status
     from models.order import order_model
     if new_status not in order_model.VALID_STATUSES:
+        if request.is_json:
+            return jsonify({"success": False, "error": "Virheellinen tila"}), 400
         return redirect(url_for("main.admin_dashboard"))
 
     # Use service layer to update order status (includes automatic email sending)
     success, error = order_service.update_order_status(order_id, new_status)
 
-    # Add debug feedback
+    if request.is_json:
+        if success:
+            from app import translate_status
+            status_fi = translate_status(new_status)
+            return jsonify({
+                "success": True, 
+                "message": f"Tilauksen tila päivitetty: {status_fi}",
+                "status": new_status,
+                "status_fi": status_fi
+            })
+        else:
+            return jsonify({
+                "success": False, 
+                "error": error or "Tilan päivitys epäonnistui"
+            }), 400
+
+    # Fallback for traditional form submission
     if success:
         from app import translate_status
         flash(f"Tilauksen #{order_id} tila päivitetty: {translate_status(new_status)}", "success")
@@ -445,6 +469,7 @@ def update_order():
 def order_detail(order_id):
     """Admin order detail view"""
     from app import orders_col, translate_status
+    from services.rating_service import rating_service
 
     # Get order with user AND driver info
     pipeline = [
@@ -470,10 +495,12 @@ def order_detail(order_id):
             "distance_km": 1, "price_gross": 1,
             "reg_number": 1, "winter_tires": 1, "pickup_date": 1, "last_delivery_date": 1,
             "pickup_time": 1, "delivery_time": 1,
+            "created_at": 1, "updated_at": 1,
             "extras": 1, "images": 1,
             "orderer_name": 1, "orderer_email": 1, "orderer_phone": 1,
             "customer_name": 1, "customer_phone": 1,
             "driver_reward": 1, "car_brand": 1, "car_model": 1, "additional_info": 1, "driver_notes": 1,
+            "direct_to_customer": 1,
             "user_name": "$user.name",
             "user_email": "$user.email",
             "driver_name": "$driver.name",
@@ -532,7 +559,8 @@ def order_detail(order_id):
         pickup_time=pickup_time,
         delivery_time=delivery_time,
         available_drivers=available_drivers,
-        current_user=user
+        current_user=user,
+        rating=rating_service.get_order_rating(order_id)
     )
 
 
@@ -722,19 +750,30 @@ def delete_order_image_by_id(order_id, image_type, image_id):
 @admin_bp.route("/order/<int:order_id>/assign_driver", methods=["POST"])
 @admin_required
 def assign_driver_to_order(order_id):
-    """Assign or change driver for an order"""
-    driver_id = request.form.get("driver_id")
+    """Manually assign driver info to an order (name/phone, not from registered driver)"""
+    driver_name = request.form.get("driver_name", "").strip()
+    driver_phone = request.form.get("driver_phone", "").strip()
 
-    if not driver_id:
-        flash("Valitse kuljettaja", "error")
+    if not driver_name:
+        flash("Syötä kuljettajan nimi", "error")
         return redirect(url_for("admin.order_detail", order_id=order_id))
 
-    success, error = order_service.assign_driver_to_order(order_id, int(driver_id))
+    # Update order with manual driver info
+    from models.order import order_model
+    success = order_model.update_one(
+        {"id": int(order_id)},
+        {"$set": {
+            "manual_driver_name": driver_name,
+            "manual_driver_phone": driver_phone,
+            "driver_name": driver_name,
+            "driver_phone": driver_phone
+        }}
+    )
 
     if success:
-        flash("Kuljettaja määritetty onnistuneesti", "success")
+        flash(f"Kuljettaja '{driver_name}' määritetty onnistuneesti", "success")
     else:
-        flash(f"Virhe: {error}", "error")
+        flash("Virhe kuljettajan määrityksessä", "error")
 
     return redirect(url_for("admin.order_detail", order_id=order_id))
 

@@ -1104,8 +1104,44 @@
     transition: background 0.15s ease;
   }
 
+  color: white;
+  border-radius: 1rem;
+  font-weight: 600;
+  font-size: 0.875rem;
+  text-decoration: none;
+  transition: background 0.15s ease;
+  }
+
   .mobile-card-action:hover {
     background: #1177c7;
+  }
+
+  /* Trip Badges (Admin Style) */
+  .trip-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.125rem 0.5rem;
+    border-radius: 9999px;
+    font-size: 0.65rem;
+    font-weight: 600;
+    white-space: nowrap;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 0.25rem;
+    width: fit-content;
+  }
+
+  .trip-badge.meno {
+    background: #eff6ff;
+    color: #1d4ed8;
+    border: 1px solid #bfdbfe;
+  }
+
+  .trip-badge.paluu {
+    background: #fff7ed;
+    color: #c2410c;
+    border: 1px solid #fed7aa;
   }
 </style>
 {% endblock %}
@@ -1113,15 +1149,16 @@
 {% block content %}
 {# Calculate order counts #}
 {% set completed_statuses = ['DELIVERED', 'COMPLETED', 'CANCELLED'] %}
-{% set active_count = 0 %}
-{% set completed_count = 0 %}
+{% set ns = namespace(active=0, completed=0) %}
 {% for order in orders %}
 {% if order.status in completed_statuses %}
-{% set completed_count = completed_count + 1 %}
+{% set ns.completed = ns.completed + 1 %}
 {% else %}
-{% set active_count = active_count + 1 %}
+{% set ns.active = ns.active + 1 %}
 {% endif %}
 {% endfor %}
+{% set active_count = ns.active %}
+{% set completed_count = ns.completed %}
 
 
 
@@ -1139,7 +1176,7 @@
         current_user and current_user.name
         else 'Asiakas' }}</h1>
       <p class="dash-subtitle">
-        Sinulla on <span class="highlight">{{ active_count }} aktiivista tilausta</span> käsittelyssä.
+        Sinulla on <span class="highlight">{{ active_count }} aktiivista tilausta</span>.
       </p>
     </div>
     <a class="btn-new-order" href="/order/new/step1">
@@ -1248,7 +1285,6 @@
           <tr>
             <th>Tilaus ID</th>
             <th>Reitti & Matka</th>
-            <th>Suunta</th>
             <th>Tila</th>
             <th>Arvioitu aika</th>
             <th class="text-right">Hinta</th>
@@ -1301,15 +1337,16 @@
                   {{ order.dropoff_address.split(',')[0] if ',' in order.dropoff_address else order.dropoff_address[:20]
                   }}
                 </span>
-                <span class="route-distance">{{ "%.1f"|format(order.distance_km|float) }} km</span>
-              </div>
-            </td>
-            <td>
-              <div class="vehicle-cell">
-                <span class="trip-badge {{ 'paluu' if order.trip_type == 'PALUU' else 'meno' }}">
-                  <span class="material-symbols-outlined">{{ 'west' if order.trip_type == 'PALUU' else 'east' }}</span>
-                  {{ 'Paluumatka' if order.trip_type == 'PALUU' else 'Menomatka' }}
-                </span>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <span class="route-distance">{{ "%.1f"|format(order.distance_km|float) }} km</span>
+                  {% if order.trip_type %}
+                  <span class="trip-badge {{ 'paluu' if order.trip_type == 'PALUU' else 'meno' }}">
+                    <span class="material-symbols-outlined text-[12px]">{{ 'west' if order.trip_type == 'PALUU' else
+                      'east' }}</span>
+                    {{ 'Paluumatka' if order.trip_type == 'PALUU' else 'Menomatka' }}
+                  </span>
+                  {% endif %}
+                </div>
               </div>
             </td>
             <td>
@@ -1404,7 +1441,19 @@
             <span class="material-symbols-outlined">arrow_forward</span>
             {{ order.dropoff_address.split(',')[0] if ',' in order.dropoff_address else order.dropoff_address[:25] }}
           </div>
-          <span class="route-distance">{{ "%.1f"|format(order.distance_km|float) }} km</span>
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 4px;">
+            <span class="route-distance">{{ "%.1f"|format(order.distance_km|float) }} km</span>
+
+            <!-- Trip Type Badge (Mobile) -->
+            {% if order.trip_type %}
+            <span class="trip-badge {{ 'paluu' if order.trip_type == 'PALUU' else 'meno' }}"
+              style="font-size: 10px; padding: 2px 6px;">
+              <span class="material-symbols-outlined" style="font-size: 10px;">{{ 'west' if order.trip_type == 'PALUU'
+                else 'east' }}</span>
+              {{ 'Paluumatka' if order.trip_type == 'PALUU' else 'Menomatka' }}
+            </span>
+            {% endif %}
+          </div>
         </div>
 
         <div class="mobile-card-meta">

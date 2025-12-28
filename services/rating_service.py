@@ -39,6 +39,10 @@ class RatingService:
         
         return True, None
 
+    def get_order_rating(self, order_id: int) -> Optional[Dict]:
+        """Get existing rating for an order"""
+        return rating_model.get_order_rating(order_id)
+
     def submit_rating(self, order_id: int, user_id: int, rating: int, 
                       comment: str = None) -> Tuple[Optional[Dict], Optional[str]]:
         """

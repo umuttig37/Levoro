@@ -329,24 +329,31 @@ def extract_city_filter(address):
     if not address or not isinstance(address, str):
         return 'Tuntematon kaupunki'
 
-    # Finnish address format: "Street, PostalCode City, Country"
-    # We want to extract the city part
-    parts = address.split(',')
+    address = address.strip()
 
-    if len(parts) >= 2:
-        # Get the part with postal code and city (second part usually)
-        city_part = parts[1].strip()
-        # Remove postal code (5 digits at start)
-        import re
-        city_match = re.sub(r'^\d{5}\s*', '', city_part)
-        return city_match.strip() if city_match else 'Tuntematon kaupunki'
-    elif len(parts) == 1:
-        # If no comma, try to extract city from the string
-        # Look for pattern: digits followed by city name
-        import re
-        match = re.search(r'\d{5}\s+([A-Za-zäöåÄÖÅ\s]+)', address)
-        if match:
-            return match.group(1).strip()
+    # 1. Look for standard Finnish pattern: 5 digits + City
+    # e.g. "00100 Helsinki", "33100 Tampere"
+    match = re.search(r'\b(\d{5})\s+([A-Za-zäöåÄÖÅ\-\s]+)', address)
+    if match:
+        city_candidate = match.group(2).strip()
+        # Filter out common false positives if any, though regex is fairly specific
+        return city_candidate
+
+    # 2. If there are no digits in the entire string, assume it is just the city name
+    # e.g. "Helsinki", "Turku"
+    if not re.search(r'\d', address):
+        return address
+
+    # 3. Fallback for comma separated values: "Street 1, City"
+    parts = [p.strip() for p in address.split(',')]
+    if len(parts) > 1:
+        # Check parts from the end (ignoring country if present)
+        for part in reversed(parts):
+            if part.lower() in ['finland', 'suomi', 'fi']:
+                continue
+            # If part has no digits, it might be the city
+            if not re.search(r'\d', part):
+                return part
 
     return 'Tuntematon kaupunki'
 

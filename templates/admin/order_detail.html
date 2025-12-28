@@ -1,391 +1,973 @@
-{% extends "base/layout.html" %}
-{% import 'components/icons.html' as icons %}
+<!DOCTYPE html>
+<html class="light" lang="fi">
 
-{% block title %}Admin - Tilaus #{{ order.id }} – Levoro{% endblock %}
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>Levoro Admin - Tilaus #{{ order.id }}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&amp;display=swap"
+        rel="stylesheet" />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+        rel="stylesheet" />
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#309ce8",
+                        "background-light": "#f6f7f8",
+                        "background-dark": "#111a21",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: { "DEFAULT": "0.5rem", "lg": "1rem", "xl": "1.5rem", "full": "9999px" },
+                },
+            },
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
 
-{% block extra_css %}
-<link rel='stylesheet' href='/static/css/admin-images.css'>
-<link rel='stylesheet' href='/static/css/admin-order-detail.css'>
-{% endblock %}
+        /* Hide global scrollbar */
+        body::-webkit-scrollbar,
+        html::-webkit-scrollbar {
+            display: none;
+        }
 
-{% block content %}
-<div class="admin-container">
-    <div class="admin-order-detail">
-        {% include "admin/navigation.html" %}
+        body,
+        html {
+            -ms-overflow-style: none;
+            /* IE and Edge */
+            scrollbar-width: none;
+            /* Firefox */
+        }
 
-        <!-- Order Header -->
-        <div class="order-detail-header">
-            <div class="order-detail-title">
-                <h1>Tilaus #{{ order.id }}</h1>
-                <span class="admin-status admin-status-{{ order.status|lower|replace('_', '-') }}">{{ status_fi
-                    }}</span>
-                {% if order.trip_type %}
-                <span class="order-trip-type">{{ order.trip_type }}</span>
-                {% endif %}
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+
+        .material-symbols-outlined.fill {
+            font-variation-settings: 'FILL' 1;
+        }
+
+        .scrollbar-hide::-webkit-scrollbar {
+            display: none;
+        }
+
+        .scrollbar-hide {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+
+        .flash-messages {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
+
+        .flash-message {
+            padding: 1rem;
+            margin-bottom: 1rem;
+            border-radius: 0.5rem;
+            color: white;
+            font-weight: 500;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        .flash-message.success {
+            background-color: #10b981;
+        }
+
+        .flash-message.error {
+            background-color: #ef4444;
+        }
+
+        .flash-message.warning {
+            background-color: #f59e0b;
+        }
+
+        .flash-message.info {
+            background-color: #3b82f6;
+        }
+
+        .status-btn {
+            transition: all 0.2s ease;
+        }
+
+        .status-btn:hover:not(:disabled) {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .status-btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        #order-map {
+            width: 100%;
+            height: 100%;
+            min-height: 180px;
+            border-radius: 0.5rem;
+            position: relative;
+            z-index: 1;
+        }
+    </style>
+</head>
+
+<body class="bg-background-light text-slate-900 antialiased">
+
+    <!-- Flash Messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    <div class="flash-messages">
+        {% for category, message in messages %}
+        <div class="flash-message {{ category }}">{{ message }}</div>
+        {% endfor %}
+    </div>
+    {% endif %}
+    {% endwith %}
+
+    <!-- Top Navigation -->
+    <header
+        class="sticky top-0 z-50 border-b border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-[#101a22]/80 backdrop-blur-md">
+        <!-- Top Row: Logo & Main Nav -->
+        <div class="flex items-center justify-between px-6 py-3 lg:px-10 w-full max-w-[1440px] mx-auto">
+            <a href="/" class="flex items-center gap-4">
+                <img src="/static/LevoroLogo.png" alt="Levoro" class="h-20 w-auto">
+            </a>
+            <div class="flex flex-1 justify-end gap-8">
+                <!-- Navigation Links -->
+                <nav class="hidden md:flex items-center gap-2">
+
+                    <a class="px-3 py-2 rounded-md bg-slate-100 text-primary font-semibold transition-colors"
+                        href="{{ url_for('main.admin_dashboard') }}">Tilaukset</a>
+
+                    <a class="px-3 py-2 rounded-md text-slate-700 hover:text-primary hover:bg-slate-100 font-semibold transition-colors"
+                        href="{{ url_for('admin.users') }}">Käyttäjät</a>
+
+                    <a class="px-3 py-2 rounded-md text-slate-700 hover:text-primary hover:bg-slate-100 font-semibold transition-colors"
+                        href="{{ url_for('admin.drivers') }}">Kuljettajat</a>
+
+                    <a class="px-3 py-2 rounded-md text-slate-700 hover:text-primary hover:bg-slate-100 font-semibold transition-colors"
+                        href="{{ url_for('admin.driver_applications') }}">Hakemukset</a>
+
+                    <a class="px-3 py-2 rounded-md text-slate-700 hover:text-primary hover:bg-slate-100 font-semibold transition-colors"
+                        href="{{ url_for('admin.discounts') }}">Alennukset</a>
+
+                    <a class="px-3 py-2 rounded-md text-slate-700 hover:text-primary hover:bg-slate-100 font-semibold transition-colors"
+                        href="{{ url_for('admin.reviews') }}">Arvostelut</a>
+
+                    {% if current_user.is_authenticated %}
+                    <div class="px-3 py-2 rounded-full bg-slate-100 text-slate-600 font-medium text-sm">
+                        Hei, {{ current_user.name }}
+                    </div>
+                    {% endif %}
+
+                    <a class="px-3 py-2 rounded-md text-slate-700 hover:text-primary hover:bg-slate-100 font-semibold transition-colors"
+                        href="{{ url_for('auth.logout') }}">Ulos</a>
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="w-full max-w-[1440px] mx-auto px-6 py-8 flex flex-col gap-8">
+        <!-- Header Section -->
+        <div class="flex flex-col gap-4">
+            <!-- Back Button -->
+            <a href="{{ url_for('main.admin_dashboard') }}"
+                class="inline-flex items-center text-slate-500 hover:text-slate-800 transition-colors group w-fit px-3 py-1.5 -ml-3 rounded-lg hover:bg-slate-100">
+                <span
+                    class="material-symbols-outlined mr-1.5 text-[20px] transition-transform group-hover:-translate-x-1">arrow_back</span>
+                Takaisin tilauksiin
+            </a>
+            <div class="flex items-center gap-2 text-sm">
+                <a class="text-slate-500 hover:text-primary transition-colors"
+                    href="{{ url_for('main.admin_dashboard') }}">Tilaukset</a>
+                <span class="text-slate-300">/</span>
+                <span class="text-slate-900 font-medium">Tilaus #{{ order.id }}</span>
+            </div>
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div class="flex flex-col gap-1">
+                    <div class="flex items-center gap-3">
+                        <h1 class="text-3xl font-bold text-slate-900 tracking-tight">Tilaus #{{ order.id }}</h1>
+                        {% set status_colors = {
+                        'NEW': 'bg-amber-50 text-amber-700 border-amber-100',
+                        'CONFIRMED': 'bg-blue-50 text-blue-700 border-blue-100',
+                        'ASSIGNED_TO_DRIVER': 'bg-indigo-50 text-indigo-700 border-indigo-100',
+                        'IN_TRANSIT': 'bg-cyan-50 text-cyan-700 border-cyan-100',
+                        'DELIVERED': 'bg-green-50 text-green-700 border-green-100',
+                        'CANCELLED': 'bg-slate-50 text-slate-600 border-slate-100'
+                        } %}
+                        <span
+                            class="px-3 py-1 text-sm font-semibold rounded-full border {{ status_colors.get(order.status, 'bg-slate-50 text-slate-600 border-slate-100') }}">
+                            {{ status_fi }}
+                        </span>
+                    </div>
+                    <p class="text-slate-500 text-sm">Luotu: {{ order.created_at|helsinki_time }}</p>
+                </div>
+                <div class="flex items-center gap-3">
+                    <button onclick="document.getElementById('detailsForm').submit()"
+                        class="h-10 px-6 rounded-lg bg-primary text-white text-sm font-bold shadow-sm hover:bg-blue-600 transition-colors flex items-center gap-2">
+                        <span class="material-symbols-outlined text-[18px]">save</span>
+                        Tallenna muutokset
+                    </button>
+                </div>
             </div>
         </div>
 
-        <!-- Main Grid: Info + Admin Sections -->
-        <div class="order-main-grid">
-            <!-- LEFT: Order Information -->
-            <div class="order-info-section">
-                <div class="order-info-cards">
-                    <!-- Orderer Card -->
-                    <div class="admin-info-card admin-info-card-orderer">
-                        <h3 class="admin-info-card-title">Tilaaja</h3>
-                        <div class="admin-info-card-body">
-                            <div class="admin-info-row">
-                                <span class="admin-info-label">Nimi</span>
-                                <span class="admin-info-value">{{ order.orderer_name or order.user_name or 'Tuntematon'
-                                    }}</span>
+        <!-- Layout Grid -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+            <!-- LEFT COLUMN (Main Content) -->
+            <div class="lg:col-span-8 flex flex-col gap-6">
+
+                <!-- Map Card -->
+                <div class="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm p-1">
+                    <div class="w-full h-48 bg-slate-100 rounded-lg relative overflow-hidden">
+                        <div id="order-map"></div>
+                    </div>
+                </div>
+
+                <!-- Journey Timeline Card -->
+                <div class="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
+                    <div class="flex items-center justify-between mb-6">
+                        <h3 class="text-lg font-bold text-slate-900">Reitti & Aikataulu</h3>
+                        <span
+                            class="text-xs font-medium text-slate-500 bg-slate-50 px-2 py-1 rounded border border-slate-100">{{
+                            order.distance_km }} km</span>
+                    </div>
+                    <div class="space-y-6">
+                        <!-- Pickup -->
+                        <div class="flex items-start gap-4">
+                            <div class="flex-none flex flex-col items-center">
+                                <div
+                                    class="size-10 rounded-full border-2 border-primary bg-blue-50 flex items-center justify-center">
+                                    <span class="material-symbols-outlined text-primary text-xl">trip_origin</span>
+                                </div>
+                                <div class="w-0.5 h-8 bg-gradient-to-b from-primary to-slate-200 mt-1"></div>
                             </div>
-                            <div class="admin-info-row">
-                                <span class="admin-info-label">Sähköposti</span>
-                                <span class="admin-info-value">{{ order.orderer_email or order.user_email or
-                                    'Tuntematon'
-                                    }}</span>
-                            </div>
-                            <div class="admin-info-row">
-                                <span class="admin-info-label">Puhelin</span>
-                                <span class="admin-info-value">{{ order.orderer_phone or '-' }}</span>
+                            <div class="flex-1 pt-1">
+                                <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+                                    <div class="flex-1">
+                                        <p class="text-xs font-bold text-primary uppercase tracking-wide mb-1">Nouto</p>
+                                        <p class="text-base font-semibold text-slate-900">{{ order.pickup_address }}</p>
+                                    </div>
+                                    <div class="flex-none bg-slate-50 px-3 py-2 rounded-lg border border-slate-100">
+                                        <p class="text-xs text-slate-400 font-medium">Toivottu</p>
+                                        <p class="text-sm font-semibold text-slate-900">{{ pickup_date_fi }}</p>
+                                        {% if pickup_time %}<p class="text-xs text-slate-500">{{ pickup_time }}</p>{%
+                                        endif %}
+                                    </div>
+                                </div>
                             </div>
                         </div>
-                    </div>
-
-                    <!-- Customer/Recipient Card -->
-                    <div class="admin-info-card admin-info-card-customer">
-                        <h3 class="admin-info-card-title">Vastaanottaja</h3>
-                        <div class="admin-info-card-body">
-                            <div class="admin-info-row">
-                                <span class="admin-info-label">Nimi</span>
-                                <span class="admin-info-value">{{ order.customer_name or 'Tuntematon' }}</span>
+                        <!-- Dropoff -->
+                        <div class="flex items-start gap-4">
+                            <div class="flex-none">
+                                <div
+                                    class="size-10 rounded-full border-2 border-slate-300 bg-white flex items-center justify-center">
+                                    <span class="material-symbols-outlined text-slate-400 text-xl">location_on</span>
+                                </div>
                             </div>
-                            <div class="admin-info-row">
-                                <span class="admin-info-label">Puhelin</span>
-                                <span class="admin-info-value">{{ order.customer_phone or order.phone or '-' }}</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Route & Vehicle Card -->
-                    <div class="admin-info-card admin-info-card-route">
-                        <h3 class="admin-info-card-title">Reitti ja Ajoneuvo</h3>
-                        <div class="admin-info-card-body">
-                            <div class="admin-info-row">
-                                <span class="admin-info-label">Reitti</span>
-                                <span class="admin-info-value">{{ order.pickup_address }} → {{ order.dropoff_address
-                                    }}</span>
-                            </div>
-                            <div class="admin-info-row">
-                                <span class="admin-info-label">Matka</span>
-                                <span class="admin-info-value">{{ "%.1f"|format(order.distance_km or 0) }} km</span>
-                            </div>
-                            <div class="admin-info-row">
-                                <span class="admin-info-label">Noutopäivä</span>
-                                <span class="admin-info-value">{{ pickup_date_fi }}</span>
-                            </div>
-                            <div class="admin-info-row">
-                                <span class="admin-info-label">Toimituspäivä</span>
-                                <span class="admin-info-value">{{ last_delivery_date_fi or '-' }}</span>
-                            </div>
-                            <div class="admin-info-row">
-                                <span class="admin-info-label">Noutoaika</span>
-                                <span class="admin-info-value">{{ pickup_time or '-' }}</span>
-                            </div>
-                            <div class="admin-info-row">
-                                <span class="admin-info-label">Toimitusaika</span>
-                                <span class="admin-info-value">{{ delivery_time or '-' }}</span>
-                            </div>
-                            <div class="admin-info-row">
-                                <span class="admin-info-label">Rekisterinumero</span>
-                                <span class="admin-info-value">{{ order.reg_number or 'Ei tiedossa' }}</span>
-                            </div>
-                            <div class="admin-info-row">
-                                <span class="admin-info-label">Talvirenkaat</span>
-                                <span class="admin-info-value">{{ 'Kyllä' if order.winter_tires else 'Ei' }}</span>
-                            </div>
-                            {% if order.car_brand or order.car_model %}
-                            <div class="admin-info-row">
-                                <span class="admin-info-label">Auton merkki/malli</span>
-                                <span class="admin-info-value">{{ order.car_brand or '' }} {{ order.car_model or ''
-                                    }}</span>
-                            </div>
-                            {% endif %}
-                        </div>
-                    </div>
-
-                    <!-- Pricing Card -->
-                    <div class="admin-info-card admin-info-card-pricing">
-                        <h3 class="admin-info-card-title">Hinnoittelu</h3>
-                        <div class="admin-info-card-body">
-                            <div class="admin-info-row">
-                                <span class="admin-info-label">Asiakkaan hinta</span>
-                                <span class="admin-info-value admin-info-value-price-large">{{ (order.price_gross or
-                                    0)|format_price_with_vat|safe }}</span>
-                            </div>
-                            <div class="admin-info-row admin-info-row-highlight">
-                                <span class="admin-info-label">Kuskin palkkio</span>
-                                <span class="admin-info-value-highlight">
-                                    {% if order.driver_reward %}{{ order.driver_reward|round(2) }} €
-                                    {% else %}<span class="text-danger">Ei asetettu</span>{% endif %}
-                                </span>
+                            <div class="flex-1 pt-1">
+                                <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+                                    <div class="flex-1">
+                                        <p class="text-xs font-bold text-slate-400 uppercase tracking-wide mb-1">
+                                            Toimitus</p>
+                                        <p class="text-base font-semibold text-slate-900">{{ order.dropoff_address }}
+                                        </p>
+                                    </div>
+                                    <div
+                                        class="flex-none bg-slate-50 px-3 py-2 rounded-lg border border-slate-100 opacity-75">
+                                        <p class="text-xs text-slate-400 font-medium">Arvioitu</p>
+                                        <p class="text-sm font-semibold text-slate-900">{{ last_delivery_date_fi or '-'
+                                            }}</p>
+                                        {% if delivery_time %}<p class="text-xs text-slate-500">{{ delivery_time }}</p>
+                                        {% endif %}
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
-            </div>
-            <!-- End order-info-section -->
 
-            <!-- RIGHT: Admin Actions & Configuration -->
-            <div class="order-admin-section">
-                <!-- Customer Comments (Read-only) -->
-                {% if order.additional_info and order.additional_info|trim %}
-                <div class="admin-readonly-section">
-                    <div class="section-header section-header-readonly">
-                        {{ icons.document(18, 'currentColor', 'icon-inline') }}
-                        <span>Tilaajan kommentti</span>
+                <!-- Contacts Grid -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Orderer -->
+                    <div class="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
+                        <div class="flex items-center gap-2 mb-4">
+                            <span class="material-symbols-outlined text-slate-400">person</span>
+                            <h3 class="text-sm font-bold uppercase tracking-wider text-slate-500">Tilaaja</h3>
+                        </div>
+                        <p class="text-base font-semibold text-slate-900">{{ order.orderer_name or order.user_name or
+                            'Tuntematon' }}</p>
+                        <a class="text-sm text-primary hover:underline block mb-1"
+                            href="mailto:{{ order.orderer_email or order.user_email }}">{{ order.orderer_email or
+                            order.user_email }}</a>
+                        <p class="text-sm text-slate-600">{{ order.orderer_phone or '-' }}</p>
                     </div>
-                    <div class="section-body">
-                        <div class="readonly-content">
-                            <p class="readonly-text">{{ order.additional_info }}</p>
-                            <p class="readonly-hint">{{ icons.eye(14, '#6b7280', 'icon-inline') }} Näkyy kuskeille ennen
-                                työn vastaanottoa</p>
+                    <!-- Customer -->
+                    <div class="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
+                        <div class="flex items-center gap-2 mb-4">
+                            <span class="material-symbols-outlined text-slate-400">person_pin</span>
+                            <h3 class="text-sm font-bold uppercase tracking-wider text-slate-500">Vastaanottaja</h3>
+                        </div>
+                        <p class="text-base font-semibold text-slate-900">{{ order.customer_name or 'Tuntematon' }}</p>
+                        <p class="text-sm text-slate-600">{{ order.customer_phone or order.phone or '-' }}</p>
+                    </div>
+                </div>
+
+                <!-- Rating Card (if exists) -->
+                {% if rating %}
+                <div class="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="flex items-center gap-2">
+                            <span class="material-symbols-outlined text-yellow-400"
+                                style="font-variation-settings: 'FILL' 1;">star</span>
+                            <h3 class="text-sm font-bold uppercase tracking-wider text-slate-500">Asiakkaan arvostelu
+                            </h3>
+                        </div>
+                        <span class="text-xs text-slate-400">{{ rating.created_at|helsinki_time }}</span>
+                    </div>
+                    <div class="flex items-center gap-3 mb-4">
+                        <div class="flex gap-0.5">
+                            {% for i in range(5) %}
+                            <span
+                                class="material-symbols-outlined text-2xl {{ 'text-yellow-400' if i < rating.rating else 'text-slate-200' }}"
+                                style="font-variation-settings: 'FILL' 1;">star</span>
+                            {% endfor %}
+                        </div>
+                        <span
+                            class="text-base font-bold text-slate-900 bg-slate-50 px-2 py-0.5 rounded border border-slate-100 ml-1">{{
+                            rating.rating }}/5</span>
+                    </div>
+                    {% if rating.comment %}
+                    <div class="bg-amber-50 rounded-lg p-4 border border-amber-100">
+                        <div class="flex items-start gap-3">
+                            <span class="material-symbols-outlined text-amber-500 text-xl mt-0.5">format_quote</span>
+                            <p class="text-sm text-slate-700 italic">{{ rating.comment }}</p>
                         </div>
                     </div>
+                    {% endif %}
                 </div>
                 {% endif %}
 
-                <!-- Configuration Section -->
-                <div class="admin-config-section">
-                    <div class="section-header section-header-config">
-                        {{ icons.clipboard(18, 'currentColor', 'icon-inline') }}
-                        <span>Tilauksen asetukset</span>
+                <!-- Vehicle Details Card - Only vehicle info and customer comment -->
+                <form id="detailsForm" method="POST"
+                    action="{{ url_for('admin.update_order_details', order_id=order.id) }}">
+                    <div class="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
+                            <div>
+                                <h3 class="text-lg font-bold text-slate-900">Ajoneuvon tiedot</h3>
+                                <p class="text-sm text-slate-500">Asiakkaan syöttämät tiedot</p>
+                            </div>
+                        </div>
+
+                        <!-- Vehicle Info Grid -->
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                            <div class="p-3 bg-slate-50 rounded-lg border border-slate-100">
+                                <label class="text-xs text-slate-500 mb-1 block">Rekisterinumero</label>
+                                <p class="text-sm font-mono font-semibold text-slate-900">{{ order.reg_number or '-' }}
+                                </p>
+                            </div>
+                            <div class="p-3 bg-slate-50 rounded-lg border border-slate-100">
+                                <label class="text-xs text-slate-500 mb-1 block">Merkki</label>
+                                <p class="text-sm font-semibold text-slate-900">{{ order.car_brand or '-' }}</p>
+                            </div>
+                            <div class="p-3 bg-slate-50 rounded-lg border border-slate-100">
+                                <label class="text-xs text-slate-500 mb-1 block">Malli</label>
+                                <p class="text-sm font-semibold text-slate-900">{{ order.car_model or '-' }}</p>
+                            </div>
+                            <div class="p-3 bg-slate-50 rounded-lg border border-slate-100">
+                                <label class="text-xs text-slate-500 mb-1 block">Talvirenkaat</label>
+                                <p class="text-sm font-semibold text-slate-900">
+                                    {% if order.winter_tires == true %}
+                                    <span class="text-green-600">✓ Kyllä</span>
+                                    {% elif order.winter_tires == false %}
+                                    <span class="text-slate-500">✗ Ei</span>
+                                    {% else %}
+                                    <span class="text-slate-400">-</span>
+                                    {% endif %}
+                                </p>
+                            </div>
+                        </div>
+
+                        <!-- Customer Comment (from step 5) -->
+                        {% if order.additional_info %}
+                        <div class="bg-amber-50 rounded-lg p-4 border border-amber-100">
+                            <div class="flex items-start gap-3">
+                                <span class="material-symbols-outlined text-amber-500 text-xl mt-0.5">chat</span>
+                                <div>
+                                    <label
+                                        class="text-xs font-bold text-amber-700 uppercase tracking-wider block mb-1">Asiakkaan
+                                        kommentti</label>
+                                    <p class="text-sm text-slate-700">{{ order.additional_info }}</p>
+                                </div>
+                            </div>
+                        </div>
+                        {% else %}
+                        <p class="text-sm text-slate-400 italic">Ei asiakkaan kommenttia</p>
+                        {% endif %}
+
+                        <!-- Hidden fields for form submission -->
+                        <input type="hidden" name="driver_reward" id="driver_reward_hidden"
+                            value="{{ order.driver_reward or '' }}">
+                        <input type="hidden" name="car_brand" value="{{ order.car_brand or '' }}">
+                        <input type="hidden" name="car_model" value="{{ order.car_model or '' }}">
+                        <!-- Added hidden fields to preserve data when sections are hidden -->
+                        <input type="hidden" name="driver_notes" value="{{ order.driver_notes or '' }}">
+                        <input type="hidden" name="additional_info" value="{{ order.additional_info or '' }}">
                     </div>
-                    <div class="section-body">
+                </form>
 
-                        <form method="POST" action="{{ url_for('admin.update_order_details', order_id=order.id) }}">
-                            <div class="driver-reward-field">
-                                <label>Kuskin palkkio (€)</label>
-                                <input type="number" name="driver_reward" step="0.01" min="0"
-                                    value="{{ order.driver_reward or '' }}" placeholder="150.00" required>
-                                <p class="field-hint field-hint-success">{{ icons.alert(14, '#166534', 'icon-inline') }}
-                                    Näkyy kuljettajalle</p>
+                <!-- Admin Notes Card (separate from customer data) -->
+                <!-- HIDDEN AS PER REQUEST
+                <div class="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
+                    <div class="flex items-center gap-2 mb-4">
+                        <span class="material-symbols-outlined text-slate-400 text-[20px]">edit_note</span>
+                        <h3 class="text-lg font-bold text-slate-900">Admin muistiinpanot</h3>
+                    </div>
+                    <div class="space-y-4">
+                        <div>
+                            <label class="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-2">Kuskin
+                                ohjeet (ei näy asiakkaalle)</label>
+                            <textarea form="detailsForm" name="driver_notes"
+                                class="w-full rounded-lg border-slate-200 bg-slate-50 text-sm p-3 min-h-[80px] focus:ring-primary focus:border-primary placeholder:text-slate-400 resize-none"
+                                placeholder="Lisää ohjeita kuljettajalle...">{{ order.driver_notes or '' }}</textarea>
+                        </div>
+                        <div>
+                            <label class="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-2">Julkinen
+                                lisätieto (näkyy kuljettajille)</label>
+                            <textarea form="detailsForm" name="additional_info"
+                                class="w-full rounded-lg border-slate-200 bg-slate-50 text-sm p-3 min-h-[60px] focus:ring-primary focus:border-primary placeholder:text-slate-400 resize-none"
+                                placeholder="Lisää tietoa kuljettajille...">{{ order.additional_info or '' }}</textarea>
+                        </div>
+                    </div>
+                </div>
+                -->
+
+                <!-- Photos Section -->
+                <div class="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
+                    <div class="flex items-center justify-between mb-6">
+                        <h4 class="text-lg font-bold text-slate-900">Valokuvat</h4>
+                        <span class="text-sm text-slate-400 bg-slate-50 px-2 py-1 rounded">
+                            {{ (order.images.pickup|length if order.images and order.images.pickup else 0) +
+                            (order.images.delivery|length if order.images and order.images.delivery else 0) }} kpl
+                        </span>
+                    </div>
+
+                    <!-- Pickup Photos -->
+                    <div class="mb-6">
+                        <h5 class="text-xs font-bold text-slate-500 uppercase mb-3 flex items-center gap-2">
+                            <span class="material-symbols-outlined text-[16px]">trip_origin</span>
+                            Noutokuvat
+                        </h5>
+                        <div class="flex flex-wrap gap-4">
+                            {% if order.images and order.images.pickup %}
+                            {% for img in order.images.pickup %}
+                            <div
+                                class="w-32 h-32 rounded-xl bg-slate-100 overflow-hidden relative border border-slate-200 group flex-none shadow-sm">
+                                <a href="{{ img.url }}" target="_blank">
+                                    <img class="w-full h-full object-cover hover:scale-110 transition-transform duration-500"
+                                        src="{{ img.url }}" />
+                                </a>
+                                <form
+                                    action="{{ url_for('admin.delete_order_image_by_id', order_id=order.id, image_type='pickup', image_id=img.id) }}"
+                                    method="POST"
+                                    class="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <button type="submit"
+                                        class="bg-white/90 p-1.5 rounded-full text-red-500 hover:text-red-700 shadow-sm"
+                                        onclick="return confirm('Poista kuva?')">
+                                        <span class="material-symbols-outlined text-[16px]">delete</span>
+                                    </button>
+                                </form>
                             </div>
+                            {% endfor %}
+                            {% endif %}
+                            <form action="{{ url_for('admin.upload_order_image', order_id=order.id) }}" method="POST"
+                                enctype="multipart/form-data" class="flex-none">
+                                <input type="hidden" name="image_type" value="pickup">
+                                <label
+                                    class="cursor-pointer w-32 h-32 rounded-xl bg-slate-50 border-2 border-dashed border-slate-300 flex flex-col items-center justify-center text-slate-400 hover:text-primary hover:border-primary hover:bg-blue-50 transition-all shadow-sm">
+                                    <span class="material-symbols-outlined text-3xl mb-1">add_a_photo</span>
+                                    <span class="text-xs font-medium">Lisää kuva</span>
+                                    <input type="file" name="image" class="hidden" onchange="this.form.submit()"
+                                        accept="image/*">
+                                </label>
+                            </form>
+                        </div>
+                        {% if not order.images or not order.images.pickup %}
+                        <p class="text-sm text-slate-400 italic mt-3">Ei noutokuvia</p>
+                        {% endif %}
+                    </div>
 
-                            <div class="field-grid-2col">
-                                <div>
-                                    <label>Merkki</label>
-                                    <input type="text" name="car_brand" value="{{ order.car_brand or '' }}"
-                                        placeholder="Toyota">
-                                </div>
-                                <div>
-                                    <label>Malli</label>
-                                    <input type="text" name="car_model" value="{{ order.car_model or '' }}"
-                                        placeholder="Corolla">
-                                </div>
+                    <!-- Delivery Photos -->
+                    <div>
+                        <h5 class="text-xs font-bold text-slate-500 uppercase mb-3 flex items-center gap-2">
+                            <span class="material-symbols-outlined text-[16px]">location_on</span>
+                            Toimituskuvat
+                        </h5>
+                        <div class="flex flex-wrap gap-4">
+                            {% if order.images and order.images.delivery %}
+                            {% for img in order.images.delivery %}
+                            <div
+                                class="w-32 h-32 rounded-xl bg-slate-100 overflow-hidden relative border border-slate-200 group flex-none shadow-sm">
+                                <a href="{{ img.url }}" target="_blank">
+                                    <img class="w-full h-full object-cover hover:scale-110 transition-transform duration-500"
+                                        src="{{ img.url }}" />
+                                </a>
+                                <form
+                                    action="{{ url_for('admin.delete_order_image_by_id', order_id=order.id, image_type='delivery', image_id=img.id) }}"
+                                    method="POST"
+                                    class="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <button type="submit"
+                                        class="bg-white/90 p-1.5 rounded-full text-red-500 hover:text-red-700 shadow-sm"
+                                        onclick="return confirm('Poista kuva?')">
+                                        <span class="material-symbols-outlined text-[16px]">delete</span>
+                                    </button>
+                                </form>
                             </div>
+                            {% endfor %}
+                            {% endif %}
+                            <form action="{{ url_for('admin.upload_order_image', order_id=order.id) }}" method="POST"
+                                enctype="multipart/form-data" class="flex-none">
+                                <input type="hidden" name="image_type" value="delivery">
+                                <label
+                                    class="cursor-pointer w-32 h-32 rounded-xl bg-slate-50 border-2 border-dashed border-slate-300 flex flex-col items-center justify-center text-slate-400 hover:text-primary hover:border-primary hover:bg-blue-50 transition-all shadow-sm">
+                                    <span class="material-symbols-outlined text-3xl mb-1">add_a_photo</span>
+                                    <span class="text-xs font-medium">Lisää kuva</span>
+                                    <input type="file" name="image" class="hidden" onchange="this.form.submit()"
+                                        accept="image/*">
+                                </label>
+                            </form>
+                        </div>
+                        {% if not order.images or not order.images.delivery %}
+                        <p class="text-sm text-slate-400 italic mt-3">Ei toimituskuvia</p>
+                        {% endif %}
+                    </div>
+                </div>
 
-                            <div>
-                                <label>Lisätiedot (näkyy kaikille kuljettajille)</label>
-                                <textarea name="additional_info" rows="3"
-                                    placeholder="Esim. erikoisohjeet, varoitukset, yhteydenotot...">{{- order.additional_info or '' -}}</textarea>
-                                <p class="field-hint field-hint-info">{{ icons.alert(14, '#1e40af', 'icon-inline') }}
-                                    Näkyy kaikille kuljettajille työlistan kortissa (myös ennen hyväksymistä)</p>
-                            </div>
+            </div>
 
-                            <div>
-                                <label>Lisätiedot kuskille</label>
-                                <textarea name="driver_notes" rows="3"
-                                    placeholder="Esim. liikkeen nimi, erityisohjeet...">{{- order.driver_notes or '' -}}</textarea>
-                                <p class="field-hint field-hint-success">{{ icons.alert(14, '#166534', 'icon-inline') }}
-                                    Näkyy vain hyväksyneelle kuljettajalle</p>
-                            </div>
+            <!-- RIGHT COLUMN (Action Center) -->
+            <div class="lg:col-span-4 flex flex-col gap-6 sticky top-24">
 
-                            <button type="submit" class="btn btn-success btn-large">
-                                {{ icons.check_circle(18, 'currentColor', 'icon-inline') }} Tallenna
+                <!-- Status Quick Actions -->
+                <div class="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
+                    <h3 class="text-sm font-bold uppercase tracking-wider text-slate-500 mb-4">Tilan pikamuutos</h3>
+
+                    <!-- Hidden inputs for JS -->
+                    <input type="hidden" id="current_order_id" value="{{ order.id }}">
+                    <input type="hidden" id="selected_status" value="{{ order.status }}">
+
+                    <div class="grid grid-cols-2 gap-2 mb-4">
+                        {% set statuses = [
+                        ('NEW', 'Uusi', 'schedule', 'bg-amber-500'),
+                        ('CONFIRMED', 'Vahvistettu', 'check_circle', 'bg-blue-500'),
+                        ('ASSIGNED_TO_DRIVER', 'Noudossa', 'local_shipping', 'bg-indigo-500'),
+                        ('IN_TRANSIT', 'Kuljetuksessa', 'route', 'bg-cyan-500'),
+                        ('DELIVERED', 'Toimitettu', 'check', 'bg-green-500'),
+                        ('CANCELLED', 'Peruutettu', 'block', 'bg-slate-400')
+                        ] %}
+                        {% for status_code, status_label, icon, color in statuses %}
+                        {% set is_active = order.status == status_code %}
+                        {% set ring_color = color.replace('bg-', 'ring-') %}
+                        <button type="button"
+                            onclick="selectStatus('{{ status_code }}', '{{ color }}', '{{ ring_color }}', this)"
+                            class="status-btn flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-medium transition-all w-full text-left
+                                {% if is_active %}{{ color }} text-white ring-2 ring-offset-2 {{ ring_color }}{% else %}bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200{% endif %}"
+                            data-status="{{ status_code }}">
+                            <span class="material-symbols-outlined text-[18px]">{{ icon }}</span>
+                            <span class="truncate">{{ status_label }}</span>
+                        </button>
+                        {% endfor %}
+                    </div>
+
+                    <button id="save-status-btn" onclick="saveStatus()"
+                        class="w-full py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-lg font-bold transition-all shadow-sm flex items-center justify-center gap-2 mb-4">
+                        <span class="material-symbols-outlined text-[20px]">save</span>
+                        Tallenna tila
+                    </button>
+
+                    {% if order.status == 'NEW' %}
+                    <!-- HIDDEN AS PER REQUEST
+                    <div class="border-t border-slate-100 pt-4 mt-2">
+                        <form method="POST" action="{{ url_for('admin.confirm_order', order_id=order.id) }}">
+                            <button type="submit"
+                                class="w-full py-3 bg-green-600 text-white rounded-lg font-bold hover:bg-green-700 transition-all shadow-sm flex items-center justify-center gap-2"
+                                {% if not order.driver_reward or order.driver_reward <=0 %}disabled
+                                style="background-color: #cbd5e1; color: #64748b; cursor: not-allowed;"
+                                title="Aseta palkkio ensin" {% endif %}>
+                                <span class="material-symbols-outlined">publish</span>
+                                Vahvista & Julkaise
                             </button>
+                            {% if not order.driver_reward or order.driver_reward <= 0 %} <p
+                                class="text-xs text-amber-600 mt-2 text-center flex items-center justify-center gap-1">
+                                <span class="material-symbols-outlined text-[14px]">info</span>
+                                Aseta palkkio julkaisua varten
+                                </p>
+                                {% endif %}
                         </form>
                     </div>
+                    -->
+                    {% endif %}
                 </div>
-                <!-- End admin-config-section -->
 
-                <!-- Actions Section -->
-                <div class="admin-actions-section">
-                    <div class="section-header section-header-actions">
-                        {{ icons.alert(18, 'currentColor', 'icon-inline') }}
-                        <span>Tilauksen toiminnot</span>
-                    </div>
-                    <div class="section-body">
+                <!-- Driver Assignment -->
+                <!-- HIDDEN AS PER REQUEST
+                <div class="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
+                   ... (hidden content) ...
+                </div>
+                -->
 
-                        <div class="status-section">
-                            <!-- Current Status -->
-                            {% if order.status == 'NEW' %}
-                            <div class="alert-box alert-warning">
-                                <h4 class="alert-title">{{ icons.alert(16, '#78350f', 'icon-inline') }} Odottaa
-                                    vahvistusta</h4>
-                                <p>Aseta palkkio yllä ennen vahvistamista.</p>
+                <!-- Quick Checklist (Tiedot) -->
+                <div class="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
+                    <h3 class="text-sm font-bold uppercase tracking-wider text-slate-500 mb-4">Tiedot</h3>
+
+                    <div class="space-y-4">
+                        <!-- Pickup Info -->
+                        {% if order.pickup_address or pickup_date_fi or pickup_time %}
+                        <div>
+                            <div class="flex items-center gap-2 mb-1">
+                                <span class="material-symbols-outlined text-slate-400 text-[18px]">trip_origin</span>
+                                <span class="text-xs font-bold text-slate-500 uppercase">Nouto</span>
                             </div>
-                            <form method="POST" action="{{ url_for('admin.confirm_order', order_id=order.id) }}"
-                                class="confirm-order-form">
-                                {% if order.driver_reward and order.driver_reward > 0 %}
-                                <div class="confirm-reward-info">
-                                    <p class="confirm-reward-label">Kuskin palkkio:</p>
-                                    <p class="confirm-reward-value">{{ order.driver_reward|round(2) }} €</p>
-                                </div>
+                            {% if order.pickup_address %}
+                            <p class="text-sm font-semibold text-slate-900 ml-6">{{ order.pickup_address }}</p>
+                            {% endif %}
+                            {% if pickup_date_fi or pickup_time %}
+                            <p class="text-sm text-slate-600 ml-6">
+                                {{ pickup_date_fi }}{% if pickup_date_fi and pickup_time %}, {% endif %}{{ pickup_time
+                                }}
+                            </p>
+                            {% endif %}
+                        </div>
+                        {% endif %}
+
+                        <!-- Dropoff Info -->
+                        {% if order.dropoff_address or last_delivery_date_fi or delivery_time %}
+                        <div>
+                            <div class="flex items-center gap-2 mb-1">
+                                <span class="material-symbols-outlined text-slate-400 text-[18px]">location_on</span>
+                                <span class="text-xs font-bold text-slate-500 uppercase">Toimitus</span>
+                            </div>
+                            {% if order.dropoff_address %}
+                            <p class="text-sm font-semibold text-slate-900 ml-6">{{ order.dropoff_address }}</p>
+                            {% endif %}
+                            {% if last_delivery_date_fi or delivery_time %}
+                            <p class="text-sm text-slate-600 ml-6">
+                                {{ last_delivery_date_fi or '-' }}{% if delivery_time %}, {{ delivery_time }}{% endif %}
+                            </p>
+                            {% endif %}
+                        </div>
+                        {% endif %}
+
+                        <!-- Direct Delivery (Suoraan asiakkaalle) -->
+                        {% if order.direct_to_customer %}
+                        <div>
+                            <div class="flex items-center gap-2 mb-1">
+                                <span class="material-symbols-outlined text-slate-400 text-[18px]">local_shipping</span>
+                                <span class="text-xs font-bold text-slate-500 uppercase">Suoraan asiakkaalle</span>
+                            </div>
+                            <p class="text-sm font-semibold text-slate-900 ml-6">
+                                <span class="text-green-600">✓ Kyllä</span>
+                            </p>
+                        </div>
+                        {% endif %}
+
+                        <!-- Vehicle Info -->
+                        {% if order.reg_number or order.winter_tires is not none %}
+                        <div>
+                            <div class="flex items-center gap-2 mb-1">
+                                <span class="material-symbols-outlined text-slate-400 text-[18px]">directions_car</span>
+                                <span class="text-xs font-bold text-slate-500 uppercase">Ajoneuvo</span>
+                            </div>
+                            {% if order.reg_number %}
+                            <p class="text-sm font-semibold text-slate-900 ml-6">{{ order.reg_number }}</p>
+                            {% endif %}
+                            {% if order.winter_tires is not none %}
+                            <p class="text-sm text-slate-600 ml-6 flex items-center gap-1">
+                                <span>Talvirenkaat:</span>
+                                {% if order.winter_tires %}
+                                <span class="text-green-600 font-medium">Kyllä</span>
+                                {% else %}
+                                <span class="text-slate-500">Ei</span>
                                 {% endif %}
-                                <button type="submit" class="btn btn-success btn-large" {% if not order.driver_reward or
-                                    order.driver_reward <=0 %}disabled{% endif %}>
-                                    {{ icons.check_circle(16, 'currentColor', 'icon-inline') }} Vahvista ja julkaise
-                                </button>
-                            </form>
-                            {% elif order.status == 'CONFIRMED' and not order.driver_id %}
-                            {% if order.driver_reward and order.driver_reward > 0 %}
-                            <div class="alert-box alert-success">
-                                <h4 class="alert-title">{{ icons.check_circle(16, '#166534', 'icon-inline') }} Julkaistu
-                                </h4>
-                                <p>Odottaa kuljettajaa (palkkio: {{ order.driver_reward|round(2) }} €)</p>
-                            </div>
-                            {% else %}
-                            <div class="alert-box alert-warning">
-                                <h4 class="alert-title">{{ icons.alert(16, '#78350f', 'icon-inline') }} Palkkio puuttuu
-                                </h4>
-                                <p>Aseta palkkio, jotta tilaus näkyy kuljettajille.</p>
-                            </div>
-                            {% endif %}
-                            {% elif order.driver_id %}
-                            <div class="alert-box alert-info">
-                                <h4 class="alert-title">{{ icons.user(16, '#3730a3', 'icon-inline') }} Työn alla</h4>
-                                <p>Kuljettaja suorittaa kuljetusta{% if order.driver_reward %} (palkkio: {{
-                                    order.driver_reward|round(2) }} €){% endif %}.</p>
-                            </div>
-                            {% endif %}
-
-                            <!-- Status Update Form -->
-                            <form method="POST" action="/admin/update" class="status-update-form">
-                                <input type="hidden" name="id" value="{{ order.id }}">
-                                <div class="status-update-field-danger">
-                                    <h4 class="status-update-title">{{ icons.alert(16, '#991b1b', 'icon-inline') }}
-                                        Vaihda tilauksen tila</h4>
-                                    <p class="status-update-warning">Muutos lähettää ilmoituksen asiakkaalle.</p>
-
-                                    <label for="order-status-select">Valitse tila:</label>
-                                    <select name="status" id="order-status-select" class="status-select">
-                                        <option value="NEW" {% if order.status=='NEW' %}selected{% endif %}>Uusi
-                                        </option>
-                                        <option value="CONFIRMED" {% if order.status=='CONFIRMED' %}selected{% endif %}>
-                                            Vahvistettu</option>
-                                        <option value="ASSIGNED_TO_DRIVER" {% if order.status=='ASSIGNED_TO_DRIVER'
-                                            %}selected{% endif %}>Noudossa</option>
-                                        <option value="IN_TRANSIT" {% if order.status=='IN_TRANSIT' %}selected{% endif
-                                            %}>Kuljetuksessa</option>
-                                        <option value="DELIVERED" {% if order.status=='DELIVERED' %}selected{% endif %}>
-                                            Toimitettu</option>
-                                        <option value="CANCELLED" {% if order.status=='CANCELLED' %}selected{% endif %}>
-                                            Peruutettu</option>
-                                    </select>
-
-                                    <button type="submit" class="btn btn-danger btn-large">
-                                        {{ icons.check_circle(16, 'currentColor', 'icon-inline') }} Päivitä tila
-                                    </button>
-                                </div>
-                            </form>
-                        </div>
-                    </div>
-                    <!-- End admin-actions-section -->
-                </div>
-                <!-- End order-admin-section -->
-            </div>
-            <!-- End order-main-grid -->
-
-            <div class="images-section">
-                {% set image_type = 'pickup' %}
-                {% set images_data = order.images.pickup if order.images else [] %}
-                {% include 'components/admin_image_section.html' with context %}
-
-                {% set image_type = 'delivery' %}
-                {% set images_data = order.images.delivery if order.images else [] %}
-                {% include 'components/admin_image_section.html' with context %}
-            </div>
-            <!-- Driver Information Section (Full Width) -->
-            {% if order.driver_id %}
-            <div class="admin-driver-section">
-                <div class="section-header section-header-config">
-                    {{ icons.user(18, 'currentColor', 'icon-inline') }}
-                    <span>Kuljettaja</span>
-                </div>
-                <div class="section-body">
-                    <div class="driver-info-content">
-                        <div class="driver-info-grid">
-                            <div class="driver-info-item">
-                                <span class="driver-info-label">Nimi</span>
-                                <span class="driver-info-value">{{ order.driver_name or 'Tuntematon' }}</span>
-                            </div>
-                            {% if order.driver_phone %}
-                            <div class="driver-info-item">
-                                <span class="driver-info-label">Puhelin</span>
-                                <a href="tel:{{ order.driver_phone }}" class="driver-info-link">
-                                    {{ icons.phone(16, '#4f46e5', 'icon-inline') }} {{ order.driver_phone }}
-                                </a>
-                            </div>
-                            {% endif %}
-                            {% if order.driver_reward %}
-                            <div class="driver-info-item">
-                                <span class="driver-info-label">Palkkio</span>
-                                <span class="driver-info-value driver-info-reward">{{ order.driver_reward|round(2) }}
-                                    €</span>
-                            </div>
+                            </p>
                             {% endif %}
                         </div>
+                        {% endif %}
+
+                        <!-- Customer Comment -->
+                        {% if order.additional_info %}
+                        <div>
+                            <div class="flex items-center gap-2 mb-1">
+                                <span class="material-symbols-outlined text-slate-400 text-[18px]">chat</span>
+                                <span class="text-xs font-bold text-slate-500 uppercase">Kommentti</span>
+                            </div>
+                            <p
+                                class="text-sm text-slate-700 italic ml-6 bg-amber-50 p-2 rounded border border-amber-100">
+                                "{{ order.additional_info }}"
+                            </p>
+                        </div>
+                        {% endif %}
                     </div>
                 </div>
-            </div>
-            {% endif %}
 
+                <!-- Financial Breakdown with Palkkio Input -->
+                <div class="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
+                    <h3 class="text-sm font-bold uppercase tracking-wider text-slate-500 mb-4">Talous & Palkkio</h3>
+
+                    <!-- Order Price -->
+                    <div class="flex flex-col gap-3 mb-4">
+                        <div class="flex justify-between items-center text-sm">
+                            <span class="text-slate-500">Netto (ALV 0%)</span>
+                            <span class="text-slate-900 font-medium">{{ "%.2f"|format(order.price_gross / 1.255) }}
+                                €</span>
+                        </div>
+                        <div class="flex justify-between items-center text-sm">
+                            <span class="text-slate-500">ALV (25.5%)</span>
+                            <span class="text-slate-900 font-medium">{{ "%.2f"|format(order.price_gross -
+                                (order.price_gross / 1.255)) }} €</span>
+                        </div>
+                        <div class="h-px bg-slate-100 my-1"></div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm font-bold text-slate-900">Yhteensä</span>
+                            <span class="text-lg font-bold text-primary">{{ "%.2f"|format(order.price_gross) }} €</span>
+                        </div>
+                    </div>
+
+                    <!-- Driver Reward Input - Now in sidebar -->
+                    <!-- HIDDEN AS PER REQUEST
+                    <div class="bg-slate-50 rounded-lg p-4 border border-slate-100">
+                        <label class="text-xs font-bold text-slate-500 uppercase block mb-2">Kuskin palkkio</label>
+                        <div class="flex gap-2 items-center">
+                            <input type="number" id="driver_reward_input" step="0.01" min="0"
+                                value="{{ order.driver_reward or '' }}" placeholder="0.00"
+                                class="rounded-lg border-slate-300 text-lg font-bold w-full"
+                                onchange="document.getElementById('driver_reward_hidden').value = this.value">
+                            <span class="text-lg font-bold text-slate-500">€</span>
+                        </div>
+                        <p class="text-xs text-slate-400 mt-2">Tallennetaan "Tallenna muutokset" -painikkeella</p>
+                    </div>
+                    -->
+
+                    <!-- Profit calculation -->
+                    {% if order.driver_reward %}
+                    <div class="mt-4 pt-4 border-t border-slate-100">
+                        <div class="flex justify-between items-center text-sm">
+                            <span class="text-slate-500">Kate</span>
+                            <span class="text-green-600 font-bold">{{ "%.2f"|format((order.price_gross / 1.255) -
+                                order.driver_reward) }} €</span>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
         </div>
-    </div>
+    </main>
 
-    <!-- Include Admin Image Modal Component -->
-    {% include 'components/admin_image_modal.html' %}
-    {% endblock %}
-
-    {% block extra_js %}
-    <!-- Admin Image Modal -->
-    <script src="{{ url_for('static', filename='js/components/admin-image-modal.js') }}"
-        data-order-id="{{ order.id }}"></script>
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 
     <script>
-        // Set global order ID for image modal from data attribute
-        const scriptTag = document.querySelector('[data-order-id]');
-        window.currentOrderId = parseInt(scriptTag.dataset.orderId, 10);
-
-        // Status update confirmation dialog
-        document.addEventListener('DOMContentLoaded', function () {
-            const statusForm = document.querySelector('.status-update-form');
-            const statusSelect = document.querySelector('.status-select');
-            const currentStatus = '{{ order.status }}';
-
-            if (statusForm && statusSelect) {
-                statusForm.addEventListener('submit', function (e) {
-                    const newStatus = statusSelect.value;
-                    const newStatusText = statusSelect.options[statusSelect.selectedIndex].text;
-
-                    // Only show confirmation if status is actually changing
-                    if (newStatus !== currentStatus) {
-                        e.preventDefault();
-
-                        const confirmMessage = `Haluatko varmasti vaihtaa tilauksen tilan?\n\n` +
-                            `Uusi tila: ${newStatusText}\n\n` +
-                            `Tämä lähettää sähköposti-ilmoituksen asiakkaalle.`;
-
-                        if (confirm(confirmMessage)) {
-                            // User confirmed, submit the form
-                            statusForm.submit();
-                        }
-                    }
-                    // If status hasn't changed, allow form submission without confirmation
-                });
+        // Auto-hide flash messages
+        setTimeout(function () {
+            const messages = document.querySelector('.flash-messages');
+            if (messages) {
+                messages.style.transition = 'opacity 1s';
+                messages.style.opacity = '0';
+                setTimeout(() => messages.remove(), 1000);
             }
+        }, 5000);
+
+        // Initialize Leaflet Map with localStorage caching
+        document.addEventListener('DOMContentLoaded', function () {
+            const mapContainer = document.getElementById('order-map');
+            if (!mapContainer) return;
+
+            const orderId = "{{ order.id }}";
+            const pickupAddress = "{{ order.pickup_address | e }}";
+            const dropoffAddress = "{{ order.dropoff_address | e }}";
+            const cacheKey = `map_coords_${orderId}`;
+
+            const map = L.map('order-map', {
+                zoomControl: false,
+                attributionControl: false,
+                dragging: true,
+                touchZoom: true,
+                doubleClickZoom: true,
+                scrollWheelZoom: false
+            }).setView([61.9241, 25.7482], 6);
+
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);
+
+            function showRoute(pickupLatLng, dropoffLatLng) {
+                const startIcon = L.divIcon({ className: 'bg-transparent', html: `<div class="w-4 h-4 rounded-full bg-white border-4 border-blue-600 shadow-lg"></div>`, iconSize: [16, 16], iconAnchor: [8, 8] });
+                const endIcon = L.divIcon({ className: 'bg-transparent', html: `<span class="material-symbols-outlined text-primary text-3xl drop-shadow-lg" style="font-variation-settings: 'FILL' 1;">location_on</span>`, iconSize: [30, 30], iconAnchor: [15, 30] });
+
+                L.marker(pickupLatLng, { icon: startIcon }).addTo(map);
+                L.marker(dropoffLatLng, { icon: endIcon }).addTo(map);
+                L.polyline([pickupLatLng, dropoffLatLng], { color: '#309ce8', weight: 4, opacity: 0.8, dashArray: '10, 10' }).addTo(map);
+
+                const group = L.featureGroup([L.marker(pickupLatLng), L.marker(dropoffLatLng)]);
+                map.fitBounds(group.getBounds(), { padding: [30, 30] });
+            }
+
+            // Try to load from cache first
+            const cached = localStorage.getItem(cacheKey);
+            if (cached) {
+                try {
+                    const coords = JSON.parse(cached);
+                    showRoute(coords.pickup, coords.dropoff);
+                    return; // Use cached data, skip geocoding
+                } catch (e) {
+                    localStorage.removeItem(cacheKey);
+                }
+            }
+
+            // Geocode and cache for future visits
+            async function geocodeAndShowRoute() {
+                try {
+                    const pickupResponse = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(pickupAddress)}&countrycodes=fi&limit=1`);
+                    const pickupData = await pickupResponse.json();
+                    const dropoffResponse = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(dropoffAddress)}&countrycodes=fi&limit=1`);
+                    const dropoffData = await dropoffResponse.json();
+
+                    if (pickupData.length > 0 && dropoffData.length > 0) {
+                        const pickupLatLng = [parseFloat(pickupData[0].lat), parseFloat(pickupData[0].lon)];
+                        const dropoffLatLng = [parseFloat(dropoffData[0].lat), parseFloat(dropoffData[0].lon)];
+
+                        // Cache the coordinates
+                        localStorage.setItem(cacheKey, JSON.stringify({ pickup: pickupLatLng, dropoff: dropoffLatLng }));
+
+                        showRoute(pickupLatLng, dropoffLatLng);
+                    }
+                } catch (error) { console.log('Geocoding failed:', error); }
+            }
+            geocodeAndShowRoute();
         });
+
+        // Status Selection Logic
+        function selectStatus(status, colorClass, ringClass, btn) {
+            // Update hidden input
+            document.getElementById('selected_status').value = status;
+
+            // Reset all buttons to default style
+            document.querySelectorAll('.status-btn').forEach(b => {
+                const defaultClasses = "status-btn flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-medium transition-all w-full text-left bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200";
+                b.className = defaultClasses;
+            });
+
+            // Apply active style to selected button
+            // Note: colorClass includes 'bg-color-500', ringClass includes 'ring-color-500'
+            const activeClasses = `status-btn flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-medium transition-all w-full text-left ${colorClass} text-white ring-2 ring-offset-2 ${ringClass}`;
+            btn.className = activeClasses;
+        }
+
+        // AJAX Status Save
+        async function saveStatus() {
+            const btn = document.getElementById('save-status-btn');
+            const orderId = document.getElementById('current_order_id').value;
+            const status = document.getElementById('selected_status').value;
+
+            if (!status) return;
+
+            // Disable button
+            const originalContent = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<span class="material-symbols-outlined animate-spin text-[20px]">refresh</span> Tallennetaan...';
+
+            try {
+                const response = await fetch('/admin/update', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        id: orderId,
+                        status: status
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showFlashMessage(data.message, 'success');
+                    // Update top status badge if possible
+                    updateStatusBadge(data.status, data.status_fi);
+                } else {
+                    showFlashMessage(data.error || 'Virhe tallennuksessa', 'error');
+                }
+            } catch (error) {
+                console.error('Save error:', error);
+                showFlashMessage('Tapahtui yhteysvirhe', 'error');
+            } finally {
+                // Re-enable button
+                btn.disabled = false;
+                btn.innerHTML = originalContent;
+            }
+        }
+
+        function showFlashMessage(message, type) {
+            let container = document.querySelector('.flash-messages');
+            if (!container) {
+                container = document.createElement('div');
+                container.className = 'flash-messages';
+                document.body.appendChild(container); // Append to body if not exists (styles are global)
+            }
+
+            const msgDiv = document.createElement('div');
+            msgDiv.className = `flash-message ${type}`;
+            msgDiv.textContent = message;
+
+            container.appendChild(msgDiv);
+
+            // Auto-remove
+            setTimeout(() => {
+                msgDiv.style.opacity = '0';
+                setTimeout(() => msgDiv.remove(), 1000);
+            }, 5000);
+        }
+
+        function updateStatusBadge(status, label) {
+            // Find the badge in the header (h1 + span)
+            // It's a bit specific selector, but let's try to be safe
+            const headerBadge = document.querySelector('h1 + span');
+            if (headerBadge) {
+                headerBadge.textContent = label;
+
+                // Map status to colors (matching server-side logic)
+                const colors = {
+                    'NEW': 'bg-amber-50 text-amber-700 border-amber-100',
+                    'CONFIRMED': 'bg-blue-50 text-blue-700 border-blue-100',
+                    'ASSIGNED_TO_DRIVER': 'bg-indigo-50 text-indigo-700 border-indigo-100',
+                    'IN_TRANSIT': 'bg-cyan-50 text-cyan-700 border-cyan-100',
+                    'DELIVERED': 'bg-green-50 text-green-700 border-green-100',
+                    'CANCELLED': 'bg-slate-50 text-slate-600 border-slate-100'
+                };
+
+                const colorClass = colors[status] || 'bg-slate-50 text-slate-600 border-slate-100';
+                headerBadge.className = `px-3 py-1 text-sm font-semibold rounded-full border ${colorClass}`;
+            }
+        }
     </script>
-    <script src="{{ url_for('static', filename='js/admin_navigation.js') }}"></script>
-    {% endblock %}
+
+    {% set footer_button_text = 'Laskuri' %}
+    {% include 'components/dashboard_footer.html' %}
+</body>
+
+
+</html>

@@ -1,338 +1,620 @@
-{% extends "base/layout.html" %}
+<!DOCTYPE html>
+<html class="light" lang="fi">
+
+<head>
+  <meta charset="utf-8" />
+  <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+  <title>Levoro Admin - Hakemus #{{ application.id }}</title>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+    rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+  <script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "primary": "#1392ec",
+            "background-light": "#f6f7f8",
+            "background-dark": "#101a22",
+          },
+          fontFamily: {
+            "display": ["Inter", "sans-serif"]
+          },
+          borderRadius: { "DEFAULT": "0.5rem", "lg": "1rem", "xl": "1.5rem", "full": "9999px" },
+        },
+      },
+    }
+  </script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&amp;display=swap"
+    rel="stylesheet" />
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+    }
+
+    /* Hide global scrollbar */
+    body::-webkit-scrollbar,
+    html::-webkit-scrollbar {
+      display: none;
+    }
+
+    body,
+    html {
+      -ms-overflow-style: none;
+      /* IE and Edge */
+      scrollbar-width: none;
+      /* Firefox */
+    }
+
+    /* Custom scrollbar */
+    .custom-scrollbar::-webkit-scrollbar {
+      height: 8px;
+      width: 8px;
+    }
+
+    .custom-scrollbar::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background-color: #cbd5e1;
+      border-radius: 4px;
+    }
+
+    .dark .custom-scrollbar::-webkit-scrollbar-thumb {
+      background-color: #475569;
+    }
+
+    .flash-messages {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 1000;
+    }
+
+    .flash-message {
+      padding: 1rem;
+      margin-bottom: 1rem;
+      border-radius: 0.5rem;
+      color: white;
+      font-weight: 500;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    }
+
+    .flash-message.success {
+      background-color: #10b981;
+    }
+
+    .flash-message.error {
+      background-color: #ef4444;
+    }
+
+    .flash-message.warning {
+      background-color: #f59e0b;
+    }
+
+    .flash-message.info {
+      background-color: #3b82f6;
+    }
+
+    /* License Image Preview Styles */
+    .license-image-box {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .license-preview-link {
+      display: block;
+      text-decoration: none;
+    }
+
+    .license-preview {
+      position: relative;
+      border-radius: 0.75rem;
+      overflow: hidden;
+      background: #f8fafc;
+      border: 2px solid #e2e8f0;
+      aspect-ratio: 16 / 10;
+      transition: all 0.3s ease;
+    }
+
+    .license-preview:hover {
+      border-color: #1392ec;
+      box-shadow: 0 8px 24px rgba(19, 146, 236, 0.15);
+    }
+
+    .license-thumbnail {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .license-preview-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+
+    .license-preview:hover .license-preview-overlay {
+      opacity: 1;
+    }
+
+    .license-preview-overlay span {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      color: white;
+      font-weight: 600;
+      font-size: 0.9rem;
+    }
+
+    .license-preview-empty {
+      padding: 2rem;
+      background: #f8fafc;
+      border: 2px dashed #e2e8f0;
+      border-radius: 0.75rem;
+      text-align: center;
+      color: #94a3b8;
+    }
+
+    /* Danger Zone Styles */
+    .danger-zone-card {
+      border: 1px solid #fee2e2;
+      background: #fffafa;
+    }
+
+    .danger-zone-header {
+      border-bottom: 1px solid #fee2e2;
+      background: #fef2f2;
+      padding: 1rem 1.5rem;
+    }
+
+    .danger-zone-title {
+      color: #dc2626;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin: 0;
+      font-weight: 600;
+    }
+  </style>
+</head>
+
 {% import 'components/icons.html' as icons %}
 
-{% block title %}Hakemus #{{ application.id }} – Admin{% endblock %}
+<body
+  class="bg-background-light dark:bg-background-dark min-h-screen w-full flex flex-col text-[#0d161b] dark:text-white transition-colors duration-200">
 
-{% block content %}
-<div class="admin-container">
-  {% block admin_title %}Kuljettajahakemus #{{ application.id }}{% endblock %}
-  {% include "admin/navigation.html" %}
-
+  <!-- Flash Messages -->
   {% with messages = get_flashed_messages(with_categories=true) %}
   {% if messages %}
-  {% for category, message in messages %}
-  <div class="alert alert-{% if category == 'error' %}danger{% else %}{{ category }}{% endif %} mb-4">
-    {{ message }}
+  <div class="flash-messages">
+    {% for category, message in messages %}
+    <div class="flash-message {{ category }}">
+      {{ message }}
+    </div>
+    {% endfor %}
   </div>
-  {% endfor %}
   {% endif %}
   {% endwith %}
 
-  <!-- Application Status -->
-  <div class="card mb-6">
-    <div class="card-header">
-      <h3 class="card-title">Hakemuksen tila</h3>
+  <!-- Top Navigation -->
+  <header
+    class="sticky top-0 z-50 border-b border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-[#101a22]/80 backdrop-blur-md">
+    <!-- Top Row: Logo & Main Nav -->
+    <div class="flex items-center justify-between px-6 py-3 lg:px-10 w-full max-w-[1440px] mx-auto">
+      <a href="/" class="flex items-center gap-4">
+        <img src="/static/LevoroLogo.png" alt="Levoro" class="h-20 w-auto">
+      </a>
+      <div class="flex flex-1 justify-end gap-8">
+        <!-- Navigation Links -->
+        <nav class="hidden md:flex items-center gap-2">
+
+          <a class="px-3 py-2 rounded-md text-slate-700 hover:text-primary hover:bg-slate-100 font-semibold transition-colors"
+            href="{{ url_for('main.admin_dashboard') }}">Tilaukset</a>
+
+          <a class="px-3 py-2 rounded-md text-slate-700 hover:text-primary hover:bg-slate-100 font-semibold transition-colors"
+            href="{{ url_for('admin.users') }}">Käyttäjät</a>
+
+          <a class="px-3 py-2 rounded-md text-slate-700 hover:text-primary hover:bg-slate-100 font-semibold transition-colors"
+            href="{{ url_for('admin.drivers') }}">Kuljettajat</a>
+
+          <a class="px-3 py-2 rounded-md bg-slate-100 text-primary font-semibold transition-colors"
+            href="{{ url_for('admin.driver_applications') }}">Hakemukset</a>
+
+          <a class="px-3 py-2 rounded-md text-slate-700 hover:text-primary hover:bg-slate-100 font-semibold transition-colors"
+            href="{{ url_for('admin.discounts') }}">Alennukset</a>
+
+          <a class="px-3 py-2 rounded-md text-slate-700 hover:text-primary hover:bg-slate-100 font-semibold transition-colors"
+            href="{{ url_for('admin.reviews') }}">Arvostelut</a>
+
+          {% if current_user.is_authenticated %}
+          <div class="px-3 py-2 rounded-full bg-slate-100 text-slate-600 font-medium text-sm">
+            Hei, {{ current_user.name }}
+          </div>
+          {% endif %}
+
+          <a class="px-3 py-2 rounded-md text-slate-700 hover:text-primary hover:bg-slate-100 font-semibold transition-colors"
+            href="{{ url_for('auth.logout') }}">Ulos</a>
+        </nav>
+      </div>
     </div>
-    <div class="card-body">
-      <div class="flex items-center justify-between">
-        {% if application.status == 'pending' %}
-        {% set status_class = 'status-new' %}
-        {% set status_text = '- Odottaa käsittelyä' %}
-        {% elif application.status == 'approved' %}
-        {% set status_class = 'status-confirmed' %}
-        {% set status_text = '✓ Hyväksytty' %}
-        {% elif application.status == 'denied' %}
-        {% set status_class = 'status-cancelled' %}
-        {% set status_text = 'X Hylätty' %}
+  </header>
+
+  <!-- Main Content -->
+  <main class="flex-1 w-full max-w-[1440px] mx-auto p-6 lg:p-10 flex flex-col gap-8">
+
+    <!-- Page Header & Back Link -->
+    <div class="flex flex-col gap-2">
+      <a href="{{ url_for('admin.driver_applications') }}"
+        class="inline-flex items-center gap-1.5 px-3 py-1.5 -ml-3 rounded-lg text-slate-500 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800 transition-all w-fit">
+        <span class="material-symbols-outlined text-[20px]">arrow_back</span>
+        <span class="text-sm font-medium">Takaisin hakemuksiin</span>
+      </a>
+      <div class="flex flex-col gap-1">
+        <h1 class="text-3xl font-black leading-tight tracking-[-0.033em] text-slate-900 dark:text-white">
+          Hakemus #{{ application.id }}
+        </h1>
+        <p class="text-slate-500 dark:text-slate-400 text-base font-normal">
+          Tarkastele ja hallitse kuljettajahakemusta.
+        </p>
+      </div>
+    </div>
+
+    <!-- Application Status -->
+    <div
+      class="bg-white dark:bg-[#1e2936] rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden">
+      <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-700">
+        <h3 class="font-bold text-slate-900 dark:text-white">Hakemuksen tila</h3>
+      </div>
+      <div class="p-6">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            {% if application.status == 'pending' %}
+            <span
+              class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-bold border bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-800/30">
+              <span class="material-symbols-outlined text-[16px]">schedule</span>
+              Odottaa käsittelyä
+            </span>
+            {% elif application.status == 'approved' %}
+            <span
+              class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-bold border bg-green-100 text-green-800 border-green-200 dark:bg-green-900/30 dark:text-green-300 dark:border-green-800/30">
+              <span class="material-symbols-outlined text-[16px]">check_circle</span>
+              Hyväksytty
+            </span>
+            {% elif application.status == 'denied' %}
+            <span
+              class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-bold border bg-red-100 text-red-800 border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-800/30">
+              <span class="material-symbols-outlined text-[16px]">cancel</span>
+              Hylätty
+            </span>
+            {% else %}
+            <span
+              class="inline-flex items-center px-3 py-1 rounded-full text-sm font-bold border bg-slate-100 text-slate-800 border-slate-200 dark:bg-slate-700/50 dark:text-slate-300 dark:border-slate-600/30">
+              {{ application.status }}
+            </span>
+            {% endif %}
+          </div>
+
+          {% if application.processed_at %}
+          <span class="text-sm text-slate-500 dark:text-slate-400">
+            Käsitelty: {{ application.processed_at|helsinki_time if application.processed_at else '-' }}
+          </span>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Application Details -->
+    <div
+      class="bg-white dark:bg-[#1e2936] rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden">
+      <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-700">
+        <h3 class="font-bold text-slate-900 dark:text-white">Hakijan tiedot</h3>
+      </div>
+      <div class="p-6">
+        <div class="space-y-6">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <label
+                class="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">Etunimi</label>
+              <p class="text-base text-slate-900 dark:text-white">{{ application.first_name or '-' }}</p>
+            </div>
+            <div>
+              <label
+                class="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">Sukunimi</label>
+              <p class="text-base text-slate-900 dark:text-white">{{ application.last_name or '-' }}</p>
+            </div>
+          </div>
+
+          <div>
+            <label
+              class="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">Koko
+              nimi</label>
+            <p class="text-base font-bold text-slate-900 dark:text-white">{{ application.name }}</p>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <label
+                class="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">Sähköposti</label>
+              <p class="text-base text-primary hover:underline">
+                <a href="mailto:{{ application.email }}">{{ application.email }}</a>
+              </p>
+            </div>
+            <div>
+              <label
+                class="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">Puhelinnumero</label>
+              <p class="text-base text-primary hover:underline">
+                <a href="tel:{{ application.phone }}">{{ application.phone }}</a>
+              </p>
+            </div>
+          </div>
+
+          <div>
+            <label
+              class="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">Hakemus
+              lähetetty</label>
+            <p class="text-base text-slate-900 dark:text-white">{{ application.created_at|helsinki_time if
+              application.created_at else '-' }}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Driver's License Images -->
+    <div
+      class="bg-white dark:bg-[#1e2936] rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden">
+      <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-700">
+        <h3 class="font-bold text-slate-900 dark:text-white">Ajokortti</h3>
+      </div>
+      <div class="p-6">
+        {% if application.license_images and (application.license_images.front or application.license_images.back) %}
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <!-- Front Image -->
+          <div class="license-image-box">
+            <label
+              class="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">Ajokortin
+              etupuoli</label>
+            {% if application.license_images.front %}
+            <a href="{{ url_for('admin.view_license_image', application_id=application.id, image_type='front') }}"
+              target="_blank" class="license-preview-link">
+              <div class="license-preview">
+                <img src="{{ url_for('admin.view_license_image', application_id=application.id, image_type='front') }}"
+                  alt="Ajokortin etupuoli" class="license-thumbnail">
+                <div class="license-preview-overlay">
+                  <span>{{ icons.search(24, 'white') }} Näytä suurempana</span>
+                </div>
+              </div>
+            </a>
+            {% else %}
+            <div class="license-preview-empty">
+              <span class="material-symbols-outlined text-[32px] mb-2 opacity-50">image_not_supported</span>
+              <p class="text-sm">Ei kuvaa</p>
+            </div>
+            {% endif %}
+          </div>
+
+          <!-- Back Image -->
+          <div class="license-image-box">
+            <label
+              class="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">Ajokortin
+              takapuoli</label>
+            {% if application.license_images.back %}
+            <a href="{{ url_for('admin.view_license_image', application_id=application.id, image_type='back') }}"
+              target="_blank" class="license-preview-link">
+              <div class="license-preview">
+                <img src="{{ url_for('admin.view_license_image', application_id=application.id, image_type='back') }}"
+                  alt="Ajokortin takapuoli" class="license-thumbnail">
+                <div class="license-preview-overlay">
+                  <span>{{ icons.search(24, 'white') }} Näytä suurempana</span>
+                </div>
+              </div>
+            </a>
+            {% else %}
+            <div class="license-preview-empty">
+              <span class="material-symbols-outlined text-[32px] mb-2 opacity-50">image_not_supported</span>
+              <p class="text-sm">Ei kuvaa</p>
+            </div>
+            {% endif %}
+          </div>
+        </div>
         {% else %}
-        {% set status_class = 'status-new' %}
-        {% set status_text = 'Tuntematon' %}
-        {% endif %}
-
-        <span class="status {{ status_class }}">{{ status_text }}</span>
-
-        {% if application.processed_at %}
-        <span class="text-sm text-muted">
-          Käsitelty: {{ application.processed_at|helsinki_time if application.processed_at else '-' }}
-        </span>
+        <div
+          class="p-8 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-dashed border-slate-200 dark:border-slate-700 text-center">
+          <span class="material-symbols-outlined text-[40px] text-slate-300 mb-2">no_photography</span>
+          <p class="text-slate-500 dark:text-slate-400">Ei ajokorttikuvia saatavilla</p>
+        </div>
         {% endif %}
       </div>
     </div>
-  </div>
 
-  <!-- Application Details -->
-  <div class="card mb-6">
-    <div class="card-header">
-      <h3 class="card-title">Hakijan tiedot</h3>
-    </div>
-    <div class="card-body">
-      <div class="space-y-4">
-        <div class="grid cols-2 gap-4">
-          <div>
-            <label class="form-label">Etunimi</label>
-            <p class="text-primary">{{ application.first_name or '-' }}</p>
-          </div>
-          <div>
-            <label class="form-label">Sukunimi</label>
-            <p class="text-primary">{{ application.last_name or '-' }}</p>
-          </div>
+    <!-- Actions -->
+    {% if application.status == 'pending' %}
+    <div
+      class="bg-white dark:bg-[#1e2936] rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden">
+      <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-700">
+        <h3 class="font-bold text-slate-900 dark:text-white">Toiminnot</h3>
+      </div>
+      <div class="p-6">
+        <div class="flex flex-col md:flex-row gap-4 mb-6">
+          <form method="POST" action="{{ url_for('admin.approve_driver_application') }}" class="flex-1"
+            onsubmit="event.preventDefault(); openConfirmModal(this, 'Hyväksy hakemus', 'Hyväksy hakemus ja luo kuljettajatili?\n\nHakijalle lähetetään vahvistusviesti sähköpostiin.');">
+            <input type="hidden" name="application_id" value="{{ application.id }}">
+            <button type="submit"
+              class="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-green-600 hover:bg-green-700 text-white font-semibold transition-colors shadow-lg shadow-green-100 dark:shadow-none">
+              <span class="material-symbols-outlined">check_circle</span>
+              Hyväksy hakemus
+            </button>
+          </form>
+
+          <form method="POST" action="{{ url_for('admin.deny_driver_application') }}" class="flex-1"
+            onsubmit="event.preventDefault(); openConfirmModal(this, 'Hylkää hakemus', 'Hylkää hakemus?\n\nHakijalle lähetetään hylkäysviesti sähköpostiin.');">
+            <input type="hidden" name="application_id" value="{{ application.id }}">
+            <button type="submit"
+              class="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-red-600 hover:bg-red-700 text-white font-semibold transition-colors shadow-lg shadow-red-100 dark:shadow-none">
+              <span class="material-symbols-outlined">cancel</span>
+              Hylkää hakemus
+            </button>
+          </form>
         </div>
 
-        <div>
-          <label class="form-label">Koko nimi</label>
-          <p class="text-primary font-semibold">{{ application.name }}</p>
-        </div>
-
-        <div class="grid cols-2 gap-4">
-          <div>
-            <label class="form-label">Sähköposti</label>
-            <p class="text-primary"><a href="mailto:{{ application.email }}">{{ application.email }}</a></p>
-          </div>
-          <div>
-            <label class="form-label">Puhelinnumero</label>
-            <p class="text-primary"><a href="tel:{{ application.phone }}">{{ application.phone }}</a></p>
-          </div>
-        </div>
-
-        <div>
-          <label class="form-label">Hakemus lähetetty</label>
-          <p class="text-primary">{{ application.created_at|helsinki_time if application.created_at else '-' }}</p>
+        <div
+          class="p-4 bg-blue-50 dark:bg-blue-900/10 rounded-xl border border-blue-100 dark:border-blue-800/20 flex items-start gap-3">
+          <span class="material-symbols-outlined text-blue-600 dark:text-blue-400 mt-0.5">info</span>
+          <p class="text-sm text-blue-800 dark:text-blue-200">
+            <strong>Huomio:</strong> Hyväksyminen luo automaattisesti kuljettajatilin ja lähettää kirjautumistiedot
+            hakijalle sähköpostitse.
+          </p>
         </div>
       </div>
     </div>
-  </div>
-
-  <!-- Driver's License Images -->
-  <div class="card mb-6">
-    <div class="card-header">
-      <h3 class="card-title">Ajokortti</h3>
-    </div>
-    <div class="card-body">
-      {% if application.license_images and (application.license_images.front or application.license_images.back) %}
-      <div class="grid cols-2 gap-4">
-        <!-- Front Image -->
-        <div class="license-image-box">
-          <label class="form-label">Ajokortin etupuoli</label>
-          {% if application.license_images.front %}
-          <a href="{{ url_for('admin.view_license_image', application_id=application.id, image_type='front') }}"
-            target="_blank" class="license-preview-link">
-            <div class="license-preview">
-              <img src="{{ url_for('admin.view_license_image', application_id=application.id, image_type='front') }}"
-                alt="Ajokortin etupuoli" class="license-thumbnail">
-              <div class="license-preview-overlay">
-                <span>{{ icons.search(24, 'white') }} Näytä suurempana</span>
-              </div>
-            </div>
-          </a>
-          {% else %}
-          <div class="license-preview-empty">
-            <p class="text-muted">Ei kuvaa</p>
-          </div>
-          {% endif %}
+    {% elif application.status == 'approved' %}
+    <div
+      class="bg-white dark:bg-[#1e2936] rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden">
+      <div class="p-8 text-center">
+        <div class="size-20 rounded-full bg-green-100 text-green-600 flex items-center justify-center mx-auto mb-4">
+          <span class="material-symbols-outlined text-[48px]">check_circle</span>
         </div>
-
-        <!-- Back Image -->
-        <div class="license-image-box">
-          <label class="form-label">Ajokortin takapuoli</label>
-          {% if application.license_images.back %}
-          <a href="{{ url_for('admin.view_license_image', application_id=application.id, image_type='back') }}"
-            target="_blank" class="license-preview-link">
-            <div class="license-preview">
-              <img src="{{ url_for('admin.view_license_image', application_id=application.id, image_type='back') }}"
-                alt="Ajokortin takapuoli" class="license-thumbnail">
-              <div class="license-preview-overlay">
-                <span>{{ icons.search(24, 'white') }} Näytä suurempana</span>
-              </div>
-            </div>
-          </a>
-          {% else %}
-          <div class="license-preview-empty">
-            <p class="text-muted">Ei kuvaa</p>
-          </div>
-          {% endif %}
-        </div>
-      </div>
-      {% else %}
-      <div class="p-4 bg-gray-50 rounded-lg border border-gray-200">
-        <p class="text-muted text-center">Ei ajokorttikuvia saatavilla</p>
-      </div>
-      {% endif %}
-    </div>
-  </div>
-
-  <!-- Actions -->
-  {% if application.status == 'pending' %}
-  <div class="card">
-    <div class="card-header">
-      <h3 class="card-title">Toiminnot</h3>
-    </div>
-    <div class="card-body">
-      <div class="flex gap-4">
-        <form method="POST" action="{{ url_for('admin.approve_driver_application') }}" style="flex: 1;">
-          <input type="hidden" name="application_id" value="{{ application.id }}">
-          <button type="submit" class="btn btn-success w-full"
-            onclick="return confirm('Hyväksy hakemus ja luo kuljettajatili?\n\nHakijalle lähetetään vahvistusviesti sähköpostiin.')">
-            {{ icons.check_circle(18, 'currentColor', 'icon-inline') }} Hyväksy hakemus
-          </button>
-        </form>
-
-        <form method="POST" action="{{ url_for('admin.deny_driver_application') }}" style="flex: 1;">
-          <input type="hidden" name="application_id" value="{{ application.id }}">
-          <button type="submit" class="btn btn-error w-full"
-            onclick="return confirm('Hylkää hakemus?\n\nHakijalle lähetetään hylkäysviesti sähköpostiin.')">
-            {{ icons.x(18, 'currentColor', 'icon-inline') }} Hylkää hakemus
-          </button>
-        </form>
-      </div>
-
-      <div class="mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
-        <p class="text-sm text-muted">
-          <strong>Huomio:</strong> Hyväksyminen luo automaattisesti kuljettajatilin ja lähettää kirjautumistiedot
-          hakijalle sähköpostitse.
+        <h3 class="font-bold text-xl text-slate-900 dark:text-white mb-2">Hakemus hyväksytty</h3>
+        <p class="text-slate-500 dark:text-slate-400">Kuljettajatili on luotu ja hakijalle on lähetetty vahvistusviesti.
         </p>
       </div>
     </div>
-  </div>
-  {% elif application.status == 'approved' %}
-  <div class="card">
-    <div class="card-body text-center">
-      <div class="mb-3">{{ icons.check_circle(64, '#16a34a') }}</div>
-      <h3 class="font-semibold text-lg mb-2">Hakemus hyväksytty</h3>
-      <p class="text-muted">Kuljettajatili on luotu ja hakijalle on lähetetty vahvistusviesti.</p>
+    {% elif application.status == 'denied' %}
+    <div
+      class="bg-white dark:bg-[#1e2936] rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden">
+      <div class="p-8 text-center">
+        <div class="size-20 rounded-full bg-red-100 text-red-600 flex items-center justify-center mx-auto mb-4">
+          <span class="material-symbols-outlined text-[48px]">cancel</span>
+        </div>
+        <h3 class="font-bold text-xl text-slate-900 dark:text-white mb-2">Hakemus hylätty</h3>
+        <p class="text-slate-500 dark:text-slate-400">Hakijalle on lähetetty hylkäysviesti.</p>
+      </div>
     </div>
-  </div>
-  {% elif application.status == 'denied' %}
-  <div class="card">
-    <div class="card-body text-center">
-      <div class="mb-3">{{ icons.x(64, '#dc2626') }}</div>
-      <h3 class="font-semibold text-lg mb-2">Hakemus hylätty</h3>
-      <p class="text-muted">Hakijalle on lähetetty hylkäysviesti.</p>
-    </div>
-  </div>
-  {% endif %}
+    {% endif %}
 
-  <!-- Delete Section (Available for all statuses) -->
-  <div class="card mt-6 danger-zone-card">
-    <div class="card-header danger-zone-header">
-      <h3 class="card-title danger-zone-title">
-        {{ icons.alert(20, '#dc2626', 'icon-inline') }}
-        <span>Vaarallinen alue</span>
-      </h3>
-    </div>
-    <div class="card-body">
-      <form method="POST" action="{{ url_for('admin.delete_driver_application', application_id=application.id) }}">
-        <button type="submit" class="btn btn-danger w-full" onclick="return confirmDelete()">
-          {{ icons.x(18, 'currentColor', 'icon-inline') }} Poista hakemus ja käyttäjätili
-        </button>
-      </form>
-      <div class="mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
-        <p class="text-sm text-muted">
-          <strong>Varoitus:</strong> Tämä poistaa pysyvästi sekä hakemuksen että liittyvän käyttäjätilin.
-          Tätä toimintoa ei voi peruuttaa.
+    <!-- Delete Section (Available for all statuses) -->
+    <div class="rounded-2xl shadow-sm overflow-hidden danger-zone-card">
+      <div class="danger-zone-header flex items-center gap-2">
+        <span class="material-symbols-outlined text-red-600">warning</span>
+        <h3 class="font-bold text-red-600">Vaarallinen alue</h3>
+      </div>
+      <div class="p-6">
+        <form method="POST" action="{{ url_for('admin.delete_driver_application', application_id=application.id) }}"
+          onsubmit="event.preventDefault(); openConfirmModal(this, 'Poista hakemus', 'VAROITUS: Tämä toiminto poistaa PYSYVÄSTI:\n\n• Kuljettajahakemuksen #{{ application.id }} ({{ application.name }})\n• Käyttäjätilin (jos olemassa): {{ application.email }}\n• Kaikki liittyvät tiedot\n\nTätä toimintoa EI VOI PERUUTTAA!\n\nHaluatko varmasti jatkaa?');">
+          <button type="submit"
+            class="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl border border-red-200 hover:bg-red-50 text-red-600 font-semibold transition-colors">
+            <span class="material-symbols-outlined">delete_forever</span>
+            Poista hakemus ja käyttäjätili
+          </button>
+        </form>
+        <p class="mt-4 text-sm text-slate-500 dark:text-slate-400 text-center">
+          Tämä poistaa pysyvästi sekä hakemuksen että liittyvän käyttäjätilin. Toimintoa ei voi peruuttaa.
         </p>
       </div>
     </div>
+
+  </main>
+
+  <!-- Confirmation Modal -->
+  <div id="confirmModal" style="display: none;"
+    class="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/20 backdrop-blur-sm opacity-0 transition-opacity duration-300"
+    aria-hidden="true">
+    <div
+      class="bg-white dark:bg-[#1e2936] rounded-2xl shadow-xl w-full max-w-sm p-6 transform scale-95 transition-transform duration-300"
+      id="confirmModalPanel">
+      <div class="flex flex-col items-center text-center gap-4">
+        <div class="size-12 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center text-red-600">
+          <span class="material-symbols-outlined text-[24px]">warning</span>
+        </div>
+        <div class="flex flex-col gap-1">
+          <h3 class="text-lg font-bold text-slate-900 dark:text-white" id="modalTitle">Oletko varma?</h3>
+          <p class="text-sm text-slate-500 dark:text-slate-400" id="modalMessage">Tätä toimintoa ei voi peruuttaa.</p>
+        </div>
+        <div class="flex items-center gap-3 w-full mt-2">
+          <button onclick="closeConfirmModal()"
+            class="flex-1 py-2.5 px-4 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-semibold text-sm hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
+            Peruuta
+          </button>
+          <button id="confirmActionBtn"
+            class="flex-1 py-2.5 px-4 rounded-xl bg-red-600 text-white font-semibold text-sm hover:bg-red-700 shadow-lg shadow-red-200 dark:shadow-none transition-all transform hover:-translate-y-0.5">
+            Vahvista
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
-</div>
 
-<style>
-  /* License Image Preview Styles */
-  .license-image-box {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-  }
+  <script>
+    // Modal Logic
+    let currentForm = null;
 
-  .license-preview-link {
-    display: block;
-    text-decoration: none;
-  }
+    function openConfirmModal(formElement, title, message) {
+      currentForm = formElement;
+      document.getElementById('modalTitle').textContent = title;
+      document.getElementById('modalMessage').innerHTML = message.replace(/\n/g, '<br>');
 
-  .license-preview {
-    position: relative;
-    border-radius: 0.75rem;
-    overflow: hidden;
-    background: #f8fafc;
-    border: 2px solid #e2e8f0;
-    aspect-ratio: 16 / 10;
-    transition: all 0.3s ease;
-  }
+      const modal = document.getElementById('confirmModal');
+      const panel = document.getElementById('confirmModalPanel');
 
-  .license-preview:hover {
-    border-color: #3b82f6;
-    box-shadow: 0 8px 24px rgba(59, 130, 246, 0.15);
-  }
+      modal.style.display = 'flex';
+      // Trigger reflow
+      modal.offsetHeight;
 
-  .license-thumbnail {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-  }
+      modal.classList.remove('opacity-0');
+      panel.classList.remove('scale-95');
+      panel.classList.add('scale-100');
+    }
 
-  .license-preview-overlay {
-    position: absolute;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.5);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    opacity: 0;
-    transition: opacity 0.3s ease;
-  }
+    function closeConfirmModal() {
+      const modal = document.getElementById('confirmModal');
+      const panel = document.getElementById('confirmModalPanel');
 
-  .license-preview:hover .license-preview-overlay {
-    opacity: 1;
-  }
+      modal.classList.add('opacity-0');
+      panel.classList.remove('scale-100');
+      panel.classList.add('scale-95');
 
-  .license-preview-overlay span {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    color: white;
-    font-weight: 600;
-    font-size: 0.9rem;
-  }
+      setTimeout(() => {
+        modal.style.display = 'none';
+        currentForm = null;
+      }, 300);
+    }
 
-  .license-preview-empty {
-    padding: 2rem;
-    background: #f8fafc;
-    border: 2px dashed #e2e8f0;
-    border-radius: 0.75rem;
-    text-align: center;
-  }
+    document.getElementById('confirmActionBtn').addEventListener('click', function () {
+      if (currentForm) {
+        currentForm.submit();
+      }
+      closeConfirmModal();
+    });
 
-  /* Danger Zone Styles */
-  .danger-zone-card {
-    border: 2px solid #dc2626;
-  }
+    document.getElementById('confirmModal').addEventListener('click', function (e) {
+      if (e.target === this) {
+        closeConfirmModal();
+      }
+    });
 
-  .danger-zone-header {
-    background: #fef2f2;
-  }
+    // Flash Messages Auto-Dismiss
+    document.addEventListener('DOMContentLoaded', function () {
+      setTimeout(function () {
+        const messages = document.querySelector('.flash-messages');
+        if (messages) {
+          messages.style.transition = 'opacity 1s';
+          messages.style.opacity = '0';
+          setTimeout(() => messages.remove(), 1000);
+        }
+      }, 5000);
+    });
+  </script>
+  {% set footer_button_text = 'Laskuri' %}
+  {% include 'components/dashboard_footer.html' %}
+</body>
 
-  .danger-zone-title {
-    color: #dc2626;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    margin: 0;
-  }
-
-  .btn-danger {
-    background: #dc2626;
-    color: white;
-    border: none;
-  }
-
-  .btn-danger:hover {
-    background: #b91c1c;
-  }
-</style>
-
-<script>
-  function confirmDelete() {
-    return confirm(
-      "VAROITUS: Tämä toiminto poistaa PYSYVÄSTI:\n\n" +
-      "• Kuljettajahakemuksen #{{ application.id }} ({{ application.name }})\n" +
-      "• Käyttäjätilin (jos olemassa): {{ application.email }}\n" +
-      "• Kaikki liittyvät tiedot\n\n" +
-      "Tätä toimintoa EI VOI PERUUTTAA!\n\n" +
-      "Haluatko varmasti jatkaa?"
-    );
-  }
-</script>
-
-{% block extra_js %}
-<script src="{{ url_for('static', filename='js/admin_navigation.js') }}"></script>
-{% endblock %}
-{% endblock %}
+</html>

@@ -679,6 +679,7 @@ def api_order_submit():
             "customer_phone": data.get("customer_phone"),
             "phone": data.get("customer_phone"),
             "additional_info": data.get("additional_info"),
+            "direct_to_customer": data.get("direct_to_customer", False),
             "distance_km": float(round(km, 2)),
             "price_net": float(pricing.get("final_net", 0)),
             "price_vat": float(pricing.get("final_vat", 0)),
