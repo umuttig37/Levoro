@@ -120,26 +120,34 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 0.5rem 0.75rem;
+            padding: 0.625rem 0.875rem;
             background: white;
-            border: none;
-
+            border: 1px solid #e2e8f0;
             border-radius: 0.75rem;
             font-size: 0.875rem;
             color: #0d161b;
             cursor: pointer;
             transition: all 0.2s ease;
             user-select: none;
-            box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
         }
 
         .dark .custom-select-trigger {
             background: #1e2936;
             color: white;
+            border-color: #475569;
+        }
+
+        .custom-select-trigger:hover {
+            border-color: #cbd5e1;
+        }
+
+        .dark .custom-select-trigger:hover {
+            border-color: #64748b;
         }
 
         .custom-select-trigger.open {
-            box-shadow: 0 0 0 2px rgba(19, 146, 236, 0.5);
+            border-color: var(--dash-primary);
+            border-bottom-color: transparent;
             border-bottom-left-radius: 0;
             border-bottom-right-radius: 0;
         }
