@@ -33,6 +33,11 @@
         rel="stylesheet" />
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0"
         rel="stylesheet" />
+    
+    <!-- Flatpickr Date/Time Picker -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/fi.js"></script>
 
     <!-- Main CSS -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}" />
@@ -303,6 +308,224 @@
             background: #eff6ff;
             color: #2563eb;
         }
+
+        /* ===== FLATPICKR CUSTOM THEME ===== */
+        .flatpickr-calendar {
+            font-family: 'Inter', sans-serif;
+            border-radius: 1rem;
+            box-shadow: 0 20px 50px -12px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(0, 0, 0, 0.03);
+            border: none;
+            overflow: hidden;
+            width: 320px;
+        }
+        
+        .flatpickr-calendar.arrowTop:before,
+        .flatpickr-calendar.arrowTop:after,
+        .flatpickr-calendar.arrowBottom:before,
+        .flatpickr-calendar.arrowBottom:after {
+            display: none;
+        }
+        
+        .flatpickr-months {
+            background: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%);
+            padding: 1rem;
+            border-radius: 1rem 1rem 0 0;
+        }
+        
+        .flatpickr-months .flatpickr-month {
+            background: transparent;
+            height: auto;
+        }
+        
+        .flatpickr-current-month {
+            font-weight: 600;
+            font-size: 1.1rem;
+            color: white;
+            padding: 0;
+        }
+        
+        .flatpickr-current-month .flatpickr-monthDropdown-months {
+            background: transparent;
+            color: white;
+            font-weight: 600;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.5rem;
+            transition: background 0.2s;
+        }
+        
+        .flatpickr-current-month .flatpickr-monthDropdown-months:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+        
+        .flatpickr-current-month input.cur-year {
+            color: white;
+            font-weight: 600;
+        }
+        
+        .flatpickr-months .flatpickr-prev-month,
+        .flatpickr-months .flatpickr-next-month {
+            color: white;
+            fill: white;
+            padding: 0.5rem;
+            border-radius: 0.5rem;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .flatpickr-months .flatpickr-prev-month:hover,
+        .flatpickr-months .flatpickr-next-month:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+        
+        .flatpickr-months .flatpickr-prev-month svg,
+        .flatpickr-months .flatpickr-next-month svg {
+            width: 14px;
+            height: 14px;
+        }
+        
+        .flatpickr-innerContainer {
+            padding: 0.75rem;
+        }
+        
+        .flatpickr-weekdays {
+            background: transparent;
+            padding: 0.5rem 0;
+        }
+        
+        span.flatpickr-weekday {
+            color: #64748b;
+            font-weight: 600;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+        }
+        
+        .flatpickr-days {
+            width: 100%;
+        }
+        
+        .dayContainer {
+            width: 100%;
+            min-width: 100%;
+            max-width: 100%;
+        }
+        
+        .flatpickr-day {
+            color: #334155;
+            font-weight: 500;
+            border-radius: 0.5rem;
+            height: 40px;
+            line-height: 40px;
+            margin: 2px;
+            max-width: 40px;
+            transition: all 0.15s ease;
+        }
+        
+        .flatpickr-day:hover {
+            background: #eff6ff;
+            border-color: transparent;
+        }
+        
+        .flatpickr-day.today {
+            border-color: #2563eb;
+            background: #eff6ff;
+            color: #2563eb;
+            font-weight: 600;
+        }
+        
+        .flatpickr-day.today:hover {
+            background: #dbeafe;
+        }
+        
+        .flatpickr-day.selected,
+        .flatpickr-day.selected:hover {
+            background: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%);
+            border-color: transparent;
+            color: white;
+            font-weight: 600;
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+        }
+        
+        .flatpickr-day.flatpickr-disabled,
+        .flatpickr-day.prevMonthDay,
+        .flatpickr-day.nextMonthDay {
+            color: #cbd5e1;
+        }
+        
+        .flatpickr-day.flatpickr-disabled:hover {
+            background: transparent;
+            cursor: not-allowed;
+        }
+        
+        /* Time picker styling */
+        .flatpickr-time {
+            border-top: 1px solid #e2e8f0;
+            padding: 0.75rem;
+            max-height: none;
+        }
+        
+        .flatpickr-time input {
+            font-weight: 600;
+            font-size: 1.25rem;
+            color: #1e293b;
+        }
+        
+        .flatpickr-time .numInputWrapper {
+            width: 80px;
+        }
+        
+        .flatpickr-time .numInputWrapper:hover {
+            background: #f1f5f9;
+            border-radius: 0.5rem;
+        }
+        
+        .flatpickr-time-separator {
+            color: #64748b;
+            font-weight: 600;
+            font-size: 1.25rem;
+        }
+        
+        /* Custom footer buttons */
+        .flatpickr-calendar .flatpickr-footer {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.75rem 1rem;
+            border-top: 1px solid #e2e8f0;
+            background: #f8fafc;
+        }
+        
+        .flatpickr-calendar .flatpickr-footer button {
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            font-weight: 500;
+            font-size: 0.875rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .flatpickr-calendar .flatpickr-clear-btn {
+            color: #64748b;
+            background: white;
+            border: 1px solid #e2e8f0;
+        }
+        
+        .flatpickr-calendar .flatpickr-clear-btn:hover {
+            color: #ef4444;
+            border-color: #fecaca;
+            background: #fef2f2;
+        }
+        
+        .flatpickr-calendar .flatpickr-today-btn {
+            color: white;
+            background: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%);
+            border: none;
+        }
+        
+        .flatpickr-calendar .flatpickr-today-btn:hover {
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+            transform: translateY(-1px);
+        }
     </style>
 </head>
 
@@ -320,7 +543,7 @@
                     <a href="/" class="nav-link">Etusivu</a>
                     {% if current_user %}
                     <span class="pill">Hei, {{ current_user.get('name', 'Käyttäjä') }}</span>
-                    <a class="nav-link" href="/logout">Ulos</a>
+                    <a class="nav-link" href="/logout">Kirjaudu ulos</a>
                     {% else %}
                     <a href="/login" class="nav-link">Kirjaudu</a>
                     {% endif %}
@@ -398,8 +621,8 @@
                                         class="material-symbols-outlined text-lg text-emerald-500">calendar_today</span>
                                 </span>
                                 <input
-                                    class="block w-full rounded-xl border border-gray-200 bg-gray-50/50 text-slate-900 focus:border-blue-400 focus:ring-4 focus:ring-blue-100 sm:text-sm py-4 pl-12 pr-4 transition-all"
-                                    type="date" id="pickup_date" required>
+                                    class="block w-full rounded-xl border border-gray-200 bg-gray-50/50 text-slate-900 focus:border-blue-400 focus:ring-4 focus:ring-blue-100 sm:text-sm py-4 pl-12 pr-4 transition-all cursor-pointer"
+                                    type="text" id="pickup_date" placeholder="Valitse päivä" readonly required>
                             </div>
                         </div>
                         <div class="group">
@@ -412,8 +635,8 @@
                                     <span class="material-symbols-outlined text-lg text-slate-400">schedule</span>
                                 </span>
                                 <input
-                                    class="block w-full rounded-xl border border-gray-200 bg-gray-50/50 text-slate-900 focus:border-blue-400 focus:ring-4 focus:ring-blue-100 sm:text-sm py-4 pl-12 pr-4 transition-all"
-                                    type="time" id="pickup_time">
+                                    class="block w-full rounded-xl border border-gray-200 bg-gray-50/50 text-slate-900 focus:border-blue-400 focus:ring-4 focus:ring-blue-100 sm:text-sm py-4 pl-12 pr-4 transition-all cursor-pointer"
+                                    type="text" id="pickup_time" placeholder="Valitse aika" readonly>
                             </div>
                         </div>
                     </div>
@@ -477,8 +700,8 @@
                                         class="material-symbols-outlined text-lg text-emerald-500">calendar_today</span>
                                 </span>
                                 <input
-                                    class="block w-full rounded-xl border border-gray-200 bg-gray-50/50 text-slate-900 focus:border-blue-400 focus:ring-4 focus:ring-blue-100 sm:text-sm py-4 pl-12 pr-4 transition-all"
-                                    type="date" id="delivery_date" required>
+                                    class="block w-full rounded-xl border border-gray-200 bg-gray-50/50 text-slate-900 focus:border-blue-400 focus:ring-4 focus:ring-blue-100 sm:text-sm py-4 pl-12 pr-4 transition-all cursor-pointer"
+                                    type="text" id="delivery_date" placeholder="Valitse päivä" readonly required>
                             </div>
                         </div>
                         <div class="group">
@@ -491,8 +714,8 @@
                                     <span class="material-symbols-outlined text-lg text-slate-400">schedule</span>
                                 </span>
                                 <input
-                                    class="block w-full rounded-xl border border-gray-200 bg-gray-50/50 text-slate-900 focus:border-blue-400 focus:ring-4 focus:ring-blue-100 sm:text-sm py-4 pl-12 pr-4 transition-all"
-                                    type="time" id="delivery_time">
+                                    class="block w-full rounded-xl border border-gray-200 bg-gray-50/50 text-slate-900 focus:border-blue-400 focus:ring-4 focus:ring-blue-100 sm:text-sm py-4 pl-12 pr-4 transition-all cursor-pointer"
+                                    type="text" id="delivery_time" placeholder="Valitse aika" readonly>
                             </div>
                         </div>
                     </div>
@@ -803,8 +1026,131 @@
                 document.getElementById('returnVehicleSection').classList.toggle('hidden', !this.checked);
             });
 
+            // Initialize Flatpickr Date/Time Pickers
+            initializeFlatpickr();
 
+            // Clear error styling on input
+            document.querySelectorAll('input, select, textarea').forEach(input => {
+                input.addEventListener('input', () => {
+                    input.classList.remove('input-error');
+                    input.style.borderColor = '';
+                    input.style.boxShadow = '';
+                });
+                input.addEventListener('change', () => {
+                    input.classList.remove('input-error');
+                    input.style.borderColor = '';
+                    input.style.boxShadow = '';
+                });
+            });
         });
+
+        function initializeFlatpickr() {
+            const today = new Date();
+            
+            // Helper to create footer with working buttons
+            function createFooter(instance, showTodayBtn) {
+                const footer = document.createElement('div');
+                footer.className = 'flatpickr-footer';
+                
+                const clearBtn = document.createElement('button');
+                clearBtn.type = 'button';
+                clearBtn.className = 'flatpickr-clear-btn';
+                clearBtn.textContent = 'Tyhjennä';
+                clearBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    instance.clear();
+                });
+                footer.appendChild(clearBtn);
+                
+                if (showTodayBtn) {
+                    const todayBtn = document.createElement('button');
+                    todayBtn.type = 'button';
+                    todayBtn.className = 'flatpickr-today-btn';
+                    todayBtn.textContent = 'Tänään';
+                    todayBtn.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        instance.setDate(new Date(), true);
+                    });
+                    footer.appendChild(todayBtn);
+                } else {
+                    footer.appendChild(document.createElement('span'));
+                }
+                
+                instance.calendarContainer.appendChild(footer);
+            }
+
+            // Pickup Date
+            const pickupDate = document.getElementById('pickup_date');
+            if (pickupDate) {
+                flatpickr(pickupDate, {
+                    locale: 'fi',
+                    dateFormat: 'Y-m-d',
+                    altInput: true,
+                    altFormat: 'd.m.Y',
+                    minDate: 'today',
+                    disableMobile: true,
+                    defaultDate: today,
+                    onReady: function(selectedDates, dateStr, instance) {
+                        createFooter(instance, true);
+                    }
+                });
+            }
+
+            // Pickup Time
+            const pickupTime = document.getElementById('pickup_time');
+            if (pickupTime) {
+                flatpickr(pickupTime, {
+                    locale: 'fi',
+                    enableTime: true,
+                    noCalendar: true,
+                    dateFormat: 'H:i',
+                    time_24hr: true,
+                    minuteIncrement: 15,
+                    disableMobile: true,
+                    defaultHour: 12,
+                    onReady: function(selectedDates, dateStr, instance) {
+                        createFooter(instance, false);
+                    }
+                });
+            }
+
+            // Delivery Date
+            const deliveryDate = document.getElementById('delivery_date');
+            if (deliveryDate) {
+                flatpickr(deliveryDate, {
+                    locale: 'fi',
+                    dateFormat: 'Y-m-d',
+                    altInput: true,
+                    altFormat: 'd.m.Y',
+                    minDate: 'today',
+                    disableMobile: true,
+                    defaultDate: today,
+                    onReady: function(selectedDates, dateStr, instance) {
+                        createFooter(instance, true);
+                    }
+                });
+            }
+
+            // Delivery Time
+            const deliveryTime = document.getElementById('delivery_time');
+            if (deliveryTime) {
+                flatpickr(deliveryTime, {
+                    locale: 'fi',
+                    enableTime: true,
+                    noCalendar: true,
+                    dateFormat: 'H:i',
+                    time_24hr: true,
+                    minuteIncrement: 15,
+                    disableMobile: true,
+                    defaultHour: 12,
+                    onReady: function(selectedDates, dateStr, instance) {
+                        createFooter(instance, false);
+                    }
+                });
+            }
+        }
 
         function goToStep(step) {
             if (step < 1 || step > totalSteps) return;
@@ -850,17 +1196,20 @@
 
         function validateCurrentStep() {
             let isValid = true;
+            let firstInvalid = null;
+            let errorMsg = null;
 
             // Helper to check standard validity first
             const check = (id, msg) => {
                 const el = document.getElementById(id);
                 if (!el) return true;
 
-                clearError(el); // Clear previous
+                clearError(el);
 
-                // Generic check
                 if (!el.value || !el.checkValidity()) {
-                    showError(el, msg || el.validationMessage || "Täytä tämä kenttä");
+                    showError(el);
+                    if (!errorMsg) errorMsg = msg;
+                    if (!firstInvalid) firstInvalid = el;
                     return false;
                 }
                 return true;
@@ -869,51 +1218,41 @@
             // Basic validation per step
             switch (currentStep) {
                 case 1:
-                    // Pickup
                     if (!check('pickup_address', 'Syötä nouto-osoite')) isValid = false;
                     if (!check('pickup_date', 'Valitse noutopäivä')) isValid = false;
                     break;
                 case 2:
-                    // Delivery
                     if (!check('dropoff_address', 'Syötä toimitusosoite')) isValid = false;
-                    // Delivery date might be optional if same day? 
-                    // Logic says check 'delivery_date'
                     if (document.getElementById('delivery_date') && !check('delivery_date', 'Valitse toimituspäivä')) isValid = false;
                     break;
                 case 3:
-                    // Vehicle
                     if (!check('reg_number', 'Syötä rekisterinumero')) isValid = false;
                     break;
                 case 4:
-                    // Contact
                     if (!check('orderer_name', 'Syötä nimi')) isValid = false;
                     if (!check('orderer_email', 'Syötä sähköposti')) isValid = false;
                     if (!check('orderer_phone', 'Syötä puhelinnumero')) isValid = false;
                     break;
             }
+
+            if (!isValid && errorMsg) {
+                showToast(errorMsg, 'warning');
+                if (firstInvalid) firstInvalid.focus();
+            }
+
             return isValid;
         }
 
-        function showError(input, message) {
+        function showError(input) {
             input.classList.add('input-error');
-            // Create error div
-            const errorDiv = document.createElement('div');
-            errorDiv.className = 'error-text';
-            errorDiv.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="16" height="16" class="flex-shrink-0"><path fill-rule="evenodd" d="M2.25 12c0-5.385 4.365-9.75 9.75-9.75s9.75 4.365 9.75 9.75-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12ZM12 8.25a.75.75 0 0 1 .75.75v3.75a.75.75 0 0 1-1.5 0V9a.75.75 0 0 1 .75-.75Zm0 8.25a.75.75 0 1 0 0-1.5 .75.75 0 0 0 0 1.5Z" clip-rule="evenodd" /></svg>${message}`;
-
-            if (input.parentElement.classList.contains('relative') || input.parentElement.classList.contains('input-group')) {
-                input.parentElement.appendChild(errorDiv);
-            } else {
-                input.parentNode.insertBefore(errorDiv, input.nextSibling);
-            }
+            input.style.borderColor = '#f87171';
+            input.style.boxShadow = '0 0 0 3px rgba(248, 113, 113, 0.15)';
         }
 
         function clearError(input) {
             input.classList.remove('input-error');
-            // Remove error text sibling/child
-            let parent = input.parentElement;
-            let error = parent.querySelector('.error-text');
-            if (error) error.remove();
+            input.style.borderColor = '';
+            input.style.boxShadow = '';
         }
 
         function updateUI() {
@@ -1078,7 +1417,7 @@
 
         async function submitOrder() {
             if (!document.getElementById('accept_terms').checked) {
-                alert('Hyväksy ehdot jatkaaksesi');
+                showToast('Hyväksy ehdot jatkaaksesi', 'warning');
                 return;
             }
 
@@ -1101,7 +1440,7 @@
                     throw new Error('Submission failed');
                 }
             } catch (error) {
-                alert('Virhe tilauksen lähetyksessä. Yritä uudelleen.');
+                showToast('Virhe tilauksen lähetyksessä. Yritä uudelleen.', 'error');
                 btn.disabled = false;
                 btn.innerHTML = '<span class="material-symbols-outlined mr-2">check_circle</span> Lähetä tilaus';
             }
@@ -1114,6 +1453,39 @@
                 updateUI();
             }
         });
+    </script>
+
+    <!-- Toast notification container and function -->
+    <div id="toast-container" style="position:fixed;top:80px;right:20px;z-index:999999;display:flex;flex-direction:column;gap:10px;"></div>
+    <script>
+        window.showToast = function(message, type = 'error') {
+            const container = document.getElementById('toast-container');
+            if (!container) return;
+            
+            const toast = document.createElement('div');
+            const colors = {
+                error: { bg: '#ef4444', icon: 'error' },
+                success: { bg: '#10b981', icon: 'check_circle' },
+                warning: { bg: '#f59e0b', icon: 'warning' },
+                info: { bg: '#3b82f6', icon: 'info' }
+            };
+            const { bg, icon } = colors[type] || colors.error;
+            
+            toast.style.cssText = `
+                display:flex;align-items:center;gap:10px;padding:14px 20px;
+                background:${bg};color:white;border-radius:10px;
+                box-shadow:0 4px 12px rgba(0,0,0,0.15);font-size:14px;font-weight:500;
+                transform:translateX(120%);transition:transform 0.3s ease;max-width:360px;
+            `;
+            toast.innerHTML = `<span class="material-symbols-outlined" style="font-size:20px;">${icon}</span><span>${message}</span>`;
+            container.appendChild(toast);
+            
+            requestAnimationFrame(() => { toast.style.transform = 'translateX(0)'; });
+            setTimeout(() => {
+                toast.style.transform = 'translateX(120%)';
+                setTimeout(() => toast.remove(), 300);
+            }, 4000);
+        };
     </script>
 </body>
 

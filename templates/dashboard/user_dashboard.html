@@ -1,7 +1,7 @@
 {% extends "base/layout.html" %}
 {% import 'components/icons.html' as icons %}
 
-{% block title %}Omat tilaukset – Autonkuljetus{% endblock %}
+{% block title %}Omat tilaukset – Levoro{% endblock %}
 
 {% block extra_css %}
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
@@ -1202,7 +1202,7 @@
     <div class="dash-toolbar">
       <div class="dash-search">
         <span class="material-symbols-outlined">search</span>
-        <input type="text" id="searchInput" placeholder="Hae reitin tai tilaus ID:n mukaan..." />
+        <input type="text" id="searchInput" placeholder="Hae reitin, tilausnumeron tai rekisterinumeron mukaan..." />
       </div>
       <div class="toolbar-actions">
         <div class="filter-dropdown">
@@ -1325,7 +1325,7 @@
 
           {% set is_completed = order.status in completed_statuses %}
 
-          <tr class="order-row" data-status="{{ 'completed' if is_completed else 'active' }}">
+          <tr class="order-row" data-status="{{ 'completed' if is_completed else 'active' }}" data-plate="{{ order.reg_number or '' }}">
             <td>
               <span class="order-id-cell">#{{ order.user_order_number or order.id }}</span>
             </td>
@@ -1426,7 +1426,7 @@
 
       {% set is_completed = order.status in completed_statuses %}
 
-      <div class="mobile-order-card order-card-item" data-status="{{ 'completed' if is_completed else 'active' }}">
+      <div class="mobile-order-card order-card-item" data-status="{{ 'completed' if is_completed else 'active' }}" data-plate="{{ order.reg_number or '' }}">
         <div class="mobile-card-header">
           <span class="mobile-card-id">#{{ order.user_order_number or order.id }}</span>
           <span class="status-badge {{ status_class }}">
@@ -1699,6 +1699,11 @@
       return { rows, cards };
     }
 
+    function getSearchText(element) {
+      const plate = element.dataset.plate || '';
+      return `${element.textContent} ${plate}`.toLowerCase();
+    }
+
     function applyFilters() {
       currentPage = 1;
       const { rows, cards } = getFilteredItems(currentTab);
@@ -1706,8 +1711,8 @@
       // Apply search filter if there's a search query
       const query = searchInput ? searchInput.value.toLowerCase() : '';
       if (query) {
-        filteredRows = rows.filter(row => row.textContent.toLowerCase().includes(query));
-        filteredCards = cards.filter(card => card.textContent.toLowerCase().includes(query));
+        filteredRows = rows.filter(row => getSearchText(row).includes(query));
+        filteredCards = cards.filter(card => getSearchText(card).includes(query));
       } else {
         filteredRows = rows;
         filteredCards = cards;

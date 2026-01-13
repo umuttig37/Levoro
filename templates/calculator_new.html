@@ -209,7 +209,7 @@
                     <!-- Auth Links -->
                     {% if current_user %}
                     <span class="pill">Hei, {{ current_user.get('name', 'Käyttäjä') }}</span>
-                    <a class="nav-link" href="/logout">Ulos</a>
+                    <a class="nav-link" href="/logout">Kirjaudu ulos</a>
                     {% else %}
                     <a href="/login" class="nav-link">Kirjaudu</a>
                     <a href="/register" class="nav-link">Luo tili</a>
@@ -702,11 +702,11 @@
             const editId = document.getElementById('addrEditId').value;
 
             if (!name || !addr) {
-                alert('Täytä nimi ja osoite.');
+                showToast('Täytä nimi ja osoite.', 'warning');
                 return;
             }
             if (phone && !/^[+]?[0-9\s\-()]+$/.test(phone)) {
-                alert('Virheellinen puhelinnumero. Käytä vain numeroita ja merkkejä +, -, ( ).');
+                showToast('Virheellinen puhelinnumero. Käytä vain numeroita ja merkkejä +, -, ( ).', 'warning');
                 return;
             }
 
@@ -724,35 +724,28 @@
                 populateSavedAddresses();
                 closeAddressModal();
             } catch (e) {
-                alert('Tallennus epäonnistui: ' + e.message);
+                showToast('Tallennus epäonnistui: ' + e.message, 'error');
             }
         }
 
         window.handleDeleteAddress = async function (id) {
-            console.log('--- DELETE START ---');
-            console.log('Target ID:', id);
-            console.log('Current addresses (before):', JSON.parse(JSON.stringify(window.savedAddresses)));
 
             // if (!confirm('Haluatko varmasti poistaa tämän osoitteen?')) return; 
             // Confirm disabled for debugging per user request
 
             try {
                 const response = await deleteServerAddress(id);
-                console.log('Server returned success.');
 
                 const oldLen = window.savedAddresses.length;
                 window.savedAddresses = window.savedAddresses.filter(a => String(a.id) !== String(id));
                 const newLen = window.savedAddresses.length;
 
-                console.log(`Filtered array. Old length: ${oldLen}, New length: ${newLen}`);
-                console.log('Current addresses (after):', JSON.parse(JSON.stringify(window.savedAddresses)));
 
                 populateSavedAddresses();
             } catch (e) {
                 console.error('Delete failed:', e);
-                alert('Poistaminen epäonnistui: ' + e.message);
+                showToast('Poistaminen epäonnistui: ' + e.message, 'error');
             }
-            console.log('--- DELETE END ---');
         }
 
         // Load saved addresses on init
@@ -1142,6 +1135,39 @@
             if (document.getElementById(otherId).value.trim()) {
                 calc();
             }
+        };
+    </script>
+
+    <!-- Toast notification container and function -->
+    <div id="toast-container" style="position:fixed;top:80px;right:20px;z-index:999999;display:flex;flex-direction:column;gap:10px;"></div>
+    <script>
+        window.showToast = function(message, type = 'error') {
+            const container = document.getElementById('toast-container');
+            if (!container) return;
+            
+            const toast = document.createElement('div');
+            const colors = {
+                error: { bg: '#ef4444', icon: 'error' },
+                success: { bg: '#10b981', icon: 'check_circle' },
+                warning: { bg: '#f59e0b', icon: 'warning' },
+                info: { bg: '#3b82f6', icon: 'info' }
+            };
+            const { bg, icon } = colors[type] || colors.error;
+            
+            toast.style.cssText = `
+                display:flex;align-items:center;gap:10px;padding:14px 20px;
+                background:${bg};color:white;border-radius:10px;
+                box-shadow:0 4px 12px rgba(0,0,0,0.15);font-size:14px;font-weight:500;
+                transform:translateX(120%);transition:transform 0.3s ease;max-width:360px;
+            `;
+            toast.innerHTML = `<span class="material-symbols-outlined" style="font-size:20px;">${icon}</span><span>${message}</span>`;
+            container.appendChild(toast);
+            
+            requestAnimationFrame(() => { toast.style.transform = 'translateX(0)'; });
+            setTimeout(() => {
+                toast.style.transform = 'translateX(120%)';
+                setTimeout(() => toast.remove(), 300);
+            }, 4000);
         };
     </script>
 

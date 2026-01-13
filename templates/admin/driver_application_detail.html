@@ -243,7 +243,7 @@
           {% endif %}
 
           <a class="px-3 py-2 rounded-md text-slate-700 hover:text-primary hover:bg-slate-100 font-semibold transition-colors"
-            href="{{ url_for('auth.logout') }}">Ulos</a>
+            href="{{ url_for('auth.logout') }}">Kirjaudu ulos</a>
         </nav>
       </div>
     </div>
@@ -334,13 +334,6 @@
             </div>
           </div>
 
-          <div>
-            <label
-              class="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">Koko
-              nimi</label>
-            <p class="text-base font-bold text-slate-900 dark:text-white">{{ application.name }}</p>
-          </div>
-
           <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <label
@@ -358,16 +351,90 @@
             </div>
           </div>
 
-          <div>
-            <label
-              class="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">Hakemus
-              lähetetty</label>
-            <p class="text-base text-slate-900 dark:text-white">{{ application.created_at|helsinki_time if
-              application.created_at else '-' }}</p>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <label
+                class="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">Syntymäaika</label>
+              <p class="text-base text-slate-900 dark:text-white">{{ application.birth_date or '-' }}</p>
+            </div>
+            <div>
+              <label
+                class="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">Hakemus lähetetty</label>
+              <p class="text-base text-slate-900 dark:text-white">{{ application.created_at|helsinki_time if
+                application.created_at else '-' }}</p>
+            </div>
           </div>
         </div>
       </div>
     </div>
+
+    <!-- Address Information -->
+    {% if application.address %}
+    <div
+      class="bg-white dark:bg-[#1e2936] rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden">
+      <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-700">
+        <h3 class="font-bold text-slate-900 dark:text-white">Osoitetiedot</h3>
+      </div>
+      <div class="p-6">
+        <div class="space-y-4">
+          <div>
+            <label
+              class="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">Katuosoite</label>
+            <p class="text-base text-slate-900 dark:text-white">{{ application.address.street or '-' }}</p>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <label
+                class="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">Postinumero</label>
+              <p class="text-base text-slate-900 dark:text-white">{{ application.address.postal_code or '-' }}</p>
+            </div>
+            <div>
+              <label
+                class="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">Kaupunki</label>
+              <p class="text-base text-slate-900 dark:text-white">{{ application.address.city or '-' }}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- About Driver -->
+    {% if application.about_me or application.driving_experience or application.languages %}
+    <div
+      class="bg-white dark:bg-[#1e2936] rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden">
+      <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-700">
+        <h3 class="font-bold text-slate-900 dark:text-white">Esittely</h3>
+      </div>
+      <div class="p-6">
+        <div class="space-y-6">
+          {% if application.about_me %}
+          <div>
+            <label
+              class="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">Kerro itsestäsi</label>
+            <p class="text-base text-slate-900 dark:text-white whitespace-pre-wrap">{{ application.about_me }}</p>
+          </div>
+          {% endif %}
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {% if application.driving_experience %}
+            <div>
+              <label
+                class="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">Ajokokemus</label>
+              <p class="text-base text-slate-900 dark:text-white">{{ application.driving_experience }} vuotta</p>
+            </div>
+            {% endif %}
+            {% if application.languages %}
+            <div>
+              <label
+                class="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">Kielet</label>
+              <p class="text-base text-slate-900 dark:text-white">{{ application.languages }}</p>
+            </div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endif %}
 
     <!-- Driver's License Images -->
     <div
@@ -385,7 +452,7 @@
               etupuoli</label>
             {% if application.license_images.front %}
             <a href="{{ url_for('admin.view_license_image', application_id=application.id, image_type='front') }}"
-              target="_blank" class="license-preview-link">
+              target="_blank" rel="noopener noreferrer" class="license-preview-link">
               <div class="license-preview">
                 <img src="{{ url_for('admin.view_license_image', application_id=application.id, image_type='front') }}"
                   alt="Ajokortin etupuoli" class="license-thumbnail">
@@ -409,7 +476,7 @@
               takapuoli</label>
             {% if application.license_images.back %}
             <a href="{{ url_for('admin.view_license_image', application_id=application.id, image_type='back') }}"
-              target="_blank" class="license-preview-link">
+              target="_blank" rel="noopener noreferrer" class="license-preview-link">
               <div class="license-preview">
                 <img src="{{ url_for('admin.view_license_image', application_id=application.id, image_type='back') }}"
                   alt="Ajokortin takapuoli" class="license-thumbnail">

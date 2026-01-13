@@ -250,9 +250,9 @@
                 </h2>
             </div>
             <div class="flex flex-row gap-3 mt-4 sm:mt-0 w-full sm:w-auto">
-                <a href="/order/{{ order.id }}/invoice" target="_blank"
+                <a href="/order/{{ order.id }}/receipt" target="_blank" rel="noopener noreferrer"
                     class="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-4 py-2 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 text-sm font-medium rounded-lg border border-slate-300 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors shadow-sm">
-                    <span class="material-symbols-outlined text-[20px]">open_in_new</span>
+                    <span class="material-symbols-outlined text-[20px]">receipt_long</span>
                     Avaa kuitti
                 </a>
                 <a href="/order/new/step1"
@@ -521,7 +521,7 @@
                                     {% for img in order.images.get('pickup') %}
                                     <div
                                         class="group relative aspect-square bg-slate-100 dark:bg-slate-700 rounded-lg overflow-hidden cursor-pointer">
-                                        <a href="/static/uploads/orders/{{ img.filename }}" target="_blank">
+                                        <a href="/static/uploads/orders/{{ img.filename }}" target="_blank" rel="noopener noreferrer">
                                             <div class="absolute inset-0 bg-cover bg-center group-hover:scale-110 transition-transform duration-500"
                                                 style='background-image: url("/static/uploads/orders/{{ img.filename }}");'>
                                             </div>
@@ -552,7 +552,7 @@
                                     {% for img in order.images.get('delivery') %}
                                     <div
                                         class="group relative aspect-square bg-slate-100 dark:bg-slate-700 rounded-lg overflow-hidden cursor-pointer">
-                                        <a href="/static/uploads/orders/{{ img.filename }}" target="_blank">
+                                        <a href="/static/uploads/orders/{{ img.filename }}" target="_blank" rel="noopener noreferrer">
                                             <div class="absolute inset-0 bg-cover bg-center group-hover:scale-110 transition-transform duration-500"
                                                 style='background-image: url("/static/uploads/orders/{{ img.filename }}");'>
                                             </div>
@@ -632,7 +632,7 @@
                                 class="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg bg-white text-slate-900 resize-none mb-3"
                                 placeholder="Kommentti (valinnainen)"></textarea>
                             <button type="button" id="submitRatingBtn" disabled
-                                class="w-full py-2 bg-primary text-white text-sm font-semibold rounded-lg transition-all disabled:bg-slate-300 disabled:cursor-not-allowed hover:bg-primary/90">Laheta</button>
+                                class="w-full py-2 bg-primary text-white text-sm font-semibold rounded-lg transition-all disabled:bg-slate-300 disabled:cursor-not-allowed hover:bg-primary/90">Lähetä</button>
                         </div>
                         <div id="ratingSuccess"
                             class="hidden mt-3 p-4 bg-green-50 rounded-lg border border-green-200 text-center">
@@ -738,8 +738,8 @@
                 successView.classList.remove("hidden");
             }).catch(function () {
                 submitBtn.disabled = false;
-                submitBtn.textContent = "Laheta";
-                alert("Virhe!");
+                submitBtn.textContent = "Lähetä";
+                showToast("Virhe arvostelussa!", "error");
             });
     });
 }) ();

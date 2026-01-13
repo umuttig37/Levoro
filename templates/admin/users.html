@@ -280,7 +280,7 @@
           {% endif %}
 
           <a class="px-3 py-2 rounded-md text-slate-700 hover:text-primary hover:bg-slate-100 font-semibold transition-colors"
-            href="{{ url_for('auth.logout') }}">Ulos</a>
+            href="{{ url_for('auth.logout') }}">Kirjaudu ulos</a>
         </nav>
       </div>
     </div>
@@ -296,41 +296,73 @@
           ja hylkäämistä.</p>
       </div>
     </div>
-    <!-- Controls Toolbar -->
-    <div class="flex flex-col lg:flex-row gap-4 items-center justify-between mb-6">
+    <!-- Filters Form -->
+    <form id="filterForm" method="get" action="{{ url_for('admin.users') }}"
+      class="flex flex-col lg:flex-row gap-4 items-center justify-between">
       <!-- Search -->
       <div class="w-full lg:w-[450px]">
         <div class="relative group">
-          <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"><span
+          <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <span
               class="material-symbols-outlined text-slate-400 group-focus-within:text-primary transition-colors">search</span>
-          </div><input id="userSearch"
+          </div>
+          <input id="searchInput" name="search" value="{{ search or '' }}"
             class="block w-full pl-10 pr-3 py-3 rounded-xl border-none bg-white dark:bg-[#1e2936] text-slate-900 dark:text-white placeholder-slate-400 focus:ring-2 focus:ring-primary/50 shadow-sm transition-all text-sm"
-            placeholder="Hae käyttäjää nimellä, sähköpostilla..." type="search" />
+            placeholder="Hae nimellä, sähköpostilla tai puhelinnumerolla..." type="text" />
         </div>
       </div>
-      <!-- Filters (Custom Dropdown) -->
+
+      <!-- Filters Container -->
       <div class="flex flex-col sm:flex-row items-center gap-4 w-full lg:w-auto">
-        <!-- Custom Dropdown -->
-        <div class="relative w-full sm:w-64 custom-select-container"><select id="userFilter" style="display:none">
-            <option value="">Kaikki roolit</option>
-            <option value="admin">Admin</option>
-            <option value="driver">Kuljettaja</option>
-            <option value="user">Asiakas</option>
+        <!-- Role Filter (Custom) -->
+        <div class="relative w-full sm:w-48 custom-select-container">
+          <select name="role" id="roleFilter" style="display:none">
+            <option value="" {% if not role_filter %}selected{% endif %}>Rooli: Kaikki</option>
+            <option value="admin" {% if role_filter=='admin' %}selected{% endif %}>Admin</option>
+            <option value="driver" {% if role_filter=='driver' %}selected{% endif %}>Kuljettaja</option>
+            <option value="user" {% if role_filter=='user' %}selected{% endif %}>Asiakas</option>
           </select>
-          <div class="custom-select-trigger shadow-sm"><span class="custom-select-label">Kaikki
-              roolit</span><svg class="custom-select-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-              stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+
+          <!-- Custom UI -->
+          <div class="custom-select-trigger shadow-sm">
+            <span class="custom-select-label">Rooli: Kaikki</span>
+            <svg class="custom-select-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
               <polyline points="6 9 12 15 18 9"></polyline>
-            </svg></div>
+            </svg>
+          </div>
           <div class="custom-select-options custom-scrollbar">
-            <div class="custom-option" data-value="">Kaikki roolit</div>
+            <div class="custom-option" data-value="">Rooli: Kaikki</div>
             <div class="custom-option" data-value="admin">Admin</div>
             <div class="custom-option" data-value="driver">Kuljettaja</div>
             <div class="custom-option" data-value="user">Asiakas</div>
           </div>
         </div>
+
+        <!-- Status Filter (Custom) -->
+        <div class="relative w-full sm:w-48 custom-select-container">
+          <select name="status" id="statusFilter" style="display:none">
+            <option value="" {% if not status_filter %}selected{% endif %}>Tila: Kaikki</option>
+            <option value="active" {% if status_filter=='active' %}selected{% endif %}>Aktiivinen</option>
+            <option value="pending" {% if status_filter=='pending' %}selected{% endif %}>Odottaa</option>
+          </select>
+
+          <!-- Custom UI -->
+          <div class="custom-select-trigger shadow-sm">
+            <span class="custom-select-label">Tila: Kaikki</span>
+            <svg class="custom-select-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+          </div>
+          <div class="custom-select-options custom-scrollbar">
+            <div class="custom-option" data-value="">Tila: Kaikki</div>
+            <div class="custom-option" data-value="active">Aktiivinen</div>
+            <div class="custom-option" data-value="pending">Odottaa</div>
+          </div>
+        </div>
       </div>
-    </div>
+    </form>
     <!-- Users Table -->
     <div
       class="bg-white dark:bg-[#1e2936] rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden flex flex-col">
@@ -362,8 +394,8 @@
             {% if users %}
             {% for user in users %}
             <tr class="group hover:bg-blue-50/50 dark:hover:bg-slate-700/30 transition-colors user-row"
-              data-name="{{ user.name|lower }}" data-email="{{ user.email|lower }}" data-role="{{ user.role }}"
-              data-status="{{ user.get('status', 'active') }}">
+              data-id="{{ user.id }}" data-name="{{ user.name|lower }}" data-email="{{ user.email|lower }}"
+              data-role="{{ user.role }}" data-status="{{ user.get('status', 'active') }}" data-phone="{{ user.phone or '' }}">
               <td class="px-6 py-4"><span class="font-medium text-slate-900 dark:text-white text-sm">#{{ user.id
                   }}</span></td>
               <td class="px-6 py-4"><span class="text-sm font-medium text-slate-900 dark:text-white">{{
@@ -409,6 +441,13 @@
                 </span></td>
               <td class="px-6 py-4 text-right">
                 <div class="flex items-center justify-end gap-2">
+                  <button type="button"
+                    class="inline-flex items-center justify-center p-2 rounded-lg text-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+                    onclick="openEditModal(this)" data-user-id="{{ user.id }}" data-user-name="{{ user.name }}"
+                    data-user-email="{{ user.email }}" data-user-phone="{{ user.phone or '' }}"
+                    data-user-status="{{ user.get('status', 'active') }}">
+                    <span class="material-symbols-outlined text-[20px]">edit</span>
+                  </button>
                   {% if user.get('role') !='admin' and user.get('role') !='driver' %}
                   {% set is_active=(user.get('status', 'active')=='active') %}
                   {% if is_active %}
@@ -459,6 +498,54 @@
       </div>
     </div>
   </main>
+  <!-- Edit Modal -->
+  <div id="editModal" style="display: none;"
+    class="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/20 backdrop-blur-sm opacity-0 transition-opacity duration-300"
+    aria-hidden="true">
+    <div class="bg-white dark:bg-[#1e2936] rounded-2xl shadow-xl w-full max-w-lg p-6 transform scale-95 transition-transform duration-300"
+      id="editModalPanel">
+      <h3 class="text-lg font-bold text-slate-900 dark:text-white mb-4">Muokkaa käyttäjää</h3>
+      <form method="POST" action="{{ url_for('admin.update_user') }}" id="editUserForm" class="space-y-3">
+        <input type="hidden" name="user_id" id="editUserId">
+        <div>
+          <label class="block text-sm font-semibold text-slate-600 dark:text-slate-300 mb-1">Nimi</label>
+          <input type="text" name="name" id="editUserName"
+            class="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#1e2936] text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-primary/40"
+            required>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="block text-sm font-semibold text-slate-600 dark:text-slate-300 mb-1">Sähköposti</label>
+            <input type="email" name="email" id="editUserEmail"
+              class="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#1e2936] text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-primary/40"
+              required>
+          </div>
+          <div>
+            <label class="block text-sm font-semibold text-slate-600 dark:text-slate-300 mb-1">Puhelin</label>
+            <input type="text" name="phone" id="editUserPhone"
+              class="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#1e2936] text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-primary/40">
+          </div>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="block text-sm font-semibold text-slate-600 dark:text-slate-300 mb-1">Tila</label>
+            <select name="status" id="editUserStatus"
+              class="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#1e2936] text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-primary/40">
+              <option value="active">Aktiivinen</option>
+              <option value="pending">Odottaa</option>
+            </select>
+          </div>
+        </div>
+        <div class="flex justify-end gap-3 pt-3">
+          <button type="button" onclick="closeEditModal()"
+            class="px-4 py-2 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-sm font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">Peruuta</button>
+          <button type="submit"
+            class="px-4 py-2 rounded-lg bg-primary text-white text-sm font-semibold shadow-sm hover:bg-blue-600 transition-colors">Tallenna</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <!-- Confirmation Modal -->
   <div id="confirmModal" style="display: none;"
     class="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/20 backdrop-blur-sm opacity-0 transition-opacity duration-300"
@@ -537,10 +624,44 @@
       }
     });
 
+    // Edit modal helpers
+    const editModal = document.getElementById('editModal');
+    const editPanel = document.getElementById('editModalPanel');
+    function openEditModal(btn) {
+      const id = btn.dataset.userId;
+      const name = btn.dataset.userName;
+      const email = btn.dataset.userEmail;
+      const phone = btn.dataset.userPhone || '';
+      const status = btn.dataset.userStatus || 'active';
+
+      document.getElementById('editUserId').value = id;
+      document.getElementById('editUserName').value = name;
+      document.getElementById('editUserEmail').value = email;
+      document.getElementById('editUserPhone').value = phone;
+      document.getElementById('editUserStatus').value = status;
+
+      editModal.style.display = 'flex';
+      editModal.classList.remove('opacity-0');
+      editPanel.classList.remove('scale-95');
+      editPanel.classList.add('scale-100');
+    }
+    function closeEditModal() {
+      editModal.classList.add('opacity-0');
+      editPanel.classList.remove('scale-100');
+      editPanel.classList.add('scale-95');
+      setTimeout(() => { editModal.style.display = 'none'; }, 200);
+    }
+    editModal.addEventListener('click', function (e) {
+      if (e.target === editModal) {
+        closeEditModal();
+      }
+    });
+
     document.addEventListener('DOMContentLoaded', function () {
-      const searchInput = document.getElementById('userSearch');
-      const hiddenSelect = document.getElementById('userFilter');
-      const tableRows = document.querySelectorAll('.user-row');
+      const searchInput = document.getElementById('searchInput');
+      const roleSelect = document.getElementById('roleFilter');
+      const statusSelect = document.getElementById('statusFilter');
+      const filterForm = document.getElementById('filterForm');
 
       // --- Initialize Custom Dropdowns ---
       function initCustomDropdowns() {
@@ -555,7 +676,7 @@
           // Set initial label based on selected option
           const selectedOption = Array.from(hiddenSelect.options).find(opt => opt.selected);
 
-          if (selectedOption && selectedOption.value !== "") {
+          if (selectedOption) {
             label.textContent = selectedOption.text;
             // Mark corresponding custom option as selected
             const customOption = options.querySelector(`.custom-option[data-value="${selectedOption.value}"]`);
@@ -582,9 +703,7 @@
             const isOpen = container.classList.contains('open');
             container.classList.toggle('open', !isOpen);
             trigger.classList.toggle('open', !isOpen);
-          }
-
-            ;
+          };
 
           // Handle option click
           options.querySelectorAll('.custom-option').forEach(option => {
@@ -605,9 +724,7 @@
               // Close dropdown
               container.classList.remove('open');
               trigger.classList.remove('open');
-            }
-
-              ;
+            };
           });
         });
       }
@@ -623,42 +740,19 @@
 
       initCustomDropdowns();
 
+      // Auto-submit form when filters change
+      if (roleSelect) roleSelect.addEventListener('change', () => filterForm.submit());
+      if (statusSelect) statusSelect.addEventListener('change', () => filterForm.submit());
 
-      function filterTable() {
-        const searchTerm = searchInput.value.toLowerCase();
-        const filterValue = hiddenSelect.value;
-
-        tableRows.forEach(row => {
-          const name = row.dataset.name || '';
-          const email = row.dataset.email || '';
-          const role = row.dataset.role || '';
-
-          // Filter by Dropdown (Role)
-          let matchesFilter = true;
-
-          if (filterValue) {
-            matchesFilter = (role === filterValue);
-          }
-
-          // Search
-          let matchesSearch = true;
-
-          if (searchTerm) {
-            matchesSearch = name.includes(searchTerm) || email.includes(searchTerm);
-          }
-
-          if (matchesFilter && matchesSearch) {
-            row.style.display = '';
-          }
-
-          else {
-            row.style.display = 'none';
+      // Submit on Enter key in search input
+      if (searchInput) {
+        searchInput.addEventListener('keypress', (e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            filterForm.submit();
           }
         });
       }
-
-      if (searchInput) searchInput.addEventListener('input', filterTable);
-      if (hiddenSelect) hiddenSelect.addEventListener('change', filterTable);
 
       // Flash messages
       setTimeout(function () {
@@ -669,9 +763,7 @@
           messages.style.opacity = '0';
           setTimeout(() => messages.remove(), 1000);
         }
-      }
-
-        , 5000);
+      }, 5000);
     });
   </script>
   {% set footer_button_text = 'Laskuri' %}
@@ -679,3 +771,4 @@
 </body>
 
 </html>
+

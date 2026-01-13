@@ -15,9 +15,21 @@ app = get_app()
 
 @app.get("/kayttoehdot")
 def terms():
-    """Temporary terms of service page"""
+    """Legacy terms route - redirect to new customer terms"""
+    from flask import redirect
+    return redirect('/sopimusehdot', code=301)
+
+@app.get("/sopimusehdot")
+def customer_terms():
+    """Customer terms of service page"""
     from flask import render_template
-    return render_template('terms.html')
+    return render_template('terms_customer.html')
+
+@app.get("/kuljettajan-ehdot")
+def driver_terms():
+    """Driver terms of service page"""
+    from flask import render_template
+    return render_template('terms_driver.html')
 
 @app.get("/yhteystiedot")
 def contact():

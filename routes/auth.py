@@ -4,6 +4,7 @@ Authentication Routes
 
 from flask import Blueprint, request, redirect, url_for, flash, render_template
 from services.auth_service import auth_service
+from utils.rate_limiter import check_rate_limit
 
 auth_bp = Blueprint('auth', __name__)
 
@@ -19,9 +20,19 @@ def login():
         return render_template("auth/login.html", next_url=next_url)
 
     email = request.form.get("email", "").strip().lower()
+
+    allowed, retry_after = check_rate_limit(f"forgot:{request.remote_addr}", limit=3, window_seconds=300, lockout_seconds=900)
+    if not allowed:
+        flash("Liian monta pyyntöä. Yritä uudelleen hetken kuluttua.", "error")
+        return redirect(url_for("auth.forgot_password"))
     password = request.form.get("password", "")
     remember_me = request.form.get("remember_me") == "on"
     nxt = request.form.get("next", "")
+
+    allowed, retry_after = check_rate_limit(f"login:{request.remote_addr}", limit=5, window_seconds=60, lockout_seconds=300)
+    if not allowed:
+        flash("Liian monta kirjautumisyritystä. Yritä uudelleen hetken kuluttua.", "error")
+        return redirect(url_for("auth.login"))
 
     if not email or not password:
         flash("Sähköposti ja salasana vaaditaan", "error")

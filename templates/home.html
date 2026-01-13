@@ -1,6 +1,6 @@
 {% extends "base/layout.html" %}
 
-{% block title %}Autonkuljetus – Nopein ja edullisin{% endblock %}
+{% block title %}Levoro – Nopein ja edullisin{% endblock %}
 
 {% block extra_css %}
 <style>
@@ -541,7 +541,7 @@
   /* Collapsible Contact Section */
   .contact-section-collapsible {
     padding: 1rem 0;
-    margin-bottom: 1rem;
+    margin: 3rem 0 1rem;
   }
 
   .contact-toggle-btn {
@@ -910,7 +910,7 @@
     </div>
 
     <div class="bg-gray-50 rounded-2xl p-8 shadow-sm border border-gray-100 animate-fade-up">
-      <form action="{{ url_for('main.submit_review') }}" method="POST" id="reviewForm">
+      <form action="{{ url_for('main.submit_review') }}" method="POST" id="reviewForm" novalidate>
         <!-- Star Rating -->
         <div class="mb-6">
           <label class="block text-sm font-semibold text-gray-700 mb-3">Arvosana *</label>
@@ -1056,7 +1056,7 @@
           <!-- Contact Form -->
           <div class="contact-form-card">
             <h3>Lähetä viesti</h3>
-            <form action="/yhteystiedot" method="POST">
+            <form action="/yhteystiedot" method="POST" novalidate>
               <div class="contact-form-group">
                 <label for="contact-name">Nimi</label>
                 <input type="text" id="contact-name" name="name" placeholder="Nimesi" required>

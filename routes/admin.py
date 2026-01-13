@@ -22,13 +22,35 @@ def dashboard():
 @admin_bp.route("/users")
 @admin_required
 def users():
-    """Admin user management page"""
+    """Admin user management page with search/filter"""
     from app import users_col
 
-    # Get all users EXCEPT drivers (drivers are managed separately)
-    users = list(users_col().find({"role": {"$ne": "driver"}}, {"_id": 0}).sort("created_at", -1))
+    search = request.args.get("search", "").strip()
+    role_filter = request.args.get("role", "").strip()
+    status_filter = request.args.get("status", "").strip()
 
-    return render_template("admin/users.html", users=users, current_user=auth_service.get_current_user())
+    query = {"role": {"$ne": "driver"}}  # drivers handled elsewhere
+    if role_filter:
+        query["role"] = role_filter
+    if status_filter:
+        query["status"] = status_filter
+    if search:
+        query["$or"] = [
+            {"name": {"$regex": search, "$options": "i"}},
+            {"email": {"$regex": search, "$options": "i"}},
+            {"phone": {"$regex": search, "$options": "i"}},
+        ]
+
+    users = list(users_col().find(query, {"_id": 0}).sort("created_at", -1))
+
+    return render_template(
+        "admin/users.html",
+        users=users,
+        current_user=auth_service.get_current_user(),
+        search=search,
+        role_filter=role_filter,
+        status_filter=status_filter,
+    )
 
 
 @admin_bp.route("/users/approve", methods=["POST"])
@@ -118,6 +140,49 @@ def deny_user():
         flash("Käyttäjä poistettu, mutta kuljettajahakemuksen poisto epäonnistui. Ota yhteyttä ylläpitäjään.", "warning")
     else:
         flash("Käyttäjän poistaminen epäonnistui", "error")
+
+    return redirect(url_for("admin.users"))
+
+
+@admin_bp.route("/users/update", methods=["POST"])
+@admin_required
+def update_user():
+    """Edit basic user details (non-driver)"""
+    from models.user import user_model
+
+    user_id = int(request.form.get("user_id", 0))
+    name = (request.form.get("name") or "").strip()
+    email = (request.form.get("email") or "").strip().lower()
+    phone = (request.form.get("phone") or "").strip()
+    status = (request.form.get("status") or "").strip()
+
+    if not user_id:
+        flash("Virheellinen kビyttビjБ", "error")
+        return redirect(url_for("admin.users"))
+
+    user = user_model.find_by_id(user_id)
+    if not user:
+        flash("KビyttビjББ ei lБytynyt", "error")
+        return redirect(url_for("admin.users"))
+
+    if user.get("role") == "driver":
+        flash("Kuljettajia muokataan kuljettajasivulla", "error")
+        return redirect(url_for("admin.users"))
+
+    update_data = {}
+    if name:
+        update_data["name"] = name
+    if email:
+        update_data["email"] = email
+    update_data["phone"] = phone or None
+    if status in ["active", "pending"]:
+        update_data["status"] = status
+
+    success = user_model.update_one({"id": user_id}, {"$set": update_data})
+    if success:
+        flash("KビyttビjБ päivitetty", "success")
+    else:
+        flash("Pビivitys epБonnistui", "error")
 
     return redirect(url_for("admin.users"))
 @admin_bp.route("/drivers")

@@ -409,6 +409,9 @@ class DriverService:
         try:
             from models.driver_application import driver_application_model
             from services.auth_service import auth_service
+            from werkzeug.security import generate_password_hash
+            import secrets
+            import string
 
             # Get application
             application = driver_application_model.find_by_id(application_id)
@@ -433,16 +436,28 @@ class DriverService:
             from models.database import counter_manager
             user_id = counter_manager.get_next_id("users")
 
-            # Create driver user document directly with already-hashed password
+            # Generate a secure temporary password (12 characters)
+            alphabet = string.ascii_letters + string.digits
+            temp_password = ''.join(secrets.choice(alphabet) for _ in range(12))
+
+            # Create driver user document with generated password
             user_data = {
                 "id": user_id,
                 "email": application['email'].lower().strip(),
-                "password_hash": application['password_hash'],  # Already hashed, don't hash again
+                "password_hash": generate_password_hash(temp_password),
                 "name": application['name'].strip(),
                 "role": "driver",
                 "phone": application.get('phone', '').strip() if application.get('phone') else None,
+                # Transfer address info from application
+                "address": application.get('address'),
+                "birth_date": application.get('birth_date'),
+                "about_me": application.get('about_me'),
+                "driving_experience": application.get('driving_experience'),
+                "languages": application.get('languages'),
                 "status": "active",
-                "terms_accepted": False,  # Driver must accept terms on first login
+                "must_change_password": True,  # Flag to require password change on first login
+                "terms_accepted": application.get('terms_accepted', False),
+                "terms_accepted_at": application.get('terms_accepted_at'),
                 "created_at": datetime.now(timezone.utc),
                 "updated_at": datetime.now(timezone.utc)
             }
@@ -467,11 +482,12 @@ class DriverService:
                     # User exists but application not marked - this is recoverable
                     # The integrity check script will detect this
 
-            # Send approval email
+            # Send approval email with temporary password
             try:
                 email_service.send_driver_application_approved(
                     application['email'],
-                    application['name']
+                    application['name'],
+                    temp_password  # Pass temporary password to include in email
                 )
             except Exception as e:
                 print(f"Failed to send approval email: {e}")

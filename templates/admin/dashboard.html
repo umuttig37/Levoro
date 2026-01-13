@@ -327,7 +327,7 @@
           {% endif %}
 
           <a class="px-3 py-2 rounded-md text-slate-700 hover:text-primary hover:bg-slate-100 font-semibold transition-colors"
-            href="{{ url_for('auth.logout') }}">Ulos</a>
+            href="{{ url_for('auth.logout') }}">Kirjaudu ulos</a>
         </nav>
       </div>
     </div>
@@ -343,10 +343,10 @@
         <p class="text-slate-500 dark:text-slate-400 text-base font-normal">Hallitse kuljetustilauksia ja niiden tilaa.
         </p>
       </div>
-      <a href="{{ url_for('main.index') }}" target="_blank"
+      <a href="/order/new/step1"
         class="flex items-center justify-center gap-2 rounded-xl bg-primary hover:bg-blue-600 text-white px-5 py-2.5 shadow-lg shadow-blue-200 dark:shadow-none transition-all transform hover:-translate-y-0.5 font-bold text-sm">
         <span class="material-symbols-outlined text-[20px]">add</span>
-        <span>Uusi tilaus (Asiakas)</span>
+        <span>Uusi tilaus</span>
       </a>
     </div>
     <!-- Controls Toolbar -->
@@ -361,7 +361,7 @@
           </div>
           <input id="searchInput" name="search" value="{{ search or '' }}"
             class="block w-full pl-10 pr-3 py-3 rounded-xl border-none bg-white dark:bg-[#1e2936] text-slate-900 dark:text-white placeholder-slate-400 focus:ring-2 focus:ring-primary/50 shadow-sm transition-all text-sm"
-            placeholder="Hae tilausnumerolla, asiakkaalla tai kuljettajalla..." type="text" />
+            placeholder="Hae tilausnumerolla, rekisterinumerolla, asiakkaalla tai kuljettajalla..." type="text" />
         </div>
       </div>
 

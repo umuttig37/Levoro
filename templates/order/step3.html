@@ -40,7 +40,7 @@
 {% endblock %}
 
 {% block content %}
-<form method="POST" class="space-y-6">
+<form method="POST" class="space-y-6" novalidate>
     <!-- Outbound Vehicle Section -->
     <div class="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
         <div class="flex items-center gap-3 mb-6">
@@ -152,8 +152,8 @@
             <span class="material-symbols-outlined">arrow_back</span>
             Takaisin
         </button>
-        <button type="submit" name="action" value="continue"
-            class="btn-gradient flex-1 inline-flex justify-center items-center rounded-xl from-brand-gradient-start to-brand-gradient-end px-6 py-4 text-base font-bold text-white shadow-lg shadow-blue-500/30 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+        <button type="submit" name="action" value="continue" id="continueBtn"
+            class="btn-gradient flex-1 inline-flex justify-center items-center rounded-xl from-brand-gradient-start to-brand-gradient-end px-6 py-4 text-base font-bold text-white shadow-lg shadow-blue-500/30 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all disabled:from-gray-300 disabled:to-gray-400 disabled:shadow-none disabled:cursor-not-allowed">
             Jatka
             <span class="material-symbols-outlined ml-2">arrow_forward</span>
         </button>
@@ -163,10 +163,42 @@
 
 {% block extra_scripts %}
 <script>
-    // Auto-uppercase registration numbers
-    document.querySelectorAll('input[name="reg_number"], input[name="return_reg_number"]').forEach(input => {
-        input.addEventListener('input', function () {
-            this.value = this.value.toUpperCase();
+    // Form validity checker for disabled button
+    document.addEventListener('DOMContentLoaded', function() {
+        const continueBtn = document.getElementById('continueBtn');
+        const regInput = document.getElementById('reg_number');
+        const returnRegInput = document.getElementById('return_reg_number');
+
+        function checkFormValidity() {
+            const regValid = regInput && regInput.value.trim() !== '';
+            // Check return reg only if it exists (paluu_auto enabled)
+            const returnRegValid = !returnRegInput || returnRegInput.value.trim() !== '';
+            
+            if (continueBtn) {
+                continueBtn.disabled = !(regValid && returnRegValid);
+            }
+        }
+
+        // Check on page load (with small delay to ensure values are set)
+        checkFormValidity();
+        setTimeout(checkFormValidity, 100);
+
+        // Check on input changes
+        if (regInput) {
+            regInput.addEventListener('input', checkFormValidity);
+        }
+        if (returnRegInput) {
+            returnRegInput.addEventListener('input', checkFormValidity);
+        }
+
+        // Expose globally
+        window.checkFormValidity = checkFormValidity;
+
+        // Auto-uppercase registration numbers
+        document.querySelectorAll('input[name="reg_number"], input[name="return_reg_number"]').forEach(input => {
+            input.addEventListener('input', function () {
+                this.value = this.value.toUpperCase();
+            });
         });
     });
 </script>

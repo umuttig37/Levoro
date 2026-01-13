@@ -4,6 +4,7 @@
 <head>
     <meta charset="utf-8" />
     <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <meta name="description" content="Levoro Admin - Tilauksen hallinta ja seuranta.">
     <title>Levoro Admin - Tilaus #{{ order.id }}</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&amp;display=swap"
         rel="stylesheet" />
@@ -175,7 +176,7 @@
                     {% endif %}
 
                     <a class="px-3 py-2 rounded-md text-slate-700 hover:text-primary hover:bg-slate-100 font-semibold transition-colors"
-                        href="{{ url_for('auth.logout') }}">Ulos</a>
+                        href="{{ url_for('auth.logout') }}">Kirjaudu ulos</a>
                 </nav>
             </div>
         </div>
@@ -458,12 +459,14 @@
                 -->
 
                 <!-- Photos Section -->
+                {% set pickup_count = order.images.pickup|length if order.images and order.images.pickup else 0 %}
+                {% set delivery_count = order.images.delivery|length if order.images and order.images.delivery else 0 %}
+                {% set total_count = pickup_count + delivery_count %}
                 <div class="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
                     <div class="flex items-center justify-between mb-6">
                         <h4 class="text-lg font-bold text-slate-900">Valokuvat</h4>
-                        <span class="text-sm text-slate-400 bg-slate-50 px-2 py-1 rounded">
-                            {{ (order.images.pickup|length if order.images and order.images.pickup else 0) +
-                            (order.images.delivery|length if order.images and order.images.delivery else 0) }} kpl
+                        <span id="admin-image-total-count" class="text-sm text-slate-400 bg-slate-50 px-2 py-1 rounded">
+                            {{ total_count }} kpl
                         </span>
                     </div>
 
@@ -473,14 +476,15 @@
                             <span class="material-symbols-outlined text-[16px]">trip_origin</span>
                             Noutokuvat
                         </h5>
-                        <div class="flex flex-wrap gap-4">
+                        <div class="flex flex-wrap gap-4 admin-image-grid" data-image-type="pickup">
                             {% if order.images and order.images.pickup %}
                             {% for img in order.images.pickup %}
+                            {% set image_src = img.file_path or img.url or ("/static/uploads/orders/" ~ img.filename) %}
                             <div
-                                class="w-32 h-32 rounded-xl bg-slate-100 overflow-hidden relative border border-slate-200 group flex-none shadow-sm">
-                                <a href="{{ img.url }}" target="_blank">
+                                class="admin-image-item w-32 h-32 rounded-xl bg-slate-100 overflow-hidden relative border border-slate-200 group flex-none shadow-sm">
+                                <a href="{{ image_src }}" target="_blank" rel="noopener noreferrer">
                                     <img class="w-full h-full object-cover hover:scale-110 transition-transform duration-500"
-                                        src="{{ img.url }}" />
+                                        src="{{ image_src }}" alt="Nouto kuva" loading="lazy" />
                                 </a>
                                 <form
                                     action="{{ url_for('admin.delete_order_image_by_id', order_id=order.id, image_type='pickup', image_id=img.id) }}"
@@ -496,19 +500,21 @@
                             {% endfor %}
                             {% endif %}
                             <form action="{{ url_for('admin.upload_order_image', order_id=order.id) }}" method="POST"
-                                enctype="multipart/form-data" class="flex-none">
+                                enctype="multipart/form-data" class="flex-none admin-image-upload-form"
+                                data-order-id="{{ order.id }}" data-image-type="pickup"
+                                data-upload-url="{{ url_for('admin.upload_order_image_ajax', order_id=order.id) }}">
                                 <input type="hidden" name="image_type" value="pickup">
                                 <label
                                     class="cursor-pointer w-32 h-32 rounded-xl bg-slate-50 border-2 border-dashed border-slate-300 flex flex-col items-center justify-center text-slate-400 hover:text-primary hover:border-primary hover:bg-blue-50 transition-all shadow-sm">
                                     <span class="material-symbols-outlined text-3xl mb-1">add_a_photo</span>
                                     <span class="text-xs font-medium">Lisää kuva</span>
-                                    <input type="file" name="image" class="hidden" onchange="this.form.submit()"
-                                        accept="image/*">
+                                    <input type="file" name="image" class="hidden admin-image-input"
+                                        data-image-type="pickup" accept="image/*">
                                 </label>
                             </form>
                         </div>
                         {% if not order.images or not order.images.pickup %}
-                        <p class="text-sm text-slate-400 italic mt-3">Ei noutokuvia</p>
+                        <p class="text-sm text-slate-400 italic mt-3 admin-empty-message" data-image-type="pickup">Ei noutokuvia</p>
                         {% endif %}
                     </div>
 
@@ -518,14 +524,15 @@
                             <span class="material-symbols-outlined text-[16px]">location_on</span>
                             Toimituskuvat
                         </h5>
-                        <div class="flex flex-wrap gap-4">
+                        <div class="flex flex-wrap gap-4 admin-image-grid" data-image-type="delivery">
                             {% if order.images and order.images.delivery %}
                             {% for img in order.images.delivery %}
+                            {% set image_src = img.file_path or img.url or ("/static/uploads/orders/" ~ img.filename) %}
                             <div
-                                class="w-32 h-32 rounded-xl bg-slate-100 overflow-hidden relative border border-slate-200 group flex-none shadow-sm">
-                                <a href="{{ img.url }}" target="_blank">
+                                class="admin-image-item w-32 h-32 rounded-xl bg-slate-100 overflow-hidden relative border border-slate-200 group flex-none shadow-sm">
+                                <a href="{{ image_src }}" target="_blank" rel="noopener noreferrer">
                                     <img class="w-full h-full object-cover hover:scale-110 transition-transform duration-500"
-                                        src="{{ img.url }}" />
+                                        src="{{ image_src }}" alt="Toimitus kuva" loading="lazy" />
                                 </a>
                                 <form
                                     action="{{ url_for('admin.delete_order_image_by_id', order_id=order.id, image_type='delivery', image_id=img.id) }}"
@@ -541,19 +548,21 @@
                             {% endfor %}
                             {% endif %}
                             <form action="{{ url_for('admin.upload_order_image', order_id=order.id) }}" method="POST"
-                                enctype="multipart/form-data" class="flex-none">
+                                enctype="multipart/form-data" class="flex-none admin-image-upload-form"
+                                data-order-id="{{ order.id }}" data-image-type="delivery"
+                                data-upload-url="{{ url_for('admin.upload_order_image_ajax', order_id=order.id) }}">
                                 <input type="hidden" name="image_type" value="delivery">
                                 <label
                                     class="cursor-pointer w-32 h-32 rounded-xl bg-slate-50 border-2 border-dashed border-slate-300 flex flex-col items-center justify-center text-slate-400 hover:text-primary hover:border-primary hover:bg-blue-50 transition-all shadow-sm">
                                     <span class="material-symbols-outlined text-3xl mb-1">add_a_photo</span>
                                     <span class="text-xs font-medium">Lisää kuva</span>
-                                    <input type="file" name="image" class="hidden" onchange="this.form.submit()"
-                                        accept="image/*">
+                                    <input type="file" name="image" class="hidden admin-image-input"
+                                        data-image-type="delivery" accept="image/*">
                                 </label>
                             </form>
                         </div>
                         {% if not order.images or not order.images.delivery %}
-                        <p class="text-sm text-slate-400 italic mt-3">Ei toimituskuvia</p>
+                        <p class="text-sm text-slate-400 italic mt-3 admin-empty-message" data-image-type="delivery">Ei toimituskuvia</p>
                         {% endif %}
                     </div>
 
@@ -563,14 +572,15 @@
                             <span class="material-symbols-outlined text-[16px]">receipt</span>
                             Kuitit (Admin)
                         </h5>
-                        <div class="flex flex-wrap gap-4">
+                        <div class="flex flex-wrap gap-4 admin-image-grid" data-image-type="receipts">
                             {% if order.images and order.images.receipts %}
                             {% for img in order.images.receipts %}
+                            {% set image_src = img.file_path or img.url or ("/static/uploads/orders/" ~ img.filename) %}
                             <div
-                                class="w-32 h-32 rounded-xl bg-slate-100 overflow-hidden relative border border-slate-200 group flex-none shadow-sm">
-                                <a href="{{ img.url }}" target="_blank">
+                                class="admin-image-item w-32 h-32 rounded-xl bg-slate-100 overflow-hidden relative border border-slate-200 group flex-none shadow-sm">
+                                <a href="{{ image_src }}" target="_blank" rel="noopener noreferrer">
                                     <img class="w-full h-full object-cover hover:scale-110 transition-transform duration-500"
-                                        src="{{ img.url }}" />
+                                        src="{{ image_src }}" alt="Kuitti" loading="lazy" />
                                 </a>
                                 <form
                                     action="{{ url_for('admin.delete_order_image_by_id', order_id=order.id, image_type='receipts', image_id=img.id) }}"
@@ -586,19 +596,21 @@
                             {% endfor %}
                             {% endif %}
                             <form action="{{ url_for('admin.upload_order_image', order_id=order.id) }}" method="POST"
-                                enctype="multipart/form-data" class="flex-none">
+                                enctype="multipart/form-data" class="flex-none admin-image-upload-form"
+                                data-order-id="{{ order.id }}" data-image-type="receipts"
+                                data-upload-url="{{ url_for('admin.upload_order_image_ajax', order_id=order.id) }}">
                                 <input type="hidden" name="image_type" value="receipts">
                                 <label
                                     class="cursor-pointer w-32 h-32 rounded-xl bg-slate-50 border-2 border-dashed border-slate-300 flex flex-col items-center justify-center text-slate-400 hover:text-primary hover:border-primary hover:bg-blue-50 transition-all shadow-sm">
                                     <span class="material-symbols-outlined text-3xl mb-1">add_a_photo</span>
                                     <span class="text-xs font-medium">Lisää kuitti</span>
-                                    <input type="file" name="image" class="hidden" onchange="this.form.submit()"
-                                        accept="image/*">
+                                    <input type="file" name="image" class="hidden admin-image-input"
+                                        data-image-type="receipts" accept="image/*">
                                 </label>
                             </form>
                         </div>
                         {% if not order.images or not order.images.receipts %}
-                        <p class="text-sm text-slate-400 italic mt-3">Ei kuitteja</p>
+                        <p class="text-sm text-slate-400 italic mt-3 admin-empty-message" data-image-type="receipts">Ei kuitteja</p>
                         {% endif %}
                     </div>
                 </div>
@@ -900,10 +912,194 @@
 
                         showRoute(pickupLatLng, dropoffLatLng);
                     }
-                } catch (error) { console.log('Geocoding failed:', error); }
+                } catch (error) { /* Geocoding failed silently */ }
             }
             geocodeAndShowRoute();
         });
+
+        document.addEventListener('DOMContentLoaded', function () {
+            const uploadForms = document.querySelectorAll('.admin-image-upload-form');
+            if (!uploadForms.length) {
+                return;
+            }
+
+            uploadForms.forEach(form => {
+                const input = form.querySelector('.admin-image-input');
+                if (!input) return;
+
+                input.addEventListener('change', async function () {
+                    const file = input.files && input.files[0];
+                    if (!file) return;
+
+                    const validationError = validateAdminImageFile(file);
+                    if (validationError) {
+                        showFlashMessage(validationError, 'error');
+                        input.value = '';
+                        return;
+                    }
+
+                    const imageType = form.dataset.imageType;
+                    const uploadUrl = form.dataset.uploadUrl;
+                    const orderId = form.dataset.orderId;
+                    const grid = document.querySelector(`.admin-image-grid[data-image-type="${imageType}"]`);
+
+                    if (!grid || !uploadUrl || !orderId) {
+                        showFlashMessage('Upload configuration missing', 'error');
+                        input.value = '';
+                        return;
+                    }
+
+                    const previewTile = createAdminPreviewTile(file);
+                    grid.insertBefore(previewTile, form);
+
+                    input.disabled = true;
+
+                    const formData = new FormData();
+                    formData.append('image', file);
+                    formData.append('image_type', imageType);
+
+                    try {
+                        const response = await fetch(uploadUrl, {
+                            method: 'POST',
+                            body: formData
+                        });
+
+                        let data = null;
+                        try {
+                            data = await response.json();
+                        } catch (error) {
+                            data = null;
+                        }
+
+                        if (!response.ok || !data || !data.success) {
+                            cleanupAdminPreview(previewTile);
+                            const message = data && (data.error || data.message)
+                                ? (data.error || data.message)
+                                : 'Upload failed';
+                            showFlashMessage(message, 'error');
+                            return;
+                        }
+
+                        const finalTile = buildAdminImageTile(data.image, imageType, orderId);
+                        cleanupAdminPreview(previewTile, true);
+                        previewTile.replaceWith(finalTile);
+                        updateAdminImageCounts();
+                        showFlashMessage(data.message || 'Upload complete', 'success');
+                    } catch (error) {
+                        cleanupAdminPreview(previewTile);
+                        showFlashMessage('Upload failed', 'error');
+                    } finally {
+                        input.disabled = false;
+                        input.value = '';
+                    }
+                });
+            });
+        });
+
+        function validateAdminImageFile(file) {
+            const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+            const maxFileSize = 5 * 1024 * 1024;
+
+            if (!allowedTypes.includes(file.type)) {
+                return 'Invalid file type. Allowed: JPG, PNG, WebP';
+            }
+
+            if (file.size > maxFileSize) {
+                return 'File is too large (max 5MB)';
+            }
+
+            return null;
+        }
+
+        function createAdminPreviewTile(file) {
+            const previewUrl = URL.createObjectURL(file);
+            const tile = document.createElement('div');
+            tile.className = 'admin-image-item w-32 h-32 rounded-xl bg-slate-100 overflow-hidden relative border border-slate-200 group flex-none shadow-sm';
+            tile.dataset.previewUrl = previewUrl;
+
+            tile.innerHTML = `
+                <a href="${previewUrl}" target="_blank" rel="noopener noreferrer">
+                    <img class="w-full h-full object-cover opacity-80" src="${previewUrl}" alt="Preview" loading="lazy" />
+                </a>
+                <div class="absolute inset-0 flex items-center justify-center bg-white/70">
+                    <span class="material-symbols-outlined animate-spin text-[20px] text-slate-500">progress_activity</span>
+                </div>
+            `;
+
+            return tile;
+        }
+
+        function cleanupAdminPreview(tile, keepInDom = false) {
+            const previewUrl = tile?.dataset?.previewUrl;
+            if (previewUrl) {
+                URL.revokeObjectURL(previewUrl);
+            }
+
+            if (!keepInDom && tile) {
+                tile.remove();
+            }
+        }
+
+        function getAdminImageSrc(imageData) {
+            if (imageData?.file_path) return imageData.file_path;
+            if (imageData?.url) return imageData.url;
+            if (imageData?.filename) return `/static/uploads/orders/${imageData.filename}`;
+            return '';
+        }
+
+        function getAdminImageLabel(imageType) {
+            if (imageType === 'pickup') return 'Nouto';
+            if (imageType === 'delivery') return 'Toimitus';
+            return 'Kuitti';
+        }
+
+        function buildAdminImageTile(imageData, imageType, orderId) {
+            const imageSrc = getAdminImageSrc(imageData);
+            const label = getAdminImageLabel(imageType);
+            const tile = document.createElement('div');
+            tile.className = 'admin-image-item w-32 h-32 rounded-xl bg-slate-100 overflow-hidden relative border border-slate-200 group flex-none shadow-sm';
+            tile.dataset.imageId = imageData?.id || '';
+
+            tile.innerHTML = `
+                <a href="${imageSrc}" target="_blank" rel="noopener noreferrer">
+                    <img class="w-full h-full object-cover hover:scale-110 transition-transform duration-500" src="${imageSrc}" alt="${label} kuva" loading="lazy" />
+                </a>
+                <form action="/admin/order/${orderId}/image/${imageType}/${imageData.id}/delete" method="POST"
+                    class="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button type="submit"
+                        class="bg-white/90 p-1.5 rounded-full text-red-500 hover:text-red-700 shadow-sm"
+                        onclick="return confirm('Poista kuva?')">
+                        <span class="material-symbols-outlined text-[16px]">delete</span>
+                    </button>
+                </form>
+            `;
+
+            return tile;
+        }
+
+        function countAdminImages(imageType) {
+            const grid = document.querySelector(`.admin-image-grid[data-image-type="${imageType}"]`);
+            if (!grid) return 0;
+            return grid.querySelectorAll('.admin-image-item').length;
+        }
+
+        function updateAdminImageCounts() {
+            const pickupCount = countAdminImages('pickup');
+            const deliveryCount = countAdminImages('delivery');
+            const totalCount = pickupCount + deliveryCount;
+
+            const totalBadge = document.getElementById('admin-image-total-count');
+            if (totalBadge) {
+                totalBadge.textContent = `${totalCount} kpl`;
+            }
+
+            ['pickup', 'delivery', 'receipts'].forEach((imageType) => {
+                const emptyMessage = document.querySelector(`.admin-empty-message[data-image-type="${imageType}"]`);
+                if (emptyMessage) {
+                    emptyMessage.style.display = countAdminImages(imageType) > 0 ? 'none' : 'block';
+                }
+            });
+        }
 
         // Status Selection Logic
         function selectStatus(status, colorClass, ringClass, btn) {

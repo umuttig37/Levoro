@@ -1,0 +1,110 @@
+{% extends "base/layout.html" %}
+
+{% block title %}Sopimusehdot - Levoro{% endblock %}
+
+{% block content %}
+<div class="container">
+    <section class="section-padding" style="max-width: 800px; margin: 0 auto;">
+        <h1 style="font-size: 2rem; font-weight: 700; margin-bottom: 0.5rem; color: var(--color-gray-900);">LEVORO – AUTONSIIRTOPALVELUN SOPIMUSEHDOT</h1>
+
+        <div style="background: white; border-radius: 12px; padding: 2rem; box-shadow: 0 2px 10px rgba(0,0,0,0.08);">
+            
+            <h2 style="font-size: 1.25rem; font-weight: 600; margin: 1.5rem 0 1rem; color: var(--color-gray-800);">1. Palvelun tarkoitus</h2>
+            <p style="line-height: 1.7; color: var(--color-gray-600); margin-bottom: 0.5rem;">1.1 Palveluntarjoaja on Levoro / Tiyouba Oy (1541430-2).</p>
+            <p style="line-height: 1.7; color: var(--color-gray-600); margin-bottom: 0.5rem;">1.2 Levoro tarjoaa ajoneuvojen siirtopalveluita Suomen sisällä sekä ulkomailta Suomeen, Suomesta ulkomaille, sekä Suomen sisäisesti.</p>
+            <p style="line-height: 1.7; color: var(--color-gray-600); margin-bottom: 0.5rem;">1.3 Siirto sisältää ajoneuvon noudon, siirron ja toimituksen asiakkaan ilmoittamaan vastaanottopaikkaan.</p>
+            <p style="line-height: 1.7; color: var(--color-gray-600); margin-bottom: 0.5rem;">1.4 Siirrot toteutetaan ajamalla tai muulla siirtoon soveltuvalla menetelmällä.</p>
+            <p style="line-height: 1.7; color: var(--color-gray-600); margin-bottom: 0.5rem;">1.5 Ulkomaan siirroissa Levoro vastaa tarvittavista siirtodokumenteista ja vakuutuksista. Suomen sisäisissä siirroissa ajoneuvon tulee olla liikennekäytössä, ellei toisin ole erikseen sovittu kirjallisesti.</p>
+            <p style="line-height: 1.7; color: var(--color-gray-600); margin-bottom: 0.5rem;">1.6 Levoro hankkii siirron ajaksi tarvittavat väliaikaiset rekisterikilvet tai siirtodokumentit, ellei ajoneuvo ole liikenteessä.</p>
+
+            <h2 style="font-size: 1.25rem; font-weight: 600; margin: 1.5rem 0 1rem; color: var(--color-gray-800);">2. Osapuolet</h2>
+            <p style="line-height: 1.7; color: var(--color-gray-600); margin-bottom: 0.5rem;">2.1 Asiakas on palvelua tilaava yritys tai yksityishenkilö.</p>
+            <p style="line-height: 1.7; color: var(--color-gray-600); margin-bottom: 0.5rem;">2.2 Palvelun suorittaja on Levoro tai sen hyväksymä sopimuskumppani.</p>
+            <p style="line-height: 1.7; color: var(--color-gray-600); margin-bottom: 0.5rem;">2.3 Kuljettaja on Levoron työntekijä tai Levoron hyväksymä alihankkija.</p>
+
+            <h2 style="font-size: 1.25rem; font-weight: 600; margin: 1.5rem 0 1rem; color: var(--color-gray-800);">3. Tilaus ja ajoneuvon tiedot</h2>
+            <p style="line-height: 1.7; color: var(--color-gray-600); margin-bottom: 0.5rem;">3.1 Asiakas vastaa siitä, että kaikki siirtoon liittyvät tiedot ovat oikeita ja ajan tasalla.</p>
+            <p style="line-height: 1.7; color: var(--color-gray-600); margin-bottom: 0.5rem;">3.2 Tiedot on toimitettava viimeistään yhtä (1) työpäivää ennen sovittua siirtoa.</p>
+            <p style="line-height: 1.7; color: var(--color-gray-600); margin-bottom: 0.5rem;">3.3 Asiakas vakuuttaa, että ajoneuvo on siirtokelpoinen ja että sen siirrolle ei ole teknisiä, juridisia tai käytännöllisiä esteitä.</p>
+
+            <h2 style="font-size: 1.25rem; font-weight: 600; margin: 1.5rem 0 1rem; color: var(--color-gray-800);">4. Hinnoittelu</h2>
+            <p style="line-height: 1.7; color: var(--color-gray-600); margin-bottom: 0.5rem;">4.1 Hinta perustuu siirtomatkaan, ajoneuvon ominaisuuksiin ja siirron luonteeseen.</p>
+            <p style="line-height: 1.7; color: var(--color-gray-600); margin-bottom: 0.5rem;">4.2 Hinta esitetään Levoron portaalissa, tarjouksessa tai tilausvahvistuksessa.</p>
+            <p style="line-height: 1.7; color: var(--color-gray-600); margin-bottom: 0.5rem;">4.3 Lopullinen hinta vahvistetaan laskulla.</p>
+            <p style="line-height: 1.7; color: var(--color-gray-600); margin-bottom: 0.5rem;">4.4 Erityisajoneuvot, odotusajat ja lisätyöt veloitetaan erikseen.</p>
+
+            <h2 style="font-size: 1.25rem; font-weight: 600; margin: 1.5rem 0 1rem; color: var(--color-gray-800);">5. Maksuehdot</h2>
+            <p style="line-height: 1.7; color: var(--color-gray-600); margin-bottom: 0.5rem;">5.1 Maksuaika on 14 päivää laskun päiväyksestä.</p>
+            <p style="line-height: 1.7; color: var(--color-gray-600); margin-bottom: 0.5rem;">5.2 Viivästyskorko määräytyy korkolain mukaisesti.</p>
+            <p style="line-height: 1.7; color: var(--color-gray-600); margin-bottom: 0.5rem;">5.3 Peruspalvelu sisältää ajoneuvon noudon, siirron ja luovutuksen sovitun mukaisesti.</p>
+
+            <h2 style="font-size: 1.25rem; font-weight: 600; margin: 1.5rem 0 1rem; color: var(--color-gray-800);">6. Siirron toteutus</h2>
+            <p style="line-height: 1.7; color: var(--color-gray-600); margin-bottom: 0.5rem;">6.1 Ajoneuvoa käytetään ainoastaan siirtotarkoitukseen.</p>
+            <p style="line-height: 1.7; color: var(--color-gray-600); margin-bottom: 0.5rem;">6.2 Levoro suorittaa kohtuullisen visuaalisen tarkastuksen ja valokuvadokumentoinnin ennen siirtoa.</p>
+            <p style="line-height: 1.7; color: var(--color-gray-600); margin-bottom: 0.5rem;">6.3 Lumen, jään tai lian peittämät vauriot eivät välttämättä ole havaittavissa ennen siirtoa.</p>
+
+            <h2 style="font-size: 1.25rem; font-weight: 600; margin: 1.5rem 0 1rem; color: var(--color-gray-800);">7. Tekniset viat siirron aikana</h2>
+            <p style="line-height: 1.7; color: var(--color-gray-600); margin-bottom: 0.5rem;">7.1 Levoro ei vastaa ajoneuvon teknisistä vioista, jotka eivät johdu Levoron tai kuljettajan toiminnasta.</p>
+            <p style="line-height: 1.7; color: var(--color-gray-600); margin-bottom: 0.5rem;">7.2 Kuljettajan on ilmoitettava viasta viipymättä Levorolle.</p>
+            <p style="line-height: 1.7; color: var(--color-gray-600); margin-bottom: 0.5rem;">7.3 Levoro voi järjestää tai ohjeistaa hinauksen lähimpään korjaamoon.</p>
+            <p style="line-height: 1.7; color: var(--color-gray-600); margin-bottom: 0.5rem;">7.4 Levoro avustaa vakuutusasioiden selvittämisessä tarpeen mukaan.</p>
+
+            <h2 style="font-size: 1.25rem; font-weight: 600; margin: 1.5rem 0 1rem; color: var(--color-gray-800);">8. Vakuutukset</h2>
+            <p style="line-height: 1.7; color: var(--color-gray-600); margin-bottom: 0.5rem;">8.1 Suomen sisäisissä siirroissa ajoneuvon tulee olla liikennevakuutettu ja liikennekäytössä.</p>
+            <p style="line-height: 1.7; color: var(--color-gray-600); margin-bottom: 0.5rem;">8.2 Ulkomaansiirroissa ajoneuvo on vakuutettu kokonaisuudessaan Levoron toimesta siirron ajan, paikallisen lainsäädännön mukaisesti.</p>
+            <p style="line-height: 1.7; color: var(--color-gray-600); margin-bottom: 0.5rem;">8.3 Levorolla on vastuuvakuutus yritystoiminnasta aiheutuvien vahinkojen varalta 500 000€ asti.</p>
+            <p style="line-height: 1.7; color: var(--color-gray-600); margin-bottom: 0.5rem;">8.4 Asiakkaan suositellaan pitävän ajoneuvolleen voimassa lisävakuutukset.</p>
+
+            <h2 style="font-size: 1.25rem; font-weight: 600; margin: 1.5rem 0 1rem; color: var(--color-gray-800);">9. Vahingot ja korvaukset</h2>
+            <p style="line-height: 1.7; color: var(--color-gray-600); margin-bottom: 0.5rem;">9.1 Levoro vastaa vahingoista, jotka johtuvat sen henkilöstön tai kuljettajien toiminnasta.</p>
+            <p style="line-height: 1.7; color: var(--color-gray-600); margin-bottom: 0.5rem;">9.2 Normaalia kulumista ei korvata.</p>
+            <p style="line-height: 1.7; color: var(--color-gray-600); margin-bottom: 0.5rem;">9.3 Suomen sisäisissä siirroissa, mikäli vahinko johtuu Levoron tai kuljettajan virheestä, Levoro korvaa vakuutuksen omavastuun sekä mahdollisen bonusmenetyksen.</p>
+            <p style="line-height: 1.7; color: var(--color-gray-600); margin-bottom: 0.5rem;">9.4 Ulkomaan siirroissa korvaukset käsitellään Levoron vakuutuksen kautta.</p>
+            <p style="line-height: 1.7; color: var(--color-gray-600); margin-bottom: 0.5rem;">9.5 Vahinkojen enimmäiskorvaus määräytyy vakuutusehtojen mukaisesti.</p>
+
+            <h2 style="font-size: 1.25rem; font-weight: 600; margin: 1.5rem 0 1rem; color: var(--color-gray-800);">10. Vastuunrajoitus</h2>
+            <p style="line-height: 1.7; color: var(--color-gray-600); margin-bottom: 0.5rem;">10.1 Levoro pyrkii noudattamaan sovittuja aikatauluja, mutta toimitusaikaa ei voida taata.</p>
+            <p style="line-height: 1.7; color: var(--color-gray-600); margin-bottom: 0.5rem;">10.2 Osapuolten vastuu rajoittuu ajoneuvon arvoon, joka määritetään ajoneuvon ulkomaisen kauppakirjan perusteella.</p>
+            <p style="line-height: 1.7; color: var(--color-gray-600); margin-bottom: 0.5rem;">10.3 Välillisiä vahinkoja, kuten liiketoiminnan keskeytyminen, myynnin menetys tai muut epäsuorat kustannukset, ei korvata.</p>
+
+            <h2 style="font-size: 1.25rem; font-weight: 600; margin: 1.5rem 0 1rem; color: var(--color-gray-800);">11. Ylivoimainen este</h2>
+            <p style="line-height: 1.7; color: var(--color-gray-600); margin-bottom: 0.5rem;">11.1 Osapuolet eivät ole vastuussa viivästyksestä, jos syynä on olosuhde, jota ei voida kohtuudella ennakoida tai estää.</p>
+            <p style="line-height: 1.7; color: var(--color-gray-600); margin-bottom: 0.5rem;">11.2 Tällaisia ovat esimerkiksi: luonnonkatastrofit, sodan vaikutukset, pandemiat, viranomaismääräykset, lakot, satama- tai rajahäiriöt.</p>
+            <p style="line-height: 1.7; color: var(--color-gray-600); margin-bottom: 0.5rem;">11.3 Esteestä on ilmoitettava toiselle osapuolelle viipymättä.</p>
+            <p style="line-height: 1.7; color: var(--color-gray-600); margin-bottom: 0.5rem;">11.4 Velvoitteet keskeytyvät esteen ajaksi eikä viivästyksestä synny korvausvelvollisuutta.</p>
+
+            <h2 style="font-size: 1.25rem; font-weight: 600; margin: 1.5rem 0 1rem; color: var(--color-gray-800);">12. Asiakkaan velvollisuudet ja peruutukset</h2>
+            <p style="line-height: 1.7; color: var(--color-gray-600); margin-bottom: 0.5rem;">12.1 Jos ajoneuvo ei ole siirtokelpoinen tai sitä ei voida noutaa, Levoro voi perua siirron ja veloittaa sovitun hinnan.</p>
+            <p style="line-height: 1.7; color: var(--color-gray-600); margin-bottom: 0.5rem;">12.2 Vastuu siirron ajalta alkaa, kun ajoneuvo luovutetaan kuljettajalle, ja päättyy, kun ajoneuvo toimitetaan sovitulle vastaanottajalle.</p>
+            <p style="line-height: 1.7; color: var(--color-gray-600); margin-bottom: 0.5rem;">12.3 Asiakkaan tulee tarkastaa ajoneuvo toimitushetkellä.</p>
+            <p style="line-height: 1.7; color: var(--color-gray-600); margin-bottom: 0.5rem;">12.4 Reklamaatiot on tehtävä sähköpostitse viimeistään yhden (1) työpäivän kuluessa.</p>
+            <p style="line-height: 1.7; color: var(--color-gray-600); margin-bottom: 0.5rem;">12.5 Jos ajoneuvoa käytetään toimituksen jälkeen, reklamaatio-oikeus lakkaa.</p>
+            <p style="line-height: 1.7; color: var(--color-gray-600); margin-bottom: 0.5rem;">12.6 Jos luovutus ei onnistu asiakkaasta tai luovutuspaikasta johtuvasta syystä (esim. avainlaatikko ei toimi), Levoro voi veloittaa lisäkustannuksia.</p>
+
+            <h2 style="font-size: 1.25rem; font-weight: 600; margin: 1.5rem 0 1rem; color: var(--color-gray-800);">13. Luottamuksellisuus</h2>
+            <p style="line-height: 1.7; color: var(--color-gray-600); margin-bottom: 0.5rem;">13.1 Osapuolet pitävät toisiltaan saamansa ei-julkiset tiedot luottamuksellisina.</p>
+            <p style="line-height: 1.7; color: var(--color-gray-600); margin-bottom: 0.5rem;">13.2 Tietoja saa käyttää ainoastaan palvelun toteuttamiseen.</p>
+            <p style="line-height: 1.7; color: var(--color-gray-600); margin-bottom: 0.5rem;">13.3 Henkilöstö ja alihankkijat velvoitetaan samaan.</p>
+            <p style="line-height: 1.7; color: var(--color-gray-600); margin-bottom: 0.5rem;">13.4 Salassapitovelvollisuus on voimassa viisi (5) vuotta sopimuksen päättymisestä.</p>
+            <p style="line-height: 1.7; color: var(--color-gray-600); margin-bottom: 0.5rem;">13.5 Velvoite ei koske tietoa, joka on julkista tai joka on saatu kolmannelta ilman salassapitovelvoitetta.</p>
+
+            <h2 style="font-size: 1.25rem; font-weight: 600; margin: 1.5rem 0 1rem; color: var(--color-gray-800);">14. Sopimuksen kesto ja riidanratkaisu</h2>
+            <p style="line-height: 1.7; color: var(--color-gray-600); margin-bottom: 0.5rem;">14.1 Ehdot ovat voimassa yksittäisen siirron ajan.</p>
+            <p style="line-height: 1.7; color: var(--color-gray-600); margin-bottom: 0.5rem;">14.2 Levoro voi kieltäytyä toimeksiannosta.</p>
+            <p style="line-height: 1.7; color: var(--color-gray-600); margin-bottom: 0.5rem;">14.3 Sopimus voidaan purkaa heti, jos toinen osapuoli rikkoo sopimusta olennaisesti eikä korjaa tilannetta 30 päivän kuluessa kirjallisesta ilmoituksesta.</p>
+            <p style="line-height: 1.7; color: var(--color-gray-600); margin-bottom: 0.5rem;">14.4 Sopimus voidaan irtisanoa välittömästi konkurssin, maksukyvyttömyyden tai selvitystilan vuoksi.</p>
+            <p style="line-height: 1.7; color: var(--color-gray-600); margin-bottom: 0.5rem;">14.5 Ehtoihin sovelletaan Suomen lakia.</p>
+            <p style="line-height: 1.7; color: var(--color-gray-600); margin-bottom: 0.5rem;">14.6 Välimiesmenettelyn paikka on Helsinki ja kieli on suomi.</p>
+            <p style="line-height: 1.7; color: var(--color-gray-600); margin-bottom: 0.5rem;">14.7 Levoro voi päivittää ehtoja ilmoituksella.</p>
+
+            <p style="line-height: 1.7; color: var(--color-gray-500); margin-top: 2rem; font-size: 0.875rem;">
+                Viimeksi päivitetty: 13.01.2026
+            </p>
+        </div>
+
+        <div style="text-align: center; margin-top: 2rem;">
+            <a href="/" class="btn btn-primary">Takaisin etusivulle</a>
+        </div>
+    </section>
+</div>
+{% endblock %}

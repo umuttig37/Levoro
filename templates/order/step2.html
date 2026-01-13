@@ -75,26 +75,11 @@
         }
     }
 
-    /* Move native picker indicator to the left to overlay the custom icon */
-    input[type="date"]::-webkit-calendar-picker-indicator,
-    input[type="time"]::-webkit-calendar-picker-indicator {
-        position: absolute;
-        left: 0;
-        top: 0;
-        bottom: 0;
-        width: 2.5rem;
-        height: 100%;
-        margin: 0;
-        padding: 0;
-        opacity: 0;
-        cursor: pointer;
-        z-index: 20;
-    }
 </style>
 {% endblock %}
 
 {% block content %}
-<form method="POST" class="space-y-6">
+<form method="POST" class="space-y-6" novalidate>
     <!-- Hidden fields for route calculation -->
     <input type="hidden" id="from_step" value="{{ pickup_address }}">
     <input type="hidden" id="pickup_date_step2" value="{{ pickup_date }}">
@@ -131,9 +116,9 @@
                     <span class="material-symbols-outlined text-lg text-emerald-500">calendar_today</span>
                 </span>
                 <input
-                    class="block w-full rounded-xl border-gray-200 bg-gray-50/50 text-slate-900 placeholder-gray-400 focus:border-blue-400 focus:ring-4 focus:ring-blue-100 sm:text-sm py-4 pl-10 pr-4 shadow-input transition-all"
-                    type="date" id="last_delivery_date" name="last_delivery_date" required value="{{ delivery_date }}"
-                    title="Valitse toimituspäivä">
+                    class="block w-full rounded-xl border-gray-200 bg-gray-50/50 text-slate-900 placeholder-gray-400 focus:border-blue-400 focus:ring-4 focus:ring-blue-100 sm:text-sm py-4 pl-10 pr-4 shadow-input transition-all cursor-pointer"
+                    type="text" id="last_delivery_date" name="last_delivery_date" required value="{{ delivery_date }}"
+                    placeholder="Valitse päivä" readonly>
             </div>
         </div>
         <div class="group">
@@ -146,18 +131,9 @@
                     <span class="material-symbols-outlined text-lg text-slate-400">schedule</span>
                 </span>
                 <input
-                    class="block w-full rounded-xl border-gray-200 bg-gray-50/50 text-slate-900 placeholder-gray-400 focus:border-blue-400 focus:ring-4 focus:ring-blue-100 sm:text-sm py-4 pl-10 pr-10 shadow-input transition-all"
-                    type="time" id="delivery_time" name="delivery_time" value="{{ delivery_time }}"
-                    title="Valitse toimitusaika" oninput="toggleTimeClearBtn()">
-
-                <!-- Clear Button -->
-                <button type="button" id="clearTimeBtn" onclick="clearTime()"
-                    class="absolute inset-y-0 right-0 pr-3 flex items-center hidden z-[25]">
-                    <span
-                        class="flex items-center justify-center w-6 h-6 rounded-full bg-slate-200 hover:bg-red-100 text-slate-500 hover:text-red-500 transition-colors">
-                        <span class="material-symbols-outlined text-sm">close</span>
-                    </span>
-                </button>
+                    class="block w-full rounded-xl border-gray-200 bg-gray-50/50 text-slate-900 placeholder-gray-400 focus:border-blue-400 focus:ring-4 focus:ring-blue-100 sm:text-sm py-4 pl-10 pr-10 shadow-input transition-all cursor-pointer"
+                    type="text" id="delivery_time" name="delivery_time" value="{{ delivery_time }}"
+                    placeholder="Valitse aika" readonly>
             </div>
         </div>
     </div>
@@ -204,8 +180,8 @@
             <span class="material-symbols-outlined">arrow_back</span>
             Takaisin
         </button>
-        <button type="submit" name="action" value="continue"
-            class="btn-gradient flex-1 inline-flex justify-center items-center rounded-xl from-brand-gradient-start to-brand-gradient-end px-6 py-4 text-base font-bold text-white shadow-lg shadow-blue-500/30 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+        <button type="submit" name="action" value="continue" id="continueBtn"
+            class="btn-gradient flex-1 inline-flex justify-center items-center rounded-xl from-brand-gradient-start to-brand-gradient-end px-6 py-4 text-base font-bold text-white shadow-lg shadow-blue-500/30 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all disabled:from-gray-300 disabled:to-gray-400 disabled:shadow-none disabled:cursor-not-allowed">
             Jatka
             <span class="material-symbols-outlined ml-2">arrow_forward</span>
         </button>
@@ -214,6 +190,59 @@
 {% endblock %}
 
 {% block extra_scripts %}
+<script>
+    // Form validity checker for disabled button
+    document.addEventListener('DOMContentLoaded', function() {
+        const continueBtn = document.getElementById('continueBtn');
+        const dropoffInput = document.getElementById('to_step');
+        const dateInput = document.getElementById('last_delivery_date');
+
+        const hasDateValue = (input) => {
+            if (!input) return false;
+            const direct = (input.value || '').trim() !== '';
+            const fp = input._flatpickr;
+            const altVal = fp && fp.altInput ? fp.altInput.value.trim() !== '' : false;
+            const selected = fp && fp.selectedDates && fp.selectedDates.length > 0;
+            return direct || altVal || selected;
+        };
+
+        function checkFormValidity() {
+            const dropoffValid = dropoffInput && dropoffInput.value.trim() !== '';
+            const dateValid = hasDateValue(dateInput);
+            
+            if (continueBtn) {
+                continueBtn.disabled = !(dropoffValid && dateValid);
+            }
+        }
+
+        // Check on page load (with small delay to ensure values are set)
+        checkFormValidity();
+        setTimeout(checkFormValidity, 100);
+        window.addEventListener('load', checkFormValidity);
+
+        // Observe value changes (covers autofill/flatpickr alt input)
+        const observer = new MutationObserver(checkFormValidity);
+        if (dropoffInput) observer.observe(dropoffInput, { attributes: true, attributeFilter: ['value'] });
+        if (dateInput) observer.observe(dateInput, { attributes: true, attributeFilter: ['value'] });
+
+        // Poll briefly to catch late autofill
+        const poll = setInterval(checkFormValidity, 400);
+        setTimeout(() => clearInterval(poll), 4000);
+
+        // Check on input changes
+        if (dropoffInput) {
+            dropoffInput.addEventListener('input', checkFormValidity);
+            dropoffInput.addEventListener('change', checkFormValidity);
+        }
+        if (dateInput) {
+            dateInput.addEventListener('input', checkFormValidity);
+            dateInput.addEventListener('change', checkFormValidity);
+        }
+
+        // Expose globally so flatpickr can call it
+        window.checkFormValidity = checkFormValidity;
+    });
+</script>
 <script>
     // Saved Addresses State
     window.savedAddresses = [];
@@ -404,11 +433,11 @@
         const editId = document.getElementById('addrEditId').value;
 
         if (!name || !addr) {
-            alert('Täytä nimi ja osoite.');
+            showToast('Täytä nimi ja osoite.', 'warning');
             return;
         }
         if (phone && !/^[+]?[0-9\s\-()]+$/.test(phone)) {
-            alert('Virheellinen puhelinnumero. Käytä vain numeroita ja merkkejä +, -, ( ).');
+            showToast('Virheellinen puhelinnumero. Käytä vain numeroita ja merkkejä +, -, ( ).', 'warning');
             return;
         }
 
@@ -426,19 +455,18 @@
             populateSavedAddresses();
             closeAddressModal();
         } catch (e) {
-            alert('Tallennus epäonnistui: ' + e.message);
+            showToast('Tallennus epäonnistui: ' + e.message, 'error');
         }
     }
 
     window.handleDeleteAddress = async function (id) {
-        console.log('--- DELETE START (Step 2) ---');
         try {
             await deleteServerAddress(id);
             window.savedAddresses = window.savedAddresses.filter(a => String(a.id) !== String(id));
             populateSavedAddresses();
         } catch (e) {
             console.error('Delete failed:', e);
-            alert('Poistaminen epäonnistui: ' + e.message);
+            showToast('Poistaminen epäonnistui: ' + e.message, 'error');
         }
     }
 
@@ -700,47 +728,90 @@
         }
     });
 
-    // Time Picker Logic with localStorage persistence
-    const TIME_STORAGE_KEY = 'levoro.wizard.deliveryTime';
-
-    function toggleTimeClearBtn() {
-        const input = document.getElementById('delivery_time');
-        const btn = document.getElementById('clearTimeBtn');
-        if (input && btn) {
-            if (input.value) {
-                btn.classList.remove('hidden');
-                // Save to localStorage
-                localStorage.setItem(TIME_STORAGE_KEY, input.value);
+    // Initialize Flatpickr Date/Time Pickers
+    document.addEventListener('DOMContentLoaded', function() {
+        // Helper to create footer with working buttons
+        function createFooter(instance, showTodayBtn) {
+            const footer = document.createElement('div');
+            footer.className = 'flatpickr-footer';
+            
+            const clearBtn = document.createElement('button');
+            clearBtn.type = 'button';
+            clearBtn.className = 'flatpickr-clear-btn';
+            clearBtn.textContent = 'Tyhjennä';
+            clearBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                instance.clear();
+            });
+            footer.appendChild(clearBtn);
+            
+            if (showTodayBtn) {
+                const todayBtn = document.createElement('button');
+                todayBtn.type = 'button';
+                todayBtn.className = 'flatpickr-today-btn';
+                todayBtn.textContent = 'Tänään';
+                todayBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    instance.setDate(new Date(), true);
+                });
+                footer.appendChild(todayBtn);
             } else {
-                btn.classList.add('hidden');
-                localStorage.removeItem(TIME_STORAGE_KEY);
+                footer.appendChild(document.createElement('span'));
             }
+            
+            instance.calendarContainer.appendChild(footer);
         }
-    }
 
-    function clearTime() {
-        const input = document.getElementById('delivery_time');
-        if (input) {
-            input.value = '';
-            localStorage.removeItem(TIME_STORAGE_KEY);
-            toggleTimeClearBtn();
+        // Date Picker
+        const dateInput = document.getElementById('last_delivery_date');
+        if (dateInput) {
+            const today = new Date();
+            flatpickr(dateInput, {
+                locale: 'fi',
+                dateFormat: 'Y-m-d',
+                altInput: true,
+                altFormat: 'd.m.Y',
+                minDate: 'today',
+                disableMobile: true,
+                defaultDate: dateInput.value || today,
+                onReady: function(selectedDates, dateStr, instance) {
+                    createFooter(instance, true);
+                    // Check form validity after flatpickr sets the value
+                    if (typeof window.checkFormValidity === 'function') {
+                        window.checkFormValidity();
+                    }
+                    if (instance.altInput) {
+                        instance.altInput.addEventListener('input', window.checkFormValidity);
+                        instance.altInput.addEventListener('change', window.checkFormValidity);
+                    }
+                },
+                onChange: function() {
+                    if (typeof window.checkFormValidity === 'function') {
+                        window.checkFormValidity();
+                    }
+                }
+            });
         }
-    }
 
-    function restoreTime() {
-        const input = document.getElementById('delivery_time');
-        if (input && !input.value) {
-            const saved = localStorage.getItem(TIME_STORAGE_KEY);
-            if (saved) {
-                input.value = saved;
-            }
+        // Time Picker
+        const timeInput = document.getElementById('delivery_time');
+        if (timeInput) {
+            flatpickr(timeInput, {
+                locale: 'fi',
+                enableTime: true,
+                noCalendar: true,
+                dateFormat: 'H:i',
+                time_24hr: true,
+                minuteIncrement: 15,
+                disableMobile: true,
+                defaultHour: 12,
+                onReady: function(selectedDates, dateStr, instance) {
+                    createFooter(instance, false);
+                }
+            });
         }
-        toggleTimeClearBtn();
-    }
-
-    // Call restore on page load
-    document.addEventListener('DOMContentLoaded', function () {
-        restoreTime();
     });
 </script>
 {% endblock %}

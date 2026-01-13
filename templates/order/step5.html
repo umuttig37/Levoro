@@ -5,7 +5,7 @@
 {% block page_subtitle %}Onko jotain erityistä huomioitavaa?{% endblock %}
 
 {% block content %}
-<form method="POST" class="space-y-6">
+<form method="POST" class="space-y-6" novalidate>
     <!-- Additional Info Section -->
     <div class="space-y-2">
         <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 pl-1">
@@ -22,7 +22,8 @@
     <!-- Suggestions -->
     <div class="bg-slate-50 border border-slate-200 rounded-xl p-5">
         <h4 class="font-semibold text-slate-700 mb-3 text-sm">Mitä voit kertoa?</h4>
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div id="suggestionsGrid" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <!-- Personal suggestions will be added here by JS -->
             <button type="button" onclick="addSuggestion('Aikataulu joustava')" class="suggestion-btn">
                 <span class="material-symbols-outlined text-blue-500 text-lg">event_available</span>
                 <span>Joustava aikataulu</span>
@@ -123,5 +124,55 @@
         textarea.focus();
         textarea.scrollTop = textarea.scrollHeight;
     }
+
+    // Load personalized suggestions from past orders
+    {% if current_user %}
+    (async function loadPersonalSuggestions() {
+        try {
+            const res = await fetch('/api/common_additional_info');
+            if (!res.ok) return;
+            
+            const data = await res.json();
+            const items = data.items || [];
+            
+            if (items.length === 0) return;
+            
+            const grid = document.getElementById('suggestionsGrid');
+            if (!grid) return;
+            
+            const maxTotal = 6;
+            const defaultButtons = grid.querySelectorAll('button');
+            
+            // Remove default buttons from the end to make room for personal ones
+            const toRemove = Math.min(items.length, defaultButtons.length);
+            for (let i = 0; i < toRemove; i++) {
+                defaultButtons[defaultButtons.length - 1 - i].remove();
+            }
+            
+            // Insert personal suggestions at the beginning
+            const firstChild = grid.firstChild;
+            
+            items.slice(0, maxTotal).forEach(item => {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'suggestion-btn';
+                btn.innerHTML = `
+                    <span class="material-symbols-outlined text-indigo-500 text-lg">history</span>
+                    <span class="truncate">${escapeHtml(item.text)}</span>
+                `;
+                btn.onclick = () => addSuggestion(item.text);
+                grid.insertBefore(btn, firstChild);
+            });
+        } catch (e) {
+            console.log('Could not load personal suggestions:', e);
+        }
+    })();
+    
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+    {% endif %}
 </script>
 {% endblock %}

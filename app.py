@@ -19,6 +19,8 @@ from services.order_service import order_service
 from services.image_service import image_service
 from services.email_service import email_service
 from utils.formatters import format_helsinki_time
+from typing import Any, Dict, Optional
+from utils.rate_limiter import check_rate_limit
 
 # Import modern next_id for consistent counter usage
 from models.database import next_id, db_manager
@@ -86,6 +88,22 @@ from datetime import timedelta
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=30)
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 app.config['SESSION_COOKIE_HTTPONLY'] = True
+# Prefer secure cookies; allow opt-out for local HTTP via env flag
+app.config['SESSION_COOKIE_SECURE'] = os.getenv("SESSION_COOKIE_SECURE", "true").lower() == "true"
+app.config['REMEMBER_COOKIE_SECURE'] = app.config['SESSION_COOKIE_SECURE']
+
+
+@app.after_request
+def set_security_headers(resp):
+    # Conservative defaults; allow inline assets for existing templates
+    resp.headers.setdefault("X-Frame-Options", "DENY")
+    resp.headers.setdefault("X-Content-Type-Options", "nosniff")
+    resp.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
+    resp.headers.setdefault(
+        "Content-Security-Policy",
+        "default-src 'self' https: data: 'unsafe-inline' 'unsafe-eval'; img-src 'self' https: data:; object-src 'none'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
+    )
+    return resp
 
 # Configure email service
 mail = email_service.configure_mail(app)
@@ -256,7 +274,7 @@ def get_status_description_filter(status):
     """Template filter to get status description"""
     return get_status_description(status)
 
-def format_helsinki_time(dt):
+def format_helsinki_time(dt: Any) -> str:
     """Format datetime to Helsinki timezone string"""
     if dt is None:
         return 'Tuntematon'
@@ -293,35 +311,35 @@ def helsinki_time_filter(dt):
     return format_helsinki_time(dt)
 
 @app.template_filter('finnish_date')
-def finnish_date_filter(date_str):
+def finnish_date_filter(date_value: object):
     """Format date string to Finnish style DD.MM.YYYY"""
-    if not date_str:
+    if not date_value:
         return ''
     
     # Handle different input formats
     try:
-        from datetime import datetime
+        from datetime import datetime, date
         
         # If it's already a string in DD.MM.YYYY format, return it
-        if isinstance(date_str, str) and '.' in date_str and len(date_str.split('.')) == 3:
-            return date_str
+        if isinstance(date_value, str) and '.' in date_value and len(date_value.split('.')) == 3:
+            return date_value
         
         # If it's a datetime object
-        if hasattr(date_str, 'strftime'):
-            return date_str.strftime('%d.%m.%Y')
+        if isinstance(date_value, (datetime, date)):
+            return date_value.strftime('%d.%m.%Y')
         
         # Try to parse various date formats
         for fmt in ['%Y-%m-%d', '%d.%m.%Y', '%d/%m/%Y', '%Y/%m/%d']:
             try:
-                dt = datetime.strptime(str(date_str), fmt)
+                dt = datetime.strptime(str(date_value), fmt)
                 return dt.strftime('%d.%m.%Y')
             except ValueError:
                 continue
         
         # If all else fails, return the original string
-        return str(date_str)
+        return str(date_value)
     except Exception as e:
-        return str(date_str) if date_str else ''
+        return str(date_value) if date_value else ''
 
 @app.template_filter('extract_city')
 def extract_city_filter(address):
@@ -401,23 +419,23 @@ def inject_admin_notifications():
         last_viewed_applications = session.get('admin_last_viewed_applications')
         
         # Count new orders created after last view
-        orders_query = {'status': 'NEW'}
-        if last_viewed_orders:
-            orders_query['created_at'] = {'$gt': last_viewed_orders}
+        orders_query: Dict[str, Any] = {'status': 'NEW'}
+        if last_viewed_orders is not None:
+            orders_query = {**orders_query, 'created_at': {'$gt': last_viewed_orders}}
         new_orders_count = orders_col().count_documents(orders_query)
         
         # Count pending reviews created after last view
         from models.rating import rating_model
-        reviews_query = {'status': 'pending'}
-        if last_viewed_reviews:
-            reviews_query['created_at'] = {'$gt': last_viewed_reviews}
+        reviews_query: Dict[str, Any] = {'status': 'pending'}
+        if last_viewed_reviews is not None:
+            reviews_query = {**reviews_query, 'created_at': {'$gt': last_viewed_reviews}}
         pending_reviews_count = len(list(rating_model.find(reviews_query)))
         
         # Count pending applications created after last view
         from models.driver_application import driver_application_model
-        apps_query = {'status': 'pending'}
-        if last_viewed_applications:
-            apps_query['created_at'] = {'$gt': last_viewed_applications}
+        apps_query: Dict[str, Any] = {'status': 'pending'}
+        if last_viewed_applications is not None:
+            apps_query = {**apps_query, 'created_at': {'$gt': last_viewed_applications}}
         pending_applications_count = driver_application_model.count_documents(apps_query)
         
         return {
@@ -523,10 +541,10 @@ function toggleMobileMenu() {
 
 def wrap(content: str, user=None):
     # Yläpalkin oikea reuna: kirjautumislinkit tai käyttäjän nimi + ulos
-    if not user:
+    if user is None:
         auth = "<a href='/login' class='nav-link'>Kirjaudu</a> <a href='/register' class='nav-link'>Luo tili</a>"
     else:
-        auth = f"<span class='pill'>Hei, {user['name']}</span> <a class='nav-link' href='/logout'>Ulos</a>"
+        auth = f"<span class='pill'>Hei, {user['name']}</span> <a class='nav-link' href='/logout'>Kirjaudu ulos</a>"
 
     # Logo ja role-based navigation
     from flask import url_for, get_flashed_messages
@@ -555,7 +573,7 @@ def wrap(content: str, user=None):
         google_script = f'<script src="https://maps.googleapis.com/maps/api/js?key={GOOGLE_PLACES_API_KEY}&libraries=places&loading=async" async defer></script>'
 
     # Footer calculator button based on authentication
-    if not user:
+    if user is None:
         footer_calculator = '<div class="footer-cta" style="margin-bottom: 1rem;"><a href="/register" class="btn btn-primary">Kirjaudu ja laske hinta</a></div>'
     else:
         footer_calculator = '<div class="footer-cta" style="margin-bottom: 1rem;"><a href="/calculator" class="btn btn-primary">Laske hinta</a></div>'
@@ -950,7 +968,46 @@ def invoice_view(order_id: int):
     )
 
 
+@app.get("/order/<int:order_id>/receipt")
+def receipt_view(order_id: int):
+    """Customer receipt - similar to invoice but without payment info"""
+    u = current_user()
+    if not u:
+        return redirect(url_for("auth.login", next=f"/order/{order_id}/receipt"))
 
+    from datetime import datetime
+    
+    r = orders_col().find_one({"id": int(order_id), "user_id": int(u["id"])})
+    if not r:
+        return render_with_context('errors/no_access.html')
+
+    # Calculate pricing with 25.5% VAT (Finnish standard rate)
+    price_gross = float(r.get("price_gross", 0.0))
+    vat_rate = 0.255
+    net_price = price_gross / (1 + vat_rate)
+    final_vat = price_gross - net_price
+    
+    # Dates
+    issue_date = datetime.now().strftime("%d/%m/%Y")
+    
+    # Delivery date fallback
+    delivery_date_raw = r.get("pickup_date")
+    if delivery_date_raw:
+        if isinstance(delivery_date_raw, str):
+            delivery_date = delivery_date_raw
+        else:
+            delivery_date = delivery_date_raw.strftime("%d/%m/%Y")
+    else:
+        delivery_date = issue_date
+
+    return render_template('dashboard/receipt_view.html',
+        order=r,
+        net_price=net_price,
+        final_vat=final_vat,
+        final_gross=price_gross,
+        issue_date=issue_date,
+        delivery_date=delivery_date
+    )
 
 
 # ----------------- ADMIN -----------------
@@ -973,6 +1030,9 @@ def invoice_view(order_id: int):
 
 @app.get("/order/new")
 def order_new_redirect():
+    u = current_user()
+    if not u:
+        return redirect(url_for("auth.login", next="/order/new/step1"))
     return redirect("/order/new/step1")
 
 
@@ -1004,6 +1064,14 @@ def is_active_status(status: str) -> bool:
 # ----------------- API -----------------
 @app.post("/api/quote_for_addresses")
 def api_quote_for_addresses():
+    user = auth_service.get_current_user()
+    if not user:
+        return jsonify({"error": "Kirjaudu sisään käyttääksesi hintalaskuria"}), 401
+
+    allowed, retry_after = check_rate_limit(f"quote:{request.remote_addr}", limit=20, window_seconds=60, lockout_seconds=300)
+    if not allowed:
+        return jsonify({"error": "Liikaa pyyntöjä, yritä hetken kuluttua"}), 429
+
     payload = request.get_json(force=True, silent=True) or {}
     pickup = payload.get("pickup", "").strip()
     dropoff = payload.get("dropoff", "").strip()
@@ -1018,17 +1086,14 @@ def api_quote_for_addresses():
         km = order_service.route_km(pickup, dropoff, pickup_place_id, dropoff_place_id)
 
         # Determine current user and first-order info for personalized discounts
-        user = auth_service.get_current_user()
-        user_id = None
+        user_id = int(user["id"]) if user and user.get("id") else None
         is_first_order = False
-        if user and user.get("id"):
+        if user_id:
             try:
-                user_id = int(user["id"])
                 existing_orders = order_service.get_user_orders(user_id, limit=1)
                 is_first_order = len(existing_orders) == 0
             except Exception as e:
                 print(f"Failed to determine first-order status for quote: {e}")
-                user_id = int(user["id"])
 
         pricing = order_service.price_from_km_with_discounts(
             km,
@@ -1067,6 +1132,14 @@ def api_quote_for_addresses():
 
 @app.get("/api/quote")
 def api_quote():
+    user = auth_service.get_current_user()
+    if not user:
+        return jsonify({"error": "Kirjaudu sisään käyttääksesi hintalaskuria"}), 401
+
+    allowed, retry_after = check_rate_limit(f"quote_simple:{request.remote_addr}", limit=30, window_seconds=60, lockout_seconds=300)
+    if not allowed:
+        return jsonify({"error": "Liikaa pyyntöjä, yritä hetken kuluttua"}), 429
+
     try:
         km = float(request.args.get("km", "0"))
     except:
@@ -1192,6 +1265,47 @@ def api_saved_addresses_delete(addr_id: str):
     return jsonify({"ok": True})
 
 
+@app.get("/api/common_additional_info")
+def api_common_additional_info():
+    """Get user's most commonly used additional_info texts from past orders"""
+    u = _get_user_required()
+    
+    # Find all orders with additional_info for this user
+    orders_cursor = orders_col().find(
+        {"user_id": int(u["id"]), "additional_info": {"$exists": True, "$ne": ""}},
+        {"_id": 0, "additional_info": 1}
+    ).sort("id", -1).limit(50)  # Last 50 orders
+    
+    orders_list = list(orders_cursor)
+    
+    # Count occurrences of each unique additional_info text
+    from collections import Counter
+    info_counter = Counter()
+    
+    for order in orders_list:
+        info = order.get("additional_info", "").strip()
+        if info:
+            # Count full text
+            info_counter[info] += 1
+            # Also split by newlines to find common phrases
+            for line in info.split('\n'):
+                line = line.strip()
+                if line and len(line) > 3 and line != info:  # Ignore very short phrases and duplicates
+                    info_counter[line] += 1
+    
+    # Get top 6 most common, filter out generic ones already in default suggestions
+    default_suggestions = {'aikataulu joustava', 'toimitus on kiireellinen', 'nouto takapihalta', 'soita ennen noutoa'}
+    
+    common = []
+    for text, count in info_counter.most_common(15):
+        if text.lower() not in default_suggestions and count >= 2:
+            common.append({"text": text})
+            if len(common) >= 6:
+                break
+    
+    return jsonify({"items": common})
+
+
 # ----------------- DRIVER APPLICATION ROUTES -----------------
 
 @app.get("/hae-kuljettajaksi")
@@ -1208,14 +1322,21 @@ def submit_driver_application():
     from services.image_service import image_service
     from services.gcs_service import gcs_service
 
-    # Get form data
+    # Get form data (no password - admin creates account upon approval)
     application_data = {
         "first_name": (request.form.get("first_name") or "").strip(),
         "last_name": (request.form.get("last_name") or "").strip(),
         "email": (request.form.get("email") or "").strip(),
         "phone": (request.form.get("phone") or "").strip(),
-        "password": (request.form.get("password") or "").strip(),
-        "password_confirm": (request.form.get("password_confirm") or "").strip()
+        # New fields
+        "birth_date": (request.form.get("birth_date") or "").strip(),
+        "street_address": (request.form.get("street_address") or "").strip(),
+        "postal_code": (request.form.get("postal_code") or "").strip(),
+        "city": (request.form.get("city") or "").strip(),
+        "about_me": (request.form.get("about_me") or "").strip(),
+        "driving_experience": (request.form.get("driving_experience") or "").strip(),
+        "languages": (request.form.get("languages") or "").strip(),
+        "terms_accepted": request.form.get("terms_accepted") == "on"
     }
     application_data["name"] = " ".join(
         part for part in [application_data["first_name"], application_data["last_name"]]
@@ -1223,14 +1344,18 @@ def submit_driver_application():
     ).strip()
 
     # Validate required fields
-    required_fields = ["first_name", "last_name", "email", "phone", "password", "password_confirm"]
+    required_fields = ["first_name", "last_name", "email", "phone", "birth_date", 
+                       "street_address", "postal_code", "city", "about_me"]
     field_labels = {
         "first_name": "Etunimi",
         "last_name": "Sukunimi",
         "email": "Sähköposti",
         "phone": "Puhelinnumero",
-        "password": "Salasana",
-        "password_confirm": "Salasanan vahvistus"
+        "birth_date": "Syntymäaika",
+        "street_address": "Katuosoite",
+        "postal_code": "Postinumero",
+        "city": "Kaupunki",
+        "about_me": "Esittelyteksti"
     }
 
     for field in required_fields:
@@ -1239,30 +1364,27 @@ def submit_driver_application():
             flash(f"Virhe: {label} on pakollinen kenttä", "error")
             return render_template('driver_application.html')
 
+    # Validate terms acceptance
+    if not application_data.get("terms_accepted"):
+        flash("Virhe: Sinun tulee hyväksyä sopimusehdot", "error")
+        return render_template('driver_application.html')
+
     # Validate license images
     license_front = request.files.get('license_front')
     license_back = request.files.get('license_back')
 
-    if not license_front or license_front.filename == '':
+    if license_front is None or license_front.filename == '':
         flash("Virhe: Ajokortin etupuoli on pakollinen", "error")
         return render_template('driver_application.html')
 
-    if not license_back or license_back.filename == '':
+    if license_back is None or license_back.filename == '':
         flash("Virhe: Ajokortin takapuoli on pakollinen", "error")
         return render_template('driver_application.html')
+    assert license_front is not None
+    assert license_back is not None
 
     if not application_data["name"]:
         flash("Virhe: Lisää etu- ja sukunimi", "error")
-        return render_template('driver_application.html')
-
-    # Validate password confirmation
-    if application_data["password"] != application_data["password_confirm"]:
-        flash("Salasanat eivät täsmää", "error")
-        return render_template('driver_application.html')
-
-    # Validate password length
-    if len(application_data["password"]) < 6:
-        flash("Salasana tulee olla vähintään 6 merkkiä pitkä", "error")
         return render_template('driver_application.html')
 
     # Check if application already exists (but allow re-application if user was deleted)
@@ -1290,13 +1412,21 @@ def submit_driver_application():
 
     # Create application
     application, error = driver_application_model.create_application(application_data)
-    if error:
+    if error is not None:
         flash(f"Virhe hakemuksen lähettämisessä: {error}", "error")
         return render_template('driver_application.html')
 
     # Process and upload license images
-    application_id = application["id"]
-    license_images = {"front": None, "back": None}
+    if application is None:
+        flash("Hakemuksen luonti epäonnistui", "error")
+        return render_template('driver_application.html')
+
+    application_id = application.get("id")
+    if application_id is None:
+        flash("Hakemuksen luonti epäonnistui (ID puuttuu)", "error")
+        return render_template('driver_application.html')
+    license_images: Dict[str, Optional[str]] = {"front": None, "back": None}
+    application_dict: Dict[str, Any] = application
 
     try:
         import uuid
@@ -1310,7 +1440,7 @@ def submit_driver_application():
             return render_template('driver_application.html')
 
         # Generate unique filename and save temporarily
-        front_extension = image_service._get_file_extension(license_front.filename)
+        front_extension = image_service._get_file_extension(license_front.filename or "")
         front_unique_filename = f"license_{application_id}_front_{uuid.uuid4().hex}.{front_extension}"
         front_temp_path = os.path.join(image_service.upload_folder, front_unique_filename)
         license_front.save(front_temp_path)
@@ -1344,7 +1474,7 @@ def submit_driver_application():
             return render_template('driver_application.html')
 
         # Generate unique filename and save temporarily
-        back_extension = image_service._get_file_extension(license_back.filename)
+        back_extension = image_service._get_file_extension(license_back.filename or "")
         back_unique_filename = f"license_{application_id}_back_{uuid.uuid4().hex}.{back_extension}"
         back_temp_path = os.path.join(image_service.upload_folder, back_unique_filename)
         license_back.save(back_temp_path)
@@ -1389,7 +1519,7 @@ def submit_driver_application():
 
     # Send notification email to admin
     try:
-        email_service.send_admin_driver_application_notification(application)
+        email_service.send_admin_driver_application_notification(application_dict)
     except Exception as e:
         print(f"Failed to send admin notification: {e}")
 
@@ -1398,7 +1528,7 @@ def submit_driver_application():
     return render_template(
         'driver_application_success.html',
         applicant_name=applicant_name,
-        application_id=application["id"]
+        application_id=application_id
     )
 
 
@@ -1423,18 +1553,15 @@ def health_ready():
     try:
         # Test database connection
         _mdb.command("ping")
-        db_status = "connected"
-    except Exception as e:
-        db_status = f"error: {str(e)}"
-    
-    is_ready = db_status == "connected"
-    
+        db_ok = True
+    except Exception:
+        db_ok = False
+
+    is_ready = db_ok
+
     return jsonify({
         "status": "ok" if is_ready else "degraded",
-        "ready": is_ready,
-        "checks": {
-            "database": db_status
-        }
+        "ready": is_ready
     }), 200 if is_ready else 503
 
 
@@ -1477,17 +1604,22 @@ def rate_order_page(order_id):
     from models.user import user_model
     
     user = current_user()
-    if not user:
+    if user is None:
         flash("Kirjaudu sisään arvostellaksesi tilauksen", "error")
         return redirect(url_for("auth.login"))
-    
+
+    user_id = user["id"]
+
     # Check if can rate
-    can_rate, reason = rating_service.can_rate_order(order_id, user["id"])
+    can_rate, reason = rating_service.can_rate_order(order_id, user_id)
     if not can_rate:
-        flash(reason, "error")
+        flash(reason or "Arvostelu ei ole sallittu", "error")
         return redirect(url_for("main.dashboard"))
     
     order = order_model.find_by_id(order_id)
+    if order is None:
+        flash("Tilausta ei löydy", "error")
+        return redirect(url_for("main.dashboard"))
     driver = None
     if order.get("driver_id"):
         driver = user_model.find_by_id(order["driver_id"])
@@ -1503,16 +1635,18 @@ def submit_rating(order_id):
     from services.rating_service import rating_service
     
     user = current_user()
-    if not user:
+    if user is None:
         flash("Kirjaudu sisään arvostellaksesi tilauksen", "error")
         return redirect(url_for("auth.login"))
-    
+
+    user_id = user["id"]
+
     rating = int(request.form.get("rating", 0))
     comment = request.form.get("comment", "").strip()
     
-    result, error = rating_service.submit_rating(order_id, user["id"], rating, comment)
+    result, error = rating_service.submit_rating(order_id, user_id, rating, comment)
     
-    if error:
+    if error is not None:
         flash(error, "error")
         return redirect(url_for("rate_order_page", order_id=order_id))
     

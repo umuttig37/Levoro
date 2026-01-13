@@ -4,7 +4,6 @@ Handles driver application data operations and business logic
 """
 
 from datetime import datetime, timezone
-from werkzeug.security import generate_password_hash
 from .database import BaseModel, counter_manager
 
 
@@ -22,7 +21,7 @@ class DriverApplicationModel(BaseModel):
         last_name = application_data.get("last_name", "").strip()
         full_name = (application_data.get("name") or " ".join(filter(None, [first_name, last_name]))).strip()
 
-        # Prepare application document
+        # Prepare application document (no password - admin creates account on approval)
         application = {
             "id": application_id,
             "first_name": first_name,
@@ -30,7 +29,19 @@ class DriverApplicationModel(BaseModel):
             "name": full_name,
             "email": application_data.get("email", "").lower().strip(),
             "phone": application_data.get("phone", "").strip(),
-            "password_hash": generate_password_hash(application_data.get("password", "")),
+            # New fields
+            "birth_date": application_data.get("birth_date", "").strip(),
+            "address": {
+                "street": application_data.get("street_address", "").strip(),
+                "postal_code": application_data.get("postal_code", "").strip(),
+                "city": application_data.get("city", "").strip()
+            },
+            "about_me": application_data.get("about_me", "").strip(),
+            "driving_experience": application_data.get("driving_experience", ""),
+            "languages": application_data.get("languages", "").strip(),
+            "terms_accepted": application_data.get("terms_accepted", False),
+            "terms_accepted_at": datetime.now(timezone.utc) if application_data.get("terms_accepted") else None,
+            # Status fields
             "status": "pending",  # pending, approved, denied
             "created_at": datetime.now(timezone.utc),
             "updated_at": datetime.now(timezone.utc),

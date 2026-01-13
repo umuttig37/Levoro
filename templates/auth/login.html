@@ -1,6 +1,6 @@
 {% extends "base/layout.html" %}
 
-{% block title %}Kirjaudu sisään – Autonkuljetus{% endblock %}
+{% block title %}Kirjaudu sisään – Levoro{% endblock %}
 
 {% block content %}
 <div class="container">
@@ -29,18 +29,18 @@
         {% endif %}
         {% endwith %}
 
-        <form method="POST" autocomplete="off">
+        <form method="POST" autocomplete="on" novalidate>
           <div class="form-group">
             <label class="form-label">Sähköposti</label>
             <input type="email" name="email" required class="form-input" placeholder="nimi@yritys.fi"
-              autocomplete="new-password" value="{{ request.form.get('email', '') }}">
+              autocomplete="email" value="{{ request.form.get('email', '') }}" autofocus>
           </div>
 
           <div class="form-group">
             <label class="form-label">Salasana</label>
             <div class="password-input-wrapper">
               <input type="password" id="password-input" name="password" required class="form-input"
-                placeholder="Salasanasi" autocomplete="new-password">
+                placeholder="Salasanasi" autocomplete="current-password">
               <button type="button" class="password-toggle" onclick="togglePassword()" aria-label="Näytä salasana">
                 <svg id="password-eye-open" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                   width="20" height="20">

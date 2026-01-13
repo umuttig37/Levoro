@@ -11,6 +11,18 @@ from services.auth_service import auth_service
 from services.order_service import order_service
 from models.database import db_manager
 from models.order import order_model
+from utils.rate_limiter import check_rate_limit
+from html import unescape
+
+
+def sanitize_text(value: str, max_length: int = 1000) -> str:
+    """Strip HTML tags and trim length to reduce XSS/stored content risks."""
+    if not value:
+        return ""
+    # Basic tag strip
+    cleaned = re.sub(r"<[^>]+>", "", unescape(str(value)))
+    cleaned = cleaned.replace("\x00", "")
+    return cleaned.strip()[:max_length]
 
 def get_app():
     from app import app
@@ -51,12 +63,22 @@ def validate_step_access(required_step, session_data):
     return None
 
 
+def _require_login():
+    """Ensure user is authenticated before allowing order flow"""
+    u = auth_service.get_current_user()
+    if not u:
+        return None, redirect(url_for("auth.login", next=request.path))
+    return u, None
+
+
 # =============================================================================
 # STEP 1: Pickup
 # =============================================================================
 @app.route("/order/new/step1", methods=["GET", "POST"])
 def order_step1_v2():
-    u = auth_service.get_current_user()
+    u, redirect_resp = _require_login()
+    if redirect_resp:
+        return redirect_resp
 
     if request.method == "POST":
         d = session.get("order_draft", {})
@@ -115,7 +137,9 @@ def order_step1_v2():
 # =============================================================================
 @app.route("/order/new/step2", methods=["GET", "POST"])
 def order_step2_v2():
-    u = auth_service.get_current_user()
+    u, redirect_resp = _require_login()
+    if redirect_resp:
+        return redirect_resp
 
     session_data = session.get("order_draft", {})
     access_check = validate_step_access(2, session_data)
@@ -196,7 +220,9 @@ def order_step2_v2():
 # =============================================================================
 @app.route("/order/new/step3", methods=["GET", "POST"])
 def order_step3_v2():
-    u = auth_service.get_current_user()
+    u, redirect_resp = _require_login()
+    if redirect_resp:
+        return redirect_resp
 
     session_data = session.get("order_draft", {})
     access_check = validate_step_access(3, session_data)
@@ -244,7 +270,9 @@ def order_step3_v2():
 # =============================================================================
 @app.route("/order/new/step4", methods=["GET", "POST"])
 def order_step4_v2():
-    u = auth_service.get_current_user()
+    u, redirect_resp = _require_login()
+    if redirect_resp:
+        return redirect_resp
 
     session_data = session.get("order_draft", {})
     access_check = validate_step_access(4, session_data)
@@ -314,7 +342,9 @@ def order_step4_v2():
 # =============================================================================
 @app.route("/order/new/step5", methods=["GET", "POST"])
 def order_step5_v2():
-    u = auth_service.get_current_user()
+    u, redirect_resp = _require_login()
+    if redirect_resp:
+        return redirect_resp
 
     session_data = session.get("order_draft", {})
     access_check = validate_step_access(5, session_data)
@@ -351,7 +381,9 @@ def order_step5_v2():
 # =============================================================================
 @app.route("/order/new/confirm", methods=["GET", "POST"])
 def order_confirm_v2():
-    u = auth_service.get_current_user()
+    u, redirect_resp = _require_login()
+    if redirect_resp:
+        return redirect_resp
 
     session_data = session.get("order_draft", {})
     access_check = validate_step_access(6, session_data)
@@ -481,22 +513,22 @@ def order_confirm_v2():
 
         # Create outbound order
         order_data = {
-            "pickup_address": d.get("pickup"),
-            "dropoff_address": d.get("dropoff"),
-            "pickup_place_id": d.get("pickup_place_id"),
-            "dropoff_place_id": d.get("dropoff_place_id"),
-            "reg_number": d.get("reg_number"),
+            "pickup_address": sanitize_text(d.get("pickup")),
+            "dropoff_address": sanitize_text(d.get("dropoff")),
+            "pickup_place_id": sanitize_text(d.get("pickup_place_id")),
+            "dropoff_place_id": sanitize_text(d.get("dropoff_place_id")),
+            "reg_number": sanitize_text(d.get("reg_number")),
             "pickup_date": d.get("pickup_date"),
             "last_delivery_date": d.get("last_delivery_date"),
             "pickup_time": d.get("pickup_time"),
             "delivery_time": d.get("delivery_time"),
-            "orderer_name": d.get("orderer_name"),
-            "orderer_email": d.get("orderer_email"),
-            "orderer_phone": d.get("orderer_phone"),
-            "customer_name": d.get("customer_name"),
-            "customer_phone": d.get("customer_phone"),
-            "phone": d.get("customer_phone"),
-            "additional_info": d.get("additional_info"),
+            "orderer_name": sanitize_text(d.get("orderer_name")),
+            "orderer_email": sanitize_text(d.get("orderer_email")),
+            "orderer_phone": sanitize_text(d.get("orderer_phone")),
+            "customer_name": sanitize_text(d.get("customer_name")),
+            "customer_phone": sanitize_text(d.get("customer_phone")),
+            "phone": sanitize_text(d.get("customer_phone")),
+            "additional_info": sanitize_text(d.get("additional_info"), max_length=2000),
             "direct_to_customer": d.get("direct_to_customer", False),
             "distance_km": float(round(km, 2)),
             "price_net": float(net),
@@ -514,20 +546,20 @@ def order_confirm_v2():
             
             if paluu_auto:
                 return_data = {
-                    "pickup_address": d.get("dropoff"),
-                    "dropoff_address": d.get("pickup"),
-                    "pickup_place_id": d.get("dropoff_place_id"),
-                    "dropoff_place_id": d.get("pickup_place_id"),
-                    "reg_number": d.get("return_reg_number"),
+                    "pickup_address": sanitize_text(d.get("dropoff")),
+                    "dropoff_address": sanitize_text(d.get("pickup")),
+                    "pickup_place_id": sanitize_text(d.get("dropoff_place_id")),
+                    "dropoff_place_id": sanitize_text(d.get("pickup_place_id")),
+                    "reg_number": sanitize_text(d.get("return_reg_number") or d.get("reg_number")),
                     "pickup_date": d.get("last_delivery_date") or d.get("pickup_date"),
                     "last_delivery_date": d.get("return_delivery_date"),
-                    "orderer_name": d.get("orderer_name"),
-                    "orderer_email": d.get("orderer_email"),
-                    "orderer_phone": d.get("orderer_phone"),
-                    "customer_name": d.get("customer_name"),
-                    "customer_phone": d.get("customer_phone"),
-                    "phone": d.get("customer_phone"),
-                    "additional_info": d.get("additional_info"),
+                    "orderer_name": sanitize_text(d.get("orderer_name")),
+                    "orderer_email": sanitize_text(d.get("orderer_email")),
+                    "orderer_phone": sanitize_text(d.get("orderer_phone")),
+                    "customer_name": sanitize_text(d.get("customer_name")),
+                    "customer_phone": sanitize_text(d.get("customer_phone")),
+                    "phone": sanitize_text(d.get("customer_phone")),
+                    "additional_info": sanitize_text(d.get("additional_info"), max_length=2000),
                     "distance_km": float(round(return_km, 2)),
                     "price_net": float(return_net),
                     "price_vat": float(return_vat),
@@ -627,6 +659,10 @@ def api_order_submit():
     u = auth_service.get_current_user()
     if not u:
         return jsonify({"error": "Kirjaudu sisään luodaksesi tilauksen"}), 401
+
+    allowed, retry_after = check_rate_limit(f"order_submit:{request.remote_addr}", limit=10, window_seconds=300, lockout_seconds=900)
+    if not allowed:
+        return jsonify({"error": "Liikaa pyyntöjä, yritä myöhemmin"}), 429
     
     try:
         data = request.get_json()
@@ -665,20 +701,20 @@ def api_order_submit():
         
         # Create order
         order_data = {
-            "pickup_address": data.get("pickup_address"),
-            "dropoff_address": data.get("dropoff_address"),
-            "reg_number": data.get("reg_number", "").upper(),
+            "pickup_address": sanitize_text(data.get("pickup_address")),
+            "dropoff_address": sanitize_text(data.get("dropoff_address")),
+            "reg_number": sanitize_text(data.get("reg_number", "").upper()),
             "pickup_date": data.get("pickup_date"),
             "last_delivery_date": data.get("delivery_date"),
             "pickup_time": data.get("pickup_time"),
             "delivery_time": data.get("delivery_time"),
-            "orderer_name": data.get("orderer_name"),
-            "orderer_email": data.get("orderer_email"),
-            "orderer_phone": data.get("orderer_phone"),
-            "customer_name": data.get("customer_name"),
-            "customer_phone": data.get("customer_phone"),
-            "phone": data.get("customer_phone"),
-            "additional_info": data.get("additional_info"),
+            "orderer_name": sanitize_text(data.get("orderer_name")),
+            "orderer_email": sanitize_text(data.get("orderer_email")),
+            "orderer_phone": sanitize_text(data.get("orderer_phone")),
+            "customer_name": sanitize_text(data.get("customer_name")),
+            "customer_phone": sanitize_text(data.get("customer_phone")),
+            "phone": sanitize_text(data.get("customer_phone")),
+            "additional_info": sanitize_text(data.get("additional_info"), max_length=2000),
             "direct_to_customer": data.get("direct_to_customer", False),
             "distance_km": float(round(km, 2)),
             "price_net": float(pricing.get("final_net", 0)),
@@ -707,17 +743,17 @@ def api_order_submit():
                     )
                     
                     return_data = {
-                        "pickup_address": data.get("dropoff_address"),
-                        "dropoff_address": data.get("pickup_address"),
-                        "reg_number": data.get("return_reg_number", "").upper() or data.get("reg_number", "").upper(),
+                        "pickup_address": sanitize_text(data.get("dropoff_address")),
+                        "dropoff_address": sanitize_text(data.get("pickup_address")),
+                        "reg_number": sanitize_text(data.get("return_reg_number", "").upper() or data.get("reg_number", "").upper()),
                         "pickup_date": data.get("delivery_date") or data.get("pickup_date"),
-                        "orderer_name": data.get("orderer_name"),
-                        "orderer_email": data.get("orderer_email"),
-                        "orderer_phone": data.get("orderer_phone"),
-                        "customer_name": data.get("customer_name"),
-                        "customer_phone": data.get("customer_phone"),
-                        "phone": data.get("customer_phone"),
-                        "additional_info": data.get("additional_info"),
+                        "orderer_name": sanitize_text(data.get("orderer_name")),
+                        "orderer_email": sanitize_text(data.get("orderer_email")),
+                        "orderer_phone": sanitize_text(data.get("orderer_phone")),
+                        "customer_name": sanitize_text(data.get("customer_name")),
+                        "customer_phone": sanitize_text(data.get("customer_phone")),
+                        "phone": sanitize_text(data.get("customer_phone")),
+                        "additional_info": sanitize_text(data.get("additional_info"), max_length=2000),
                         "distance_km": float(round(return_km, 2)),
                         "price_net": float(return_pricing.get("final_net", 0)),
                         "price_vat": float(return_pricing.get("final_vat", 0)),

@@ -30,7 +30,7 @@
 {% endblock %}
 
 {% block content %}
-<form method="POST" class="space-y-6">
+<form method="POST" class="space-y-6" novalidate>
     <!-- Orderer Section -->
     <div class="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
         <div class="flex items-center gap-3 mb-6">
@@ -164,8 +164,8 @@
             <span class="material-symbols-outlined">arrow_back</span>
             Takaisin
         </button>
-        <button type="submit" name="action" value="continue"
-            class="btn-gradient flex-1 inline-flex justify-center items-center rounded-xl from-brand-gradient-start to-brand-gradient-end px-6 py-4 text-base font-bold text-white shadow-lg shadow-blue-500/30 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all">
+        <button type="submit" name="action" value="continue" id="continueBtn"
+            class="btn-gradient flex-1 inline-flex justify-center items-center rounded-xl from-brand-gradient-start to-brand-gradient-end px-6 py-4 text-base font-bold text-white shadow-lg shadow-blue-500/30 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all disabled:from-gray-300 disabled:to-gray-400 disabled:shadow-none disabled:cursor-not-allowed">
             Jatka
             <span class="material-symbols-outlined ml-2">arrow_forward</span>
         </button>
@@ -175,40 +175,80 @@
 
 {% block extra_scripts %}
 <script>
-    // Phone number validation with shake animation
-    const phonePattern = /^[+]?[0-9\s\-()]+$/;
+    document.addEventListener('DOMContentLoaded', function() {
+        // Phone number validation with shake animation
+        const phonePattern = /^[+]?[0-9\s\-()]+$/;
+        const continueBtn = document.getElementById('continueBtn');
+        const requiredFields = document.querySelectorAll('input[required]');
 
-    document.querySelectorAll('input[type="tel"]').forEach(input => {
-        const errorEl = document.getElementById(input.name + '_error');
-
-        input.addEventListener('input', function () {
-            const value = this.value.trim();
-            if (value && !phonePattern.test(value)) {
-                if (errorEl) errorEl.classList.remove('hidden');
-                this.setCustomValidity('Virheellinen puhelinnumero');
-                this.classList.add('border-red-300', 'focus:border-red-400', 'focus:ring-red-100');
-                this.classList.remove('border-gray-200', 'focus:border-blue-400', 'focus:ring-blue-100', 'focus:border-amber-400', 'focus:ring-amber-100');
-            } else {
-                if (errorEl) errorEl.classList.add('hidden');
-                this.setCustomValidity('');
-                this.classList.remove('border-red-300', 'focus:border-red-400', 'focus:ring-red-100');
-                this.classList.add('border-gray-200');
-                // Restore original focus colors based on field
-                if (this.name === 'customer_phone') {
-                    this.classList.add('focus:border-amber-400', 'focus:ring-amber-100');
-                } else {
-                    this.classList.add('focus:border-blue-400', 'focus:ring-blue-100');
+        // Function to check if all required fields are valid
+        function checkFormValidity() {
+            let allValid = true;
+            requiredFields.forEach(field => {
+                const value = field.value.trim();
+                if (!value) {
+                    allValid = false;
                 }
+                // Check phone pattern for tel inputs
+                if (field.type === 'tel' && value && !phonePattern.test(value)) {
+                    allValid = false;
+                }
+                // Check email pattern for email inputs
+                if (field.type === 'email' && value && !field.validity.valid) {
+                    allValid = false;
+                }
+            });
+            
+            if (continueBtn) {
+                continueBtn.disabled = !allValid;
             }
+        }
+
+        // Check on page load (with small delay to ensure values are set)
+        checkFormValidity();
+        setTimeout(checkFormValidity, 100);
+
+        // Check on every input change
+        requiredFields.forEach(field => {
+            field.addEventListener('input', checkFormValidity);
+            field.addEventListener('change', checkFormValidity);
         });
 
-        input.addEventListener('blur', function () {
-            const value = this.value.trim();
-            if (value && !phonePattern.test(value)) {
-                if (errorEl) errorEl.classList.remove('hidden');
-                this.classList.add('shake');
-                setTimeout(() => this.classList.remove('shake'), 300);
-            }
+        // Expose globally
+        window.checkFormValidity = checkFormValidity;
+
+        document.querySelectorAll('input[type="tel"]').forEach(input => {
+            const errorEl = document.getElementById(input.name + '_error');
+
+            input.addEventListener('input', function () {
+                const value = this.value.trim();
+                if (value && !phonePattern.test(value)) {
+                    if (errorEl) errorEl.classList.remove('hidden');
+                    this.setCustomValidity('Virheellinen puhelinnumero');
+                    this.classList.add('border-red-300', 'focus:border-red-400', 'focus:ring-red-100');
+                    this.classList.remove('border-gray-200', 'focus:border-blue-400', 'focus:ring-blue-100', 'focus:border-amber-400', 'focus:ring-amber-100');
+                } else {
+                    if (errorEl) errorEl.classList.add('hidden');
+                    this.setCustomValidity('');
+                    this.classList.remove('border-red-300', 'focus:border-red-400', 'focus:ring-red-100');
+                    this.classList.add('border-gray-200');
+                    // Restore original focus colors based on field
+                    if (this.name === 'customer_phone') {
+                        this.classList.add('focus:border-amber-400', 'focus:ring-amber-100');
+                    } else {
+                        this.classList.add('focus:border-blue-400', 'focus:ring-blue-100');
+                    }
+                }
+            });
+
+            input.addEventListener('blur', function () {
+                const value = this.value.trim();
+                if (value && !phonePattern.test(value)) {
+                    if (errorEl) errorEl.classList.remove('hidden');
+                    this.classList.add('shake');
+                    setTimeout(() => this.classList.remove('shake'), 300);
+                }
+            });
         });
     });
 </script>
