@@ -525,7 +525,7 @@
               </td>
               <td class="px-6 py-4 text-right">
                 <span class="text-sm font-bold text-slate-900 dark:text-white whitespace-nowrap">{{
-                  "%.2f"|format((order.price_gross|float) / 1.255) }} €</span>
+                  "%.2f"|format((order.get('price_gross', 0)|float) / 1.255) }} €</span>
               </td>
               <td class="px-6 py-4 text-center">
                 <a href="{{ url_for('admin.order_detail', order_id=order.id) }}"

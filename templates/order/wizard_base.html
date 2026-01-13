@@ -502,6 +502,49 @@
             animation: slideDown 0.3s ease-out;
         }
 
+        /* ===== CUSTOM VALIDATION STYLES ===== */
+        .input-error {
+            border-color: #ef4444 !important;
+            background-color: #fef2f2 !important;
+            box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.1) !important;
+            animation: shake 0.5s cubic-bezier(.36, .07, .19, .97) both;
+        }
+
+        .error-text {
+            color: #ef4444;
+            font-size: 0.8rem;
+            margin-top: 0.375rem;
+            display: flex;
+            align-items: center;
+            gap: 0.375rem;
+            font-weight: 500;
+            animation: slideDown 0.2s ease-out;
+        }
+
+        @keyframes shake {
+
+            10%,
+            90% {
+                transform: translate3d(-1px, 0, 0);
+            }
+
+            20%,
+            80% {
+                transform: translate3d(2px, 0, 0);
+            }
+
+            30%,
+            50%,
+            70% {
+                transform: translate3d(-4px, 0, 0);
+            }
+
+            40%,
+            60% {
+                transform: translate3d(4px, 0, 0);
+            }
+        }
+
         /* ===== CONFIRM PAGE GRID ===== */
         .confirm-grid-layout {
             display: grid;
@@ -671,6 +714,108 @@
     </footer>
 
     {% block extra_scripts %}{% endblock %}
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const forms = document.querySelectorAll('form');
+            forms.forEach(form => {
+                form.setAttribute('novalidate', 'true');
+
+                form.addEventListener('submit', (e) => {
+                    let isValid = true;
+                    // Find all inputs including those in custom components
+                    const inputs = form.querySelectorAll('input, select, textarea');
+                    let firstInvalid = null;
+
+                    inputs.forEach(input => {
+                        // Skip hidden inputs unless they are critical
+                        if (input.type === 'hidden') return;
+
+                        if (!validateInput(input)) {
+                            isValid = false;
+                            if (!firstInvalid) firstInvalid = input;
+                        }
+                    });
+
+                    if (!isValid) {
+                        e.preventDefault();
+                        if (firstInvalid) {
+                            firstInvalid.focus();
+                            firstInvalid.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        }
+                    }
+                });
+
+                // Add real-time validation clearing
+                form.querySelectorAll('input, select, textarea').forEach(input => {
+                    input.addEventListener('input', () => clearError(input));
+                    input.addEventListener('change', () => clearError(input));
+
+                    // Specific handling for custom date inputs if any
+                    input.addEventListener('blur', () => {
+                        if (input.value) validateInput(input);
+                    });
+                });
+            });
+
+            function validateInput(input) {
+                // Remove existing error first
+                clearError(input);
+
+                if (!input.checkValidity()) {
+                    let message = input.validationMessage;
+
+                    // Custom Finnish messages
+                    if (input.validity.valueMissing) {
+                        message = "Täytä tämä kenttä";
+                    } else if (input.validity.typeMismatch && input.type === 'email') {
+                        message = "Syötä kelvollinen sähköpostiosoite";
+                    } else if (input.validity.patternMismatch) {
+                        message = "Tarkista tiedot"; // Generic fallback, usually pattern has title
+                        if (input.title) message = input.title;
+                    }
+
+                    showError(input, message);
+                    return false;
+                }
+                return true;
+            }
+
+            function showError(input, message) {
+                input.classList.add('input-error');
+
+                // Create error div
+                const errorDiv = document.createElement('div');
+                errorDiv.className = 'error-text';
+                errorDiv.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="16" height="16" class="flex-shrink-0"><path fill-rule="evenodd" d="M2.25 12c0-5.385 4.365-9.75 9.75-9.75s9.75 4.365 9.75 9.75-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12ZM12 8.25a.75.75 0 0 1 .75.75v3.75a.75.75 0 0 1-1.5 0V9a.75.75 0 0 1 .75-.75Zm0 8.25a.75.75 0 1 0 0-1.5 .75.75 0 0 0 0 1.5Z" clip-rule="evenodd" /></svg>${message}`;
+
+                // Insert after the input's immediate parent to handle relative positioning groups correctly
+                // or just after the input. 
+                // In this template structure, inputs are often inside a relative div.
+                // We should append to that parent.
+                if (input.parentElement.classList.contains('relative') || input.parentElement.classList.contains('input-group')) {
+                    input.parentElement.appendChild(errorDiv);
+                } else {
+                    input.parentNode.insertBefore(errorDiv, input.nextSibling);
+                }
+            }
+
+            function clearError(input) {
+                input.classList.remove('input-error');
+                // Remove error text sibling
+                let parent = input.parentElement;
+                let error = parent.querySelector('.error-text');
+                if (error) {
+                    error.remove();
+                } else {
+                    // Check next sibling just in case
+                    if (input.nextSibling && input.nextSibling.classList && input.nextSibling.classList.contains('error-text')) {
+                        input.nextSibling.remove();
+                    }
+                }
+            }
+        });
+    </script>
 </body>
 
 </html>

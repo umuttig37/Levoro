@@ -405,19 +405,7 @@
 
 <!-- Terms and Submit -->
 <form method="POST" class="mt-8" id="orderConfirmForm">
-    <div class="section-card mb-6">
-        <label class="flex items-start gap-4 cursor-pointer">
-            <input type="checkbox" id="termsCheckbox" required
-                class="w-5 h-5 mt-0.5 rounded border-gray-300 text-blue-600 focus:ring-blue-200 cursor-pointer">
-            <span class="text-slate-600 leading-relaxed">
-                Hyväksyn <a href="/ehdot" target="_blank"
-                    class="text-blue-600 font-medium hover:underline">käyttöehdot</a> ja
-                <a href="/tietosuoja" target="_blank"
-                    class="text-blue-600 font-medium hover:underline">tietosuojakäytännön</a>.
-                Ymmärrän, että tilaus on sitova vahvistuksen jälkeen.
-            </span>
-        </label>
-    </div>
+
 
     <div class="flex gap-4">
         <a href="/order/new/step5"
@@ -454,16 +442,10 @@
     document.addEventListener('DOMContentLoaded', function () {
         const form = document.getElementById('orderConfirmForm');
         const submitBtn = document.getElementById('submitOrderBtn');
-        const termsCheckbox = document.getElementById('termsCheckbox');
+
 
         if (form && submitBtn) {
             form.addEventListener('submit', function (e) {
-                if (!termsCheckbox.checked) {
-                    e.preventDefault();
-                    termsCheckbox.focus();
-                    return;
-                }
-
                 // Show loading state
                 submitBtn.disabled = true;
                 submitBtn.querySelectorAll('.btn-text').forEach(el => el.classList.add('hidden'));

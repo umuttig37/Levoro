@@ -181,6 +181,49 @@
             transform: translateY(-1px);
         }
 
+        /* ===== CUSTOM VALIDATION STYLES ===== */
+        .input-error {
+            border-color: #ef4444 !important;
+            background-color: #fef2f2 !important;
+            box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.1) !important;
+            animation: shake 0.5s cubic-bezier(.36, .07, .19, .97) both;
+        }
+
+        .error-text {
+            color: #ef4444;
+            font-size: 0.8rem;
+            margin-top: 0.375rem;
+            display: flex;
+            align-items: center;
+            gap: 0.375rem;
+            font-weight: 500;
+            animation: slideDown 0.2s ease-out;
+        }
+
+        @keyframes shake {
+
+            10%,
+            90% {
+                transform: translate3d(-1px, 0, 0);
+            }
+
+            20%,
+            80% {
+                transform: translate3d(2px, 0, 0);
+            }
+
+            30%,
+            50%,
+            70% {
+                transform: translate3d(-4px, 0, 0);
+            }
+
+            40%,
+            60% {
+                transform: translate3d(4px, 0, 0);
+            }
+        }
+
         /* Form Styles */
         .wizard-input {
             width: 100%;
@@ -708,20 +751,7 @@
                         </div>
                     </div>
 
-                    <!-- Terms Checkbox -->
-                    <div class="bg-white border border-slate-200 rounded-xl p-4 cursor-pointer"
-                        onclick="document.getElementById('accept_terms').click()">
-                        <label class="flex items-start gap-3 cursor-pointer">
-                            <input type="checkbox" id="accept_terms"
-                                class="w-5 h-5 mt-0.5 rounded border-slate-300 text-blue-600 focus:ring-blue-500">
-                            <div>
-                                <div class="font-semibold text-slate-700">Hyväksyn ehdot</div>
-                                <p class="text-sm text-slate-500 mt-1">Olen lukenut ja hyväksyn <a href="/terms"
-                                        class="text-blue-600 hover:underline"
-                                        onclick="event.stopPropagation()">käyttöehdot</a></p>
-                            </div>
-                        </label>
-                    </div>
+
                 </div>
 
                 <div class="flex gap-4 pt-6">
@@ -731,8 +761,7 @@
                         Takaisin
                     </button>
                     <button type="button" onclick="submitOrder()" id="submitBtn"
-                        class="btn-gradient flex-1 inline-flex justify-center items-center rounded-xl px-6 py-4 text-base font-bold text-white shadow-lg disabled:opacity-50"
-                        disabled>
+                        class="btn-gradient flex-1 inline-flex justify-center items-center rounded-xl px-6 py-4 text-base font-bold text-white shadow-lg disabled:opacity-50">
                         <span class="material-symbols-outlined mr-2">check_circle</span>
                         Lähetä tilaus
                     </button>
@@ -774,10 +803,7 @@
                 document.getElementById('returnVehicleSection').classList.toggle('hidden', !this.checked);
             });
 
-            // Enable submit when terms accepted
-            document.getElementById('accept_terms').addEventListener('change', function () {
-                document.getElementById('submitBtn').disabled = !this.checked;
-            });
+
         });
 
         function goToStep(step) {
@@ -823,44 +849,71 @@
         }
 
         function validateCurrentStep() {
+            let isValid = true;
+
+            // Helper to check standard validity first
+            const check = (id, msg) => {
+                const el = document.getElementById(id);
+                if (!el) return true;
+
+                clearError(el); // Clear previous
+
+                // Generic check
+                if (!el.value || !el.checkValidity()) {
+                    showError(el, msg || el.validationMessage || "Täytä tämä kenttä");
+                    return false;
+                }
+                return true;
+            };
+
             // Basic validation per step
             switch (currentStep) {
                 case 1:
-                    if (!document.getElementById('pickup_address').value) {
-                        alert('Syötä nouto-osoite');
-                        return false;
-                    }
-                    if (!document.getElementById('pickup_date').value) {
-                        alert('Valitse noutopäivä');
-                        return false;
-                    }
+                    // Pickup
+                    if (!check('pickup_address', 'Syötä nouto-osoite')) isValid = false;
+                    if (!check('pickup_date', 'Valitse noutopäivä')) isValid = false;
                     break;
                 case 2:
-                    if (!document.getElementById('dropoff_address').value) {
-                        alert('Syötä toimitusosoite');
-                        return false;
-                    }
-                    if (!document.getElementById('delivery_date').value) {
-                        alert('Valitse toimituspäivä');
-                        return false;
-                    }
+                    // Delivery
+                    if (!check('dropoff_address', 'Syötä toimitusosoite')) isValid = false;
+                    // Delivery date might be optional if same day? 
+                    // Logic says check 'delivery_date'
+                    if (document.getElementById('delivery_date') && !check('delivery_date', 'Valitse toimituspäivä')) isValid = false;
                     break;
                 case 3:
-                    if (!document.getElementById('reg_number').value) {
-                        alert('Syötä rekisterinumero');
-                        return false;
-                    }
+                    // Vehicle
+                    if (!check('reg_number', 'Syötä rekisterinumero')) isValid = false;
                     break;
                 case 4:
-                    if (!document.getElementById('orderer_name').value ||
-                        !document.getElementById('orderer_email').value ||
-                        !document.getElementById('orderer_phone').value) {
-                        alert('Täytä kaikki yhteystiedot');
-                        return false;
-                    }
+                    // Contact
+                    if (!check('orderer_name', 'Syötä nimi')) isValid = false;
+                    if (!check('orderer_email', 'Syötä sähköposti')) isValid = false;
+                    if (!check('orderer_phone', 'Syötä puhelinnumero')) isValid = false;
                     break;
             }
-            return true;
+            return isValid;
+        }
+
+        function showError(input, message) {
+            input.classList.add('input-error');
+            // Create error div
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'error-text';
+            errorDiv.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="16" height="16" class="flex-shrink-0"><path fill-rule="evenodd" d="M2.25 12c0-5.385 4.365-9.75 9.75-9.75s9.75 4.365 9.75 9.75-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12ZM12 8.25a.75.75 0 0 1 .75.75v3.75a.75.75 0 0 1-1.5 0V9a.75.75 0 0 1 .75-.75Zm0 8.25a.75.75 0 1 0 0-1.5 .75.75 0 0 0 0 1.5Z" clip-rule="evenodd" /></svg>${message}`;
+
+            if (input.parentElement.classList.contains('relative') || input.parentElement.classList.contains('input-group')) {
+                input.parentElement.appendChild(errorDiv);
+            } else {
+                input.parentNode.insertBefore(errorDiv, input.nextSibling);
+            }
+        }
+
+        function clearError(input) {
+            input.classList.remove('input-error');
+            // Remove error text sibling/child
+            let parent = input.parentElement;
+            let error = parent.querySelector('.error-text');
+            if (error) error.remove();
         }
 
         function updateUI() {
@@ -992,7 +1045,11 @@
         }
 
         function setupValidation() {
-            // Phone validation, etc. can be added here
+            // Add input listeners to clear errors
+            document.querySelectorAll('input, select, textarea').forEach(input => {
+                input.addEventListener('input', () => clearError(input));
+                input.addEventListener('change', () => clearError(input));
+            });
         }
 
         function debounce(func, wait) {

@@ -85,7 +85,7 @@ class UserModel(BaseModel):
         
         return True, None
 
-    def create_user(self, email, password, name, role="user", phone=None):
+    def create_user(self, email, password, name, role="user", phone=None, company_name=None, business_id=None):
         """Create a new user"""
         # Check if user already exists
         if self.find_by_email(email):
@@ -107,6 +107,8 @@ class UserModel(BaseModel):
             "email": email.lower().strip(),
             "password_hash": generate_password_hash(password),
             "name": name.strip(),
+            "company_name": company_name.strip() if company_name else None,
+            "business_id": business_id.strip() if business_id else None,
             "role": role,
             "phone": phone.strip() if phone else None,
             "status": "pending" if role == "user" else "active",

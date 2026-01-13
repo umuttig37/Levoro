@@ -424,7 +424,21 @@
                 {% endif %}
 
                 <!-- Actions -->
-                <div class="flex justify-end gap-3">
+                <div class="flex justify-end gap-3 items-center">
+                    <!-- Landing Page Toggle -->
+                    <form method="POST" action="{{ url_for('admin.toggle_landing_review') }}">
+                        <input type="hidden" name="rating_id" value="{{ review.id }}">
+                        <input type="hidden" name="state" value="{{ 'false' if review.show_on_landing else 'true' }}">
+                        <button type="submit"
+                            class="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors border {{ 'bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100 dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-800' if review.show_on_landing else 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700' }}"
+                            title="{{ 'Piilota etusivulta' if review.show_on_landing else 'Näytä etusivulla' }}">
+                            <span class="material-symbols-outlined text-[18px]">
+                                {{ 'featured_video' if review.show_on_landing else 'missed_video_call' }}
+                            </span>
+                            {{ 'Etusivulla' if review.show_on_landing else 'Ei etusivulla' }}
+                        </button>
+                    </form>
+
                     {% if review.status != 'approved' %}
                     <form method="POST" action="{{ url_for('admin.moderate_review') }}">
                         <input type="hidden" name="rating_id" value="{{ review.id }}">

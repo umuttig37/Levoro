@@ -1,232 +1,175 @@
 /**
- * Form Validation Utilities
- * Client-side validation helpers for forms and inputs
+ * Global Custom Form Validation
+ * Replaces browser native validation with custom UI
  */
 
-class ValidationUtils {
-    constructor() {
-        this.patterns = {
-            email: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
-            phone: /^(\+358|0)[1-9][0-9]{6,10}$/,
-            regNumber: /^[A-Z]{2,3}-[0-9]{1,3}$/,
-            postalCode: /^[0-9]{5}$/
-        };
+document.addEventListener('DOMContentLoaded', () => {
+    // Select all forms that shouldn't be excluded (add .no-custom-validation class if needed)
+    const forms = document.querySelectorAll('form:not(.no-custom-validation)');
 
-        this.messages = {
-            required: 'Tämä kenttä on pakollinen',
-            email: 'Virheellinen sähköpostiosoite',
-            phone: 'Virheellinen puhelinnumero',
-            regNumber: 'Virheellinen rekisterinumero (esim. ABC-123)',
-            postalCode: 'Virheellinen postinumero',
-            minLength: 'Liian lyhyt, vähintään {min} merkkiä',
-            maxLength: 'Liian pitkä, enintään {max} merkkiä',
-            match: 'Kentät eivät täsmää'
-        };
-    }
+    forms.forEach(form => {
+        // Disable browser native validation UI
+        form.setAttribute('novalidate', 'true');
 
-    // Validate individual field
-    validateField(field, rules = {}) {
-        const value = field.value.trim();
-        const errors = [];
-
-        // Required validation
-        if (rules.required && !value) {
-            errors.push(this.messages.required);
-            return { valid: false, errors };
-        }
-
-        // Skip other validations if field is empty and not required
-        if (!value && !rules.required) {
-            return { valid: true, errors: [] };
-        }
-
-        // Email validation
-        if (rules.email && !this.patterns.email.test(value)) {
-            errors.push(this.messages.email);
-        }
-
-        // Phone validation
-        if (rules.phone && !this.patterns.phone.test(value)) {
-            errors.push(this.messages.phone);
-        }
-
-        // Registration number validation
-        if (rules.regNumber && !this.patterns.regNumber.test(value)) {
-            errors.push(this.messages.regNumber);
-        }
-
-        // Postal code validation
-        if (rules.postalCode && !this.patterns.postalCode.test(value)) {
-            errors.push(this.messages.postalCode);
-        }
-
-        // Length validations
-        if (rules.minLength && value.length < rules.minLength) {
-            errors.push(this.messages.minLength.replace('{min}', rules.minLength));
-        }
-
-        if (rules.maxLength && value.length > rules.maxLength) {
-            errors.push(this.messages.maxLength.replace('{max}', rules.maxLength));
-        }
-
-        // Match validation (for password confirmation, etc.)
-        if (rules.match) {
-            const matchField = document.querySelector(rules.match);
-            if (matchField && value !== matchField.value.trim()) {
-                errors.push(this.messages.match);
-            }
-        }
-
-        return {
-            valid: errors.length === 0,
-            errors
-        };
-    }
-
-    // Validate entire form
-    validateForm(form, fieldRules = {}) {
-        const results = {};
-        let isValid = true;
-
-        // Get all form fields
-        const fields = form.querySelectorAll('input, textarea, select');
-
-        fields.forEach(field => {
-            const fieldName = field.name || field.id;
-            if (!fieldName || !fieldRules[fieldName]) return;
-
-            const validation = this.validateField(field, fieldRules[fieldName]);
-            results[fieldName] = validation;
-
-            if (!validation.valid) {
-                isValid = false;
-                this.showFieldError(field, validation.errors);
-            } else {
-                this.clearFieldError(field);
-            }
-        });
-
-        return {
-            valid: isValid,
-            results
-        };
-    }
-
-    // Show field error
-    showFieldError(field, errors) {
-        this.clearFieldError(field);
-
-        field.classList.add('error');
-
-        // Create error message element
-        const errorDiv = document.createElement('div');
-        errorDiv.className = 'field-error';
-        errorDiv.textContent = errors[0]; // Show first error
-
-        // Insert after field
-        field.parentNode.insertBefore(errorDiv, field.nextSibling);
-
-        // Focus on first error field if not already focused
-        if (document.activeElement !== field) {
-            field.focus();
-        }
-    }
-
-    // Clear field error
-    clearFieldError(field) {
-        field.classList.remove('error');
-
-        // Remove existing error message
-        const existingError = field.parentNode.querySelector('.field-error');
-        if (existingError) {
-            existingError.remove();
-        }
-    }
-
-    // Real-time validation setup
-    setupRealtimeValidation(form, fieldRules = {}) {
-        const fields = form.querySelectorAll('input, textarea, select');
-
-        fields.forEach(field => {
-            const fieldName = field.name || field.id;
-            if (!fieldName || !fieldRules[fieldName]) return;
-
-            // Validate on blur
-            field.addEventListener('blur', () => {
-                const validation = this.validateField(field, fieldRules[fieldName]);
-                if (!validation.valid) {
-                    this.showFieldError(field, validation.errors);
-                } else {
-                    this.clearFieldError(field);
-                }
-            });
-
-            // Clear error on input
-            field.addEventListener('input', () => {
-                if (field.classList.contains('error')) {
-                    this.clearFieldError(field);
-                }
-            });
-        });
-
-        // Validate on form submit
+        // Handle Form Submission
         form.addEventListener('submit', (e) => {
-            const validation = this.validateForm(form, fieldRules);
-            if (!validation.valid) {
+            let isValid = true;
+            let firstInvalid = null;
+
+            // Find all inputs, selects, textareas
+            const inputs = form.querySelectorAll('input, select, textarea');
+
+            inputs.forEach(input => {
+                // Skip hidden inputs (unless they need validation? usually native validation ignores them anyway)
+                if (input.type === 'hidden' || input.disabled || input.readOnly) return;
+
+                // If the input is in a hidden container (e.g., hidden step in wizard), 
+                // we generally shouldn't validate it unless the logic specifically handles it.
+                // For a global script, checking offsetParent === null is a good way to see if it's visible.
+                if (input.offsetParent === null) return;
+
+                if (!validateInput(input)) {
+                    isValid = false;
+                    if (!firstInvalid) firstInvalid = input;
+                }
+            });
+
+            if (!isValid) {
                 e.preventDefault();
                 e.stopPropagation();
 
-                // Focus first error field
-                const firstErrorField = form.querySelector('.error');
-                if (firstErrorField) {
-                    firstErrorField.focus();
+                if (firstInvalid) {
+                    firstInvalid.focus();
+                    firstInvalid.scrollIntoView({ behavior: 'smooth', block: 'center' });
                 }
             }
         });
+
+        // specific handling for remember-me checkbox or similar
+        // usually we don't validate checkboxes unless required.
+
+        // Add real-time validation clearing
+        form.querySelectorAll('input, select, textarea').forEach(input => {
+            // Clear error on interact
+            input.addEventListener('input', () => clearError(input));
+            input.addEventListener('change', () => clearError(input));
+
+            // Validate on blur (optional, maybe too aggressive? Let's stick to just clearing for now, 
+            // or validate only if it was already marked invalid?)
+            // A good pattern is: validate on blur, but only if user has visited field. 
+            // For now, let's just clear errors on input to keep it simple and less annoying.
+
+            // Exception: For empty required fields lost focus, we might want to alert? 
+            // Let's stick to submit-time validation + clear-on-input for the "cleanest" modern feel without being nagging.
+        });
+    });
+
+    /**
+     * Validates a single input.
+     * Returns true if valid, false otherwise.
+     */
+    function validateInput(input) {
+        // Clear previous error
+        clearError(input);
+
+        // Check validity
+        if (!input.checkValidity()) {
+            let message = input.validationMessage;
+
+            // Custom Finnish messages override
+            if (input.validity.valueMissing) {
+                if (input.type === 'checkbox') {
+                    message = "Valitse tämä ruutu jatkaaksesi";
+                } else if (input.type === 'radio') {
+                    message = "Valitse yksi vaihtoehto";
+                } else {
+                    message = "Täytä tämä kenttä";
+                }
+            } else if (input.validity.typeMismatch) {
+                if (input.type === 'email') {
+                    message = "Syötä kelvollinen sähköpostiosoite";
+                } else if (input.type === 'url') {
+                    message = "Syötä kelvollinen URL-osoite";
+                }
+            } else if (input.validity.patternMismatch) {
+                // Use title if available
+                if (input.title) message = input.title;
+                else message = "Tarkista tiedot (muoto on virheellinen)";
+            } else if (input.validity.tooShort) {
+                message = `Liian lyhyt (vähintään ${input.minLength} merkkiä)`;
+            } else if (input.validity.tooLong) {
+                message = `Liian pitkä (enintään ${input.maxLength} merkkiä)`;
+            } else if (input.validity.rangeUnderflow) {
+                message = `Arvon on oltava vähintään ${input.min}`;
+            } else if (input.validity.rangeOverflow) {
+                message = `Arvon on oltava enintään ${input.max}`;
+            }
+
+            // Custom checks for specific IDs if needed (e.g. password match)
+            if (input.id === 'password-confirm' || input.name === 'confirm_password') {
+                const pw = form.querySelector('input[name="password"]');
+                if (pw && pw.value !== input.value) {
+                    message = "Salasanat eivät täsmää";
+                    input.setCustomValidity(message); // Force invalid
+                } else {
+                    input.setCustomValidity(''); // Reset
+                }
+            }
+
+            showError(input, message);
+            return false;
+        }
+        return true;
     }
 
-    // Custom validation function
-    addCustomValidation(fieldName, validationFn, errorMessage) {
-        // Store custom validations for later use
-        if (!this.customValidations) {
-            this.customValidations = {};
-        }
+    function showError(input, message) {
+        input.classList.add('input-error');
 
-        this.customValidations[fieldName] = {
-            validate: validationFn,
-            message: errorMessage
-        };
+        // Create error message element
+        const errorDiv = document.createElement('div');
+        errorDiv.className = 'error-text';
+        errorDiv.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="16" height="16" class="flex-shrink-0"><path fill-rule="evenodd" d="M2.25 12c0-5.385 4.365-9.75 9.75-9.75s9.75 4.365 9.75 9.75-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12ZM12 8.25a.75.75 0 0 1 .75.75v3.75a.75.75 0 0 1-1.5 0V9a.75.75 0 0 1 .75-.75Zm0 8.25a.75.75 0 1 0 0-1.5 .75.75 0 0 0 0 1.5Z" clip-rule="evenodd" /></svg>${message}`;
+
+        // Determine insertion point
+        // 1. If input is inside a .input-group or .password-input-wrapper, append after that wrapper
+        // 2. Otherwise append after input
+
+        const wrapper = input.closest('.input-group') ||
+            input.closest('.password-input-wrapper') ||
+            input.closest('.relative');
+
+        if (wrapper) {
+            // Check if error already exists in wrapper to avoid duplicates (though we clear first)
+            if (wrapper.nextElementSibling && wrapper.nextElementSibling.classList.contains('error-text')) {
+                wrapper.nextElementSibling.remove();
+            }
+            // Insert after wrapper
+            wrapper.parentNode.insertBefore(errorDiv, wrapper.nextSibling);
+        } else {
+            // Insert after input
+            input.parentNode.insertBefore(errorDiv, input.nextSibling);
+        }
     }
 
-    // Address validation (specific to this app)
-    validateAddress(address) {
-        if (!address || address.trim().length < 5) {
-            return {
-                valid: false,
-                error: 'Osoite on liian lyhyt'
-            };
+    function clearError(input) {
+        input.classList.remove('input-error');
+
+        // Find related error text
+        // It might be next sibling, or after the wrapper
+
+        // Check next sibling
+        if (input.nextElementSibling && input.nextElementSibling.classList.contains('error-text')) {
+            input.nextElementSibling.remove();
+            return;
         }
 
-        // Check for basic address components (street number, street name)
-        const addressParts = address.trim().split(/\s+/);
-        if (addressParts.length < 2) {
-            return {
-                valid: false,
-                error: 'Syötä katu ja numero'
-            };
-        }
+        // Check wrapper's next sibling
+        const wrapper = input.closest('.input-group') ||
+            input.closest('.password-input-wrapper') ||
+            input.closest('.relative');
 
-        return { valid: true };
+        if (wrapper && wrapper.nextElementSibling && wrapper.nextElementSibling.classList.contains('error-text')) {
+            wrapper.nextElementSibling.remove();
+        }
     }
-}
-
-// Initialize validation utilities
-document.addEventListener('DOMContentLoaded', () => {
-    window.validationUtils = new ValidationUtils();
-    window.levoroApp?.registerComponent('validation', window.validationUtils);
 });
-
-// Export for modules
-if (typeof module !== 'undefined' && module.exports) {
-    module.exports = ValidationUtils;
-}

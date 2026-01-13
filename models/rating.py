@@ -53,6 +53,7 @@ class RatingModel(BaseModel):
             "rating": rating,
             "comment": comment.strip() if comment else None,
             "status": self.STATUS_APPROVED,  # Auto-approve by default
+            "show_on_landing": False,
             "created_at": datetime.now(timezone.utc),
             "updated_at": datetime.now(timezone.utc)
         }
@@ -204,6 +205,39 @@ class RatingModel(BaseModel):
             review["driver_name"] = driver.get("name") if driver else "Ei kuljettajaa"
             review["order_reg_number"] = order.get("reg_number") if order else "-"
         
+        return reviews
+
+    def toggle_landing_visibility(self, rating_id: int, is_visible: bool) -> Tuple[bool, Optional[str]]:
+        """
+        Toggle whether a review is shown on the landing page
+        """
+        success = self.update_one(
+            {"id": rating_id},
+            {"$set": {
+                "show_on_landing": is_visible,
+                "updated_at": datetime.now(timezone.utc)
+            }}
+        )
+        
+        if success:
+            return True, None
+        return False, "Päivitys epäonnistui"
+
+    def get_landing_reviews(self, limit: int = 3) -> List[Dict]:
+        """Get reviews selected for landing page"""
+        from models.user import user_model
+        
+        reviews = list(self.find(
+            {"show_on_landing": True, "status": self.STATUS_APPROVED},
+            sort=[("updated_at", -1)], # Most recently updated/toggled first
+            limit=limit
+        ))
+        
+        # Enrich with customer name
+        for review in reviews:
+            customer = user_model.find_by_id(review["customer_id"])
+            review["customer_name"] = customer.get("name") if customer else "Asiakas"
+            
         return reviews
 
 

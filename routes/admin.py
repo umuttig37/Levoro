@@ -569,8 +569,9 @@ def order_detail(order_id):
 def upload_order_image(order_id):
     """Upload image to order"""
     image_type = request.form.get("image_type")
-    if image_type not in ["pickup", "delivery"]:
+    if image_type not in ["pickup", "delivery", "receipts"]:
         flash("Virheellinen kuvatyyppi", "error")
+
         return redirect(url_for("admin.order_detail", order_id=order_id))
 
     if 'image' not in request.files:
@@ -597,7 +598,7 @@ def upload_order_image(order_id):
         flash(add_error, "error")
         return redirect(url_for("admin.order_detail", order_id=order_id))
 
-    image_type_fi = "Nouto" if image_type == "pickup" else "Toimitus"
+    image_type_fi = "Nouto" if image_type == "pickup" else ("Toimitus" if image_type == "delivery" else "Kuitti")
     flash(f"{image_type_fi} kuva ladattu onnistuneesti", "success")
     return redirect(url_for("admin.order_detail", order_id=order_id))
 
@@ -610,7 +611,7 @@ def upload_order_image_ajax(order_id):
     image_type = request.form.get('image_type')
 
     # Validation
-    if image_type not in ['pickup', 'delivery']:
+    if image_type not in ['pickup', 'delivery', 'receipts']:
         return jsonify({'success': False, 'error': 'Virheellinen kuvatyyppi'}), 400
 
     if 'image' not in request.files:
@@ -642,7 +643,7 @@ def upload_order_image_ajax(order_id):
     order = order_model.find_by_id(order_id)
     current_images = order.get('images', {}).get(image_type, [])
 
-    image_type_fi = 'Nouto' if image_type == 'pickup' else 'Toimitus'
+    image_type_fi = 'Nouto' if image_type == 'pickup' else ('Toimitus' if image_type == 'delivery' else 'Kuitti')
     message = f'{image_type_fi}kuva lisätty onnistuneesti'
 
     return jsonify({
@@ -659,7 +660,7 @@ def delete_order_image_ajax(order_id, image_type, image_id):
     """AJAX endpoint for deleting images"""
 
     # Validation
-    if image_type not in ['pickup', 'delivery']:
+    if image_type not in ['pickup', 'delivery', 'receipts']:
         return jsonify({'success': False, 'error': 'Virheellinen kuvatyyppi'}), 400
 
     # Delete image using ImageService
@@ -693,13 +694,13 @@ def delete_order_image_ajax(order_id, image_type, image_id):
 @admin_required
 def delete_order_image(order_id, image_type):
     """Delete order image"""
-    if image_type not in ["pickup", "delivery"]:
+    if image_type not in ["pickup", "delivery", "receipts"]:
         flash("Virheellinen kuvatyyppi", "error")
         return redirect(url_for("admin.order_detail", order_id=order_id))
 
     success, message = image_service.delete_order_image(order_id, image_type, request.form.get('image_id'))
 
-    image_type_fi = "Nouto" if image_type == "pickup" else "Toimitus"
+    image_type_fi = "Nouto" if image_type == "pickup" else ("Toimitus" if image_type == "delivery" else "Kuitti")
 
     if success:
         flash(f"{image_type_fi} kuva poistettu onnistuneesti", "success")
@@ -722,13 +723,13 @@ def delete_order_image(order_id, image_type):
 @admin_required
 def delete_order_image_by_id(order_id, image_type, image_id):
     """Delete specific order image by ID"""
-    if image_type not in ["pickup", "delivery"]:
+    if image_type not in ["pickup", "delivery", "receipts"]:
         flash("Virheellinen kuvatyyppi", "error")
         return redirect(url_for("admin.order_detail", order_id=order_id))
 
     success, message = image_service.delete_order_image(order_id, image_type, image_id)
 
-    image_type_fi = "Nouto" if image_type == "pickup" else "Toimitus"
+    image_type_fi = "Nouto" if image_type == "pickup" else ("Toimitus" if image_type == "delivery" else "Kuitti")
 
     if success:
         flash(f"{image_type_fi} kuva poistettu onnistuneesti", "success")
@@ -1131,6 +1132,20 @@ def discount_update(discount_id):
     update_data["allowed_dropoff_cities"] = _parse_csv_list(request.form.get("allowed_dropoff_cities", "").strip())
     update_data["excluded_cities"] = _parse_csv_list(request.form.get("excluded_cities", "").strip())
 
+    # Parse assigned users (handle updates to user list)
+    assigned_user_ids = request.form.getlist("assigned_users")
+    if assigned_user_ids:
+        update_data["assigned_users"] = [int(uid) for uid in assigned_user_ids if uid.isdigit()]
+    else:
+        # If no users are selected (or all removed), clear the list
+        # BUT only if the scope is 'account'. If scope changed to global, we might want to clear it too.
+        # Although the frontend creates validation/hidden inputs.
+        # Safest is to just update it if we are submitting the form.
+        # Note: If the form didn't include assigned_users field at all (e.g. some partial update), 
+        # this would clear it. But since we use a full edit form, absence means empty.
+        # However, we should be careful if scope != 'account'.
+        update_data["assigned_users"] = []
+
     success, error = discount_service.update_discount(discount_id, update_data)
 
     if error:
@@ -1316,4 +1331,35 @@ def moderate_review():
         flash(error or "Moderointi epäonnistui", "error")
     
     return redirect(url_for("admin.reviews"))
+
+
+@admin_bp.route("/reviews/toggle_landing", methods=["POST"])
+@admin_required
+def toggle_landing_review():
+    """Toggle whether a review is shown on landing page"""
+    from models.rating import rating_model
+    
+    rating_id = int(request.form.get("rating_id", 0))
+    # Checkbox sends "on" if checked, nothing if unchecked. Logic needs careful handling if standard form submit.
+    # However, for toggle buttons often usually easiest to send a specific value.
+    # Let's assume the frontend sends "true" or "false" via AJAX or a specific value.
+    # Actually for a simple form post, let's use a hidden input or button value.
+    # Let's say the button sends the DESIRED state.
+    
+    target_state = request.form.get("state") == "true"
+    
+    if not rating_id:
+        flash("Virheellinen tunniste", "error")
+        return redirect(url_for("admin.reviews"))
+        
+    success, error = rating_model.toggle_landing_visibility(rating_id, target_state)
+    
+    if success:
+        state_text = "lisätty etusivulle" if target_state else "poistettu etusivulta"
+        flash(f"Arvostelu {state_text}", "success")
+    else:
+        flash(error or "Päivitys epäonnistui", "error")
+        
+    return redirect(url_for("admin.reviews"))
+
 

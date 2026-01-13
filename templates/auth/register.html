@@ -38,6 +38,18 @@
           </div>
 
           <div class="form-group">
+            <label class="form-label">Yrityksen nimi *</label>
+            <input name="company_name" required class="form-input" placeholder="Yritys Oy"
+              value="{{ request.form.get('company_name', '') }}">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Y-tunnus *</label>
+            <input name="business_id" required class="form-input" placeholder="1234567-8"
+              value="{{ request.form.get('business_id', '') }}">
+          </div>
+
+          <div class="form-group">
             <label class="form-label">Sähköposti *</label>
             <input type="email" name="email" required class="form-input" placeholder="nimi@yritys.fi"
               value="{{ request.form.get('email', '') }}">

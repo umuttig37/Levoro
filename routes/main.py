@@ -20,7 +20,15 @@ GOOGLE_PLACES_API_KEY = os.environ.get("GOOGLE_PLACES_API_KEY", "")
 def index():
     """Home page - marketing content for visitors"""
     user = auth_service.get_current_user()
-    return render_template("home.html", current_user=user, google_places_api_key=GOOGLE_PLACES_API_KEY)
+    
+    # Fetch customer reviews for landing page
+    from models.rating import rating_model
+    landing_reviews = rating_model.get_landing_reviews(limit=3)
+    
+    return render_template("home.html", 
+                           current_user=user, 
+                           google_places_api_key=GOOGLE_PLACES_API_KEY,
+                           reviews=landing_reviews)
 
 
 @main_bp.route("/dashboard")
@@ -94,3 +102,70 @@ def admin_dashboard():
         status=status,
         date_filter=date_filter
     )
+
+
+@main_bp.route("/submit-review", methods=["POST"])
+@login_required
+def submit_review():
+    """Handle customer review submission from landing page"""
+    user = auth_service.get_current_user()
+    
+    # Only customers can submit reviews
+    if user.get('role') != 'customer':
+        flash("Vain asiakkaat voivat jättää arvosteluja", "error")
+        return redirect(url_for("main.index"))
+    
+    # Get form data
+    rating = request.form.get("rating", type=int)
+    comment = request.form.get("comment", "").strip()
+    
+    # Validate rating
+    if not rating or not 1 <= rating <= 5:
+        flash("Valitse arvosana 1-5 tähteä", "error")
+        return redirect(url_for("main.index"))
+    
+    # Validate comment
+    if not comment:
+        flash("Kirjoita kommentti", "error")
+        return redirect(url_for("main.index"))
+    
+    # Check if customer has any completed orders
+    from models.order import order_model
+    completed_orders = list(order_model.find({
+        "user_id": user["id"],
+        "status": "DELIVERED"
+    }, limit=1))
+    
+    if not completed_orders:
+        flash("Voit jättää arvostelun vasta kun sinulla on valmistunut tilaus", "error")
+        return redirect(url_for("main.index"))
+    
+    # Use the most recent completed order for the review
+    order = completed_orders[0]
+    
+    # Check if they already reviewed this order
+    from models.rating import rating_model
+    existing_review = rating_model.find_one({
+        "customer_id": user["id"],
+        "order_id": order["id"]
+    })
+    
+    if existing_review:
+        flash("Olet jo jättänyt arvostelun", "error")
+        return redirect(url_for("main.index"))
+    
+    # Create the review
+    review_data, error = rating_model.create_rating(
+        order_id=order["id"],
+        customer_id=user["id"],
+        driver_id=order.get("driver_id", 0),
+        rating=rating,
+        comment=comment
+    )
+    
+    if error:
+        flash(error, "error")
+    else:
+        flash("Kiitos arvostelusta! Se julkaistaan pian.", "success")
+    
+    return redirect(url_for("main.index"))

@@ -183,7 +183,7 @@ class OrderModel(BaseModel):
 
     def add_image(self, order_id: int, image_type: str, image_data: Dict) -> Tuple[bool, Optional[str]]:
         """Add image to order using atomic MongoDB $push operation"""
-        if image_type not in ["pickup", "delivery"]:
+        if image_type not in ["pickup", "delivery", "receipts"]:
             return False, "Virheellinen kuvatyyppi"
 
         try:
@@ -224,7 +224,7 @@ class OrderModel(BaseModel):
 
     def remove_image(self, order_id: int, image_type: str, image_id: str) -> Tuple[bool, Optional[str]]:
         """Remove image from order by ID"""
-        if image_type not in ["pickup", "delivery"]:
+        if image_type not in ["pickup", "delivery", "receipts"]:
             return False, "Virheellinen kuvatyyppi"
 
         try:

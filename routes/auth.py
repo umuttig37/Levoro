@@ -55,8 +55,10 @@ def register():
     password = request.form.get("password", "")
     name = request.form.get("name", "").strip()
     phone = request.form.get("phone", "").strip()
+    company_name = request.form.get("company_name", "").strip()
+    business_id = request.form.get("business_id", "").strip()
 
-    success, user, error = auth_service.register(email, password, name, phone)
+    success, user, error = auth_service.register(email, password, name, phone, company_name, business_id)
 
     if not success:
         flash(error, "error")
