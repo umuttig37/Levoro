@@ -258,6 +258,13 @@ class UserModel(BaseModel):
         user = self.find_by_id(user_id)
         return user and user.get("role") == "admin"
 
+    def verify_password(self, user_id, password):
+        """Verify a user's password without logging in"""
+        user = self.find_by_id(user_id)
+        if not user:
+            return False
+        return check_password_hash(user["password_hash"], password)
+
     def is_driver(self, user_id):
         """Check if user is driver"""
         user = self.find_by_id(user_id)

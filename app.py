@@ -6,10 +6,10 @@ import uuid
 import re
 from zoneinfo import ZoneInfo
 
-from flask import Flask, request, redirect, url_for, session, abort, jsonify, flash, render_template
+from flask import Flask, request, redirect, url_for, session, abort, jsonify, flash, render_template, Response
 from werkzeug.security import generate_password_hash
 import sys
-from pymongo import MongoClient, ReturnDocument
+from pymongo import MongoClient
 from dotenv import load_dotenv
 load_dotenv()
 
@@ -50,7 +50,7 @@ sys.modules['app'] = sys.modules[__name__]
 
 # ----------------- CONFIG -----------------
 DB_HOST = os.getenv("DB_HOST", "localhost")
-DB_NAME = os.getenv("DB_NAME", "carrental")
+# DB_NAME already defined above for MongoDB
 DB_USER = os.getenv("DB_USER", "root")
 DB_PASS = os.getenv("DB_PASS", "Salasana1")
 
@@ -94,7 +94,7 @@ app.config['REMEMBER_COOKIE_SECURE'] = app.config['SESSION_COOKIE_SECURE']
 
 
 @app.after_request
-def set_security_headers(resp):
+def set_security_headers(resp: Response) -> Response:
     # Conservative defaults; allow inline assets for existing templates
     resp.headers.setdefault("X-Frame-Options", "DENY")
     resp.headers.setdefault("X-Content-Type-Options", "nosniff")

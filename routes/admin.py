@@ -29,7 +29,7 @@ def users():
     role_filter = request.args.get("role", "").strip()
     status_filter = request.args.get("status", "").strip()
 
-    query = {"role": {"$ne": "driver"}}  # drivers handled elsewhere
+    query = {}
     if role_filter:
         query["role"] = role_filter
     if status_filter:
@@ -62,12 +62,6 @@ def approve_user():
 
     user_id = int(request.form.get("user_id"))
 
-    # SAFETY: Prevent approving drivers from users page
-    user = user_model.find_by_id(user_id)
-    if user and user.get('role') == 'driver':
-        flash("Kuljettajia ei voi hyväksyä täältä. Käytä Kuljettajahakemukset-sivua.", "error")
-        return redirect(url_for("admin.users"))
-
     # Update user status to active
     result = users_col().update_one(
         {"id": user_id},
@@ -97,11 +91,6 @@ def deny_user():
 
     if not user:
         flash("Käyttäjää ei löytynyt", "error")
-        return redirect(url_for("admin.users"))
-
-    # SAFETY: Prevent deleting drivers from users page
-    if user.get('role') == 'driver':
-        flash("Kuljettajia ei voi poistaa täältä. Käytä Kuljettajat-sivua.", "error")
         return redirect(url_for("admin.users"))
 
     user_email = user.get('email')
@@ -154,19 +143,17 @@ def update_user():
     name = (request.form.get("name") or "").strip()
     email = (request.form.get("email") or "").strip().lower()
     phone = (request.form.get("phone") or "").strip()
+    company_name = (request.form.get("company_name") or "").strip()
+    business_id = (request.form.get("business_id") or "").strip()
     status = (request.form.get("status") or "").strip()
 
     if not user_id:
-        flash("Virheellinen kビyttビjБ", "error")
+        flash("Virheellinen käyttäjä", "error")
         return redirect(url_for("admin.users"))
 
     user = user_model.find_by_id(user_id)
     if not user:
-        flash("KビyttビjББ ei lБytynyt", "error")
-        return redirect(url_for("admin.users"))
-
-    if user.get("role") == "driver":
-        flash("Kuljettajia muokataan kuljettajasivulla", "error")
+        flash("Käyttäjää ei löytynyt", "error")
         return redirect(url_for("admin.users"))
 
     update_data = {}
@@ -175,16 +162,147 @@ def update_user():
     if email:
         update_data["email"] = email
     update_data["phone"] = phone or None
+    # Only update company fields for non-driver users
+    if user.get("role") != "driver":
+        update_data["company_name"] = company_name or None
+        update_data["business_id"] = business_id or None
     if status in ["active", "pending"]:
         update_data["status"] = status
 
     success = user_model.update_one({"id": user_id}, {"$set": update_data})
     if success:
-        flash("KビyttビjБ päivitetty", "success")
+        flash("Käyttäjä päivitetty", "success")
     else:
-        flash("Pビivitys epБonnistui", "error")
+        flash("Päivitys epäonnistui", "error")
 
     return redirect(url_for("admin.users"))
+
+
+@admin_bp.route("/users/verify-password", methods=["POST"])
+@admin_required
+def verify_admin_password():
+    """Verify current admin's password for sensitive operations"""
+    from models.user import user_model
+    
+    password = request.form.get("password", "")
+    current_user = auth_service.get_current_user()
+    
+    if not current_user:
+        return jsonify({"valid": False, "error": "Ei kirjautunut sisään"})
+    
+    is_valid = user_model.verify_password(current_user["id"], password)
+    return jsonify({"valid": is_valid})
+
+
+@admin_bp.route("/users/delete-admin", methods=["POST"])
+@admin_required
+def delete_admin_user():
+    """Delete an admin user with password confirmation"""
+    from models.user import user_model
+    
+    user_id = int(request.form.get("user_id", 0))
+    admin_password = request.form.get("admin_password", "")
+    
+    current_user = auth_service.get_current_user()
+    
+    if not current_user:
+        flash("Ei kirjautunut sisään", "error")
+        return redirect(url_for("admin.users"))
+    
+    # Verify admin password
+    if not user_model.verify_password(current_user["id"], admin_password):
+        flash("Väärä salasana", "error")
+        return redirect(url_for("admin.users"))
+    
+    # Get target user
+    target_user = user_model.find_by_id(user_id)
+    if not target_user:
+        flash("Käyttäjää ei löytynyt", "error")
+        return redirect(url_for("admin.users"))
+    
+    # Prevent self-deletion
+    if target_user["id"] == current_user["id"]:
+        flash("Et voi poistaa omaa tiliäsi", "error")
+        return redirect(url_for("admin.users"))
+    
+    # Only allow deleting admin users through this endpoint
+    if target_user.get("role") != "admin":
+        flash("Tämä toiminto on vain admin-käyttäjille", "error")
+        return redirect(url_for("admin.users"))
+    
+    # Delete the admin user
+    from app import users_col
+    result = users_col().delete_one({"id": user_id})
+    
+    if result.deleted_count > 0:
+        flash(f"Admin-käyttäjä {target_user.get('name')} poistettu onnistuneesti", "success")
+    else:
+        flash("Käyttäjän poistaminen epäonnistui", "error")
+    
+    return redirect(url_for("admin.users"))
+
+
+@admin_bp.route("/users/create", methods=["POST"])
+@admin_required
+def create_user():
+    """Admin creates a new user account"""
+    from models.user import user_model
+    
+    name = (request.form.get("name") or "").strip()
+    email = (request.form.get("email") or "").strip().lower()
+    password = request.form.get("password", "")
+    phone = (request.form.get("phone") or "").strip()
+    role = (request.form.get("role") or "user").strip()
+    admin_password = request.form.get("admin_password", "")
+    
+    current_user = auth_service.get_current_user()
+    
+    if not current_user:
+        flash("Ei kirjautunut sisään", "error")
+        return redirect(url_for("admin.users"))
+    
+    # Validate required fields
+    if not name or not email or not password:
+        flash("Nimi, sähköposti ja salasana ovat pakollisia", "error")
+        return redirect(url_for("admin.users"))
+    
+    # Validate role
+    if role not in ["user", "admin"]:
+        flash("Virheellinen rooli", "error")
+        return redirect(url_for("admin.users"))
+    
+    # If creating admin, verify admin password
+    if role == "admin":
+        if not admin_password:
+            flash("Salasanan vahvistus vaaditaan admin-käyttäjän luomiseen", "error")
+            return redirect(url_for("admin.users"))
+        
+        if not user_model.verify_password(current_user["id"], admin_password):
+            flash("Väärä salasana", "error")
+            return redirect(url_for("admin.users"))
+    
+    # Create the user (admin users are automatically active, regular users are active when created by admin)
+    user_data, error = user_model.create_user(
+        email=email,
+        password=password,
+        name=name,
+        role=role,
+        phone=phone if phone else None
+    )
+    
+    if error:
+        flash(f"Käyttäjän luominen epäonnistui: {error}", "error")
+        return redirect(url_for("admin.users"))
+    
+    # Ensure user created by admin is active
+    if user_data and user_data.get("status") != "active":
+        user_model.update_one({"id": user_data["id"]}, {"$set": {"status": "active"}})
+    
+    role_text = "Admin-käyttäjä" if role == "admin" else "Käyttäjä"
+    flash(f"{role_text} {name} luotu onnistuneesti", "success")
+    return redirect(url_for("admin.users"))
+
+
 @admin_bp.route("/drivers")
 @admin_required
 def drivers():
@@ -579,6 +697,14 @@ def order_detail(order_id):
         return redirect(url_for("main.admin_dashboard"))
 
     order = order_result[0]
+    
+    # Ensure critical fields have default values to prevent template crashes
+    order.setdefault('price_gross', 0)
+    order.setdefault('distance_km', 0)
+    order.setdefault('status', 'NEW')
+    order.setdefault('pickup_address', '')
+    order.setdefault('dropoff_address', '')
+    
     status_fi = translate_status(order.get('status', 'NEW'))
 
     # Get available drivers for assignment dropdown

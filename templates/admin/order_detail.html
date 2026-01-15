@@ -246,7 +246,7 @@
                         <h3 class="text-lg font-bold text-slate-900">Reitti & Aikataulu</h3>
                         <span
                             class="text-xs font-medium text-slate-500 bg-slate-50 px-2 py-1 rounded border border-slate-100">{{
-                            order.distance_km }} km</span>
+                            order.distance_km|default(0) }} km</span>
                     </div>
                     <div class="space-y-6">
                         <!-- Pickup -->
@@ -787,21 +787,22 @@
                     <h3 class="text-sm font-bold uppercase tracking-wider text-slate-500 mb-4">Talous & Palkkio</h3>
 
                     <!-- Order Price -->
+                    {% set price_gross = order.price_gross|default(0) %}
                     <div class="flex flex-col gap-3 mb-4">
                         <div class="flex justify-between items-center text-sm">
                             <span class="text-slate-500">Netto (ALV 0%)</span>
-                            <span class="text-slate-900 font-medium">{{ "%.2f"|format(order.price_gross / 1.255) }}
+                            <span class="text-slate-900 font-medium">{{ "%.2f"|format(price_gross / 1.255) }}
                                 €</span>
                         </div>
                         <div class="flex justify-between items-center text-sm">
                             <span class="text-slate-500">ALV (25.5%)</span>
-                            <span class="text-slate-900 font-medium">{{ "%.2f"|format(order.price_gross -
-                                (order.price_gross / 1.255)) }} €</span>
+                            <span class="text-slate-900 font-medium">{{ "%.2f"|format(price_gross -
+                                (price_gross / 1.255)) }} €</span>
                         </div>
                         <div class="h-px bg-slate-100 my-1"></div>
                         <div class="flex justify-between items-center">
                             <span class="text-sm font-bold text-slate-900">Yhteensä</span>
-                            <span class="text-lg font-bold text-primary">{{ "%.2f"|format(order.price_gross) }} €</span>
+                            <span class="text-lg font-bold text-primary">{{ "%.2f"|format(price_gross) }} €</span>
                         </div>
                     </div>
 
@@ -825,7 +826,7 @@
                     <div class="mt-4 pt-4 border-t border-slate-100">
                         <div class="flex justify-between items-center text-sm">
                             <span class="text-slate-500">Kate</span>
-                            <span class="text-green-600 font-bold">{{ "%.2f"|format((order.price_gross / 1.255) -
+                            <span class="text-green-600 font-bold">{{ "%.2f"|format((price_gross / 1.255) -
                                 order.driver_reward) }} €</span>
                         </div>
                     </div>

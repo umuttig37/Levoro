@@ -311,15 +311,15 @@ def order_step4_v2():
     d = session.get("order_draft", {})
     
     # Auto-fill from user profile
-    saved_phone = d.get("saved_dropoff_phone", "").strip()
+    saved_phone = d.get("saved_dropoff_phone", "").strip() if d.get("saved_dropoff_phone") else ""
     if not d.get("orderer_name"):
-        d["orderer_name"] = u.get("name", "")
+        d["orderer_name"] = u.get("name", "") or ""
     if not d.get("orderer_email"):
-        d["orderer_email"] = u.get("email", "")
+        d["orderer_email"] = u.get("email", "") or ""
     if saved_phone:
         d["orderer_phone"] = saved_phone
     elif not d.get("orderer_phone"):
-        d["orderer_phone"] = u.get("phone", "")
+        d["orderer_phone"] = u.get("phone", "") or ""
     
     session["order_draft"] = d
     error_message = session.pop("error_message", None)
@@ -329,11 +329,11 @@ def order_step4_v2():
         active_step=4,
         accessible_steps=get_accessible_steps(d),
         error_message=error_message,
-        orderer_name=d.get("orderer_name", ""),
-        orderer_email=d.get("orderer_email", ""),
-        orderer_phone=d.get("orderer_phone", ""),
-        customer_name=d.get("customer_name", ""),
-        customer_phone=d.get("customer_phone", "")
+        orderer_name=d.get("orderer_name", "") or "",
+        orderer_email=d.get("orderer_email", "") or "",
+        orderer_phone=d.get("orderer_phone", "") or "",
+        customer_name=d.get("customer_name", "") or "",
+        customer_phone=d.get("customer_phone", "") or ""
     )
 
 
@@ -612,12 +612,12 @@ def order_confirm_v2():
         return_winter_tires=d.get("return_winter_tires", False),
         
         # Contact
-        orderer_name=d.get("orderer_name", ""),
-        orderer_email=d.get("orderer_email", ""),
-        orderer_phone=d.get("orderer_phone", ""),
-        customer_name=d.get("customer_name", ""),
-        customer_phone=d.get("customer_phone", ""),
-        additional_info=d.get("additional_info", ""),
+        orderer_name=d.get("orderer_name", "") or "",
+        orderer_email=d.get("orderer_email", "") or "",
+        orderer_phone=d.get("orderer_phone", "") or "",
+        customer_name=d.get("customer_name", "") or "",
+        customer_phone=d.get("customer_phone", "") or "",
+        additional_info=d.get("additional_info", "") or "",
         direct_to_customer=d.get("direct_to_customer", False),
         
         # Pricing

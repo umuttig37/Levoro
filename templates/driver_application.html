@@ -9,7 +9,7 @@
     .application-container {
         max-width: 640px;
         margin: 0 auto;
-        padding: 2rem 1rem;
+        padding: 2rem 1rem 4rem;
     }
 
     /* Page Header */
@@ -115,7 +115,7 @@
         border-radius: 1rem;
         padding: 2rem;
         box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
-        overflow: hidden;
+        overflow: visible;
     }
 
     /* Steps */
@@ -432,29 +432,70 @@
         line-height: 1.5;
     }
 
-    /* Terms Checkbox */
+    /* Terms Checkbox - Circular with Pop Animation */
     .terms-checkbox {
         display: flex;
         align-items: flex-start;
-        gap: 0.75rem;
+        gap: 1rem;
         margin-top: 1.5rem;
         padding: 1rem;
-        background: var(--color-gray-50, #f9fafb);
-        border-radius: 0.5rem;
+        background: white;
+        border: 1px solid #e5e7eb;
+        border-radius: 0.75rem;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    .terms-checkbox:hover {
+        border-color: var(--color-primary, #3b82f6);
+        box-shadow: 0 2px 8px rgba(59, 130, 246, 0.08);
     }
 
     .terms-checkbox input[type="checkbox"] {
-        width: 20px;
-        height: 20px;
-        margin-top: 2px;
+        appearance: none;
+        -webkit-appearance: none;
+        width: 1.25rem;
+        height: 1.25rem;
+        border: 2px solid #d1d5db;
+        border-radius: 50%;
+        background-color: white;
+        cursor: pointer;
+        display: inline-block;
         flex-shrink: 0;
-        accent-color: var(--color-primary, #3b82f6);
+        margin-top: 2px;
+        transition: transform 0.15s ease-in-out, box-shadow 0.15s ease-in-out, background-color 0.15s ease-in-out, border-color 0.15s ease-in-out;
+    }
+
+    .terms-checkbox input[type="checkbox"]:active {
+        transform: scale(0.9);
+    }
+
+    .terms-checkbox input[type="checkbox"]:checked {
+        border-color: var(--color-primary, #3b82f6);
+        background-color: var(--color-primary, #3b82f6);
+        background-size: 100% 100%;
+        background-position: center;
+        background-repeat: no-repeat;
+        background-image: url("data:image/svg+xml,%3csvg viewBox='0 0 16 16' fill='white' xmlns='http://www.w3.org/2000/svg'%3e%3cpath d='M12.207 4.793a1 1 0 010 1.414l-5 5a1 1 0 01-1.414 0l-2-2a1 1 0 011.414-1.414L6.5 9.086l4.293-4.293a1 1 0 011.414 0z'/%3e%3c/svg%3e");
+        animation: checkPop 0.2s ease-out;
+    }
+
+    @keyframes checkPop {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.2); }
+        100% { transform: scale(1); }
+    }
+
+    .terms-checkbox input[type="checkbox"]:focus {
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
     }
 
     .terms-checkbox label {
         font-size: 0.875rem;
         color: var(--color-gray-600, #4b5563);
-        line-height: 1.5;
+        line-height: 1.6;
+        cursor: pointer;
     }
 
     .terms-checkbox a {
@@ -471,6 +512,13 @@
         display: grid;
         grid-template-columns: 1fr 1.5fr 1fr;
         gap: 0.75rem;
+        position: relative;
+    }
+
+    /* Ensure birthdate form group has space for dropdown */
+    .form-group-new:has(.birthdate-picker) {
+        margin-bottom: 1.25rem;
+        padding-bottom: 0;
     }
 
     @media (max-width: 480px) {
@@ -489,7 +537,7 @@
     }
 
     .custom-select-container.open {
-        z-index: 50;
+        z-index: 1000;
     }
 
     /* Custom Select Trigger (Button) */
@@ -552,7 +600,7 @@
         background: white;
         border: 1px solid var(--border-light, #e5e7eb);
         border-radius: 0.75rem;
-        z-index: 100;
+        z-index: 1001;
         display: none;
         max-height: 240px;
         overflow-y: auto;
@@ -876,6 +924,20 @@
         let currentStep = 1;
         const totalSteps = steps.length;
 
+        // Prevent Enter key from submitting the form - go to next step instead
+        form.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && e.target.tagName !== 'TEXTAREA') {
+                e.preventDefault();
+                // If not on last step, go to next step
+                if (currentStep < totalSteps) {
+                    nextBtn.click();
+                } else {
+                    // On last step, trigger submit button
+                    submitBtn.click();
+                }
+            }
+        });
+
         // Character counter for about_me
         const aboutMe = document.getElementById('about_me');
         const charCounter = document.getElementById('charCounter');
@@ -941,24 +1003,44 @@
             const inputs = activeStepEl.querySelectorAll('input[required], textarea[required]');
             let isValid = true;
             let firstInvalid = null;
+            let errorMessages = [];
 
             inputs.forEach(input => {
                 // Clear previous error styling
                 input.style.borderColor = '';
                 input.style.boxShadow = '';
                 
-                // Skip checkbox validation here (handled separately)
+                // Handle checkbox validation
                 if (input.type === 'checkbox') {
                     if (!input.checked) {
                         isValid = false;
                         if (!firstInvalid) {
                             firstInvalid = input;
-                            showToast('Hyväksy sopimusehdot jatkaaksesi', 'warning');
+                            errorMessages.push('Hyväksy sopimusehdot jatkaaksesi');
                         }
                     }
                     return;
                 }
                 
+                // Handle file input validation
+                if (input.type === 'file') {
+                    if (!input.files || input.files.length === 0) {
+                        isValid = false;
+                        const uploadBox = input.closest('.upload-box');
+                        if (uploadBox) {
+                            uploadBox.style.borderColor = '#f87171';
+                            uploadBox.style.boxShadow = '0 0 0 3px rgba(248, 113, 113, 0.15)';
+                        }
+                        if (!firstInvalid) {
+                            firstInvalid = input;
+                            const label = input.closest('.upload-box-group')?.querySelector('.upload-box-label')?.textContent?.replace('*', '').trim() || 'Kuva';
+                            errorMessages.push(`Lataa ${label.toLowerCase()}`);
+                        }
+                    }
+                    return;
+                }
+                
+                // Handle other inputs
                 if (!input.checkValidity()) {
                     isValid = false;
                     // Add error styling
@@ -969,9 +1051,8 @@
                         firstInvalid = input;
                         // Get field label for message
                         const label = input.closest('.form-group-new')?.querySelector('label')?.textContent?.replace('*', '').trim() 
-                                   || input.closest('.upload-box-group')?.querySelector('.upload-box-label')?.textContent?.replace('*', '').trim()
                                    || 'Kenttä';
-                        showToast(`${label} on pakollinen`, 'warning');
+                        errorMessages.push(`${label} on pakollinen`);
                     }
                 }
             });
@@ -982,10 +1063,15 @@
                 if (postalCode && !/^[0-9]{5}$/.test(postalCode.value)) {
                     postalCode.style.borderColor = '#f87171';
                     postalCode.style.boxShadow = '0 0 0 3px rgba(248, 113, 113, 0.15)';
-                    showToast('Postinumeron tulee olla 5 numeroa', 'warning');
+                    errorMessages.push('Postinumeron tulee olla 5 numeroa');
                     isValid = false;
                     firstInvalid = postalCode;
                 }
+            }
+
+            // Show first error message
+            if (errorMessages.length > 0) {
+                showToast(errorMessages[0], 'warning');
             }
 
             if (firstInvalid) {
@@ -1279,5 +1365,43 @@
         preview.src = '';
         box.classList.remove('has-image');
     }
+
+    // Toast notification function
+    (function() {
+        // Create toast container if it doesn't exist
+        let container = document.getElementById('toast-container');
+        if (!container) {
+            container = document.createElement('div');
+            container.id = 'toast-container';
+            container.style.cssText = 'position:fixed;top:80px;right:20px;z-index:999999;display:flex;flex-direction:column;gap:10px;';
+            document.body.appendChild(container);
+        }
+
+        window.showToast = function(message, type = 'error') {
+            const toast = document.createElement('div');
+            const colors = {
+                error: { bg: '#ef4444', icon: '✕' },
+                success: { bg: '#10b981', icon: '✓' },
+                warning: { bg: '#f59e0b', icon: '⚠' },
+                info: { bg: '#3b82f6', icon: 'ℹ' }
+            };
+            const { bg, icon } = colors[type] || colors.error;
+            
+            toast.style.cssText = `
+                display:flex;align-items:center;gap:12px;padding:14px 20px;
+                background:${bg};color:white;border-radius:12px;
+                box-shadow:0 4px 20px rgba(0,0,0,0.15);font-size:0.9375rem;font-weight:500;
+                transform:translateX(120%);transition:transform 0.3s ease;max-width:360px;
+            `;
+            toast.innerHTML = `<span style="font-size:18px;">${icon}</span><span>${message}</span>`;
+            container.appendChild(toast);
+            
+            requestAnimationFrame(() => { toast.style.transform = 'translateX(0)'; });
+            setTimeout(() => {
+                toast.style.transform = 'translateX(120%)';
+                setTimeout(() => toast.remove(), 300);
+            }, 4000);
+        };
+    })();
 </script>
 {% endblock %}
