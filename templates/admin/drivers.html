@@ -433,8 +433,12 @@
                 </span></td>
               <td class="px-6 py-4 text-right">
                 <div class="flex items-center justify-end gap-2">
-                  <!-- View button is already handled in the Name column -->
-                  <!-- View button is already handled in the Name column -->
+                  <a href="{{ url_for('admin.user_detail', user_id=driver.id) }}"
+                    class="inline-flex items-center justify-center size-8 rounded-md text-primary hover:bg-blue-50 transition-colors"
+                    aria-label="Näytä kuljettaja">
+                    <span class="material-symbols-outlined text-[18px]">visibility</span>
+                  </a>
+                </div>
               </td>
             </tr>
             {% endfor %}
