@@ -26,13 +26,14 @@ def users():
     from app import users_col
 
     search = request.args.get("search", "").strip()
-    role_filter = request.args.get("role", "").strip()
+    # Default to 'user' (customers) if no role specified, unless explicit "all" is requested (though UI won't offer "all")
+    role_filter = request.args.get("role", "user").strip()
     status_filter = request.args.get("status", "").strip()
 
     query = {}
-    if role_filter:
+    if role_filter and role_filter != "all":
         query["role"] = role_filter
-    if status_filter:
+    if status_filter and status_filter != "all":
         query["status"] = status_filter
     if search:
         query["$or"] = [
@@ -51,6 +52,54 @@ def users():
         role_filter=role_filter,
         status_filter=status_filter,
     )
+
+
+@admin_bp.route("/users/<int:user_id>")
+@admin_required
+def user_detail(user_id):
+    """View details of a specific user/driver/admin"""
+    from models.user import user_model
+    from models.order import order_model
+    from services.driver_service import driver_service
+    from services.order_service import order_service
+    
+    user = user_model.find_by_id(user_id)
+    if not user:
+        flash("Käyttäjää ei löytynyt", "error")
+        return redirect(url_for("admin.users"))
+
+    # Prepare context data based on role
+    context = {
+        "user": user,
+        "current_user": auth_service.get_current_user(),
+    }
+
+    if user.get("role") == "driver":
+        # specific data for drivers
+        driver_performance = driver_service.calculate_driver_performance(user_id)
+        # We can implement fetching actual active job details if needed
+        # For now passing summary stats
+        context["driver_stats"] = driver_performance
+        
+    elif user.get("role") == "user":
+        # specific data for customers (order history)
+        # Fetch detailed order history
+        all_orders = order_model.get_user_orders(user_id)
+        
+        # Separate active orders from completed history
+        completed_statuses = ['completed', 'cancelled', 'delivered']
+        active_orders = [o for o in all_orders if o.get('status', '').lower() not in completed_statuses]
+        order_history = [o for o in all_orders if o.get('status', '').lower() in completed_statuses]
+        
+        # Calculate total spent (sum of ALL orders)
+        total_spent = sum(order.get('price', 0) for order in all_orders)
+        
+        context["active_orders"] = active_orders
+        context["orders"] = order_history  # For backward compatibility with order history table
+        context["total_orders"] = len(all_orders)
+        context["total_spent"] = total_spent
+
+    return render_template("admin/user_detail.html", **context)
 
 
 @admin_bp.route("/users/approve", methods=["POST"])
@@ -170,9 +219,7 @@ def update_user():
         update_data["status"] = status
 
     success = user_model.update_one({"id": user_id}, {"$set": update_data})
-    publish_success, publish_error = order_model.publish_pending_images(order_id)
-    if not publish_success:
-        flash(f"Kuvien julkaisu epäonnistui: {publish_error}", "warning")
+
 
     if success:
         flash("Käyttäjä päivitetty", "success")

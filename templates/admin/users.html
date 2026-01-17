@@ -300,47 +300,40 @@
       </button>
     </div>
     <!-- Filters Form -->
+    <!-- Filters Form -->
     <form id="filterForm" method="get" action="{{ url_for('admin.users') }}"
       class="flex flex-col lg:flex-row gap-4 items-center justify-between">
-      <!-- Search -->
-      <div class="w-full lg:w-[450px]">
-        <div class="relative group">
+
+      <!-- Role Tabs -->
+      <div class="flex p-1 bg-slate-100 dark:bg-slate-800 rounded-xl">
+        <a href="{{ url_for('admin.users', role='user', search=search, status=status) }}"
+          class="px-4 py-2 text-sm font-semibold rounded-lg transition-all inline-block text-center {{ 'bg-white dark:bg-[#1e2936] text-primary shadow-sm' if role_filter == 'user' else 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white' }}">
+          Asiakkaat
+        </a>
+        <a href="{{ url_for('admin.drivers') }}"
+          class="px-4 py-2 text-sm font-semibold rounded-lg transition-all inline-block text-center {{ 'bg-white dark:bg-[#1e2936] text-primary shadow-sm' if request.endpoint == 'admin.drivers' else 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white' }}">
+          Kuljettajat
+        </a>
+        <a href="{{ url_for('admin.users', role='admin', search=search, status=status) }}"
+          class="px-4 py-2 text-sm font-semibold rounded-lg transition-all inline-block text-center {{ 'bg-white dark:bg-[#1e2936] text-primary shadow-sm' if role_filter == 'admin' else 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white' }}">
+          Adminit
+        </a>
+      </div>
+
+      <div class="flex items-center gap-4 w-full lg:w-auto">
+        <!-- Search -->
+        <div class="relative w-full lg:w-[350px]">
           <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
             <span
               class="material-symbols-outlined text-slate-400 group-focus-within:text-primary transition-colors">search</span>
           </div>
           <input id="searchInput" name="search" value="{{ search or '' }}"
-            class="block w-full pl-10 pr-3 py-3 rounded-xl border-none bg-white dark:bg-[#1e2936] text-slate-900 dark:text-white placeholder-slate-400 focus:ring-2 focus:ring-primary/50 shadow-sm transition-all text-sm"
+            class="block w-full pl-10 pr-3 py-2.5 rounded-xl border-none bg-white dark:bg-[#1e2936] text-slate-900 dark:text-white placeholder-slate-400 focus:ring-2 focus:ring-primary/50 shadow-sm transition-all text-sm"
             placeholder="Hae nimellä, sähköpostilla tai puhelinnumerolla..." type="text" />
         </div>
-      </div>
 
-      <!-- Filters Container -->
-      <div class="flex flex-col sm:flex-row items-center gap-4 w-full lg:w-auto">
-        <!-- Role Filter (Custom) -->
-        <div class="relative w-full sm:w-48 custom-select-container">
-          <select name="role" id="roleFilter" style="display:none">
-            <option value="" {% if not role_filter %}selected{% endif %}>Rooli: Kaikki</option>
-            <option value="admin" {% if role_filter=='admin' %}selected{% endif %}>Admin</option>
-            <option value="driver" {% if role_filter=='driver' %}selected{% endif %}>Kuljettaja</option>
-            <option value="user" {% if role_filter=='user' %}selected{% endif %}>Asiakas</option>
-          </select>
-
-          <!-- Custom UI -->
-          <div class="custom-select-trigger shadow-sm">
-            <span class="custom-select-label">Rooli: Kaikki</span>
-            <svg class="custom-select-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-              stroke-linecap="round" stroke-linejoin="round">
-              <polyline points="6 9 12 15 18 9"></polyline>
-            </svg>
-          </div>
-          <div class="custom-select-options custom-scrollbar">
-            <div class="custom-option" data-value="">Rooli: Kaikki</div>
-            <div class="custom-option" data-value="admin">Admin</div>
-            <div class="custom-option" data-value="driver">Kuljettaja</div>
-            <div class="custom-option" data-value="user">Asiakas</div>
-          </div>
-        </div>
+        <!-- Hidden Role Input to Maintain State -->
+        <input type="hidden" name="role" value="{{ role_filter }}">
 
         <!-- Status Filter (Custom) -->
         <div class="relative w-full sm:w-48 custom-select-container">
@@ -351,7 +344,7 @@
           </select>
 
           <!-- Custom UI -->
-          <div class="custom-select-trigger shadow-sm">
+          <div class="custom-select-trigger shadow-sm py-2.5">
             <span class="custom-select-label">Tila: Kaikki</span>
             <svg class="custom-select-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
               stroke-linecap="round" stroke-linejoin="round">
@@ -402,12 +395,17 @@
             {% for user in users %}
             <tr class="group hover:bg-blue-50/50 dark:hover:bg-slate-700/30 transition-colors user-row"
               data-id="{{ user.id }}" data-name="{{ user.name|lower }}" data-email="{{ user.email|lower }}"
-              data-role="{{ user.role }}" data-status="{{ user.get('status', 'active') }}" data-phone="{{ user.phone or '' }}"
-              data-company-name="{{ user.company_name or '' }}" data-business-id="{{ user.business_id or '' }}">
+              data-role="{{ user.role }}" data-status="{{ user.get('status', 'active') }}"
+              data-phone="{{ user.phone or '' }}" data-company-name="{{ user.company_name or '' }}"
+              data-business-id="{{ user.business_id or '' }}">
               <td class="px-6 py-4"><span class="font-medium text-slate-900 dark:text-white text-sm">#{{ user.id
                   }}</span></td>
-              <td class="px-6 py-4"><span class="text-sm font-medium text-slate-900 dark:text-white">{{
-                  user.name }}</span></td>
+              <td class="px-6 py-4">
+                <a href="{{ url_for('admin.user_detail', user_id=user.id) }}"
+                  class="text-sm font-medium text-slate-900 dark:text-white hover:text-primary transition-colors">
+                  {{ user.name }}
+                </a>
+              </td>
               <td class="px-6 py-4"><span class="text-sm text-slate-600 dark:text-slate-300">{{ user.email
                   }}</span></td>
               <td class="px-6 py-4"><span class="text-sm text-slate-600 dark:text-slate-300">{{ user.phone or
@@ -453,60 +451,11 @@
                 </span></td>
               <td class="px-6 py-4 text-right">
                 <div class="flex items-center justify-end gap-2">
-                  <button type="button"
-                    class="inline-flex items-center justify-center p-2 rounded-lg text-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
-                    onclick="openEditModal(this)" data-user-id="{{ user.id }}" data-user-name="{{ user.name }}"
-                    data-user-email="{{ user.email }}" data-user-phone="{{ user.phone or '' }}"
-                    data-user-company-name="{{ user.company_name or '' }}" data-user-business-id="{{ user.business_id or '' }}"
-                    data-user-status="{{ user.get('status', 'active') }}" data-user-role="{{ user.role }}">
-                    <span class="material-symbols-outlined text-[20px]">edit</span>
-                  </button>
-                  {% if user.get('role') !='admin' and user.get('role') !='driver' %}
-                  {% set is_active=(user.get('status', 'active')=='active') %}
-                  {% if is_active %}
-                  <form method="POST" action="{{ url_for('admin.deny_user') }}" class="inline-block"
-                    onsubmit="event.preventDefault(); openConfirmModal(this, 'Poista käyttäjä', 'Haluatko varmasti poistaa käyttäjän {{ user.name }}?');">
-                    <input type="hidden" name="user_id" value="{{ user.id }}">
-                    <button type="submit"
-                      class="inline-flex items-center justify-center p-2 rounded-lg text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
-                      title="Poista"><span class="material-symbols-outlined text-[20px]">delete</span></button>
-                  </form>
-                  {% else %}
-                  <form method="POST" action="{{ url_for('admin.approve_user') }}" class="inline-block"><input
-                      type="hidden" name="user_id" value="{{ user.id }}"><button type="submit"
-                      class="inline-flex items-center justify-center p-2 rounded-lg text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors"
-                      title="Hyväksy"><span class="material-symbols-outlined text-[20px]">check</span></button>
-                  </form>
-                  <form method="POST" action="{{ url_for('admin.deny_user') }}" class="inline-block"
-                    onsubmit="event.preventDefault(); openConfirmModal(this, 'Hylkää käyttäjä', 'Haluatko varmasti hylätä käyttäjän {{ user.name }}?');">
-                    <input type="hidden" name="user_id" value="{{ user.id }}">
-                    <button type="submit"
-                      class="inline-flex items-center justify-center p-2 rounded-lg text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
-                      title="Hylkää"><span class="material-symbols-outlined text-[20px]">close</span></button>
-                  </form>
-                  {% endif %}
-                  {% elif user.get('role') == 'admin' %}
-                  <!-- Admin user - can delete with password confirmation (except self) -->
-                  {% if user.id != current_user.id %}
-                  <button type="button"
-                    class="inline-flex items-center justify-center p-2 rounded-lg text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
-                    onclick="openDeleteAdminModal({{ user.id }}, '{{ user.name }}')"
-                    title="Poista admin"><span class="material-symbols-outlined text-[20px]">delete</span></button>
-                  {% else %}
-                  <span class="text-slate-300 dark:text-slate-600" title="Et voi poistaa itseäsi">—</span>
-                  {% endif %}
-                  {% elif user.get('role') == 'driver' %}
-                  <!-- Driver user - can delete -->
-                  <form method="POST" action="{{ url_for('admin.deny_user') }}" class="inline-block"
-                    onsubmit="event.preventDefault(); openConfirmModal(this, 'Poista kuljettaja', 'Haluatko varmasti poistaa kuljettajan {{ user.name }}?');">
-                    <input type="hidden" name="user_id" value="{{ user.id }}">
-                    <button type="submit"
-                      class="inline-flex items-center justify-center p-2 rounded-lg text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
-                      title="Poista"><span class="material-symbols-outlined text-[20px]">delete</span></button>
-                  </form>
-                  {% else %}
-                  <span class="text-slate-300 dark:text-slate-600">—</span>
-                  {% endif %}
+                  <a href="{{ url_for('admin.user_detail', user_id=user.id) }}"
+                    class="inline-flex items-center justify-center p-2 rounded-lg text-primary hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
+                    title="Katso tiedot">
+                    <span class="material-symbols-outlined text-[20px]">visibility</span>
+                  </a>
                 </div>
               </td>
             </tr>
@@ -534,7 +483,8 @@
   <div id="editModal" style="display: none;"
     class="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/20 backdrop-blur-sm opacity-0 transition-opacity duration-300"
     aria-hidden="true">
-    <div class="bg-white dark:bg-[#1e2936] rounded-2xl shadow-xl w-full max-w-lg p-6 transform scale-95 transition-transform duration-300"
+    <div
+      class="bg-white dark:bg-[#1e2936] rounded-2xl shadow-xl w-full max-w-lg p-6 transform scale-95 transition-transform duration-300"
       id="editModalPanel">
       <h3 class="text-lg font-bold text-slate-900 dark:text-white mb-4">Muokkaa käyttäjää</h3>
       <form method="POST" action="{{ url_for('admin.update_user') }}" id="editUserForm" class="space-y-3">
@@ -612,7 +562,8 @@
   <div id="createUserModal" style="display: none;"
     class="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/20 backdrop-blur-sm opacity-0 transition-opacity duration-300"
     aria-hidden="true">
-    <div class="bg-white dark:bg-[#1e2936] rounded-2xl shadow-xl w-full max-w-lg p-6 transform scale-95 transition-transform duration-300"
+    <div
+      class="bg-white dark:bg-[#1e2936] rounded-2xl shadow-xl w-full max-w-lg p-6 transform scale-95 transition-transform duration-300"
       id="createUserModalPanel">
       <h3 class="text-lg font-bold text-slate-900 dark:text-white mb-4">Lisää uusi käyttäjä</h3>
       <form method="POST" action="{{ url_for('admin.create_user') }}" id="createUserForm" class="space-y-3">
@@ -672,13 +623,15 @@
           <input type="password" name="admin_password" id="createAdminPassword"
             class="w-full px-3 py-2 rounded-lg border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/20 text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-amber-400"
             placeholder="Syötä oma admin-salasanasi">
-          <p class="text-xs text-amber-600 dark:text-amber-400 mt-1">Admin-käyttäjän luominen vaatii salasanan vahvistuksen</p>
+          <p class="text-xs text-amber-600 dark:text-amber-400 mt-1">Admin-käyttäjän luominen vaatii salasanan
+            vahvistuksen</p>
         </div>
         <div class="flex justify-end gap-3 pt-3">
           <button type="button" onclick="closeCreateUserModal()"
             class="px-4 py-2 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-sm font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">Peruuta</button>
           <button type="submit"
-            class="px-4 py-2 rounded-lg bg-primary text-white text-sm font-semibold shadow-sm hover:bg-blue-600 transition-colors">Luo käyttäjä</button>
+            class="px-4 py-2 rounded-lg bg-primary text-white text-sm font-semibold shadow-sm hover:bg-blue-600 transition-colors">Luo
+            käyttäjä</button>
         </div>
       </form>
     </div>
@@ -763,12 +716,12 @@
     function openCreateUserModal() {
       const modal = document.getElementById('createUserModal');
       const panel = document.getElementById('createUserModalPanel');
-      
+
       // Reset form
       document.getElementById('createUserForm').reset();
       document.getElementById('adminPasswordField').style.display = 'none';
       document.getElementById('createAdminPassword').removeAttribute('required');
-      
+
       // Reset role dropdown to default (Asiakas)
       const roleContainer = document.getElementById('createRoleContainer');
       const roleLabel = roleContainer.querySelector('.custom-select-label');
@@ -779,7 +732,7 @@
         opt.classList.remove('selected');
         if (opt.dataset.value === 'user') opt.classList.add('selected');
       });
-      
+
       modal.style.display = 'flex';
       modal.offsetHeight; // Trigger reflow
       modal.classList.remove('opacity-0');
@@ -790,7 +743,7 @@
     function closeCreateUserModal() {
       const modal = document.getElementById('createUserModal');
       const panel = document.getElementById('createUserModalPanel');
-      
+
       modal.classList.add('opacity-0');
       panel.classList.remove('scale-100');
       panel.classList.add('scale-95');
@@ -801,7 +754,7 @@
       const role = document.getElementById('createUserRole').value;
       const adminField = document.getElementById('adminPasswordField');
       const adminPassword = document.getElementById('createAdminPassword');
-      
+
       if (role === 'admin') {
         adminField.style.display = 'block';
         adminPassword.setAttribute('required', 'required');
@@ -823,12 +776,12 @@
     function openDeleteAdminModal(userId, userName) {
       const modal = document.getElementById('deleteAdminModal');
       const panel = document.getElementById('deleteAdminModalPanel');
-      
+
       document.getElementById('deleteAdminUserId').value = userId;
-      document.getElementById('deleteAdminMessage').textContent = 
+      document.getElementById('deleteAdminMessage').textContent =
         `Haluatko varmasti poistaa admin-käyttäjän "${userName}"? Tätä toimintoa ei voi peruuttaa.`;
       document.getElementById('deleteAdminPassword').value = '';
-      
+
       modal.style.display = 'flex';
       modal.offsetHeight; // Trigger reflow
       modal.classList.remove('opacity-0');
@@ -839,7 +792,7 @@
     function closeDeleteAdminModal() {
       const modal = document.getElementById('deleteAdminModal');
       const panel = document.getElementById('deleteAdminModalPanel');
-      
+
       modal.classList.add('opacity-0');
       panel.classList.remove('scale-100');
       panel.classList.add('scale-95');
@@ -918,7 +871,7 @@
       document.getElementById('editUserPhone').value = phone;
       document.getElementById('editUserCompanyName').value = companyName;
       document.getElementById('editUserBusinessId').value = businessId;
-      
+
       // Show/hide company fields based on role (only for customers)
       const companyFieldsContainer = document.getElementById('companyFieldsContainer');
       if (role === 'user') {
@@ -926,10 +879,10 @@
       } else {
         companyFieldsContainer.style.display = 'none';
       }
-      
+
       // Update hidden select
       document.getElementById('editUserStatus').value = status;
-      
+
       // Update custom dropdown UI
       const container = document.getElementById('editStatusContainer');
       const label = container.querySelector('.custom-select-label');
@@ -1079,4 +1032,3 @@
 </body>
 
 </html>
-

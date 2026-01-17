@@ -1,0 +1,734 @@
+<!DOCTYPE html>
+<html class="light" lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>Admin - {{ user.name }}</title>
+    <link href="https://fonts.googleapis.com" rel="preconnect" />
+    <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect" />
+    <link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&amp;display=swap"
+        rel="stylesheet" />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+        rel="stylesheet" />
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#1392ec",
+                        "background-light": "#f6f7f8",
+                        "background-dark": "#101a22",
+                        "surface-light": "#ffffff",
+                        "surface-dark": "#1e2936",
+                        "border-light": "#e7eef3",
+                        "border-dark": "#2d3a4a",
+                    },
+                    fontFamily: {
+                        "display": ["Public Sans", "sans-serif"]
+                    },
+                    borderRadius: { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" },
+                },
+            },
+        }
+    </script>
+    <style>
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+    </style>
+</head>
+
+<body
+    class="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-100 min-h-screen flex flex-col">
+
+    <!-- Reuse existing top nav or simplified version -->
+    <header
+        class="sticky top-0 z-50 w-full border-b border-border-light dark:border-border-dark bg-surface-light dark:bg-surface-dark px-6 py-3 shadow-sm">
+        <div class="mx-auto flex max-w-7xl items-center justify-between">
+            <div class="flex items-center gap-8">
+                <a href="{{ url_for('main.admin_dashboard') }}"
+                    class="flex items-center gap-3 text-slate-900 dark:text-white hover:opacity-80 transition-opacity">
+                    <div class="flex size-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                        <span class="material-symbols-outlined text-2xl">local_shipping</span>
+                    </div>
+                    <h2 class="text-lg font-bold leading-tight tracking-tight">Levoro Admin</h2>
+                </a>
+            </div>
+            <div class="flex items-center gap-4">
+                {% if current_user.is_authenticated %}
+                <div
+                    class="px-3 py-2 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-medium text-sm">
+                    {{ current_user.name }}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Breadcrumbs & Header Section -->
+        <div class="mb-8">
+            <nav class="flex items-center gap-2 text-sm text-slate-500 mb-4">
+                <a class="hover:text-primary transition-colors"
+                    href="{{ url_for('admin.users', role=user.role if user.role != 'driver' else None) if user.role != 'driver' else url_for('admin.drivers') }}">
+                    {% if user.role == 'driver' %}Kuljettajat{% elif user.role == 'admin' %}Adminit{% else %}Asiakkaat{%
+                    endif %}
+                </a>
+                <span class="material-symbols-outlined text-[16px]">chevron_right</span>
+                <span class="font-medium text-slate-900 dark:text-white">{{ user.name }}</span>
+            </nav>
+            <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div class="flex items-center gap-4">
+                    <div
+                        class="size-16 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-2xl font-bold text-slate-500 dark:text-slate-300 shadow-md">
+                        {{ user.name[0] | upper }}
+                    </div>
+                    <div>
+                        <h1 class="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">{{ user.name }}
+                        </h1>
+                        <div class="flex items-center gap-3 mt-1 text-sm text-slate-500 dark:text-slate-400">
+                            <span>ID: #{{ user.id }}</span>
+                            <span class="size-1 rounded-full bg-slate-300 dark:bg-slate-600"></span>
+                            <span class="flex items-center gap-1 capitalize">
+                                <span class="material-symbols-outlined text-[16px]">
+                                    {% if user.role == 'driver' %}directions_car{% elif user.role == 'admin'
+                                    %}shield_person{% else %}person{% endif %}
+                                </span>
+                                {{ 'Kuljettaja' if user.role == 'driver' else ('Ylläpitäjä' if user.role == 'admin' else
+                                'Asiakas') }}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                <div class="flex items-center gap-3">
+                    <a href="mailto:{{ user.email }}"
+                        class="flex items-center gap-2 px-4 py-2 bg-white dark:bg-surface-dark border border-border-light dark:border-border-dark rounded-lg text-slate-700 dark:text-slate-200 text-sm font-medium hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors shadow-sm">
+                        <span class="material-symbols-outlined text-[18px]">mail</span>
+                        Viesti
+                    </a>
+                    <button type="button" onclick="openEditModal(this)"
+                        class="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg text-sm font-medium hover:bg-blue-600 transition-colors shadow-sm shadow-blue-200 dark:shadow-none"
+                        data-user-id="{{ user.id }}" data-user-name="{{ user.name }}" data-user-email="{{ user.email }}"
+                        data-user-phone="{{ user.phone or '' }}" data-user-company-name="{{ user.company_name or '' }}"
+                        data-user-business-id="{{ user.business_id or '' }}"
+                        data-user-status="{{ user.get('status', 'active') }}" data-user-role="{{ user.role }}">
+                        <span class="material-symbols-outlined text-[18px]">edit</span>
+                        Muokkaa
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 2-Column Grid Layout -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            <!-- Left Column (70% on large screens) -->
+            <div class="lg:col-span-8 flex flex-col gap-8">
+                <!-- Perustiedot Card -->
+                <section
+                    class="bg-surface-light dark:bg-surface-dark rounded-xl border border-border-light dark:border-border-dark shadow-sm overflow-hidden">
+                    <div
+                        class="px-6 py-4 border-b border-border-light dark:border-border-dark flex items-center justify-between bg-slate-50/50 dark:bg-slate-800/20">
+                        <h3 class="font-bold text-lg">Perustiedot</h3>
+                        <span
+                            class="inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ring-1 ring-inset {{ 'bg-green-50 text-green-700 ring-green-600/20 dark:bg-green-900/30 dark:text-green-400' if user.status == 'active' else 'bg-amber-50 text-amber-700 ring-amber-600/20 dark:bg-amber-900/30 dark:text-amber-400' }}">
+                            {{ 'Aktiivinen' if user.status == 'active' else 'Odottaa' }}
+                        </span>
+                    </div>
+                    <div class="p-6 grid grid-cols-1 md:grid-cols-2 gap-y-6 gap-x-8">
+                        <div>
+                            <p class="text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">Nimi</p>
+                            <p class="text-base text-slate-900 dark:text-white font-medium">{{ user.name }}</p>
+                        </div>
+                        <div>
+                            <p class="text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">Sähköposti</p>
+                            <p class="text-base text-slate-900 dark:text-white font-medium">{{ user.email }}</p>
+                        </div>
+                        <div>
+                            <p class="text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">Puhelinnumero</p>
+                            <p class="text-base text-slate-900 dark:text-white font-medium">{{ user.phone or '-' }}</p>
+                        </div>
+                        <div>
+                            <p class="text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">Rooli</p>
+                            <p class="text-base text-slate-900 dark:text-white font-medium capitalize">{{ 'Kuljettaja'
+                                if user.role == 'driver' else ('Ylläpitäjä' if user.role == 'admin' else 'Asiakas') }}
+                            </p>
+                        </div>
+                        {% if user.role == 'user' and user.company_name %}
+                        <div>
+                            <p class="text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">Yritys</p>
+                            <p class="text-base text-slate-900 dark:text-white font-medium">{{ user.company_name }}</p>
+                        </div>
+                        <div>
+                            <p class="text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">Y-tunnus</p>
+                            <p class="text-base text-slate-900 dark:text-white font-medium">{{ user.business_id_number
+                                or '-' }}</p>
+                        </div>
+                        {% endif %}
+                        <div>
+                            <p class="text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">Luotu</p>
+                            <p class="text-base text-slate-900 dark:text-white font-medium">{{ user.created_at |
+                                helsinki_time if user.created_at else '-' }}</p>
+                        </div>
+                    </div>
+                </section>
+
+                {% if user.role == 'user' %}
+                <!-- Aktiiviset Tilaukset Card (Customers Only) -->
+                {% if active_orders %}
+                <section
+                    class="bg-surface-light dark:bg-surface-dark rounded-xl border border-border-light dark:border-border-dark shadow-sm overflow-hidden">
+                    <div
+                        class="px-6 py-4 border-b border-border-light dark:border-border-dark bg-slate-50/50 dark:bg-slate-800/20 flex items-center justify-between">
+                        <h3 class="font-bold text-lg">Aktiiviset Tilaukset</h3>
+                        <span class="text-sm font-medium text-primary">{{ active_orders|length }} tilausta</span>
+                    </div>
+                    <div class="divide-y divide-border-light dark:divide-border-dark">
+                        {% for order in active_orders %}
+                        <a href="{{ url_for('admin.order_detail', order_id=order.id) }}"
+                            class="p-4 sm:p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors block">
+                            <div class="flex items-start gap-4">
+                                <div
+                                    class="size-12 shrink-0 rounded-lg bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center text-primary">
+                                    <span class="material-symbols-outlined">directions_car</span>
+                                </div>
+                                <div>
+                                    <div class="flex items-center gap-2 mb-1">
+                                        <h4 class="font-semibold text-slate-900 dark:text-white">Tilaus #{{ order.id }}
+                                        </h4>
+                                        <span
+                                            class="text-xs bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-2 py-0.5 rounded">{{
+                                            order.price }} €</span>
+                                    </div>
+                                    <div class="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
+                                        <span>{{ order.pickup_address.city }}</span>
+                                        <span class="material-symbols-outlined text-[14px]">arrow_right_alt</span>
+                                        <span>{{ order.dropoff_address.city }}</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="flex items-center justify-between sm:justify-end gap-6 w-full sm:w-auto">
+                                <div class="text-right">
+                                    <div class="text-sm font-medium text-slate-900 dark:text-white">{{ order.price }} €
+                                    </div>
+                                    <div class="text-sm text-slate-500">{{ order.created_at | helsinki_time }}</div>
+                                </div>
+                                <span
+                                    class="inline-flex items-center rounded-full bg-blue-50 px-2.5 py-1 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-600/20 dark:bg-blue-900/30 dark:text-blue-300">
+                                    {{ order.status }}
+                                </span>
+                            </div>
+                        </a>
+                        {% endfor %}
+                    </div>
+                </section>
+                {% endif %}
+
+                <!-- Tilaushistoria Table Card (Customers Only) -->
+                <section
+                    class="bg-surface-light dark:bg-surface-dark rounded-xl border border-border-light dark:border-border-dark shadow-sm overflow-hidden flex-1">
+                    <div
+                        class="px-6 py-4 border-b border-border-light dark:border-border-dark bg-slate-50/50 dark:bg-slate-800/20">
+                        <h3 class="font-bold text-lg">Tilaushistoria</h3>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-sm text-left">
+                            <thead
+                                class="bg-background-light dark:bg-background-dark text-slate-500 dark:text-slate-400 border-b border-border-light dark:border-border-dark">
+                                <tr>
+                                    <th class="px-6 py-3 font-medium whitespace-nowrap">Pvm</th>
+                                    <th class="px-6 py-3 font-medium whitespace-nowrap">Tilaus ID</th>
+                                    <th class="px-6 py-3 font-medium whitespace-nowrap">Lähtö</th>
+                                    <th class="px-6 py-3 font-medium whitespace-nowrap">Määränpää</th>
+                                    <th class="px-6 py-3 font-medium whitespace-nowrap text-right">Hinta</th>
+                                    <th class="px-6 py-3 font-medium whitespace-nowrap">Tila</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-border-light dark:divide-border-dark">
+                                {% if orders %}
+                                {% for order in orders %}
+                                <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors cursor-pointer clickable-row"
+                                    data-href="{{ url_for('admin.order_detail', order_id=order.id) }}">
+                                    <td class="px-6 py-4 text-slate-500">{{ order.created_at | helsinki_time }}</td>
+                                    <td class="px-6 py-4 font-medium text-slate-900 dark:text-white">#{{ order.id
+                                        }}</td>
+                                    <td class="px-6 py-4">{{ order.pickup_address.city }}</td>
+                                    <td class="px-6 py-4 text-slate-500">{{ order.dropoff_address.city }}</td>
+                                    <td class="px-6 py-4 text-right text-slate-900 dark:text-white font-medium">{{
+                                        order.price }} €</td>
+                                    <td class="px-6 py-4">
+                                        <span
+                                            class="inline-flex items-center gap-1 rounded-full px-2 py-1 text-xs font-medium {{ 'bg-green-100 text-green-700' if order.status == 'completed' else 'bg-slate-100 text-slate-600' }}">
+                                            {{ order.status }}
+                                        </span>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                                {% else %}
+                                <tr>
+                                    <td colspan="6" class="px-6 py-8 text-center text-slate-500">Ei tilauksia.</td>
+                                </tr>
+                                {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+                {% endif %}
+
+            </div>
+
+            <!-- Right Column (30% on large screens) -->
+            <div class="lg:col-span-4 flex flex-col gap-6">
+                <!-- Stats Card -->
+                <section
+                    class="bg-surface-light dark:bg-surface-dark rounded-xl border border-border-light dark:border-border-dark shadow-sm p-6 relative overflow-hidden group">
+                    <div
+                        class="absolute -right-6 -top-6 size-32 bg-primary/5 rounded-full blur-2xl group-hover:bg-primary/10 transition-colors">
+                    </div>
+                    <h3 class="font-bold text-lg mb-6 relative z-10">Tilastot</h3>
+                    <div class="grid grid-cols-2 gap-4">
+
+                        {% if user.role == 'driver' %}
+                        <div
+                            class="bg-background-light dark:bg-background-dark p-4 rounded-lg border border-border-light dark:border-border-dark">
+                            <div class="text-slate-500 text-sm mb-1 flex items-center gap-1">
+                                <span class="material-symbols-outlined text-[16px]">task_alt</span>
+                                Valmiit
+                            </div>
+                            <div class="text-2xl font-bold text-slate-900 dark:text-white">{{
+                                driver_stats.completed_jobs if driver_stats else 0 }}</div>
+                        </div>
+                        <div
+                            class="bg-background-light dark:bg-background-dark p-4 rounded-lg border border-border-light dark:border-border-dark">
+                            <div class="text-slate-500 text-sm mb-1 flex items-center gap-1">
+                                <span class="material-symbols-outlined text-[16px]">schedule</span>
+                                Aktiiviset
+                            </div>
+                            <div class="text-2xl font-bold text-slate-900 dark:text-white">{{ driver_stats.active_jobs
+                                if driver_stats else 0 }}</div>
+                        </div>
+
+                        {% elif user.role == 'user' %}
+                        <div
+                            class="bg-background-light dark:bg-background-dark p-4 rounded-lg border border-border-light dark:border-border-dark">
+                            <div class="text-slate-500 text-sm mb-1 flex items-center gap-1">
+                                <span class="material-symbols-outlined text-[16px]">shopping_cart</span>
+                                Tilaukset
+                            </div>
+                            <div class="text-2xl font-bold text-slate-900 dark:text-white">{{ total_orders if
+                                total_orders else 0 }}</div>
+                        </div>
+                        <div
+                            class="bg-background-light dark:bg-background-dark p-4 rounded-lg border border-border-light dark:border-border-dark">
+                            <div class="text-slate-500 text-sm mb-1 flex items-center gap-1">
+                                <span class="material-symbols-outlined text-[16px]">payments</span>
+                                Yhteensä
+                            </div>
+                            <div class="text-2xl font-bold text-slate-900 dark:text-white">{{ total_spent if total_spent
+                                else 0 }}€</div>
+                        </div>
+                        {% else %}
+                        <div class="col-span-2 text-sm text-slate-500">Ei tilastotietoja admin-käyttäjille.</div>
+                        {% endif %}
+
+                    </div>
+                </section>
+
+                <!-- Hallintatoiminnot -->
+                <section
+                    class="bg-surface-light dark:bg-surface-dark rounded-xl border border-border-light dark:border-border-dark shadow-sm overflow-hidden">
+                    <div class="px-6 py-4 border-b border-border-light dark:border-border-dark">
+                        <h3 class="font-bold text-lg text-slate-900 dark:text-white">Hallintatoiminnot</h3>
+                    </div>
+                    <div class="p-6 flex flex-col gap-3">
+                        <!-- Edit Button -->
+                        <button type="button"
+                            class="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-background-light dark:bg-background-dark hover:bg-slate-100 dark:hover:bg-slate-800 border border-border-light dark:border-border-dark rounded-lg text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors"
+                            onclick="openEditModal(this)" data-user-id="{{ user.id }}" data-user-name="{{ user.name }}"
+                            data-user-email="{{ user.email }}" data-user-phone="{{ user.phone or '' }}"
+                            data-user-company-name="{{ user.company_name or '' }}"
+                            data-user-business-id="{{ user.business_id or '' }}"
+                            data-user-status="{{ user.get('status', 'active') }}" data-user-role="{{ user.role }}">
+                            <span class="material-symbols-outlined text-[18px]">edit</span>
+                            Muokkaa tietoja
+                        </button>
+
+                        <!-- Reset Password -->
+                        <button type="button"
+                            class="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-background-light dark:bg-background-dark hover:bg-slate-100 dark:hover:bg-slate-800 border border-border-light dark:border-border-dark rounded-lg text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors"
+                            onclick="alert('Salasanan nollauslinkki lähetetään käyttäjän sähköpostiin. (Toiminto tulossa)')">
+                            <span class="material-symbols-outlined text-[18px]">lock_reset</span>
+                            Nollaa salasana
+                        </button>
+
+                        <!-- GDPR Export -->
+                        <button type="button"
+                            class="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-background-light dark:bg-background-dark hover:bg-slate-100 dark:hover:bg-slate-800 border border-border-light dark:border-border-dark rounded-lg text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors"
+                            onclick="alert('Käyttäjän tiedot ladataan. (Toiminto tulossa)')">
+                            <span class="material-symbols-outlined text-[18px]">download</span>
+                            Lataa dataportti (GDPR)
+                        </button>
+
+                        <div class="my-2 border-t border-border-light dark:border-border-dark"></div>
+
+                        <!-- Freeze Account -->
+                        <button type="button"
+                            class="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-amber-50 dark:bg-amber-900/10 hover:bg-amber-100 dark:hover:bg-amber-900/20 text-amber-600 dark:text-amber-400 rounded-lg text-sm font-medium transition-colors"
+                            onclick="alert('Tilin jäädytys. (Toiminto tulossa)')">
+                            <span class="material-symbols-outlined text-[18px]">block</span>
+                            {% if user.get('status') == 'frozen' %}Poista jäädytys{% else %}Jäädytä tili{% endif %}
+                        </button>
+
+                        <!-- Delete User -->
+                        {% if user.role == 'admin' %}
+                        {% if current_user.id != user.id %}
+                        <button type="button"
+                            class="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-red-600 dark:text-red-400 text-sm hover:underline transition-colors opacity-80 hover:opacity-100"
+                            onclick="openDeleteAdminModal('{{ user.id }}', '{{ user.name }}')">
+                            Poista käyttäjä kokonaan
+                        </button>
+                        {% else %}
+                        <p class="text-sm text-slate-500 italic text-center mt-2">Et voi poistaa omaa tiliäsi täältä.
+                        </p>
+                        {% endif %}
+                        {% else %}
+                        <form method="POST" action="{{ url_for('admin.deny_user') }}"
+                            onsubmit="event.preventDefault(); openConfirmModal(this, 'Poista käyttäjä', 'Haluatko varmasti poistaa käyttäjän {{ user.name }}?');">
+                            <input type="hidden" name="user_id" value="{{ user.id }}">
+                            <button type="submit"
+                                class="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-red-600 dark:text-red-400 text-sm hover:underline transition-colors opacity-80 hover:opacity-100">
+                                Poista käyttäjä kokonaan
+                            </button>
+                        </form>
+                        {% endif %}
+                    </div>
+                </section>
+
+                {% if user.role == 'user' and user.total_orders and user.total_orders > 10 %}
+                <!-- Support Note (Optional VIP logic) -->
+                <div
+                    class="rounded-lg bg-blue-50 dark:bg-blue-900/20 p-4 border border-blue-100 dark:border-blue-900/30">
+                    <div class="flex gap-3">
+                        <span class="material-symbols-outlined text-primary text-[20px] shrink-0">info</span>
+                        <div>
+                            <h4 class="text-sm font-bold text-slate-900 dark:text-white mb-1">Huomio</h4>
+                            <p class="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+                                Tämä käyttäjä on aktiivinen asiakas ({{ user.total_orders }} tilausta).
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+
+            </div>
+        </div>
+    </main>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // Handle clickable rows
+            const rows = document.querySelectorAll('.clickable-row');
+            rows.forEach(row => {
+                row.addEventListener('click', function () {
+                    const href = this.dataset.href;
+                    if (href) {
+                        window.location.href = href;
+                    }
+                });
+            });
+
+            // Initialize Custom Dropdowns
+            document.querySelectorAll('.custom-select-container').forEach(container => {
+                const trigger = container.querySelector('.custom-select-trigger');
+                const options = container.querySelector('.custom-select-options');
+                const hiddenSelect = container.querySelector('select');
+                const label = container.querySelector('.custom-select-label');
+
+                if (!trigger || !options || !hiddenSelect || !label) return;
+
+                const selectedOption = Array.from(hiddenSelect.options).find(opt => opt.selected);
+                if (selectedOption) {
+                    label.textContent = selectedOption.text;
+                }
+
+                trigger.onclick = (e) => {
+                    e.stopPropagation();
+                    document.querySelectorAll('.custom-select-container').forEach(c => {
+                        if (c !== container) c.classList.remove('open');
+                    });
+                    container.classList.toggle('open');
+                };
+
+                options.querySelectorAll('.custom-option').forEach(option => {
+                    option.onclick = (e) => {
+                        e.stopPropagation();
+                        options.querySelectorAll('.custom-option').forEach(opt => opt.classList.remove('selected'));
+                        option.classList.add('selected');
+                        label.textContent = option.textContent;
+                        hiddenSelect.value = option.dataset.value;
+                        container.classList.remove('open');
+                    };
+                });
+            });
+
+            document.addEventListener('click', () => {
+                document.querySelectorAll('.custom-select-container').forEach(c => c.classList.remove('open'));
+            });
+        });
+
+        // Edit Modal
+        const editModal = document.getElementById('editModal');
+        const editPanel = document.getElementById('editModalPanel');
+
+        function openEditModal(btn) {
+            document.getElementById('editUserId').value = btn.dataset.userId;
+            document.getElementById('editUserName').value = btn.dataset.userName;
+            document.getElementById('editUserEmail').value = btn.dataset.userEmail;
+            document.getElementById('editUserPhone').value = btn.dataset.userPhone || '';
+            document.getElementById('editUserCompanyName').value = btn.dataset.userCompanyName || '';
+            document.getElementById('editUserBusinessId').value = btn.dataset.userBusinessId || '';
+            document.getElementById('editUserStatus').value = btn.dataset.userStatus || 'active';
+
+            const container = document.getElementById('editStatusContainer');
+            const label = container.querySelector('.custom-select-label');
+            const opts = container.querySelectorAll('.custom-option');
+            opts.forEach(opt => {
+                opt.classList.remove('selected');
+                if (opt.dataset.value === (btn.dataset.userStatus || 'active')) {
+                    opt.classList.add('selected');
+                    label.textContent = opt.textContent;
+                }
+            });
+
+            const companyFields = document.getElementById('companyFieldsContainer');
+            companyFields.style.display = btn.dataset.userRole === 'user' ? 'block' : 'none';
+
+            editModal.style.display = 'flex';
+            setTimeout(() => { editModal.classList.remove('opacity-0'); editPanel.classList.add('scale-100'); editPanel.classList.remove('scale-95'); }, 10);
+        }
+
+        function closeEditModal() {
+            editModal.classList.add('opacity-0');
+            editPanel.classList.remove('scale-100');
+            editPanel.classList.add('scale-95');
+            setTimeout(() => { editModal.style.display = 'none'; }, 200);
+        }
+
+        editModal?.addEventListener('click', e => { if (e.target === editModal) closeEditModal(); });
+
+        // Delete Admin Modal
+        function openDeleteAdminModal(userId, userName) {
+            const modal = document.getElementById('deleteAdminModal');
+            const panel = document.getElementById('deleteAdminModalPanel');
+            document.getElementById('deleteAdminUserId').value = userId;
+            document.getElementById('deleteAdminMessage').textContent = `Haluatko varmasti poistaa admin-käyttäjän "${userName}"?`;
+            document.getElementById('deleteAdminPassword').value = '';
+            modal.style.display = 'flex';
+            setTimeout(() => { modal.classList.remove('opacity-0'); panel.classList.add('scale-100'); panel.classList.remove('scale-95'); }, 10);
+        }
+
+        function closeDeleteAdminModal() {
+            const modal = document.getElementById('deleteAdminModal');
+            const panel = document.getElementById('deleteAdminModalPanel');
+            modal.classList.add('opacity-0');
+            panel.classList.remove('scale-100');
+            panel.classList.add('scale-95');
+            setTimeout(() => { modal.style.display = 'none'; }, 200);
+        }
+
+        document.getElementById('deleteAdminModal')?.addEventListener('click', function (e) { if (e.target === this) closeDeleteAdminModal(); });
+
+        // Confirm Modal
+        let currentForm = null;
+        function openConfirmModal(formElement, title, message) {
+            currentForm = formElement;
+            document.getElementById('modalTitle').textContent = title;
+            document.getElementById('modalMessage').textContent = message;
+            const modal = document.getElementById('confirmModal');
+            const panel = document.getElementById('confirmModalPanel');
+            modal.style.display = 'flex';
+            setTimeout(() => { modal.classList.remove('opacity-0'); panel.classList.add('scale-100'); panel.classList.remove('scale-95'); }, 10);
+        }
+
+        function closeConfirmModal() {
+            const modal = document.getElementById('confirmModal');
+            const panel = document.getElementById('confirmModalPanel');
+            modal.classList.add('opacity-0');
+            panel.classList.remove('scale-100');
+            panel.classList.add('scale-95');
+            setTimeout(() => { modal.style.display = 'none'; currentForm = null; }, 200);
+        }
+
+        document.getElementById('confirmActionBtn')?.addEventListener('click', function () { if (currentForm) currentForm.submit(); closeConfirmModal(); });
+        document.getElementById('confirmModal')?.addEventListener('click', function (e) { if (e.target === this) closeConfirmModal(); });
+    </script>
+
+    <!-- Edit Modal -->
+    <div id="editModal" style="display: none;"
+        class="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/20 backdrop-blur-sm opacity-0 transition-opacity duration-300"
+        aria-hidden="true">
+        <div class="bg-white dark:bg-[#1e2936] rounded-2xl shadow-xl w-full max-w-lg p-6 transform scale-95 transition-transform duration-300"
+            id="editModalPanel">
+            <h3 class="text-lg font-bold text-slate-900 dark:text-white mb-4">Muokkaa käyttäjää</h3>
+            <form method="POST" action="{{ url_for('admin.update_user') }}" class="space-y-3">
+                <input type="hidden" name="user_id" id="editUserId">
+                <div>
+                    <label class="block text-sm font-semibold text-slate-600 dark:text-slate-300 mb-1">Nimi</label>
+                    <input type="text" name="name" id="editUserName"
+                        class="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#1e2936] text-sm"
+                        required>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label
+                            class="block text-sm font-semibold text-slate-600 dark:text-slate-300 mb-1">Sähköposti</label>
+                        <input type="email" name="email" id="editUserEmail"
+                            class="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#1e2936] text-sm"
+                            required>
+                    </div>
+                    <div>
+                        <label
+                            class="block text-sm font-semibold text-slate-600 dark:text-slate-300 mb-1">Puhelin</label>
+                        <input type="text" name="phone" id="editUserPhone"
+                            class="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#1e2936] text-sm">
+                    </div>
+                </div>
+                <div id="companyFieldsContainer">
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-sm font-semibold text-slate-600 dark:text-slate-300 mb-1">Yrityksen
+                                nimi</label>
+                            <input type="text" name="company_name" id="editUserCompanyName"
+                                class="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#1e2936] text-sm">
+                        </div>
+                        <div>
+                            <label
+                                class="block text-sm font-semibold text-slate-600 dark:text-slate-300 mb-1">Y-tunnus</label>
+                            <input type="text" name="business_id" id="editUserBusinessId"
+                                class="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#1e2936] text-sm">
+                        </div>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-slate-600 dark:text-slate-300 mb-1">Tila</label>
+                    <div class="relative custom-select-container" id="editStatusContainer">
+                        <select name="status" id="editUserStatus" style="display:none">
+                            <option value="active">Aktiivinen</option>
+                            <option value="pending">Odottaa</option>
+                        </select>
+                        <div
+                            class="custom-select-trigger cursor-pointer flex items-center justify-between px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#1e2936] text-sm">
+                            <span class="custom-select-label">Aktiivinen</span>
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <polyline points="6 9 12 15 18 9"></polyline>
+                            </svg>
+                        </div>
+                        <div
+                            class="custom-select-options absolute left-0 right-0 mt-1 bg-white dark:bg-[#1e2936] border border-slate-200 dark:border-slate-700 rounded-lg shadow-lg z-10 hidden">
+                            <div class="custom-option px-3 py-2 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
+                                data-value="active">Aktiivinen</div>
+                            <div class="custom-option px-3 py-2 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
+                                data-value="pending">Odottaa</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="flex justify-end gap-3 pt-3">
+                    <button type="button" onclick="closeEditModal()"
+                        class="px-4 py-2 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-sm font-semibold hover:bg-slate-50 dark:hover:bg-slate-800">Peruuta</button>
+                    <button type="submit"
+                        class="px-4 py-2 rounded-lg bg-primary text-white text-sm font-semibold hover:bg-blue-600">Tallenna</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Delete Admin Modal -->
+    <div id="deleteAdminModal" style="display: none;"
+        class="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/20 backdrop-blur-sm opacity-0 transition-opacity duration-300"
+        aria-hidden="true">
+        <div class="bg-white dark:bg-[#1e2936] rounded-2xl shadow-xl w-full max-w-sm p-6 transform scale-95 transition-transform duration-300"
+            id="deleteAdminModalPanel">
+            <form method="POST" action="{{ url_for('admin.delete_admin_user') }}">
+                <input type="hidden" name="user_id" id="deleteAdminUserId">
+                <div class="flex flex-col items-center text-center gap-4">
+                    <div
+                        class="size-12 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center text-red-600">
+                        <span class="material-symbols-outlined text-[24px]">admin_panel_settings</span>
+                    </div>
+                    <h3 class="text-lg font-bold text-slate-900 dark:text-white">Poista admin-käyttäjä</h3>
+                    <p class="text-sm text-slate-500 dark:text-slate-400" id="deleteAdminMessage">Haluatko varmasti
+                        poistaa?</p>
+                    <div class="w-full">
+                        <label
+                            class="block text-sm font-semibold text-slate-600 dark:text-slate-300 mb-1 text-left">Vahvista
+                            salasanasi</label>
+                        <input type="password" name="admin_password" id="deleteAdminPassword" required
+                            class="w-full px-3 py-2 rounded-lg border border-red-300 dark:border-red-700 bg-red-50 dark:bg-red-900/20 text-sm"
+                            placeholder="Syötä salasanasi">
+                    </div>
+                    <div class="flex items-center gap-3 w-full mt-2">
+                        <button type="button" onclick="closeDeleteAdminModal()"
+                            class="flex-1 py-2.5 px-4 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-semibold text-sm hover:bg-slate-50">Peruuta</button>
+                        <button type="submit"
+                            class="flex-1 py-2.5 px-4 rounded-xl bg-red-600 text-white font-semibold text-sm hover:bg-red-700">Poista
+                            admin</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Confirmation Modal -->
+    <div id="confirmModal" style="display: none;"
+        class="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/20 backdrop-blur-sm opacity-0 transition-opacity duration-300"
+        aria-hidden="true">
+        <div class="bg-white dark:bg-[#1e2936] rounded-2xl shadow-xl w-full max-w-sm p-6 transform scale-95 transition-transform duration-300"
+            id="confirmModalPanel">
+            <div class="flex flex-col items-center text-center gap-4">
+                <div
+                    class="size-12 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center text-red-600">
+                    <span class="material-symbols-outlined text-[24px]">warning</span>
+                </div>
+                <h3 class="text-lg font-bold text-slate-900 dark:text-white" id="modalTitle">Oletko varma?</h3>
+                <p class="text-sm text-slate-500 dark:text-slate-400" id="modalMessage">Tätä toimintoa ei voi peruuttaa.
+                </p>
+                <div class="flex items-center gap-3 w-full mt-2">
+                    <button onclick="closeConfirmModal()"
+                        class="flex-1 py-2.5 px-4 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-semibold text-sm hover:bg-slate-50">Peruuta</button>
+                    <button id="confirmActionBtn"
+                        class="flex-1 py-2.5 px-4 rounded-xl bg-red-600 text-white font-semibold text-sm hover:bg-red-700">Vahvista</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <style>
+        .custom-select-container.open .custom-select-options {
+            display: block;
+        }
+
+        .custom-option.selected {
+            background-color: #eff6ff;
+        }
+    </style>
+</body>
+
+</html>
