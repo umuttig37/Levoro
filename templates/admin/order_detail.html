@@ -158,9 +158,6 @@
                         href="{{ url_for('admin.users') }}">Käyttäjät</a>
 
                     <a class="px-3 py-2 rounded-md text-slate-700 hover:text-primary hover:bg-slate-100 font-semibold transition-colors"
-                        href="{{ url_for('admin.drivers') }}">Kuljettajat</a>
-
-                    <a class="px-3 py-2 rounded-md text-slate-700 hover:text-primary hover:bg-slate-100 font-semibold transition-colors"
                         href="{{ url_for('admin.driver_applications') }}">Hakemukset</a>
 
                     <a class="px-3 py-2 rounded-md text-slate-700 hover:text-primary hover:bg-slate-100 font-semibold transition-colors"
@@ -486,16 +483,12 @@
                                     <img class="w-full h-full object-cover hover:scale-110 transition-transform duration-500"
                                         src="{{ image_src }}" alt="Nouto kuva" loading="lazy" />
                                 </a>
-                                <form
-                                    action="{{ url_for('admin.delete_order_image_by_id', order_id=order.id, image_type='pickup', image_id=img.id) }}"
-                                    method="POST"
-                                    class="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                    <button type="submit"
-                                        class="bg-white/90 p-1.5 rounded-full text-red-500 hover:text-red-700 shadow-sm"
-                                        onclick="return confirm('Poista kuva?')">
-                                        <span class="material-symbols-outlined text-[16px]">delete</span>
-                                    </button>
-                                </form>
+                                <button type="button"
+                                    class="admin-image-delete-btn absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity bg-white/90 p-1.5 rounded-full text-red-500 hover:text-red-700 shadow-sm"
+                                    data-delete-url="{{ url_for('admin.delete_order_image_ajax', order_id=order.id, image_type='pickup', image_id=img.id) }}"
+                                    data-image-type="pickup">
+                                    <span class="material-symbols-outlined text-[16px]">delete</span>
+                                </button>
                             </div>
                             {% endfor %}
                             {% endif %}
@@ -508,7 +501,7 @@
                                     class="cursor-pointer w-32 h-32 rounded-xl bg-slate-50 border-2 border-dashed border-slate-300 flex flex-col items-center justify-center text-slate-400 hover:text-primary hover:border-primary hover:bg-blue-50 transition-all shadow-sm">
                                     <span class="material-symbols-outlined text-3xl mb-1">add_a_photo</span>
                                     <span class="text-xs font-medium">Lisää kuva</span>
-                                    <input type="file" name="image" class="hidden admin-image-input"
+                                    <input type="file" name="image" class="hidden admin-image-input" multiple
                                         data-image-type="pickup" accept="image/*">
                                 </label>
                             </form>
@@ -534,16 +527,12 @@
                                     <img class="w-full h-full object-cover hover:scale-110 transition-transform duration-500"
                                         src="{{ image_src }}" alt="Toimitus kuva" loading="lazy" />
                                 </a>
-                                <form
-                                    action="{{ url_for('admin.delete_order_image_by_id', order_id=order.id, image_type='delivery', image_id=img.id) }}"
-                                    method="POST"
-                                    class="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                    <button type="submit"
-                                        class="bg-white/90 p-1.5 rounded-full text-red-500 hover:text-red-700 shadow-sm"
-                                        onclick="return confirm('Poista kuva?')">
-                                        <span class="material-symbols-outlined text-[16px]">delete</span>
-                                    </button>
-                                </form>
+                                <button type="button"
+                                    class="admin-image-delete-btn absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity bg-white/90 p-1.5 rounded-full text-red-500 hover:text-red-700 shadow-sm"
+                                    data-delete-url="{{ url_for('admin.delete_order_image_ajax', order_id=order.id, image_type='delivery', image_id=img.id) }}"
+                                    data-image-type="delivery">
+                                    <span class="material-symbols-outlined text-[16px]">delete</span>
+                                </button>
                             </div>
                             {% endfor %}
                             {% endif %}
@@ -556,7 +545,7 @@
                                     class="cursor-pointer w-32 h-32 rounded-xl bg-slate-50 border-2 border-dashed border-slate-300 flex flex-col items-center justify-center text-slate-400 hover:text-primary hover:border-primary hover:bg-blue-50 transition-all shadow-sm">
                                     <span class="material-symbols-outlined text-3xl mb-1">add_a_photo</span>
                                     <span class="text-xs font-medium">Lisää kuva</span>
-                                    <input type="file" name="image" class="hidden admin-image-input"
+                                    <input type="file" name="image" class="hidden admin-image-input" multiple
                                         data-image-type="delivery" accept="image/*">
                                 </label>
                             </form>
@@ -582,16 +571,12 @@
                                     <img class="w-full h-full object-cover hover:scale-110 transition-transform duration-500"
                                         src="{{ image_src }}" alt="Kuitti" loading="lazy" />
                                 </a>
-                                <form
-                                    action="{{ url_for('admin.delete_order_image_by_id', order_id=order.id, image_type='receipts', image_id=img.id) }}"
-                                    method="POST"
-                                    class="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                    <button type="submit"
-                                        class="bg-white/90 p-1.5 rounded-full text-red-500 hover:text-red-700 shadow-sm"
-                                        onclick="return confirm('Poista kuva?')">
-                                        <span class="material-symbols-outlined text-[16px]">delete</span>
-                                    </button>
-                                </form>
+                                <button type="button"
+                                    class="admin-image-delete-btn absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity bg-white/90 p-1.5 rounded-full text-red-500 hover:text-red-700 shadow-sm"
+                                    data-delete-url="{{ url_for('admin.delete_order_image_ajax', order_id=order.id, image_type='receipts', image_id=img.id) }}"
+                                    data-image-type="receipts">
+                                    <span class="material-symbols-outlined text-[16px]">delete</span>
+                                </button>
                             </div>
                             {% endfor %}
                             {% endif %}
@@ -604,7 +589,7 @@
                                     class="cursor-pointer w-32 h-32 rounded-xl bg-slate-50 border-2 border-dashed border-slate-300 flex flex-col items-center justify-center text-slate-400 hover:text-primary hover:border-primary hover:bg-blue-50 transition-all shadow-sm">
                                     <span class="material-symbols-outlined text-3xl mb-1">add_a_photo</span>
                                     <span class="text-xs font-medium">Lisää kuitti</span>
-                                    <input type="file" name="image" class="hidden admin-image-input"
+                                    <input type="file" name="image" class="hidden admin-image-input" multiple
                                         data-image-type="receipts" accept="image/*">
                                 </label>
                             </form>
@@ -929,15 +914,8 @@
                 if (!input) return;
 
                 input.addEventListener('change', async function () {
-                    const file = input.files && input.files[0];
-                    if (!file) return;
-
-                    const validationError = validateAdminImageFile(file);
-                    if (validationError) {
-                        showFlashMessage(validationError, 'error');
-                        input.value = '';
-                        return;
-                    }
+                    let files = Array.from(input.files || []);
+                    if (!files.length) return;
 
                     const imageType = form.dataset.imageType;
                     const uploadUrl = form.dataset.uploadUrl;
@@ -945,56 +923,158 @@
                     const grid = document.querySelector(`.admin-image-grid[data-image-type="${imageType}"]`);
 
                     if (!grid || !uploadUrl || !orderId) {
-                        showFlashMessage('Upload configuration missing', 'error');
+                        showFlashMessage('Lähetysasetukset puuttuvat', 'error');
                         input.value = '';
                         return;
                     }
 
-                    const previewTile = createAdminPreviewTile(file);
-                    grid.insertBefore(previewTile, form);
+                    const maxImages = 15;
+                    const currentCount = countAdminImages(imageType);
+                    const availableSlots = Math.max(0, maxImages - currentCount);
+
+                    if (availableSlots === 0) {
+                        showFlashMessage(`Maksimimäärä (${maxImages}) kuvia saavutettu`, 'error');
+                        input.value = '';
+                        return;
+                    }
+
+                    if (files.length > availableSlots) {
+                        files = files.slice(0, availableSlots);
+                        showFlashMessage(`Vain ${availableSlots} kuvaa voidaan lisätä (max ${maxImages})`, 'info');
+                    }
 
                     input.disabled = true;
 
-                    const formData = new FormData();
-                    formData.append('image', file);
-                    formData.append('image_type', imageType);
+                    for (const file of files) {
+                        const validationError = validateAdminImageFile(file);
+                        if (validationError) {
+                            showFlashMessage(validationError, 'error');
+                            continue;
+                        }
 
-                    try {
-                        const response = await fetch(uploadUrl, {
-                            method: 'POST',
-                            body: formData
-                        });
+                        const previewTile = createAdminPreviewTile(file);
+                        grid.insertBefore(previewTile, form);
 
-                        let data = null;
+                        const formData = new FormData();
+                        formData.append('image', file);
+                        formData.append('image_type', imageType);
+
                         try {
-                            data = await response.json();
+                            const response = await fetch(uploadUrl, {
+                                method: 'POST',
+                                body: formData
+                            });
+
+                            let data = null;
+                            try {
+                                data = await response.json();
+                            } catch (error) {
+                                data = null;
+                            }
+
+                            if (!response.ok || !data || !data.success) {
+                                cleanupAdminPreview(previewTile);
+                                const rawMessage = data && (data.error || data.message)
+                                    ? (data.error || data.message)
+                                    : null;
+                                showFlashMessage(normalizeAdminMessage(rawMessage, 'Lataus epäonnistui'), 'error');
+                                continue;
+                            }
+
+                            const finalTile = buildAdminImageTile(data.image, imageType, orderId);
+                            cleanupAdminPreview(previewTile, true);
+                            previewTile.replaceWith(finalTile);
+                            updateAdminImageCounts();
                         } catch (error) {
-                            data = null;
-                        }
-
-                        if (!response.ok || !data || !data.success) {
                             cleanupAdminPreview(previewTile);
-                            const message = data && (data.error || data.message)
-                                ? (data.error || data.message)
-                                : 'Upload failed';
-                            showFlashMessage(message, 'error');
-                            return;
+                            showFlashMessage('Lataus epäonnistui', 'error');
                         }
-
-                        const finalTile = buildAdminImageTile(data.image, imageType, orderId);
-                        cleanupAdminPreview(previewTile, true);
-                        previewTile.replaceWith(finalTile);
-                        updateAdminImageCounts();
-                        showFlashMessage(data.message || 'Upload complete', 'success');
-                    } catch (error) {
-                        cleanupAdminPreview(previewTile);
-                        showFlashMessage('Upload failed', 'error');
-                    } finally {
-                        input.disabled = false;
-                        input.value = '';
                     }
+
+                    input.disabled = false;
+                    input.value = '';
                 });
             });
+        });
+
+        let pendingDelete = null;
+
+        function openAdminConfirmModal(details) {
+            const modal = document.getElementById('adminConfirmModal');
+            const panel = document.getElementById('adminConfirmModalPanel');
+            if (!modal || !panel) return;
+
+            pendingDelete = details;
+            modal.style.display = 'flex';
+            modal.offsetHeight;
+            modal.classList.remove('opacity-0');
+            panel.classList.remove('scale-95');
+            panel.classList.add('scale-100');
+        }
+
+        function closeAdminConfirmModal() {
+            const modal = document.getElementById('adminConfirmModal');
+            const panel = document.getElementById('adminConfirmModalPanel');
+            if (!modal || !panel) return;
+
+            modal.classList.add('opacity-0');
+            panel.classList.remove('scale-100');
+            panel.classList.add('scale-95');
+
+            setTimeout(() => {
+                modal.style.display = 'none';
+                pendingDelete = null;
+            }, 300);
+        }
+
+        async function confirmAdminImageDelete() {
+            if (!pendingDelete) return;
+
+            const { deleteUrl, tile, imageType } = pendingDelete;
+            try {
+                const response = await fetch(deleteUrl, { method: 'DELETE' });
+                const data = await response.json();
+
+                if (!response.ok || !data || !data.success) {
+                    const rawMessage = data && (data.error || data.message) ? (data.error || data.message) : null;
+                    showFlashMessage(normalizeAdminMessage(rawMessage, 'Poisto epäonnistui'), 'error');
+                    return;
+                }
+
+                if (tile) {
+                    tile.remove();
+                }
+
+                updateAdminImageCounts();
+                showFlashMessage(data.message || 'Kuva poistettu', 'success');
+            } catch (error) {
+                showFlashMessage('Poisto epäonnistui', 'error');
+            } finally {
+                closeAdminConfirmModal();
+            }
+        }
+
+        document.addEventListener('click', function (event) {
+            const btn = event.target.closest('.admin-image-delete-btn');
+            if (!btn) return;
+
+            event.preventDefault();
+            const deleteUrl = btn.dataset.deleteUrl;
+            const imageType = btn.dataset.imageType;
+            const tile = btn.closest('.admin-image-item');
+
+            if (!deleteUrl || !tile) {
+                showFlashMessage('Poisto ei onnistu (puuttuvat tiedot)', 'error');
+                return;
+            }
+
+            openAdminConfirmModal({ deleteUrl, tile, imageType });
+        });
+
+        document.addEventListener('click', function (event) {
+            if (event.target?.id === 'adminConfirmModal') {
+                closeAdminConfirmModal();
+            }
         });
 
         function validateAdminImageFile(file) {
@@ -1002,14 +1082,25 @@
             const maxFileSize = 5 * 1024 * 1024;
 
             if (!allowedTypes.includes(file.type)) {
-                return 'Invalid file type. Allowed: JPG, PNG, WebP';
+                return 'Virheellinen tiedostotyyppi. Sallitut: JPG, PNG, WebP';
             }
 
             if (file.size > maxFileSize) {
-                return 'File is too large (max 5MB)';
+                return 'Tiedosto on liian suuri (max 5MB)';
             }
 
             return null;
+        }
+
+        function normalizeAdminMessage(message, fallback) {
+            if (!message) return fallback;
+            const lower = message.toLowerCase();
+            if (lower.includes('not found')) return 'Kuvaa ei löytynyt';
+            if (lower.includes('upload') && lower.includes('failed')) return 'Lataus epäonnistui';
+            if (lower.includes('invalid file type')) return 'Virheellinen tiedostotyyppi. Sallitut: JPG, PNG, WebP';
+            if (lower.includes('file is too large')) return 'Tiedosto on liian suuri (max 5MB)';
+            if (lower.includes('missing')) return 'Lähetysasetukset puuttuvat';
+            return message;
         }
 
         function createAdminPreviewTile(file) {
@@ -1060,19 +1151,18 @@
             const tile = document.createElement('div');
             tile.className = 'admin-image-item w-32 h-32 rounded-xl bg-slate-100 overflow-hidden relative border border-slate-200 group flex-none shadow-sm';
             tile.dataset.imageId = imageData?.id || '';
+            const deleteUrl = `/admin/api/order/${orderId}/image/${imageType}/${imageData.id}`;
 
             tile.innerHTML = `
                 <a href="${imageSrc}" target="_blank" rel="noopener noreferrer">
                     <img class="w-full h-full object-cover hover:scale-110 transition-transform duration-500" src="${imageSrc}" alt="${label} kuva" loading="lazy" />
                 </a>
-                <form action="/admin/order/${orderId}/image/${imageType}/${imageData.id}/delete" method="POST"
-                    class="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button type="submit"
-                        class="bg-white/90 p-1.5 rounded-full text-red-500 hover:text-red-700 shadow-sm"
-                        onclick="return confirm('Poista kuva?')">
-                        <span class="material-symbols-outlined text-[16px]">delete</span>
-                    </button>
-                </form>
+                <button type="button"
+                    class="admin-image-delete-btn absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity bg-white/90 p-1.5 rounded-full text-red-500 hover:text-red-700 shadow-sm"
+                    data-delete-url="${deleteUrl}"
+                    data-image-type="${imageType}">
+                    <span class="material-symbols-outlined text-[16px]">delete</span>
+                </button>
             `;
 
             return tile;
@@ -1209,6 +1299,35 @@
 
     {% set footer_button_text = 'Laskuri' %}
     {% include 'components/dashboard_footer.html' %}
+
+    <!-- Delete Confirmation Modal -->
+    <div id="adminConfirmModal" style="display: none;"
+        class="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/20 backdrop-blur-sm opacity-0 transition-opacity duration-300"
+        aria-hidden="true">
+        <div
+            class="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6 transform scale-95 transition-transform duration-300"
+            id="adminConfirmModalPanel">
+            <div class="flex flex-col items-center text-center gap-4">
+                <div class="size-12 rounded-full bg-red-100 flex items-center justify-center text-red-600">
+                    <span class="material-symbols-outlined text-[24px]">warning</span>
+                </div>
+                <div class="flex flex-col gap-1">
+                    <h3 class="text-lg font-bold text-slate-900">Poista kuva?</h3>
+                    <p class="text-sm text-slate-500">Haluatko varmasti poistaa kuvan?</p>
+                </div>
+                <div class="flex items-center gap-3 w-full mt-2">
+                    <button onclick="closeAdminConfirmModal()"
+                        class="flex-1 py-2.5 px-4 rounded-xl border border-slate-200 text-slate-700 font-semibold text-sm hover:bg-slate-50 transition-colors">
+                        Peruuta
+                    </button>
+                    <button onclick="confirmAdminImageDelete()"
+                        class="flex-1 py-2.5 px-4 rounded-xl bg-red-600 text-white font-semibold text-sm hover:bg-red-700 shadow-lg shadow-red-200 transition-all transform hover:-translate-y-0.5">
+                        Poista
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
 </body>
 
 

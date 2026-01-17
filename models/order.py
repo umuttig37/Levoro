@@ -376,6 +376,49 @@ class OrderModel(BaseModel):
         except Exception as e:
             return False, f"Tietojen päivitys epäonnistui: {str(e)}"
 
+    def publish_pending_images(self, order_id: int, image_types: Optional[List[str]] = None) -> Tuple[bool, Optional[str]]:
+        """Publish admin-uploaded images that are pending customer visibility."""
+        if image_types is None:
+            image_types = ["pickup", "delivery", "receipts"]
+
+        try:
+            order = self.find_by_id(order_id)
+            if not order:
+                return False, "Tilausta ei löytynyt"
+
+            images = order.get("images", {})
+            if not images:
+                return True, None
+
+            updated_images = dict(images)
+            changed = False
+
+            for image_type in image_types:
+                type_images = images.get(image_type, [])
+                if not isinstance(type_images, list):
+                    type_images = [type_images] if type_images else []
+
+                new_type_images = []
+                for img in type_images:
+                    if isinstance(img, dict) and img.get("visible_to_customer") is False:
+                        img = {**img, "visible_to_customer": True}
+                        changed = True
+                    new_type_images.append(img)
+
+                if new_type_images != type_images:
+                    updated_images[image_type] = new_type_images
+
+            if not changed:
+                return True, None
+
+            success = self.update_one(
+                {"id": int(order_id)},
+                {"$set": {"images": updated_images, "updated_at": datetime.now(timezone.utc)}}
+            )
+            return success, None
+        except Exception as e:
+            return False, f"Kuvien julkaisu epäonnistui: {str(e)}"
+
     def update_driver_status(self, order_id: int, new_status: str, timestamp_field: Optional[str] = None, 
                             required_current_status: Optional[str] = None) -> Tuple[bool, Optional[str]]:
         """Update order status with optional timestamp field

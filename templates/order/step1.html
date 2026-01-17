@@ -293,11 +293,23 @@
     window.savedAddresses = [];
 
     // --- API Functions ---
+    function normalizeCustomerError(message, fallback) {
+        if (!message) return fallback;
+        const lower = message.toLowerCase();
+        if (lower.includes('http')) return 'Palvelinvirhe. Yritä hetken kuluttua uudelleen.';
+        if (lower.includes('not found')) return 'Tietoa ei löytynyt.';
+        if (lower.includes('invalid')) return 'Virheellinen pyyntö.';
+        if (lower.includes('missing')) return 'Puuttuva tieto.';
+        if (lower.includes('delete failed')) return 'Poistaminen epäonnistui.';
+        if (lower.includes('failed to load')) return 'Tietojen lataaminen epäonnistui.';
+        return message;
+    }
+
     async function apiCall(url, options = {}) {
         const res = await fetch(url, options);
         let data = null;
         try { data = await res.json(); } catch { }
-        if (!res.ok) throw new Error((data && (data.error || data.message)) || ('HTTP ' + res.status));
+        if (!res.ok) throw new Error((data && (data.error || data.message)) || ('Palvelinvirhe (HTTP ' + res.status + ')'));
         return data;
     }
 
@@ -494,7 +506,7 @@
             populateSavedAddresses();
             closeAddressModal();
         } catch (e) {
-            showToast('Tallennus epäonnistui: ' + e.message, 'error');
+            showToast('Tallennus epäonnistui: ' + normalizeCustomerError(e.message, 'Tuntematon virhe'), 'error');
         }
     }
 
@@ -505,7 +517,7 @@
             populateSavedAddresses();
         } catch (e) {
             console.error('Delete failed:', e);
-            showToast('Poistaminen epäonnistui: ' + e.message, 'error');
+            showToast('Poistaminen epäonnistui: ' + normalizeCustomerError(e.message, 'Tuntematon virhe'), 'error');
         }
     }
 

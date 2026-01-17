@@ -1437,7 +1437,7 @@
                     localStorage.removeItem('wizardData');
                     window.location.href = `/order/success/${result.order_id}`;
                 } else {
-                    throw new Error('Submission failed');
+                    throw new Error('Lähetys epäonnistui');
                 }
             } catch (error) {
                 showToast('Virhe tilauksen lähetyksessä. Yritä uudelleen.', 'error');

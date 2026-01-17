@@ -758,6 +758,24 @@ def order_view(order_id: int):
     if not r:
         return render_with_context('errors/no_access.html')
 
+    def filter_customer_images(images):
+        if not images:
+            return {}
+
+        filtered = {}
+        for image_type, type_images in images.items():
+            if not isinstance(type_images, list):
+                type_images = [type_images] if type_images else []
+
+            filtered[image_type] = [
+                img for img in type_images
+                if not isinstance(img, dict) or img.get("visible_to_customer", True)
+            ]
+
+        return filtered
+
+    r["images"] = filter_customer_images(r.get("images", {}))
+
     # numerot tulostusta varten
     distance_km = float(r.get("distance_km", 0.0))
     price_gross = float(r.get("price_gross", 0.0))
@@ -885,7 +903,9 @@ def order_view(order_id: int):
         r.get('orderer_name', '').strip() or r.get('orderer_email', '').strip() or r.get('orderer_phone', '').strip() or
         r.get('customer_phone', '').strip()
     )
-    has_images = bool(r.get('images', {}))
+    has_images = any(
+        r.get('images', {}).get(image_type) for image_type in ["pickup", "delivery", "receipts"]
+    )
 
     # Show vehicle section only if there's meaningful data
     show_vehicle_section = has_reg_number or has_winter_tires
@@ -1445,8 +1465,8 @@ def submit_driver_application():
         front_temp_path = os.path.join(image_service.upload_folder, front_unique_filename)
         license_front.save(front_temp_path)
 
-        # Process image (resize, optimize)
-        front_processed_path = image_service._process_image(front_temp_path)
+        # Process image with higher quality for license images
+        front_processed_path = image_service._process_image(front_temp_path, max_width=None, quality=95)
         if not front_processed_path:
             image_service._cleanup_file(front_temp_path)
             flash("Virhe ajokortin etupuolen käsittelyssä - tarkista että kuva ei ole vioittunut", "error")
@@ -1479,8 +1499,8 @@ def submit_driver_application():
         back_temp_path = os.path.join(image_service.upload_folder, back_unique_filename)
         license_back.save(back_temp_path)
 
-        # Process image (resize, optimize)
-        back_processed_path = image_service._process_image(back_temp_path)
+        # Process image with higher quality for license images
+        back_processed_path = image_service._process_image(back_temp_path, max_width=None, quality=95)
         if not back_processed_path:
             image_service._cleanup_file(back_temp_path)
             flash("Virhe ajokortin takapuolen käsittelyssä - tarkista että kuva ei ole vioittunut", "error")

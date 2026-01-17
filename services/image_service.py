@@ -328,7 +328,7 @@ class ImageService:
             return 'jpg'
         return filename.rsplit('.', 1)[1].lower()
 
-    def _process_image(self, file_path: str) -> Optional[str]:
+    def _process_image(self, file_path: str, max_width: Optional[int] = MAX_IMAGE_WIDTH, quality: int = IMAGE_QUALITY) -> Optional[str]:
         """Process and optimize image"""
         try:
             # First validate that PIL can open the image
@@ -348,10 +348,10 @@ class ImageService:
                     img = background
 
                 # Resize if too large
-                if img.width > MAX_IMAGE_WIDTH:
+                if max_width and img.width > max_width:
                     # Calculate new height maintaining aspect ratio
-                    new_height = int((MAX_IMAGE_WIDTH / img.width) * img.height)
-                    img = img.resize((MAX_IMAGE_WIDTH, new_height), Image.Resampling.LANCZOS)
+                    new_height = int((max_width / img.width) * img.height)
+                    img = img.resize((max_width, new_height), Image.Resampling.LANCZOS)
 
                 # Determine output format and extension
                 output_path = file_path
@@ -361,7 +361,7 @@ class ImageService:
                     output_path = f"{base_path}.jpg"
 
                 # Save optimized image as JPEG
-                img.save(output_path, 'JPEG', quality=IMAGE_QUALITY, optimize=True)
+                img.save(output_path, 'JPEG', quality=quality, optimize=True)
 
                 # Remove original file if we changed the extension
                 if output_path != file_path:

@@ -170,6 +170,10 @@ def update_user():
         update_data["status"] = status
 
     success = user_model.update_one({"id": user_id}, {"$set": update_data})
+    publish_success, publish_error = order_model.publish_pending_images(order_id)
+    if not publish_success:
+        flash(f"Kuvien julkaisu epäonnistui: {publish_error}", "warning")
+
     if success:
         flash("Käyttäjä päivitetty", "success")
     else:
@@ -621,6 +625,12 @@ def update_order():
     # Use service layer to update order status (includes automatic email sending)
     success, error = order_service.update_order_status(order_id, new_status)
 
+    if success:
+        from models.order import order_model
+        publish_success, publish_error = order_model.publish_pending_images(order_id)
+        if not publish_success:
+            flash(f"Kuvien julkaisu epäonnistui: {publish_error}", "warning")
+
     if request.is_json:
         if success:
             from app import translate_status
@@ -782,6 +792,8 @@ def upload_order_image(order_id):
         flash(error, "error")
         return redirect(url_for("admin.order_detail", order_id=order_id))
 
+    image_info["visible_to_customer"] = False
+
     # Add image to order using ImageService
     success, add_error = image_service.add_image_to_order(order_id, image_type, image_info)
 
@@ -822,6 +834,8 @@ def upload_order_image_ajax(order_id):
 
     if error:
         return jsonify({'success': False, 'error': error}), 400
+
+    image_info["visible_to_customer"] = False
 
     # Add image to order using ImageService
     success, add_error = image_service.add_image_to_order(order_id, image_type, image_info)

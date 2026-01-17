@@ -519,11 +519,12 @@
                                 <div class="grid grid-cols-2 gap-3">
                                     {% if order.images and order.images.get('pickup') %}
                                     {% for img in order.images.get('pickup') %}
+                                    {% set image_src = img.file_path if img.file_path else '/static/uploads/orders/' ~ img.filename %}
                                     <div
                                         class="group relative aspect-square bg-slate-100 dark:bg-slate-700 rounded-lg overflow-hidden cursor-pointer">
-                                        <a href="/static/uploads/orders/{{ img.filename }}" target="_blank" rel="noopener noreferrer">
+                                        <a href="{{ image_src }}" target="_blank" rel="noopener noreferrer">
                                             <div class="absolute inset-0 bg-cover bg-center group-hover:scale-110 transition-transform duration-500"
-                                                style='background-image: url("/static/uploads/orders/{{ img.filename }}");'>
+                                                style='background-image: url("{{ image_src }}");'>
                                             </div>
                                         </a>
                                     </div>
@@ -550,11 +551,12 @@
                                 <div class="grid grid-cols-2 gap-3">
                                     {% if order.images and order.images.get('delivery') %}
                                     {% for img in order.images.get('delivery') %}
+                                    {% set image_src = img.file_path if img.file_path else '/static/uploads/orders/' ~ img.filename %}
                                     <div
                                         class="group relative aspect-square bg-slate-100 dark:bg-slate-700 rounded-lg overflow-hidden cursor-pointer">
-                                        <a href="/static/uploads/orders/{{ img.filename }}" target="_blank" rel="noopener noreferrer">
+                                        <a href="{{ image_src }}" target="_blank" rel="noopener noreferrer">
                                             <div class="absolute inset-0 bg-cover bg-center group-hover:scale-110 transition-transform duration-500"
-                                                style='background-image: url("/static/uploads/orders/{{ img.filename }}");'>
+                                                style='background-image: url("{{ image_src }}");'>
                                             </div>
                                         </a>
                                     </div>
