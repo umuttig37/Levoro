@@ -39,7 +39,7 @@ def contact():
 @app.post("/yhteystiedot")
 def contact_submit():
     """Handle contact form submission - send email to admin"""
-    from flask import request, flash
+    from flask import request, flash, current_app
     from services.email_service import email_service
     import os
     
@@ -55,8 +55,8 @@ def contact_submit():
         flash('Täytä kaikki kentät.', 'error')
         return redirect(url_for('main.index', _anchor='contact'))
     
-    # Get admin email from environment or use default
-    admin_email = os.getenv('ADMIN_EMAIL', 'support@levoro.fi')
+    # Get admin email from environment or fallback to configured sender
+    admin_email = os.getenv('ADMIN_EMAIL') or current_app.config.get('MAIL_DEFAULT_SENDER', 'support@levoro.fi')
     print(f"[CONTACT FORM] Will send to admin: {admin_email}")
     
     # Create email HTML
@@ -93,7 +93,6 @@ def contact_submit():
             subject=f"Yhteydenotto: {name}",
             recipients=[admin_email],
             html_body=html_body,
-            sender=f"Levoro Yhteydenotto <noreply@levoro.fi>",
             reply_to=email  # Now visitor can receive replies directly
         )
         
