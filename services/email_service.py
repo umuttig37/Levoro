@@ -36,7 +36,7 @@ class EmailService:
         return self.mail
 
     def send_email(self, subject: str, recipients: List[str], html_body: str,
-                   text_body: str = None, sender: str = None) -> bool:
+                   text_body: str = None, sender: str = None, reply_to: str = None) -> bool:
         """
         Send an email using Flask-Mail and Zoho SMTP
         In development mode, saves emails as HTML files instead of sending
@@ -47,6 +47,7 @@ class EmailService:
             html_body: HTML email content
             text_body: Plain text email content (optional)
             sender: Sender email address (optional, uses default if not provided)
+            reply_to: Reply-To email address (optional, for contact forms)
 
         Returns:
             bool: True if email was sent successfully, False otherwise
@@ -65,7 +66,7 @@ class EmailService:
         # In development mode, save email to file instead of sending
         if is_dev_mode:
             print(f"   [DEV MODE] Saving email to file instead of sending...")
-            return self._save_email_to_file(subject, recipients, html_body, sender)
+            return self._save_email_to_file(subject, recipients, html_body, sender, reply_to)
         
         print(f"   SMTP Server: {current_app.config.get('MAIL_SERVER', 'N/A')}")
         print(f"   SMTP Port: {current_app.config.get('MAIL_PORT', 'N/A')}")
@@ -91,7 +92,8 @@ class EmailService:
                 recipients=recipients,
                 html=html_body,
                 body=text_body or self._html_to_text(html_body),
-                sender=sender
+                sender=sender,
+                reply_to=reply_to
             )
 
             print(f"   [SEND] Attempting to send via Zoho SMTP...")
@@ -751,7 +753,7 @@ class EmailService:
             print(f"   [ERROR] Failed to send admin driver progress notification: {str(e)}")
             return False
 
-    def _save_email_to_file(self, subject: str, recipients: List[str], html_body: str, sender: str = None) -> bool:
+    def _save_email_to_file(self, subject: str, recipients: List[str], html_body: str, sender: str = None, reply_to: str = None) -> bool:
         """Save email as HTML file for development testing"""
         try:
             from datetime import datetime
@@ -767,6 +769,9 @@ class EmailService:
             safe_subject = re.sub(r'[^a-zA-Z0-9_-]', '_', subject)[:50]
             filename = f"{timestamp}_{safe_subject}.html"
             filepath = os.path.join(emails_dir, filename)
+            
+            # Build reply-to line if present
+            reply_to_line = f'<p><strong>Reply-To:</strong> {reply_to}</p>' if reply_to else ''
             
             # Create email wrapper with metadata
             email_html = f"""
@@ -801,6 +806,7 @@ class EmailService:
         <h2>📧 Development Email Mock</h2>
         <p><strong>From:</strong> {sender or 'support@levoro.fi'}</p>
         <p><strong>To:</strong> {', '.join(recipients)}</p>
+        {reply_to_line}
         <p><strong>Subject:</strong> {subject}</p>
         <p class="timestamp"><strong>Timestamp:</strong> {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</p>
     </div>
