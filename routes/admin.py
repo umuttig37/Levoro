@@ -2,7 +2,9 @@
 Admin Routes for user and system management
 """
 
+from datetime import datetime, timezone
 from flask import Blueprint, request, redirect, url_for, flash, render_template, jsonify
+from werkzeug.security import generate_password_hash
 from services.auth_service import auth_service
 from services.order_service import order_service
 from services.image_service import image_service
@@ -76,10 +78,30 @@ def user_detail(user_id):
 
     if user.get("role") == "driver":
         # specific data for drivers
-        driver_performance = driver_service.calculate_driver_performance(user_id)
-        # We can implement fetching actual active job details if needed
-        # For now passing summary stats
-        context["driver_stats"] = driver_performance
+        driver_stats = driver_service.get_driver_statistics(user_id)
+        active_statuses = [
+            order_model.STATUS_CONFIRMED,
+            order_model.STATUS_ASSIGNED_TO_DRIVER,
+            order_model.STATUS_DRIVER_ARRIVED,
+            order_model.STATUS_PICKUP_IMAGES_ADDED,
+            order_model.STATUS_IN_TRANSIT,
+            order_model.STATUS_DELIVERY_ARRIVED,
+            order_model.STATUS_DELIVERY_IMAGES_ADDED,
+        ]
+        driver_active_orders = order_model.find(
+            {"driver_id": int(user_id), "status": {"$in": active_statuses}},
+            sort=[("created_at", -1)]
+        )
+        driver_all_orders = order_model.find(
+            {"driver_id": int(user_id)},
+            sort=[("created_at", -1)],
+            limit=200
+        )
+        active_ids = {order.get("id") for order in driver_active_orders if order.get("id") is not None}
+        driver_order_history = [order for order in driver_all_orders if order.get("id") not in active_ids]
+        context["driver_stats"] = driver_stats
+        context["driver_active_orders"] = driver_active_orders
+        context["driver_orders"] = driver_order_history
         
     elif user.get("role") == "user":
         # specific data for customers (order history)
@@ -92,7 +114,12 @@ def user_detail(user_id):
         order_history = [o for o in all_orders if o.get('status', '').lower() in completed_statuses]
         
         # Calculate total spent (sum of ALL orders)
-        total_spent = sum(order.get('price', 0) for order in all_orders)
+        total_spent = 0
+        for order in all_orders:
+            price = order.get("price_gross")
+            if price is None:
+                price = order.get("price", 0)
+            total_spent += price or 0
         
         context["active_orders"] = active_orders
         context["orders"] = order_history  # For backward compatibility with order history table
@@ -215,7 +242,7 @@ def update_user():
     if user.get("role") != "driver":
         update_data["company_name"] = company_name or None
         update_data["business_id"] = business_id or None
-    if status in ["active", "pending"]:
+    if status in ["active", "pending", "frozen"]:
         update_data["status"] = status
 
     success = user_model.update_one({"id": user_id}, {"$set": update_data})
@@ -227,6 +254,127 @@ def update_user():
         flash("Päivitys epäonnistui", "error")
 
     return redirect(url_for("admin.users"))
+
+
+@admin_bp.route("/users/reset-password", methods=["POST"])
+@admin_required
+def reset_user_password():
+    """Send a password reset link to the user's email"""
+    from models.user import user_model
+
+    try:
+        user_id = int(request.form.get("user_id", 0))
+    except (TypeError, ValueError):
+        flash("Virheellinen käyttäjä", "error")
+        return redirect(url_for("admin.users"))
+
+    user = user_model.find_by_id(user_id)
+    if not user:
+        flash("Käyttäjää ei löytynyt", "error")
+        return redirect(url_for("admin.users"))
+
+    email = user.get("email")
+    if not email:
+        flash("Käyttäjällä ei ole sähköpostiosoitetta", "error")
+        return redirect(url_for("admin.user_detail", user_id=user_id))
+
+    _, error = auth_service.request_password_reset(email)
+    if error:
+        flash("Salasanan nollaus epäonnistui", "error")
+    else:
+        flash("Nollauslinkki lähetetty käyttäjän sähköpostiin", "success")
+
+    return redirect(url_for("admin.user_detail", user_id=user_id))
+
+
+@admin_bp.route("/users/set-password", methods=["POST"])
+@admin_required
+def set_user_password():
+    """Admin sets a new password for the user"""
+    from models.user import user_model
+
+    try:
+        user_id = int(request.form.get("user_id", 0))
+    except (TypeError, ValueError):
+        flash("Virheellinen käyttäjä", "error")
+        return redirect(url_for("admin.users"))
+
+    new_password = request.form.get("new_password", "")
+    confirm_password = request.form.get("confirm_password", "")
+
+    if not new_password or not confirm_password:
+        flash("Salasanakentät ovat pakollisia", "error")
+        return redirect(url_for("admin.user_detail", user_id=user_id))
+
+    if new_password != confirm_password:
+        flash("Salasanat eivät täsmää", "error")
+        return redirect(url_for("admin.user_detail", user_id=user_id))
+
+    if len(new_password) < 6:
+        flash("Salasana on liian heikko (vähintään 6 merkkiä)", "error")
+        return redirect(url_for("admin.user_detail", user_id=user_id))
+
+    user = user_model.find_by_id(user_id)
+    if not user:
+        flash("Käyttäjää ei löytynyt", "error")
+        return redirect(url_for("admin.users"))
+
+    success = user_model.update_one(
+        {"id": user_id},
+        {"$set": {
+            "password_hash": generate_password_hash(new_password),
+            "updated_at": datetime.now(timezone.utc)
+        }}
+    )
+
+    if success:
+        flash("Salasana päivitetty", "success")
+    else:
+        flash("Salasanan päivitys epäonnistui", "error")
+
+    return redirect(url_for("admin.user_detail", user_id=user_id))
+
+
+@admin_bp.route("/users/toggle-freeze", methods=["POST"])
+@admin_required
+def toggle_user_freeze():
+    """Freeze or unfreeze a user account"""
+    from models.user import user_model
+
+    try:
+        user_id = int(request.form.get("user_id", 0))
+    except (TypeError, ValueError):
+        flash("Virheellinen käyttäjä", "error")
+        return redirect(url_for("admin.users"))
+
+    user = user_model.find_by_id(user_id)
+    if not user:
+        flash("Käyttäjää ei löytynyt", "error")
+        return redirect(url_for("admin.users"))
+
+    if user.get("role") == "admin":
+        flash("Admin-käyttäjiä ei voi jäädyttää tältä sivulta", "error")
+        return redirect(url_for("admin.user_detail", user_id=user_id))
+
+    current_user = auth_service.get_current_user()
+    if current_user and current_user.get("id") == user_id:
+        flash("Et voi jäädyttää omaa tiliäsi", "error")
+        return redirect(url_for("admin.user_detail", user_id=user_id))
+
+    is_frozen = user.get("status") == "frozen"
+    new_status = "active" if is_frozen else "frozen"
+    success = user_model.update_one(
+        {"id": user_id},
+        {"$set": {"status": new_status, "updated_at": datetime.now(timezone.utc)}}
+    )
+
+    if success:
+        message = "Jäädytys poistettu" if is_frozen else "Käyttäjä jäädytetty"
+        flash(message, "success")
+    else:
+        flash("Tapahtuma epäonnistui. Yritä uudelleen.", "error")
+
+    return redirect(url_for("admin.user_detail", user_id=user_id))
 
 
 @admin_bp.route("/users/verify-password", methods=["POST"])
