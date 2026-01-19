@@ -198,7 +198,7 @@
                     {% elif current_user and current_user.get('role') == 'admin' %}
                     <!-- Admin users don't need Oma sivu link -->
                     {% elif current_user %}
-                    <a href="/dashboard" class="nav-link">Oma sivu</a>
+                    <a href="/dashboard" class="nav-link">Tilaukset</a>
                     {% endif %}
 
                     <!-- Admin Link -->
@@ -385,7 +385,7 @@
                             </div>
                             <div
                                 class="flex justify-between text-xs font-semibold text-slate-500 dark:text-slate-400 mt-1">
-                                <span>Maksettava yhteensä</span>
+                                <span>Yhteensä</span>
                                 <span id="r_gross">—</span>
                             </div>
                         </div>
@@ -441,7 +441,7 @@
         </div>
 
         <div class="max-w-7xl mx-auto px-6 text-center">
-            <p class="text-sm text-slate-400">© 2025 Levoro - Tiyouba Oy | Y-tunnus: 1541430-2</p>
+            <p class="text-sm text-slate-400">© 2026 Levoro - Tiyouba Oy</p>
         </div>
     </footer>
 
@@ -1139,12 +1139,13 @@
     </script>
 
     <!-- Toast notification container and function -->
-    <div id="toast-container" style="position:fixed;top:80px;right:20px;z-index:999999;display:flex;flex-direction:column;gap:10px;"></div>
+    <div id="toast-container"
+        style="position:fixed;top:80px;right:20px;z-index:999999;display:flex;flex-direction:column;gap:10px;"></div>
     <script>
-        window.showToast = function(message, type = 'error') {
+        window.showToast = function (message, type = 'error') {
             const container = document.getElementById('toast-container');
             if (!container) return;
-            
+
             const toast = document.createElement('div');
             const colors = {
                 error: { bg: '#ef4444', icon: 'error' },
@@ -1153,7 +1154,7 @@
                 info: { bg: '#3b82f6', icon: 'info' }
             };
             const { bg, icon } = colors[type] || colors.error;
-            
+
             toast.style.cssText = `
                 display:flex;align-items:center;gap:10px;padding:14px 20px;
                 background:${bg};color:white;border-radius:10px;
@@ -1162,7 +1163,7 @@
             `;
             toast.innerHTML = `<span class="material-symbols-outlined" style="font-size:20px;">${icon}</span><span>${message}</span>`;
             container.appendChild(toast);
-            
+
             requestAnimationFrame(() => { toast.style.transform = 'translateX(0)'; });
             setTimeout(() => {
                 toast.style.transform = 'translateX(120%)';

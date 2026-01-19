@@ -5,7 +5,8 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>{% block title %}Levoro – Portaali{% endblock %}</title>
-    <meta name="description" content="Levoro tarjoaa nopean ja luotettavan autonkuljetuspalvelun yrityksille ja yksityisille.">
+    <meta name="description"
+        content="Levoro tarjoaa nopean ja luotettavan autonkuljetuspalvelun yrityksille ja yksityisille.">
 
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon.png') }}">
 
@@ -82,7 +83,7 @@
                     <!-- Admin users don't need Oma sivu link -->
                     {% elif current_user %}
                     <a href="/order/new/step1" class="nav-link">Uusi tilaus</a>
-                    <a href="/dashboard" class="nav-link">Oma sivu</a>
+                    <a href="/dashboard" class="nav-link">Tilaukset</a>
                     {% else %}
                     <a href="/order/new/step1" class="nav-link">Uusi tilaus</a>
                     {% endif %}
@@ -113,17 +114,18 @@
         {% for category, message in messages %}
         <div class="flash-message {{ category }}">
             <span>{{ message }}</span>
-            <button type="button" class="flash-close" onclick="this.parentElement.remove()" aria-label="Sulje">&times;</button>
+            <button type="button" class="flash-close" onclick="this.parentElement.remove()"
+                aria-label="Sulje">&times;</button>
         </div>
         {% endfor %}
     </div>
     <script>
         // Auto-dismiss flash messages after 5 seconds
-        document.querySelectorAll('.flash-message').forEach(function(msg) {
-            setTimeout(function() {
+        document.querySelectorAll('.flash-message').forEach(function (msg) {
+            setTimeout(function () {
                 msg.style.opacity = '0';
                 msg.style.transform = 'translateY(-10px)';
-                setTimeout(function() { msg.remove(); }, 300);
+                setTimeout(function () { msg.remove(); }, 300);
             }, 5000);
         });
     </script>
@@ -174,14 +176,14 @@
                     <ul class="footer-links">
                         <li><a href="/#contact" onclick="openContactFromFooter(); return false;">Yhteystiedot</a></li>
                         <li><a href="/sopimusehdot">Sopimusehdot</a></li>
-                        <li><a href="/kuljettajan-ehdot">Kuljettajan ehdot</a></li>
+
                     </ul>
                 </div>
             </div>
 
             <!-- Footer Bottom -->
             <div class="footer-bottom">
-                <p class="footer-copyright">© 2025 Levoro - Tiyouba Oy | Y-tunnus: 1541430-2</p>
+                <p class="footer-copyright">© 2026 Levoro - Tiyouba Oy</p>
             </div>
         </div>
     </footer>
@@ -261,12 +263,13 @@
     </script>
 
     <!-- Toast notification container and function -->
-    <div id="toast-container" style="position:fixed;top:80px;right:20px;z-index:999999;display:flex;flex-direction:column;gap:10px;"></div>
+    <div id="toast-container"
+        style="position:fixed;top:80px;right:20px;z-index:999999;display:flex;flex-direction:column;gap:10px;"></div>
     <script>
-        window.showToast = function(message, type = 'error') {
+        window.showToast = function (message, type = 'error') {
             const container = document.getElementById('toast-container');
             if (!container) return;
-            
+
             const toast = document.createElement('div');
             const colors = {
                 error: { bg: '#ef4444', icon: 'error' },
@@ -275,7 +278,7 @@
                 info: { bg: '#3b82f6', icon: 'info' }
             };
             const { bg, icon } = colors[type] || colors.error;
-            
+
             toast.style.cssText = `
                 display:flex;align-items:center;gap:10px;padding:14px 20px;
                 background:${bg};color:white;border-radius:10px;
@@ -284,7 +287,7 @@
             `;
             toast.innerHTML = `<span class="material-symbols-outlined" style="font-size:20px;">${icon}</span><span>${message}</span>`;
             container.appendChild(toast);
-            
+
             requestAnimationFrame(() => { toast.style.transform = 'translateX(0)'; });
             setTimeout(() => {
                 toast.style.transform = 'translateX(120%)';

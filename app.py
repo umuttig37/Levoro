@@ -510,7 +510,7 @@ PAGE_FOOT = """
     <div class="footer-inner">
       <div class="text-center">
         __FOOTER_CALCULATOR__
-        <p style="margin: 0; opacity: 0.8;">© 2025 Levoro - Tiyouba Oy | Y-tunnus: 1541430-2</p>
+        <p style="margin: 0; opacity: 0.8;">© 2026 Levoro - Tiyouba Oy</p>
       </div>
     </div>
   </div>
@@ -562,7 +562,7 @@ def wrap(content: str, user=None):
             admin_link = '<a href="/admin" class="nav-link">Admin</a>'
         else:
             # Regular users get Uusi tilaus and Oma sivu links
-            user_links = '<a href="/order/new/step1" class="nav-link">Uusi tilaus</a><a href="/dashboard" class="nav-link">Oma sivu</a>'
+            user_links = '<a href="/order/new/step1" class="nav-link">Uusi tilaus</a><a href="/dashboard" class="nav-link">Tilaukset</a>'
     else:
         # Non-authenticated users can see Uusi tilaus
         user_links = '<a href="/order/new/step1" class="nav-link">Uusi tilaus</a>'

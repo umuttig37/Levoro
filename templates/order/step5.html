@@ -57,8 +57,7 @@
                     <span class="font-semibold text-slate-900">Toimitus suoraan loppuasiakkaalle</span>
                 </div>
                 <p class="text-sm text-slate-500">
-                    Auto toimitetaan suoraan asiakkaalle (ei liikkeeseen). Kuljettaja käsittelee autoa erityisen
-                    huolellisesti.
+                    Tämä auto toimitetaan suoraan loppuasiakkaalle. Autoa käsitellään erityisen huolellisesti.
                 </p>
             </div>
         </label>
@@ -131,27 +130,27 @@
         try {
             const res = await fetch('/api/common_additional_info');
             if (!res.ok) return;
-            
+
             const data = await res.json();
             const items = data.items || [];
-            
+
             if (items.length === 0) return;
-            
+
             const grid = document.getElementById('suggestionsGrid');
             if (!grid) return;
-            
+
             const maxTotal = 6;
             const defaultButtons = grid.querySelectorAll('button');
-            
+
             // Remove default buttons from the end to make room for personal ones
             const toRemove = Math.min(items.length, defaultButtons.length);
             for (let i = 0; i < toRemove; i++) {
                 defaultButtons[defaultButtons.length - 1 - i].remove();
             }
-            
+
             // Insert personal suggestions at the beginning
             const firstChild = grid.firstChild;
-            
+
             items.slice(0, maxTotal).forEach(item => {
                 const btn = document.createElement('button');
                 btn.type = 'button';
@@ -167,7 +166,7 @@
             console.log('Could not load personal suggestions:', e);
         }
     })();
-    
+
     function escapeHtml(text) {
         const div = document.createElement('div');
         div.textContent = text;

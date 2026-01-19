@@ -1104,14 +1104,6 @@
     transition: background 0.15s ease;
   }
 
-  color: white;
-  border-radius: 1rem;
-  font-weight: 600;
-  font-size: 0.875rem;
-  text-decoration: none;
-  transition: background 0.15s ease;
-  }
-
   .mobile-card-action:hover {
     background: #1177c7;
   }
@@ -1286,7 +1278,7 @@
             <th>Tilaus ID</th>
             <th>Reitti & Matka</th>
             <th>Tila</th>
-            <th>Arvioitu aika</th>
+            <th>Päivämäärä</th>
             <th class="text-right">Hinta</th>
             <th class="text-center">Toiminto</th>
           </tr>
@@ -1311,8 +1303,8 @@
 
           {% set status_class = {
           'NEW': 'pending',
-          'CONFIRMED': 'confirmed',
-          'ASSIGNED_TO_DRIVER': 'confirmed',
+          'CONFIRMED': 'delivered',
+          'ASSIGNED_TO_DRIVER': 'in-transit',
           'DRIVER_ARRIVED': 'in-transit',
           'PICKUP_IMAGES_ADDED': 'in-transit',
           'IN_TRANSIT': 'in-transit',
@@ -1325,7 +1317,8 @@
 
           {% set is_completed = order.status in completed_statuses %}
 
-          <tr class="order-row" data-status="{{ 'completed' if is_completed else 'active' }}" data-plate="{{ order.reg_number or '' }}">
+          <tr class="order-row" data-status="{{ 'completed' if is_completed else 'active' }}"
+            data-plate="{{ order.reg_number or '' }}">
             <td>
               <span class="order-id-cell">#{{ order.user_order_number or order.id }}</span>
             </td>
@@ -1412,8 +1405,8 @@
 
       {% set status_class = {
       'NEW': 'pending',
-      'CONFIRMED': 'confirmed',
-      'ASSIGNED_TO_DRIVER': 'confirmed',
+      'CONFIRMED': 'delivered',
+      'ASSIGNED_TO_DRIVER': 'in-transit',
       'DRIVER_ARRIVED': 'in-transit',
       'PICKUP_IMAGES_ADDED': 'in-transit',
       'IN_TRANSIT': 'in-transit',
@@ -1426,7 +1419,8 @@
 
       {% set is_completed = order.status in completed_statuses %}
 
-      <div class="mobile-order-card order-card-item" data-status="{{ 'completed' if is_completed else 'active' }}" data-plate="{{ order.reg_number or '' }}">
+      <div class="mobile-order-card order-card-item" data-status="{{ 'completed' if is_completed else 'active' }}"
+        data-plate="{{ order.reg_number or '' }}">
         <div class="mobile-card-header">
           <span class="mobile-card-id">#{{ order.user_order_number or order.id }}</span>
           <span class="status-badge {{ status_class }}">
