@@ -1,232 +1,127 @@
 /**
- * Form Validation Utilities
- * Client-side validation helpers for forms and inputs
+ * Global Custom Form Validation
+ * Replaces browser native validation with toast messages
  */
 
-class ValidationUtils {
-    constructor() {
-        this.patterns = {
-            email: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
-            phone: /^(\+358|0)[1-9][0-9]{6,10}$/,
-            regNumber: /^[A-Z]{2,3}-[0-9]{1,3}$/,
-            postalCode: /^[0-9]{5}$/
-        };
+document.addEventListener('DOMContentLoaded', () => {
+    // Select all forms (they should have novalidate in HTML)
+    const forms = document.querySelectorAll('form:not(.no-custom-validation)');
 
-        this.messages = {
-            required: 'Tämä kenttä on pakollinen',
-            email: 'Virheellinen sähköpostiosoite',
-            phone: 'Virheellinen puhelinnumero',
-            regNumber: 'Virheellinen rekisterinumero (esim. ABC-123)',
-            postalCode: 'Virheellinen postinumero',
-            minLength: 'Liian lyhyt, vähintään {min} merkkiä',
-            maxLength: 'Liian pitkä, enintään {max} merkkiä',
-            match: 'Kentät eivät täsmää'
-        };
-    }
-
-    // Validate individual field
-    validateField(field, rules = {}) {
-        const value = field.value.trim();
-        const errors = [];
-
-        // Required validation
-        if (rules.required && !value) {
-            errors.push(this.messages.required);
-            return { valid: false, errors };
-        }
-
-        // Skip other validations if field is empty and not required
-        if (!value && !rules.required) {
-            return { valid: true, errors: [] };
-        }
-
-        // Email validation
-        if (rules.email && !this.patterns.email.test(value)) {
-            errors.push(this.messages.email);
-        }
-
-        // Phone validation
-        if (rules.phone && !this.patterns.phone.test(value)) {
-            errors.push(this.messages.phone);
-        }
-
-        // Registration number validation
-        if (rules.regNumber && !this.patterns.regNumber.test(value)) {
-            errors.push(this.messages.regNumber);
-        }
-
-        // Postal code validation
-        if (rules.postalCode && !this.patterns.postalCode.test(value)) {
-            errors.push(this.messages.postalCode);
-        }
-
-        // Length validations
-        if (rules.minLength && value.length < rules.minLength) {
-            errors.push(this.messages.minLength.replace('{min}', rules.minLength));
-        }
-
-        if (rules.maxLength && value.length > rules.maxLength) {
-            errors.push(this.messages.maxLength.replace('{max}', rules.maxLength));
-        }
-
-        // Match validation (for password confirmation, etc.)
-        if (rules.match) {
-            const matchField = document.querySelector(rules.match);
-            if (matchField && value !== matchField.value.trim()) {
-                errors.push(this.messages.match);
-            }
-        }
-
-        return {
-            valid: errors.length === 0,
-            errors
-        };
-    }
-
-    // Validate entire form
-    validateForm(form, fieldRules = {}) {
-        const results = {};
-        let isValid = true;
-
-        // Get all form fields
-        const fields = form.querySelectorAll('input, textarea, select');
-
-        fields.forEach(field => {
-            const fieldName = field.name || field.id;
-            if (!fieldName || !fieldRules[fieldName]) return;
-
-            const validation = this.validateField(field, fieldRules[fieldName]);
-            results[fieldName] = validation;
-
-            if (!validation.valid) {
-                isValid = false;
-                this.showFieldError(field, validation.errors);
-            } else {
-                this.clearFieldError(field);
-            }
-        });
-
-        return {
-            valid: isValid,
-            results
-        };
-    }
-
-    // Show field error
-    showFieldError(field, errors) {
-        this.clearFieldError(field);
-
-        field.classList.add('error');
-
-        // Create error message element
-        const errorDiv = document.createElement('div');
-        errorDiv.className = 'field-error';
-        errorDiv.textContent = errors[0]; // Show first error
-
-        // Insert after field
-        field.parentNode.insertBefore(errorDiv, field.nextSibling);
-
-        // Focus on first error field if not already focused
-        if (document.activeElement !== field) {
-            field.focus();
-        }
-    }
-
-    // Clear field error
-    clearFieldError(field) {
-        field.classList.remove('error');
-
-        // Remove existing error message
-        const existingError = field.parentNode.querySelector('.field-error');
-        if (existingError) {
-            existingError.remove();
-        }
-    }
-
-    // Real-time validation setup
-    setupRealtimeValidation(form, fieldRules = {}) {
-        const fields = form.querySelectorAll('input, textarea, select');
-
-        fields.forEach(field => {
-            const fieldName = field.name || field.id;
-            if (!fieldName || !fieldRules[fieldName]) return;
-
-            // Validate on blur
-            field.addEventListener('blur', () => {
-                const validation = this.validateField(field, fieldRules[fieldName]);
-                if (!validation.valid) {
-                    this.showFieldError(field, validation.errors);
-                } else {
-                    this.clearFieldError(field);
-                }
-            });
-
-            // Clear error on input
-            field.addEventListener('input', () => {
-                if (field.classList.contains('error')) {
-                    this.clearFieldError(field);
-                }
-            });
-        });
-
-        // Validate on form submit
+    forms.forEach(form => {
+        // Handle Form Submission
         form.addEventListener('submit', (e) => {
-            const validation = this.validateForm(form, fieldRules);
-            if (!validation.valid) {
+            let isValid = true;
+            let firstInvalid = null;
+            let errorMessages = [];
+
+            // Find all inputs, selects, textareas
+            const inputs = form.querySelectorAll('input, select, textarea');
+
+            inputs.forEach(input => {
+                // Skip hidden inputs
+                if (input.type === 'hidden' || input.disabled || input.readOnly) return;
+
+                // Skip invisible inputs
+                if (input.offsetParent === null) return;
+
+                // Clear previous error styling
+                clearError(input);
+
+                if (!input.checkValidity()) {
+                    let message = getValidationMessage(input, form);
+                    
+                    if (!errorMessages.includes(message)) {
+                        errorMessages.push(message);
+                    }
+                    
+                    showError(input);
+                    isValid = false;
+                    if (!firstInvalid) firstInvalid = input;
+                }
+            });
+
+            if (!isValid) {
                 e.preventDefault();
                 e.stopPropagation();
 
-                // Focus first error field
-                const firstErrorField = form.querySelector('.error');
-                if (firstErrorField) {
-                    firstErrorField.focus();
+                // Show toast with first error message
+                if (errorMessages.length > 0 && typeof showToast === 'function') {
+                    showToast(errorMessages[0], 'warning');
+                }
+
+                if (firstInvalid) {
+                    firstInvalid.focus();
+                    firstInvalid.scrollIntoView({ behavior: 'smooth', block: 'center' });
                 }
             }
         });
-    }
 
-    // Custom validation function
-    addCustomValidation(fieldName, validationFn, errorMessage) {
-        // Store custom validations for later use
-        if (!this.customValidations) {
-            this.customValidations = {};
+        // Add real-time validation clearing
+        form.querySelectorAll('input, select, textarea').forEach(input => {
+            input.addEventListener('input', () => clearError(input));
+            input.addEventListener('change', () => clearError(input));
+        });
+    });
+
+    /**
+     * Get user-friendly validation message in Finnish
+     */
+    function getValidationMessage(input, form) {
+        // Try to get field label
+        const labelEl = input.closest('.form-group')?.querySelector('label') 
+            || input.closest('.contact-form-group')?.querySelector('label')
+            || form.querySelector(`label[for="${input.id}"]`);
+        const fieldName = labelEl?.textContent?.replace('*', '').trim() || input.placeholder || 'Tämä kenttä';
+
+        if (input.validity.valueMissing) {
+            if (input.type === 'checkbox') {
+                return "Hyväksy ehdot jatkaaksesi";
+            } else if (input.type === 'radio') {
+                return "Valitse yksi vaihtoehto";
+            } else {
+                return `${fieldName} on pakollinen`;
+            }
+        } else if (input.validity.typeMismatch) {
+            if (input.type === 'email') {
+                return "Syötä kelvollinen sähköpostiosoite";
+            } else if (input.type === 'url') {
+                return "Syötä kelvollinen URL-osoite";
+            } else if (input.type === 'tel') {
+                return "Syötä kelvollinen puhelinnumero";
+            }
+        } else if (input.validity.patternMismatch) {
+            return input.title || "Tarkista kentän muoto";
+        } else if (input.validity.tooShort) {
+            return `Vähintään ${input.minLength} merkkiä vaaditaan`;
+        } else if (input.validity.tooLong) {
+            return `Enintään ${input.maxLength} merkkiä sallittu`;
+        } else if (input.validity.rangeUnderflow) {
+            return `Arvon on oltava vähintään ${input.min}`;
+        } else if (input.validity.rangeOverflow) {
+            return `Arvon on oltava enintään ${input.max}`;
         }
 
-        this.customValidations[fieldName] = {
-            validate: validationFn,
-            message: errorMessage
-        };
-    }
-
-    // Address validation (specific to this app)
-    validateAddress(address) {
-        if (!address || address.trim().length < 5) {
-            return {
-                valid: false,
-                error: 'Osoite on liian lyhyt'
-            };
+        // Password confirmation check
+        if (input.id === 'password-confirm' || input.name === 'confirm_password' || input.name === 'password_confirm') {
+            const pw = form.querySelector('input[name="password"]') || form.querySelector('#password');
+            if (pw && pw.value !== input.value) {
+                return "Salasanat eivät täsmää";
+            }
         }
 
-        // Check for basic address components (street number, street name)
-        const addressParts = address.trim().split(/\s+/);
-        if (addressParts.length < 2) {
-            return {
-                valid: false,
-                error: 'Syötä katu ja numero'
-            };
-        }
-
-        return { valid: true };
+        return "Tarkista kentän arvo";
     }
-}
 
-// Initialize validation utilities
-document.addEventListener('DOMContentLoaded', () => {
-    window.validationUtils = new ValidationUtils();
-    window.levoroApp?.registerComponent('validation', window.validationUtils);
+    function showError(input) {
+        input.classList.add('input-error');
+        // Add red border styling
+        input.style.borderColor = '#f87171';
+        input.style.boxShadow = '0 0 0 3px rgba(248, 113, 113, 0.15)';
+    }
+
+    function clearError(input) {
+        input.classList.remove('input-error');
+        input.style.borderColor = '';
+        input.style.boxShadow = '';
+    }
 });
-
-// Export for modules
-if (typeof module !== 'undefined' && module.exports) {
-    module.exports = ValidationUtils;
-}

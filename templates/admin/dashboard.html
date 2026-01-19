@@ -1,102 +1,827 @@
-{% extends "base/layout.html" %}
-{% import 'components/icons.html' as icons %}
+<!DOCTYPE html>
+<html class="light" lang="fi">
 
-{% block title %}Admin – Tilaukset{% endblock %}
+<head>
+  <meta charset="utf-8" />
+  <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+  <title>Levoro Admin - Tilaukset</title>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+    rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+  <script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "primary": "#1392ec",
+            "background-light": "#f6f7f8",
+            "background-dark": "#101a22",
+          },
+          fontFamily: {
+            "display": ["Inter", "sans-serif"]
+          },
+          borderRadius: { "DEFAULT": "0.5rem", "lg": "1rem", "xl": "1.5rem", "full": "9999px" },
+        },
+      },
+    }
+  </script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&amp;display=swap"
+    rel="stylesheet" />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+    rel="stylesheet" />
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+    }
 
-{% block content %}
-<div class="admin-container">
-  <div class="admin-header">
-    <h2>Admin – Tilaukset</h2>
-    <div class="admin-actions">
-      <a class="btn btn-ghost" href="/admin/users">Käyttäjät</a>
-      <a class="btn btn-ghost" href="/admin/drivers">Kuljettajat</a>
-      <a class="btn btn-ghost" href="/admin/driver-applications">Kuljettajahakemukset</a>
-      <a class="btn btn-ghost" href="/admin/discounts">Alennukset</a>
-      <a class="btn btn-secondary" href="/logout">Kirjaudu ulos</a>
+    /* Hide global scrollbar */
+    body::-webkit-scrollbar,
+    html::-webkit-scrollbar {
+      display: none;
+    }
+
+    body,
+    html {
+      -ms-overflow-style: none;
+      /* IE and Edge */
+      scrollbar-width: none;
+      /* Firefox */
+    }
+
+    /* Custom scrollbar for better aesthetic in tables */
+    .custom-scrollbar::-webkit-scrollbar {
+      height: 8px;
+      width: 8px;
+    }
+
+    .custom-scrollbar::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background-color: #cbd5e1;
+      border-radius: 4px;
+    }
+
+    .dark .custom-scrollbar::-webkit-scrollbar-thumb {
+      background-color: #475569;
+    }
+
+    .flash-messages {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 1000;
+    }
+
+    .flash-message {
+      padding: 1rem;
+      margin-bottom: 1rem;
+      border-radius: 0.5rem;
+      color: white;
+      font-weight: 500;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    }
+
+    .flash-message.success {
+      background-color: #10b981;
+    }
+
+    .flash-message.error {
+      background-color: #ef4444;
+    }
+
+    .flash-message.warning {
+      background-color: #f59e0b;
+    }
+
+    .flash-message.info {
+      background-color: #3b82f6;
+    }
+
+    /* Hide native select arrows */
+    select {
+      -webkit-appearance: none;
+      -moz-appearance: none;
+      appearance: none;
+      background-image: none;
+    }
+
+    select::-ms-expand {
+      display: none;
+    }
+
+    /* Custom Dropdown Styles (Adapted from Customer Dashboard) */
+    :root {
+      --dash-primary: #1392ec;
+    }
+
+    .custom-select-container {
+      position: relative;
+      width: 100%;
+    }
+
+    .custom-select-container.open {
+      z-index: 20;
+    }
+
+    .custom-select-trigger {
+      width: 100%;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.625rem 0.875rem;
+      background: white;
+      border: 1px solid #e2e8f0;
+      border-radius: 0.75rem;
+      font-size: 0.875rem;
+      color: #0d161b;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      user-select: none;
+    }
+
+    .dark .custom-select-trigger {
+      background: #1e2936;
+      color: white;
+      border-color: #475569;
+    }
+
+    .custom-select-trigger:hover {
+      border-color: #cbd5e1;
+    }
+
+    .dark .custom-select-trigger:hover {
+      border-color: #64748b;
+    }
+
+    .custom-select-trigger.open {
+      border-color: var(--dash-primary);
+      border-bottom-color: transparent;
+      border-bottom-left-radius: 0;
+      border-bottom-right-radius: 0;
+    }
+
+    .custom-select-arrow {
+      width: 16px;
+      height: 16px;
+      color: #94a3b8;
+      /* slate-400 */
+      transition: transform 0.2s ease;
+    }
+
+    .custom-select-trigger.open .custom-select-arrow {
+      transform: rotate(180deg);
+      color: var(--dash-primary);
+    }
+
+    .custom-select-options {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      background: white;
+      border: 1px solid var(--dash-primary);
+      border-top: none;
+      border-bottom-left-radius: 0.75rem;
+      border-bottom-right-radius: 0.75rem;
+      z-index: 100;
+      display: none;
+      max-height: 250px;
+      overflow-y: auto;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      margin-top: 0;
+    }
+
+    .dark .custom-select-options {
+      background: #1e2936;
+      border-color: rgba(19, 146, 236, 0.5);
+    }
+
+    .custom-select-container.open .custom-select-options {
+      display: block;
+      animation: fadeIn 0.1s ease-out;
+    }
+
+    .custom-option {
+      padding: 0.5rem 0.75rem;
+      cursor: pointer;
+      color: #0d161b;
+      font-size: 0.875rem;
+      transition: background 0.15s;
+    }
+
+    .dark .custom-option {
+      color: white;
+    }
+
+    .custom-option:hover {
+      background: #f1f5f9;
+      color: var(--dash-primary);
+    }
+
+    .dark .custom-option:hover {
+      background: #334155;
+    }
+
+    .custom-option.selected {
+      background: var(--dash-primary);
+      color: white;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(-5px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* Trip Badges */
+    .trip-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+      padding: 0.125rem 0.5rem;
+      border-radius: 9999px;
+      font-size: 0.65rem;
+      font-weight: 600;
+      white-space: nowrap;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 0.25rem;
+      width: fit-content;
+    }
+
+    .trip-badge.meno {
+      background: #eff6ff;
+      color: #1d4ed8;
+      border: 1px solid #bfdbfe;
+    }
+
+    .trip-badge.paluu {
+      background: #fff7ed;
+      color: #c2410c;
+      border: 1px solid #fed7aa;
+    }
+  </style>
+</head>
+
+<body
+  class="bg-background-light dark:bg-background-dark min-h-screen w-full flex flex-col text-[#0d161b] dark:text-white transition-colors duration-200">
+
+  <!-- Flash Messages -->
+  {% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+  <div class="flash-messages">
+    {% for category, message in messages %}
+    <div class="flash-message {{ category }}">
+      {{ message }}
     </div>
+    {% endfor %}
   </div>
+  {% endif %}
+  {% endwith %}
 
-  <table class="admin-table">
-    <thead>
-      <tr>
-        <th>ID</th>
-        <th>Tila</th>
-        <th>Näkyvyys</th>
-        <th>Asiakas</th>
-        <th>Kuljettaja</th>
-        <th>Reitti</th>
-        <th>Km</th>
-        <th>Hinta (ALV 0%)</th>
-        <th>Kuvat</th>
-        <th>Hallinta</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% if orders %}
-      {% for order in orders %}
-      {% set status_fi = {
-      'NEW': 'Uusi',
-      'CONFIRMED': 'Vahvistettu',
-      'ASSIGNED_TO_DRIVER': 'Kuljettaja määritetty',
-      'DRIVER_ARRIVED': 'Kuljettaja paikalla',
-      'PICKUP_IMAGES_ADDED': 'Noutokuva lisätty',
-      'IN_TRANSIT': 'Kuljetuksessa',
-      'DELIVERY_ARRIVED': 'Toimitus paikalla',
-      'DELIVERY_IMAGES_ADDED': 'Toimituskuva lisätty',
-      'DELIVERED': 'Toimitettu',
-      'CANCELLED': 'Peruutettu'
-      }.get(order.status, order.status) %}
+  <!-- Top Navigation -->
+  <header
+    class="sticky top-0 z-50 border-b border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-[#101a22]/80 backdrop-blur-md">
+    <!-- Top Row: Logo & Main Nav -->
+    <div class="flex items-center justify-between px-6 py-3 lg:px-10 w-full max-w-[1440px] mx-auto">
+      <a href="/" class="flex items-center gap-4">
+        <img src="/static/LevoroLogo.png" alt="Levoro" class="h-20 w-auto">
+      </a>
+      <div class="flex flex-1 justify-end gap-8">
+        <!-- Navigation Links -->
+        <nav class="hidden md:flex items-center gap-2">
 
-      {% set pickup_icon = "✓" if order.get('images', {}).get('pickup') else "-" %}
-      {% set delivery_icon = "✓" if order.get('images', {}).get('delivery') else "-" %}
+          <a class="px-3 py-2 rounded-md bg-slate-100 text-primary font-semibold transition-colors"
+            href="{{ url_for('main.admin_dashboard') }}">Tilaukset</a>
 
-      {% set driver_info = "Ei kuljettajaa" %}
-      {% if order.get('driver_name') %}
-      {% set driver_info = order.get('driver_name', '?') %}
-      {% elif order.get('status') in ['NEW', 'CONFIRMED'] %}
-      {% set driver_info = "Odottaa" %}
-      {% endif %}
+          <a class="px-3 py-2 rounded-md text-slate-700 hover:text-primary hover:bg-slate-100 font-semibold transition-colors"
+            href="{{ url_for('admin.users') }}">Käyttäjät</a>
 
-      {% set is_visible = order.status in ['CONFIRMED', 'ASSIGNED_TO_DRIVER', 'DRIVER_ARRIVED', 'PICKUP_IMAGES_ADDED',
-      'IN_TRANSIT', 'DELIVERY_ARRIVED', 'DELIVERY_IMAGES_ADDED'] and not order.get('driver_id') %}
-      {% set visibility_icon = "Näkyvissä" if is_visible else ("Otettu" if order.get('driver_id') else "Ei julkaistu")
-      %}
-      {% set visibility_class = "visible" if is_visible else ("assigned" if order.get('driver_id') else "hidden") %}
+          <a class="px-3 py-2 rounded-md text-slate-700 hover:text-primary hover:bg-slate-100 font-semibold transition-colors"
+            href="{{ url_for('admin.driver_applications') }}">Hakemukset</a>
 
-      <tr class="admin-table-row">
-        <td>
-          <strong>#{{ order.id }}</strong>
-          {% if order.trip_type %}
-            <span class="trip-type-badge trip-type-{{ order.trip_type.lower() }}">{{ order.trip_type }}</span>
+          <a class="px-3 py-2 rounded-md text-slate-700 hover:text-primary hover:bg-slate-100 font-semibold transition-colors"
+            href="{{ url_for('admin.discounts') }}">Alennukset</a>
+
+          <a class="px-3 py-2 rounded-md text-slate-700 hover:text-primary hover:bg-slate-100 font-semibold transition-colors"
+            href="{{ url_for('admin.reviews') }}">Arvostelut</a>
+
+          {% if current_user.is_authenticated %}
+          <div class="px-3 py-2 rounded-full bg-slate-100 text-slate-600 font-medium text-sm">
+            Hei, {{ current_user.name }}
+          </div>
           {% endif %}
-        </td>
-        <td><span class="status {{ order.status }}">{{ status_fi }}</span></td>
-        <td><span class="visibility-badge {{ visibility_class }}"
-            title="{% if is_visible %}Kuljettajat voivat nähdä ja ottaa vastaan{% elif order.get('driver_id') %}Kuljettaja on ottanut keikan{% else %}Vahvista tilaus julkaistaksesi kuljettajille{% endif %}">{{
-            visibility_icon }}</span></td>
-        <td>
-          <div>{{ order.get('customer_name', '?') }}</div>
-          {% if order.get('customer_phone') %}<div class="admin-customer-phone">{{ order.get('customer_phone') }}</div>{% endif %}
-        </td>
-        <td>{{ driver_info }}</td>
-        <td>{{ order.pickup_address }} → {{ order.dropoff_address }}</td>
-        <td>{{ "%.1f"|format(order.distance_km|float) }} km</td>
-        <td><strong class="admin-price-net">{{ "%.2f"|format((order.price_gross|float) / 1.255) }} €</strong> <span
-            class="admin-price-vat">ALV 0%</span></td>
-        <td class="image-status">{{ pickup_icon }} {{ delivery_icon }}</td>
-        <td class="admin-table-actions">
-          <a href="/admin/order/{{ order.id }}" class="btn btn-primary admin-table-manage-btn">
-            Hallinta
+
+          <a class="px-3 py-2 rounded-md text-slate-700 hover:text-primary hover:bg-slate-100 font-semibold transition-colors"
+            href="{{ url_for('auth.logout') }}">Kirjaudu ulos</a>
+        </nav>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="flex-1 w-full max-w-[1440px] mx-auto p-6 lg:p-10 flex flex-col gap-8">
+    <!-- Header Section -->
+    <div class="flex flex-col md:flex-row md:items-end justify-between gap-4">
+      <div class="flex flex-col gap-2">
+        <h1 class="text-3xl font-black leading-tight tracking-[-0.033em] text-slate-900 dark:text-white">Tilausten
+          hallinta</h1>
+        <p class="text-slate-500 dark:text-slate-400 text-base font-normal">Hallitse kuljetustilauksia ja niiden tilaa.
+        </p>
+      </div>
+      <a href="/order/new/step1"
+        class="flex items-center justify-center gap-2 rounded-xl bg-primary hover:bg-blue-600 text-white px-5 py-2.5 shadow-lg shadow-blue-200 dark:shadow-none transition-all transform hover:-translate-y-0.5 font-bold text-sm">
+        <span class="material-symbols-outlined text-[20px]">add</span>
+        <span>Uusi tilaus</span>
+      </a>
+    </div>
+    <!-- Controls Toolbar -->
+    <form id="filterForm" method="get" action="{{ url_for('main.admin_dashboard') }}"
+      class="flex flex-col lg:flex-row gap-4 items-center mb-6 justify-between">
+      <!-- Search -->
+      <div class="w-full lg:w-[450px]">
+        <div class="relative group">
+          <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <span
+              class="material-symbols-outlined text-slate-400 group-focus-within:text-primary transition-colors">search</span>
+          </div>
+          <input id="searchInput" name="search" value="{{ search or '' }}"
+            class="block w-full pl-10 pr-3 py-3 rounded-xl border-none bg-white dark:bg-[#1e2936] text-slate-900 dark:text-white placeholder-slate-400 focus:ring-2 focus:ring-primary/50 shadow-sm transition-all text-sm"
+            placeholder="Hae tilausnumerolla, rekisterinumerolla, asiakkaalla tai kuljettajalla..." type="text" />
+        </div>
+      </div>
+
+      <!-- Filters Container -->
+      <div class="flex flex-col sm:flex-row items-center gap-4 w-full lg:w-auto">
+        <!-- Status Filter (Custom) -->
+        <div class="relative w-full sm:w-64 custom-select-container">
+          <select name="status" id="statusFilter" style="display:none">
+            <option value="" {% if not status %}selected{% endif %}>Tila: Kaikki</option>
+            <option value="NEW" {% if status=='NEW' %}selected{% endif %}>Uusi</option>
+            <option value="CONFIRMED" {% if status=='CONFIRMED' %}selected{% endif %}>Vahvistettu</option>
+            <option value="ASSIGNED_TO_DRIVER" {% if status=='ASSIGNED_TO_DRIVER' %}selected{% endif %}>Noudossa
+            </option>
+            <option value="IN_TRANSIT" {% if status=='IN_TRANSIT' %}selected{% endif %}>Kuljetuksessa</option>
+            <option value="DELIVERED" {% if status=='DELIVERED' %}selected{% endif %}>Toimitettu</option>
+            <option value="CANCELLED" {% if status=='CANCELLED' %}selected{% endif %}>Peruutettu</option>
+          </select>
+
+          <!-- Custom UI -->
+          <div class="custom-select-trigger shadow-sm">
+            <span class="custom-select-label">Tila: Kaikki</span>
+            <svg class="custom-select-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+          </div>
+          <div class="custom-select-options custom-scrollbar">
+            <!-- Options populated by JS or rendered server-side. Wait, I can hardcode them to match -->
+            <div class="custom-option" data-value="">Tila: Kaikki</div>
+            <div class="custom-option" data-value="NEW">Uusi</div>
+            <div class="custom-option" data-value="CONFIRMED">Vahvistettu</div>
+            <div class="custom-option" data-value="ASSIGNED_TO_DRIVER">Noudossa</div>
+            <div class="custom-option" data-value="IN_TRANSIT">Kuljetuksessa</div>
+            <div class="custom-option" data-value="DELIVERED">Toimitettu</div>
+            <div class="custom-option" data-value="CANCELLED">Peruutettu</div>
+          </div>
+        </div>
+
+        <!-- Date Filter (Custom) -->
+        <div class="relative w-full sm:w-64 custom-select-container">
+          <select name="date_filter" id="dateFilter" style="display:none">
+            <option value="all" {% if date_filter=='all' %}selected{% endif %}>Aika: Kaikki</option>
+            <option value="today" {% if date_filter=='today' %}selected{% endif %}>Tänään</option>
+            <option value="7days" {% if date_filter=='7days' %}selected{% endif %}>Viimeiset 7 päivää</option>
+            <option value="30days" {% if date_filter=='30days' or not date_filter %}selected{% endif %}>Viimeiset 30
+              päivää</option>
+          </select>
+
+          <!-- Custom UI -->
+          <div class="custom-select-trigger shadow-sm">
+            <span class="custom-select-label">Viimeiset 30 päivää</span>
+            <svg class="custom-select-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+          </div>
+          <div class="custom-select-options custom-scrollbar">
+            <div class="custom-option" data-value="all">Aika: Kaikki</div>
+            <div class="custom-option" data-value="today">Tänään</div>
+            <div class="custom-option" data-value="7days">Viimeiset 7 päivää</div>
+            <div class="custom-option" data-value="30days">Viimeiset 30 päivää</div>
+          </div>
+        </div>
+
+      </div>
+    </form>
+    <!-- Table Card -->
+    <div
+      class="bg-white dark:bg-[#1e2936] rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden flex flex-col">
+      <div class="overflow-x-auto custom-scrollbar">
+        <table class="w-full text-left border-collapse min-w-[1000px]">
+          <thead>
+            <tr class="bg-slate-50/50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-700">
+              <th
+                class="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 w-28">
+                Tilaus ID</th>
+              <th
+                class="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 w-36">
+                Tila</th>
+              <th class="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                Tilaajan tiedot</th>
+
+              <th class="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                Reitti</th>
+              <th
+                class="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 text-right">
+                Matka</th>
+              <th
+                class="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 text-right">
+                Hinta (ALV 0)</th>
+              <th
+                class="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 text-center w-24">
+                Toiminnot</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100 dark:divide-slate-700/50" id="ordersTableBody">
+            {% if orders %}
+            {% for order in orders %}
+            {% set status_info = {
+            'NEW': {'class': 'bg-amber-100 text-amber-700 border-amber-200', 'icon': 'schedule', 'label': 'Uusi'},
+            'CONFIRMED': {'class': 'bg-blue-100 text-blue-700 border-blue-200', 'icon': 'check_circle', 'label':
+            'Vahvistettu'},
+            'ASSIGNED_TO_DRIVER': {'class': 'bg-indigo-100 text-indigo-700 border-indigo-200', 'icon': 'local_shipping',
+            'label': 'Noudossa'},
+            'IN_TRANSIT': {'class': 'bg-blue-100 text-blue-700 border-blue-200', 'icon': 'route', 'label':
+            'Kuljetuksessa'},
+            'DELIVERED': {'class': 'bg-green-100 text-green-700 border-green-200', 'icon': 'check', 'label':
+            'Toimitettu'},
+            'CANCELLED': {'class': 'bg-slate-100 text-slate-600 border-slate-200', 'icon': 'block', 'label':
+            'Peruutettu'}
+            }.get(order.status, {'class': 'bg-slate-100 text-slate-600', 'icon': 'help', 'label': order.status}) %}
+
+            <tr class="group hover:bg-blue-50/50 dark:hover:bg-slate-700/30 transition-colors order-row">
+              <td class="px-6 py-4">
+                <span class="font-medium text-slate-900 dark:text-white text-sm">#{{ order.id }}</span>
+              </td>
+              <td class="px-6 py-4">
+                <span
+                  class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold border {{ status_info.class }} dark:bg-opacity-10 dark:border-opacity-20">
+                  <span class="material-symbols-outlined text-[14px]">{{ status_info.icon }}</span> {{ status_info.label
+                  }}
+                </span>
+              </td>
+              <td class="px-6 py-4">
+                <div class="flex items-center gap-3">
+                  <div
+                    class="size-8 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-xs font-bold text-slate-600 dark:text-slate-300">
+                    {{ (order.orderer_name or '?')[0] | upper }}
+                  </div>
+                  <div class="flex flex-col">
+                    <span class="text-sm font-medium text-slate-900 dark:text-white">{{ order.orderer_name or
+                      'Tuntematon' }}</span>
+                  </div>
+                </div>
+              </td>
+
+              <td class="px-6 py-4">
+                <div class="flex flex-col">
+                  <!-- Trip Type Badge -->
+                  {% if order.trip_type == 'MENO' %}
+                  <span class="trip-badge meno">
+                    <span class="material-symbols-outlined text-[12px]">east</span> Meno
+                  </span>
+                  {% elif order.trip_type == 'PALUU' %}
+                  <span class="trip-badge paluu">
+                    <span class="material-symbols-outlined text-[12px]">west</span> Paluu
+                  </span>
+                  {% endif %}
+
+                  <div class="flex items-center gap-1 text-sm font-medium text-slate-900 dark:text-white">
+                    <span>{{ order.pickup_address | extract_city }}</span>
+                    <span class="material-symbols-outlined text-slate-400 text-[14px]">arrow_right_alt</span>
+                    <span>{{ order.dropoff_address | extract_city }}</span>
+                  </div>
+                  <span class="text-xs text-slate-400">{{ order.distance_km }} km</span>
+                </div>
+              </td>
+              <td class="px-6 py-4 text-right">
+                <span class="text-sm text-slate-600 dark:text-slate-300 whitespace-nowrap">{{ order.distance_km }}
+                  km</span>
+              </td>
+              <td class="px-6 py-4 text-right">
+                <span class="text-sm font-bold text-slate-900 dark:text-white whitespace-nowrap">{{
+                  "%.2f"|format((order.get('price_gross', 0)|float) / 1.255) }} €</span>
+              </td>
+              <td class="px-6 py-4 text-center">
+                <a href="{{ url_for('admin.order_detail', order_id=order.id) }}"
+                  class="px-4 py-1.5 rounded-full border border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-900 text-sm font-medium transition-colors inline-flex items-center justify-center"
+                  title="Hallitse tilausta">
+                  Avaa
+                </a>
+              </td>
+            </tr>
+            {% endfor %}
+            {% else %}
+            <tr>
+              <td colspan="8" class="px-6 py-10 text-center text-slate-500">Ei tilauksia.</td>
+            </tr>
+            {% endif %}
+          </tbody>
+        </table>
+      </div>
+      <!-- Pagination -->
+      <div id="paginationContainer"
+        class="px-6 py-4 border-t border-slate-100 dark:border-slate-700 flex flex-col sm:flex-row items-center justify-between gap-4">
+        <span class="text-sm text-slate-500 dark:text-slate-400">
+          {% if total_orders > 0 %}
+          Näytetään <span class="font-semibold text-primary">{{ start_order }}-{{ end_order }}</span> / <span
+            class="font-semibold text-primary">{{ total_orders }}</span> tilausta
+          {% else %}
+          Ei tilauksia
+          {% endif %}
+        </span>
+
+        {% if total_pages > 1 %}
+        <nav class="flex items-center gap-1">
+          <!-- Previous Button -->
+          {% if current_page > 1 %}
+          <a href="{{ url_for('main.admin_dashboard', page=current_page-1, search=search, status=status, date_filter=date_filter) }}"
+            class="min-w-[36px] h-9 flex items-center justify-center rounded-lg text-slate-500 hover:text-primary hover:bg-blue-50 dark:hover:bg-slate-700 transition-colors">
+            <span class="material-symbols-outlined text-[20px]">chevron_left</span>
           </a>
-        </td>
-      </tr>
-      {% endfor %}
-      {% else %}
-      <tr>
-        <td colspan="9" class="muted">Ei tilauksia</td>
-      </tr>
-      {% endif %}
-    </tbody>
-  </table>
-</div>
-{% endblock %}
+          {% else %}
+          <span
+            class="min-w-[36px] h-9 flex items-center justify-center rounded-lg text-slate-300 dark:text-slate-600 cursor-not-allowed">
+            <span class="material-symbols-outlined text-[20px]">chevron_left</span>
+          </span>
+          {% endif %}
+
+          <!-- Page Numbers -->
+          {% set show_pages = [] %}
+          {% if total_pages <= 7 %} {% for i in range(1, total_pages + 1) %} {% set _=show_pages.append(i) %} {% endfor
+            %} {% else %} {% if current_page <=4 %} {% for i in range(1, 6) %} {% set _=show_pages.append(i) %} {%
+            endfor %} {% set _=show_pages.append('...') %} {% set _=show_pages.append(total_pages) %} {% elif
+            current_page>= total_pages - 3 %}
+            {% set _ = show_pages.append(1) %}
+            {% set _ = show_pages.append('...') %}
+            {% for i in range(total_pages - 4, total_pages + 1) %}
+            {% set _ = show_pages.append(i) %}
+            {% endfor %}
+            {% else %}
+            {% set _ = show_pages.append(1) %}
+            {% set _ = show_pages.append('...') %}
+            {% for i in range(current_page - 1, current_page + 2) %}
+            {% set _ = show_pages.append(i) %}
+            {% endfor %}
+            {% set _ = show_pages.append('...') %}
+            {% set _ = show_pages.append(total_pages) %}
+            {% endif %}
+            {% endif %}
+
+            {% for page_num in show_pages %}
+            {% if page_num == '...' %}
+            <span class="px-2 py-1 text-slate-400 text-sm">...</span>
+            {% elif page_num == current_page %}
+            <span
+              class="min-w-[36px] h-9 flex items-center justify-center rounded-lg bg-primary text-white font-semibold text-sm">
+              {{ page_num }}
+            </span>
+            {% else %}
+            <a href="{{ url_for('main.admin_dashboard', page=page_num, search=search, status=status, date_filter=date_filter) }}"
+              class="min-w-[36px] h-9 flex items-center justify-center rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 font-medium text-sm transition-colors">
+              {{ page_num }}
+            </a>
+            {% endif %}
+            {% endfor %}
+
+            <!-- Next Button -->
+            {% if current_page < total_pages %} <a
+              href="{{ url_for('main.admin_dashboard', page=current_page+1, search=search, status=status, date_filter=date_filter) }}"
+              class="min-w-[36px] h-9 flex items-center justify-center rounded-lg text-slate-500 hover:text-primary hover:bg-blue-50 dark:hover:bg-slate-700 transition-colors">
+              <span class="material-symbols-outlined text-[20px]">chevron_right</span>
+              </a>
+              {% else %}
+              <span
+                class="min-w-[36px] h-9 flex items-center justify-center rounded-lg text-slate-300 dark:text-slate-600 cursor-not-allowed">
+                <span class="material-symbols-outlined text-[20px]">chevron_right</span>
+              </span>
+              {% endif %}
+        </nav>
+        {% endif %}
+      </div>
+    </div>
+  </main>
+
+  {% set footer_button_text = 'Laskuri' %}
+  {% include 'components/dashboard_footer.html' %}
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      const searchInput = document.getElementById('searchInput');
+      const statusFilter = document.getElementById('statusFilter');
+      const dateFilter = document.getElementById('dateFilter');
+      const tableBody = document.getElementById('ordersTableBody');
+      const paginationContainer = document.getElementById('paginationContainer');
+      const tableWrapper = tableBody.closest('.overflow-x-auto'); // For loading state
+
+      let debounceTimer;
+
+      // --- Initialize Custom Dropdowns ---
+      function initCustomDropdowns() {
+        document.querySelectorAll('.custom-select-container').forEach(container => {
+          const trigger = container.querySelector('.custom-select-trigger');
+          const options = container.querySelector('.custom-select-options');
+          const hiddenSelect = container.querySelector('select');
+          const label = container.querySelector('.custom-select-label');
+
+          if (!trigger || !options || !hiddenSelect || !label) return;
+
+          // Set initial label based on selected option
+          const selectedOption = Array.from(hiddenSelect.options).find(opt => opt.selected);
+          if (selectedOption) {
+            label.textContent = selectedOption.text;
+            // Mark corresponding custom option as selected
+            const customOption = options.querySelector(`.custom-option[data-value="${selectedOption.value}"]`);
+            if (customOption) {
+              options.querySelectorAll('.custom-option').forEach(opt => opt.classList.remove('selected'));
+              customOption.classList.add('selected');
+            }
+          }
+
+          // Toggle dropdown
+          trigger.onclick = (e) => {
+            e.stopPropagation();
+
+            // Close other dropdowns
+            document.querySelectorAll('.custom-select-container').forEach(c => {
+              if (c !== container) {
+                c.classList.remove('open');
+                const t = c.querySelector('.custom-select-trigger');
+                if (t) t.classList.remove('open');
+              }
+            });
+
+            const isOpen = container.classList.contains('open');
+            container.classList.toggle('open', !isOpen);
+            trigger.classList.toggle('open', !isOpen);
+          };
+
+          // Handle option click
+          options.querySelectorAll('.custom-option').forEach(option => {
+            option.onclick = (e) => {
+              e.stopPropagation();
+
+              // Update UI
+              options.querySelectorAll('.custom-option').forEach(opt => opt.classList.remove('selected'));
+              option.classList.add('selected');
+              label.textContent = option.textContent;
+
+              // Update hidden select and trigger change
+              if (hiddenSelect.value !== option.dataset.value) {
+                hiddenSelect.value = option.dataset.value;
+                // Trigger change event manually so existing logic works
+                hiddenSelect.dispatchEvent(new Event('change'));
+              }
+
+              // Close dropdown
+              container.classList.remove('open');
+              trigger.classList.remove('open');
+            };
+          });
+        });
+      }
+
+      // Close dropdowns when clicking outside
+      document.addEventListener('click', () => {
+        document.querySelectorAll('.custom-select-container').forEach(c => {
+          c.classList.remove('open');
+          const trigger = c.querySelector('.custom-select-trigger');
+          if (trigger) trigger.classList.remove('open');
+        });
+      });
+
+      initCustomDropdowns();
+
+
+      // --- Main Update Function ---
+      async function updateDashboard(url, pushState = true) {
+        // 1. Show Loading State
+        if (tableWrapper) tableWrapper.style.opacity = '0.5';
+        if (tableBody) tableBody.style.pointerEvents = 'none';
+
+        try {
+          // 2. Fetch New Content
+          const response = await fetch(url, {
+            headers: {
+              'X-Requested-With': 'XMLHttpRequest'
+            }
+          });
+
+          if (!response.ok) throw new Error('Network response was not ok');
+
+          const htmlReceived = await response.text();
+
+          // 3. Parse and Replace
+          const parser = new DOMParser();
+          const doc = parser.parseFromString(htmlReceived, 'text/html');
+
+          const newTableBody = doc.getElementById('ordersTableBody');
+          const newPagination = doc.getElementById('paginationContainer');
+
+          if (newTableBody && tableBody) {
+            tableBody.innerHTML = newTableBody.innerHTML;
+          }
+
+          if (newPagination && paginationContainer) {
+            paginationContainer.innerHTML = newPagination.innerHTML;
+          }
+
+          // 4. Update URL
+          if (pushState) {
+            window.history.pushState({}, '', url);
+          }
+
+        } catch (error) {
+          console.error('Error updating dashboard:', error);
+        } finally {
+          // 5. Hide Loading State
+          if (tableWrapper) tableWrapper.style.opacity = '1';
+          if (tableBody) tableBody.style.pointerEvents = 'auto';
+        }
+      }
+
+      // --- Helper to build URL from current inputs ---
+      function getCurrentUrl(page = 1) {
+        const url = new URL(window.location.href);
+        url.searchParams.set('search', searchInput.value);
+        url.searchParams.set('status', statusFilter.value);
+        url.searchParams.set('date_filter', dateFilter.value);
+        url.searchParams.set('page', page);
+        return url.toString();
+      }
+
+      // --- Event Listeners ---
+
+      // 1. Search Input (Debounced)
+      searchInput.addEventListener('input', function () {
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(() => {
+          updateDashboard(getCurrentUrl(1)); // Reset to page 1 on new search
+        }, 300);
+      });
+
+      searchInput.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') {
+          e.preventDefault(); // Stop form submit
+          clearTimeout(debounceTimer);
+          updateDashboard(getCurrentUrl(1));
+        }
+      });
+
+      // 2. Filters
+      if (statusFilter) statusFilter.addEventListener('change', () => updateDashboard(getCurrentUrl(1)));
+      if (dateFilter) dateFilter.addEventListener('change', () => updateDashboard(getCurrentUrl(1)));
+
+      // 3. Pagination (Event Delegation)
+      if (paginationContainer) {
+        paginationContainer.addEventListener('click', function (e) {
+          const link = e.target.closest('a');
+          if (link) {
+            e.preventDefault(); // Stop full reload
+            updateDashboard(link.href);
+          }
+        });
+      }
+
+      // 4. Browser Back/Forward
+      window.addEventListener('popstate', function () {
+        updateDashboard(window.location.href, false);
+      });
+
+      // --- Flash Messages (Existing Logic) ---
+      setTimeout(function () {
+        const messages = document.querySelector('.flash-messages');
+        if (messages) {
+          messages.style.transition = 'opacity 1s';
+          messages.style.opacity = '0';
+          setTimeout(() => messages.remove(), 1000);
+        }
+      }, 5000);
+    });
+  </script>
+
+</body>
+
+</html>

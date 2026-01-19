@@ -2,7 +2,9 @@
 Admin Routes for user and system management
 """
 
+from datetime import datetime, timezone
 from flask import Blueprint, request, redirect, url_for, flash, render_template, jsonify
+from werkzeug.security import generate_password_hash
 from services.auth_service import auth_service
 from services.order_service import order_service
 from services.image_service import image_service
@@ -22,13 +24,109 @@ def dashboard():
 @admin_bp.route("/users")
 @admin_required
 def users():
-    """Admin user management page"""
+    """Admin user management page with search/filter"""
     from app import users_col
 
-    # Get all users EXCEPT drivers (drivers are managed separately)
-    users = list(users_col().find({"role": {"$ne": "driver"}}, {"_id": 0}).sort("created_at", -1))
+    search = request.args.get("search", "").strip()
+    # Default to 'user' (customers) if no role specified, unless explicit "all" is requested (though UI won't offer "all")
+    role_filter = request.args.get("role", "user").strip()
+    status_filter = request.args.get("status", "").strip()
 
-    return render_template("admin/users.html", users=users, current_user=auth_service.get_current_user())
+    query = {}
+    if role_filter and role_filter != "all":
+        query["role"] = role_filter
+    if status_filter and status_filter != "all":
+        query["status"] = status_filter
+    if search:
+        query["$or"] = [
+            {"name": {"$regex": search, "$options": "i"}},
+            {"email": {"$regex": search, "$options": "i"}},
+            {"phone": {"$regex": search, "$options": "i"}},
+        ]
+
+    users = list(users_col().find(query, {"_id": 0}).sort("created_at", -1))
+
+    return render_template(
+        "admin/users.html",
+        users=users,
+        current_user=auth_service.get_current_user(),
+        search=search,
+        role_filter=role_filter,
+        status_filter=status_filter,
+    )
+
+
+@admin_bp.route("/users/<int:user_id>")
+@admin_required
+def user_detail(user_id):
+    """View details of a specific user/driver/admin"""
+    from models.user import user_model
+    from models.order import order_model
+    from services.driver_service import driver_service
+    from services.order_service import order_service
+    
+    user = user_model.find_by_id(user_id)
+    if not user:
+        flash("Käyttäjää ei löytynyt", "error")
+        return redirect(url_for("admin.users"))
+
+    # Prepare context data based on role
+    context = {
+        "user": user,
+        "current_user": auth_service.get_current_user(),
+    }
+
+    if user.get("role") == "driver":
+        # specific data for drivers
+        driver_stats = driver_service.get_driver_statistics(user_id)
+        active_statuses = [
+            order_model.STATUS_CONFIRMED,
+            order_model.STATUS_ASSIGNED_TO_DRIVER,
+            order_model.STATUS_DRIVER_ARRIVED,
+            order_model.STATUS_PICKUP_IMAGES_ADDED,
+            order_model.STATUS_IN_TRANSIT,
+            order_model.STATUS_DELIVERY_ARRIVED,
+            order_model.STATUS_DELIVERY_IMAGES_ADDED,
+        ]
+        driver_active_orders = order_model.find(
+            {"driver_id": int(user_id), "status": {"$in": active_statuses}},
+            sort=[("created_at", -1)]
+        )
+        driver_all_orders = order_model.find(
+            {"driver_id": int(user_id)},
+            sort=[("created_at", -1)],
+            limit=200
+        )
+        active_ids = {order.get("id") for order in driver_active_orders if order.get("id") is not None}
+        driver_order_history = [order for order in driver_all_orders if order.get("id") not in active_ids]
+        context["driver_stats"] = driver_stats
+        context["driver_active_orders"] = driver_active_orders
+        context["driver_orders"] = driver_order_history
+        
+    elif user.get("role") == "user":
+        # specific data for customers (order history)
+        # Fetch detailed order history
+        all_orders = order_model.get_user_orders(user_id)
+        
+        # Separate active orders from completed history
+        completed_statuses = ['completed', 'cancelled', 'delivered']
+        active_orders = [o for o in all_orders if o.get('status', '').lower() not in completed_statuses]
+        order_history = [o for o in all_orders if o.get('status', '').lower() in completed_statuses]
+        
+        # Calculate total spent (sum of ALL orders)
+        total_spent = 0
+        for order in all_orders:
+            price = order.get("price_gross")
+            if price is None:
+                price = order.get("price", 0)
+            total_spent += price or 0
+        
+        context["active_orders"] = active_orders
+        context["orders"] = order_history  # For backward compatibility with order history table
+        context["total_orders"] = len(all_orders)
+        context["total_spent"] = total_spent
+
+    return render_template("admin/user_detail.html", **context)
 
 
 @admin_bp.route("/users/approve", methods=["POST"])
@@ -39,12 +137,6 @@ def approve_user():
     from models.user import user_model
 
     user_id = int(request.form.get("user_id"))
-
-    # SAFETY: Prevent approving drivers from users page
-    user = user_model.find_by_id(user_id)
-    if user and user.get('role') == 'driver':
-        flash("Kuljettajia ei voi hyväksyä täältä. Käytä Kuljettajahakemukset-sivua.", "error")
-        return redirect(url_for("admin.users"))
 
     # Update user status to active
     result = users_col().update_one(
@@ -75,11 +167,6 @@ def deny_user():
 
     if not user:
         flash("Käyttäjää ei löytynyt", "error")
-        return redirect(url_for("admin.users"))
-
-    # SAFETY: Prevent deleting drivers from users page
-    if user.get('role') == 'driver':
-        flash("Kuljettajia ei voi poistaa täältä. Käytä Kuljettajat-sivua.", "error")
         return redirect(url_for("admin.users"))
 
     user_email = user.get('email')
@@ -120,6 +207,301 @@ def deny_user():
         flash("Käyttäjän poistaminen epäonnistui", "error")
 
     return redirect(url_for("admin.users"))
+
+
+@admin_bp.route("/users/update", methods=["POST"])
+@admin_required
+def update_user():
+    """Edit basic user details (non-driver)"""
+    from models.user import user_model
+
+    user_id = int(request.form.get("user_id", 0))
+    name = (request.form.get("name") or "").strip()
+    email = (request.form.get("email") or "").strip().lower()
+    phone = (request.form.get("phone") or "").strip()
+    company_name = (request.form.get("company_name") or "").strip()
+    business_id = (request.form.get("business_id") or "").strip()
+    status = (request.form.get("status") or "").strip()
+
+    if not user_id:
+        flash("Virheellinen käyttäjä", "error")
+        return redirect(url_for("admin.users"))
+
+    user = user_model.find_by_id(user_id)
+    if not user:
+        flash("Käyttäjää ei löytynyt", "error")
+        return redirect(url_for("admin.users"))
+
+    update_data = {}
+    if name:
+        update_data["name"] = name
+    if email:
+        update_data["email"] = email
+    update_data["phone"] = phone or None
+    # Only update company fields for non-driver users
+    if user.get("role") != "driver":
+        update_data["company_name"] = company_name or None
+        update_data["business_id"] = business_id or None
+    if status in ["active", "pending", "frozen"]:
+        update_data["status"] = status
+
+    success = user_model.update_one({"id": user_id}, {"$set": update_data})
+
+
+    if success:
+        flash("Käyttäjä päivitetty", "success")
+    else:
+        flash("Päivitys epäonnistui", "error")
+
+    return redirect(url_for("admin.users"))
+
+
+@admin_bp.route("/users/reset-password", methods=["POST"])
+@admin_required
+def reset_user_password():
+    """Send a password reset link to the user's email"""
+    from models.user import user_model
+
+    try:
+        user_id = int(request.form.get("user_id", 0))
+    except (TypeError, ValueError):
+        flash("Virheellinen käyttäjä", "error")
+        return redirect(url_for("admin.users"))
+
+    user = user_model.find_by_id(user_id)
+    if not user:
+        flash("Käyttäjää ei löytynyt", "error")
+        return redirect(url_for("admin.users"))
+
+    email = user.get("email")
+    if not email:
+        flash("Käyttäjällä ei ole sähköpostiosoitetta", "error")
+        return redirect(url_for("admin.user_detail", user_id=user_id))
+
+    _, error = auth_service.request_password_reset(email)
+    if error:
+        flash("Salasanan nollaus epäonnistui", "error")
+    else:
+        flash("Nollauslinkki lähetetty käyttäjän sähköpostiin", "success")
+
+    return redirect(url_for("admin.user_detail", user_id=user_id))
+
+
+@admin_bp.route("/users/set-password", methods=["POST"])
+@admin_required
+def set_user_password():
+    """Admin sets a new password for the user"""
+    from models.user import user_model
+
+    try:
+        user_id = int(request.form.get("user_id", 0))
+    except (TypeError, ValueError):
+        flash("Virheellinen käyttäjä", "error")
+        return redirect(url_for("admin.users"))
+
+    new_password = request.form.get("new_password", "")
+    confirm_password = request.form.get("confirm_password", "")
+
+    if not new_password or not confirm_password:
+        flash("Salasanakentät ovat pakollisia", "error")
+        return redirect(url_for("admin.user_detail", user_id=user_id))
+
+    if new_password != confirm_password:
+        flash("Salasanat eivät täsmää", "error")
+        return redirect(url_for("admin.user_detail", user_id=user_id))
+
+    if len(new_password) < 6:
+        flash("Salasana on liian heikko (vähintään 6 merkkiä)", "error")
+        return redirect(url_for("admin.user_detail", user_id=user_id))
+
+    user = user_model.find_by_id(user_id)
+    if not user:
+        flash("Käyttäjää ei löytynyt", "error")
+        return redirect(url_for("admin.users"))
+
+    success = user_model.update_one(
+        {"id": user_id},
+        {"$set": {
+            "password_hash": generate_password_hash(new_password),
+            "updated_at": datetime.now(timezone.utc)
+        }}
+    )
+
+    if success:
+        flash("Salasana päivitetty", "success")
+    else:
+        flash("Salasanan päivitys epäonnistui", "error")
+
+    return redirect(url_for("admin.user_detail", user_id=user_id))
+
+
+@admin_bp.route("/users/toggle-freeze", methods=["POST"])
+@admin_required
+def toggle_user_freeze():
+    """Freeze or unfreeze a user account"""
+    from models.user import user_model
+
+    try:
+        user_id = int(request.form.get("user_id", 0))
+    except (TypeError, ValueError):
+        flash("Virheellinen käyttäjä", "error")
+        return redirect(url_for("admin.users"))
+
+    user = user_model.find_by_id(user_id)
+    if not user:
+        flash("Käyttäjää ei löytynyt", "error")
+        return redirect(url_for("admin.users"))
+
+    if user.get("role") == "admin":
+        flash("Admin-käyttäjiä ei voi jäädyttää tältä sivulta", "error")
+        return redirect(url_for("admin.user_detail", user_id=user_id))
+
+    current_user = auth_service.get_current_user()
+    if current_user and current_user.get("id") == user_id:
+        flash("Et voi jäädyttää omaa tiliäsi", "error")
+        return redirect(url_for("admin.user_detail", user_id=user_id))
+
+    is_frozen = user.get("status") == "frozen"
+    new_status = "active" if is_frozen else "frozen"
+    success = user_model.update_one(
+        {"id": user_id},
+        {"$set": {"status": new_status, "updated_at": datetime.now(timezone.utc)}}
+    )
+
+    if success:
+        message = "Jäädytys poistettu" if is_frozen else "Käyttäjä jäädytetty"
+        flash(message, "success")
+    else:
+        flash("Tapahtuma epäonnistui. Yritä uudelleen.", "error")
+
+    return redirect(url_for("admin.user_detail", user_id=user_id))
+
+
+@admin_bp.route("/users/verify-password", methods=["POST"])
+@admin_required
+def verify_admin_password():
+    """Verify current admin's password for sensitive operations"""
+    from models.user import user_model
+    
+    password = request.form.get("password", "")
+    current_user = auth_service.get_current_user()
+    
+    if not current_user:
+        return jsonify({"valid": False, "error": "Ei kirjautunut sisään"})
+    
+    is_valid = user_model.verify_password(current_user["id"], password)
+    return jsonify({"valid": is_valid})
+
+
+@admin_bp.route("/users/delete-admin", methods=["POST"])
+@admin_required
+def delete_admin_user():
+    """Delete an admin user with password confirmation"""
+    from models.user import user_model
+    
+    user_id = int(request.form.get("user_id", 0))
+    admin_password = request.form.get("admin_password", "")
+    
+    current_user = auth_service.get_current_user()
+    
+    if not current_user:
+        flash("Ei kirjautunut sisään", "error")
+        return redirect(url_for("admin.users"))
+    
+    # Verify admin password
+    if not user_model.verify_password(current_user["id"], admin_password):
+        flash("Väärä salasana", "error")
+        return redirect(url_for("admin.users"))
+    
+    # Get target user
+    target_user = user_model.find_by_id(user_id)
+    if not target_user:
+        flash("Käyttäjää ei löytynyt", "error")
+        return redirect(url_for("admin.users"))
+    
+    # Prevent self-deletion
+    if target_user["id"] == current_user["id"]:
+        flash("Et voi poistaa omaa tiliäsi", "error")
+        return redirect(url_for("admin.users"))
+    
+    # Only allow deleting admin users through this endpoint
+    if target_user.get("role") != "admin":
+        flash("Tämä toiminto on vain admin-käyttäjille", "error")
+        return redirect(url_for("admin.users"))
+    
+    # Delete the admin user
+    from app import users_col
+    result = users_col().delete_one({"id": user_id})
+    
+    if result.deleted_count > 0:
+        flash(f"Admin-käyttäjä {target_user.get('name')} poistettu onnistuneesti", "success")
+    else:
+        flash("Käyttäjän poistaminen epäonnistui", "error")
+    
+    return redirect(url_for("admin.users"))
+
+
+@admin_bp.route("/users/create", methods=["POST"])
+@admin_required
+def create_user():
+    """Admin creates a new user account"""
+    from models.user import user_model
+    
+    name = (request.form.get("name") or "").strip()
+    email = (request.form.get("email") or "").strip().lower()
+    password = request.form.get("password", "")
+    phone = (request.form.get("phone") or "").strip()
+    role = (request.form.get("role") or "user").strip()
+    admin_password = request.form.get("admin_password", "")
+    
+    current_user = auth_service.get_current_user()
+    
+    if not current_user:
+        flash("Ei kirjautunut sisään", "error")
+        return redirect(url_for("admin.users"))
+    
+    # Validate required fields
+    if not name or not email or not password:
+        flash("Nimi, sähköposti ja salasana ovat pakollisia", "error")
+        return redirect(url_for("admin.users"))
+    
+    # Validate role
+    if role not in ["user", "admin"]:
+        flash("Virheellinen rooli", "error")
+        return redirect(url_for("admin.users"))
+    
+    # If creating admin, verify admin password
+    if role == "admin":
+        if not admin_password:
+            flash("Salasanan vahvistus vaaditaan admin-käyttäjän luomiseen", "error")
+            return redirect(url_for("admin.users"))
+        
+        if not user_model.verify_password(current_user["id"], admin_password):
+            flash("Väärä salasana", "error")
+            return redirect(url_for("admin.users"))
+    
+    # Create the user (admin users are automatically active, regular users are active when created by admin)
+    user_data, error = user_model.create_user(
+        email=email,
+        password=password,
+        name=name,
+        role=role,
+        phone=phone if phone else None
+    )
+    
+    if error:
+        flash(f"Käyttäjän luominen epäonnistui: {error}", "error")
+        return redirect(url_for("admin.users"))
+    
+    # Ensure user created by admin is active
+    if user_data and user_data.get("status") != "active":
+        user_model.update_one({"id": user_data["id"]}, {"$set": {"status": "active"}})
+    
+    role_text = "Admin-käyttäjä" if role == "admin" else "Käyttäjä"
+    flash(f"{role_text} {name} luotu onnistuneesti", "success")
+    return redirect(url_for("admin.users"))
+
+
 @admin_bp.route("/drivers")
 @admin_required
 def drivers():
@@ -217,7 +599,12 @@ def delete_driver(driver_id):
 @admin_required
 def driver_applications():
     """Admin interface for managing driver applications"""
+    from flask import session
+    from datetime import datetime, timezone
     from models.driver_application import driver_application_model
+
+    # Mark applications as viewed
+    session['admin_last_viewed_applications'] = datetime.now(timezone.utc)
 
     # Get all applications
     applications = list(driver_application_model.get_all_applications(limit=100))
@@ -414,18 +801,48 @@ def view_license_image(application_id, image_type):
 @admin_required
 def update_order():
     """Update order status"""
-    order_id = int(request.form.get("id"))
-    new_status = request.form.get("status")
+    # Handle both JSON (AJAX) and Form data
+    if request.is_json:
+        data = request.get_json()
+        order_id = int(data.get("id"))
+        new_status = data.get("status")
+    else:
+        order_id = int(request.form.get("id"))
+        new_status = request.form.get("status")
 
     # Validate status
     from models.order import order_model
     if new_status not in order_model.VALID_STATUSES:
+        if request.is_json:
+            return jsonify({"success": False, "error": "Virheellinen tila"}), 400
         return redirect(url_for("main.admin_dashboard"))
 
     # Use service layer to update order status (includes automatic email sending)
     success, error = order_service.update_order_status(order_id, new_status)
 
-    # Add debug feedback
+    if success:
+        from models.order import order_model
+        publish_success, publish_error = order_model.publish_pending_images(order_id)
+        if not publish_success:
+            flash(f"Kuvien julkaisu epäonnistui: {publish_error}", "warning")
+
+    if request.is_json:
+        if success:
+            from app import translate_status
+            status_fi = translate_status(new_status)
+            return jsonify({
+                "success": True, 
+                "message": f"Tilauksen tila päivitetty: {status_fi}",
+                "status": new_status,
+                "status_fi": status_fi
+            })
+        else:
+            return jsonify({
+                "success": False, 
+                "error": error or "Tilan päivitys epäonnistui"
+            }), 400
+
+    # Fallback for traditional form submission
     if success:
         from app import translate_status
         flash(f"Tilauksen #{order_id} tila päivitetty: {translate_status(new_status)}", "success")
@@ -440,6 +857,7 @@ def update_order():
 def order_detail(order_id):
     """Admin order detail view"""
     from app import orders_col, translate_status
+    from services.rating_service import rating_service
 
     # Get order with user AND driver info
     pipeline = [
@@ -465,10 +883,12 @@ def order_detail(order_id):
             "distance_km": 1, "price_gross": 1,
             "reg_number": 1, "winter_tires": 1, "pickup_date": 1, "last_delivery_date": 1,
             "pickup_time": 1, "delivery_time": 1,
+            "created_at": 1, "updated_at": 1,
             "extras": 1, "images": 1,
             "orderer_name": 1, "orderer_email": 1, "orderer_phone": 1,
             "customer_name": 1, "customer_phone": 1,
             "driver_reward": 1, "car_brand": 1, "car_model": 1, "additional_info": 1, "driver_notes": 1,
+            "direct_to_customer": 1,
             "user_name": "$user.name",
             "user_email": "$user.email",
             "driver_name": "$driver.name",
@@ -482,30 +902,45 @@ def order_detail(order_id):
         return redirect(url_for("main.admin_dashboard"))
 
     order = order_result[0]
+    
+    # Ensure critical fields have default values to prevent template crashes
+    order.setdefault('price_gross', 0)
+    order.setdefault('distance_km', 0)
+    order.setdefault('status', 'NEW')
+    order.setdefault('pickup_address', '')
+    order.setdefault('dropoff_address', '')
+    
     status_fi = translate_status(order.get('status', 'NEW'))
 
     # Get available drivers for assignment dropdown
     from models.user import user_model
     available_drivers = user_model.get_all_drivers(limit=100)
 
-    # Format pickup date
-    pickup_date_fi = order.get('pickup_date', 'Ei asetettu')
-    if pickup_date_fi and pickup_date_fi != 'Ei asetettu':
-        try:
-            # Try to format the date if it's a datetime object
-            if hasattr(pickup_date_fi, 'strftime'):
-                pickup_date_fi = pickup_date_fi.strftime('%d.%m.%Y')
-        except:
-            pass
+    # Format dates to Finnish format (handle both datetime objects and strings)
+    from datetime import datetime
     
-    # Format last delivery date
-    last_delivery_date_fi = order.get('last_delivery_date', None)
-    if last_delivery_date_fi:
-        try:
-            if hasattr(last_delivery_date_fi, 'strftime'):
-                last_delivery_date_fi = last_delivery_date_fi.strftime('%d.%m.%Y')
-        except Exception:
-            pass
+    def format_date_fi(date_val):
+        """Convert date to Finnish format DD.MM.YYYY"""
+        if not date_val or date_val == 'Ei asetettu':
+            return 'Ei asetettu' if date_val == 'Ei asetettu' else None
+        # If it's a datetime/date object
+        if hasattr(date_val, 'strftime'):
+            return date_val.strftime('%d.%m.%Y')
+        # If it's a string in ISO format (YYYY-MM-DD)
+        if isinstance(date_val, str):
+            try:
+                parsed = datetime.strptime(date_val, '%Y-%m-%d')
+                return parsed.strftime('%d.%m.%Y')
+            except ValueError:
+                try:
+                    datetime.strptime(date_val, '%d.%m.%Y')
+                    return date_val  # Already in Finnish format
+                except ValueError:
+                    return date_val
+        return str(date_val) if date_val else None
+    
+    pickup_date_fi = format_date_fi(order.get('pickup_date', 'Ei asetettu'))
+    last_delivery_date_fi = format_date_fi(order.get('last_delivery_date', None))
     pickup_time = (order.get('pickup_time') or '').strip()
     delivery_time = (order.get('delivery_time') or '').strip()
 
@@ -520,7 +955,8 @@ def order_detail(order_id):
         pickup_time=pickup_time,
         delivery_time=delivery_time,
         available_drivers=available_drivers,
-        current_user=user
+        current_user=user,
+        rating=rating_service.get_order_rating(order_id)
     )
 
 
@@ -529,8 +965,9 @@ def order_detail(order_id):
 def upload_order_image(order_id):
     """Upload image to order"""
     image_type = request.form.get("image_type")
-    if image_type not in ["pickup", "delivery"]:
+    if image_type not in ["pickup", "delivery", "receipts"]:
         flash("Virheellinen kuvatyyppi", "error")
+
         return redirect(url_for("admin.order_detail", order_id=order_id))
 
     if 'image' not in request.files:
@@ -550,6 +987,8 @@ def upload_order_image(order_id):
         flash(error, "error")
         return redirect(url_for("admin.order_detail", order_id=order_id))
 
+    image_info["visible_to_customer"] = False
+
     # Add image to order using ImageService
     success, add_error = image_service.add_image_to_order(order_id, image_type, image_info)
 
@@ -557,7 +996,7 @@ def upload_order_image(order_id):
         flash(add_error, "error")
         return redirect(url_for("admin.order_detail", order_id=order_id))
 
-    image_type_fi = "Nouto" if image_type == "pickup" else "Toimitus"
+    image_type_fi = "Nouto" if image_type == "pickup" else ("Toimitus" if image_type == "delivery" else "Kuitti")
     flash(f"{image_type_fi} kuva ladattu onnistuneesti", "success")
     return redirect(url_for("admin.order_detail", order_id=order_id))
 
@@ -570,7 +1009,7 @@ def upload_order_image_ajax(order_id):
     image_type = request.form.get('image_type')
 
     # Validation
-    if image_type not in ['pickup', 'delivery']:
+    if image_type not in ['pickup', 'delivery', 'receipts']:
         return jsonify({'success': False, 'error': 'Virheellinen kuvatyyppi'}), 400
 
     if 'image' not in request.files:
@@ -591,6 +1030,8 @@ def upload_order_image_ajax(order_id):
     if error:
         return jsonify({'success': False, 'error': error}), 400
 
+    image_info["visible_to_customer"] = False
+
     # Add image to order using ImageService
     success, add_error = image_service.add_image_to_order(order_id, image_type, image_info)
 
@@ -602,7 +1043,7 @@ def upload_order_image_ajax(order_id):
     order = order_model.find_by_id(order_id)
     current_images = order.get('images', {}).get(image_type, [])
 
-    image_type_fi = 'Nouto' if image_type == 'pickup' else 'Toimitus'
+    image_type_fi = 'Nouto' if image_type == 'pickup' else ('Toimitus' if image_type == 'delivery' else 'Kuitti')
     message = f'{image_type_fi}kuva lisätty onnistuneesti'
 
     return jsonify({
@@ -619,7 +1060,7 @@ def delete_order_image_ajax(order_id, image_type, image_id):
     """AJAX endpoint for deleting images"""
 
     # Validation
-    if image_type not in ['pickup', 'delivery']:
+    if image_type not in ['pickup', 'delivery', 'receipts']:
         return jsonify({'success': False, 'error': 'Virheellinen kuvatyyppi'}), 400
 
     # Delete image using ImageService
@@ -653,13 +1094,13 @@ def delete_order_image_ajax(order_id, image_type, image_id):
 @admin_required
 def delete_order_image(order_id, image_type):
     """Delete order image"""
-    if image_type not in ["pickup", "delivery"]:
+    if image_type not in ["pickup", "delivery", "receipts"]:
         flash("Virheellinen kuvatyyppi", "error")
         return redirect(url_for("admin.order_detail", order_id=order_id))
 
     success, message = image_service.delete_order_image(order_id, image_type, request.form.get('image_id'))
 
-    image_type_fi = "Nouto" if image_type == "pickup" else "Toimitus"
+    image_type_fi = "Nouto" if image_type == "pickup" else ("Toimitus" if image_type == "delivery" else "Kuitti")
 
     if success:
         flash(f"{image_type_fi} kuva poistettu onnistuneesti", "success")
@@ -682,13 +1123,13 @@ def delete_order_image(order_id, image_type):
 @admin_required
 def delete_order_image_by_id(order_id, image_type, image_id):
     """Delete specific order image by ID"""
-    if image_type not in ["pickup", "delivery"]:
+    if image_type not in ["pickup", "delivery", "receipts"]:
         flash("Virheellinen kuvatyyppi", "error")
         return redirect(url_for("admin.order_detail", order_id=order_id))
 
     success, message = image_service.delete_order_image(order_id, image_type, image_id)
 
-    image_type_fi = "Nouto" if image_type == "pickup" else "Toimitus"
+    image_type_fi = "Nouto" if image_type == "pickup" else ("Toimitus" if image_type == "delivery" else "Kuitti")
 
     if success:
         flash(f"{image_type_fi} kuva poistettu onnistuneesti", "success")
@@ -710,19 +1151,30 @@ def delete_order_image_by_id(order_id, image_type, image_id):
 @admin_bp.route("/order/<int:order_id>/assign_driver", methods=["POST"])
 @admin_required
 def assign_driver_to_order(order_id):
-    """Assign or change driver for an order"""
-    driver_id = request.form.get("driver_id")
+    """Manually assign driver info to an order (name/phone, not from registered driver)"""
+    driver_name = request.form.get("driver_name", "").strip()
+    driver_phone = request.form.get("driver_phone", "").strip()
 
-    if not driver_id:
-        flash("Valitse kuljettaja", "error")
+    if not driver_name:
+        flash("Syötä kuljettajan nimi", "error")
         return redirect(url_for("admin.order_detail", order_id=order_id))
 
-    success, error = order_service.assign_driver_to_order(order_id, int(driver_id))
+    # Update order with manual driver info
+    from models.order import order_model
+    success = order_model.update_one(
+        {"id": int(order_id)},
+        {"$set": {
+            "manual_driver_name": driver_name,
+            "manual_driver_phone": driver_phone,
+            "driver_name": driver_name,
+            "driver_phone": driver_phone
+        }}
+    )
 
     if success:
-        flash("Kuljettaja määritetty onnistuneesti", "success")
+        flash(f"Kuljettaja '{driver_name}' määritetty onnistuneesti", "success")
     else:
-        flash(f"Virhe: {error}", "error")
+        flash("Virhe kuljettajan määrityksessä", "error")
 
     return redirect(url_for("admin.order_detail", order_id=order_id))
 
@@ -897,10 +1349,8 @@ def discounts():
     """Admin discount management page"""
     from services.discount_service import discount_service
 
-    # Get filter parameters
-    include_inactive = request.args.get('include_inactive', 'false').lower() == 'true'
-
-    all_discounts = discount_service.get_all_discounts(include_inactive=include_inactive)
+    # Always get all discounts including inactive - client-side will filter
+    all_discounts = discount_service.get_all_discounts(include_inactive=True)
 
     # Add formatted labels to discounts
     for d in all_discounts:
@@ -913,7 +1363,7 @@ def discounts():
     return render_template(
         "admin/discounts.html",
         discounts=all_discounts,
-        include_inactive=include_inactive,
+        include_inactive=True,  # Always true now, client handles filtering
         current_user=auth_service.get_current_user()
     )
 
@@ -1082,6 +1532,20 @@ def discount_update(discount_id):
     update_data["allowed_dropoff_cities"] = _parse_csv_list(request.form.get("allowed_dropoff_cities", "").strip())
     update_data["excluded_cities"] = _parse_csv_list(request.form.get("excluded_cities", "").strip())
 
+    # Parse assigned users (handle updates to user list)
+    assigned_user_ids = request.form.getlist("assigned_users")
+    if assigned_user_ids:
+        update_data["assigned_users"] = [int(uid) for uid in assigned_user_ids if uid.isdigit()]
+    else:
+        # If no users are selected (or all removed), clear the list
+        # BUT only if the scope is 'account'. If scope changed to global, we might want to clear it too.
+        # Although the frontend creates validation/hidden inputs.
+        # Safest is to just update it if we are submitting the form.
+        # Note: If the form didn't include assigned_users field at all (e.g. some partial update), 
+        # this would clear it. But since we use a full edit form, absence means empty.
+        # However, we should be careful if scope != 'account'.
+        update_data["assigned_users"] = []
+
     success, error = discount_service.update_discount(discount_id, update_data)
 
     if error:
@@ -1208,3 +1672,94 @@ def api_preview_discounted_price():
     )
 
     return jsonify(result)
+
+
+# ----------------- REVIEWS MODERATION -----------------
+
+@admin_bp.route("/reviews")
+@admin_required
+def reviews():
+    """Admin reviews moderation page"""
+    from flask import session
+    from datetime import datetime, timezone
+    from services.rating_service import rating_service
+    from models.rating import rating_model
+    
+    # Mark reviews as viewed
+    session['admin_last_viewed_reviews'] = datetime.now(timezone.utc)
+    
+    # Get all reviews with details
+    reviews = rating_service.get_all_reviews_for_admin()
+    
+    # Calculate stats
+    approved_reviews = [r for r in reviews if r.get("status") == "approved"]
+    pending_count = len([r for r in reviews if r.get("status") == "pending"])
+    
+    avg_rating = 0
+    if approved_reviews:
+        avg_rating = sum(r["rating"] for r in approved_reviews) / len(approved_reviews)
+    
+    return render_template(
+        "admin/reviews.html",
+        reviews=reviews,
+        avg_rating=avg_rating,
+        pending_count=pending_count,
+        current_user=auth_service.get_current_user()
+    )
+
+
+@admin_bp.route("/reviews/moderate", methods=["POST"])
+@admin_required
+def moderate_review():
+    """Moderate a review (approve/hide)"""
+    from services.rating_service import rating_service
+    
+    rating_id = int(request.form.get("rating_id", 0))
+    action = request.form.get("action", "")
+    
+    if not rating_id or action not in ["approve", "hide"]:
+        flash("Virheelliset parametrit", "error")
+        return redirect(url_for("admin.reviews"))
+    
+    admin = auth_service.get_current_user()
+    success, error = rating_service.moderate_review(rating_id, action, admin["id"])
+    
+    if success:
+        action_text = "hyväksytty" if action == "approve" else "piilotettu"
+        flash(f"Arvostelu {action_text}", "success")
+    else:
+        flash(error or "Moderointi epäonnistui", "error")
+    
+    return redirect(url_for("admin.reviews"))
+
+
+@admin_bp.route("/reviews/toggle_landing", methods=["POST"])
+@admin_required
+def toggle_landing_review():
+    """Toggle whether a review is shown on landing page"""
+    from models.rating import rating_model
+    
+    rating_id = int(request.form.get("rating_id", 0))
+    # Checkbox sends "on" if checked, nothing if unchecked. Logic needs careful handling if standard form submit.
+    # However, for toggle buttons often usually easiest to send a specific value.
+    # Let's assume the frontend sends "true" or "false" via AJAX or a specific value.
+    # Actually for a simple form post, let's use a hidden input or button value.
+    # Let's say the button sends the DESIRED state.
+    
+    target_state = request.form.get("state") == "true"
+    
+    if not rating_id:
+        flash("Virheellinen tunniste", "error")
+        return redirect(url_for("admin.reviews"))
+        
+    success, error = rating_model.toggle_landing_visibility(rating_id, target_state)
+    
+    if success:
+        state_text = "lisätty etusivulle" if target_state else "poistettu etusivulta"
+        flash(f"Arvostelu {state_text}", "success")
+    else:
+        flash(error or "Päivitys epäonnistui", "error")
+        
+    return redirect(url_for("admin.reviews"))
+
+

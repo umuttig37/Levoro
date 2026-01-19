@@ -242,14 +242,14 @@
 
                         showAdminNotification('Kuva poistettu', 'success');
                     } else {
-                        alert('Kuvan poistaminen epäonnistui: ' + (data.error || 'Tuntematon virhe'));
+                        showAdminNotification('Kuvan poistaminen epäonnistui: ' + (data.error || 'Tuntematon virhe'), 'error');
                         deleteBtn.disabled = false;
                         deleteBtn.textContent = '×';
                     }
                 })
                 .catch(error => {
                     console.error('Error:', error);
-                    alert('Kuvan poistaminen epäonnistui');
+                    showAdminNotification('Kuvan poistaminen epäonnistui', 'error');
                     deleteBtn.disabled = false;
                     deleteBtn.textContent = '×';
                 });

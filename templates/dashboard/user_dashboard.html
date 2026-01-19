@@ -1,242 +1,1849 @@
 {% extends "base/layout.html" %}
 {% import 'components/icons.html' as icons %}
 
-{% block title %}Omat tilaukset – Autonkuljetus{% endblock %}
+{% block title %}Omat tilaukset – Levoro{% endblock %}
+
+{% block extra_css %}
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+  rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0"
+  rel="stylesheet" />
+<style>
+  /* Hide the default footer on dashboard */
+  .footer-new {
+    display: none !important;
+  }
+
+  /* Hide back to top button */
+  .back-to-top {
+    display: none !important;
+  }
+
+  /* =========================================
+     New Dashboard Design - Clean Professional
+     ========================================= */
+
+  :root {
+    --dash-primary: #1392ec;
+    --dash-bg-light: #f6f7f8;
+    --dash-text-dark: #1e293b;
+    --dash-text-muted: #64748b;
+    --dash-border: #e2e8f0;
+    --dash-white: #ffffff;
+  }
+
+  .dashboard-container {
+    position: relative;
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 2rem 1rem;
+  }
+
+  /* Decorative background elements */
+  .dashboard-bg-decoration {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    pointer-events: none;
+    z-index: -1;
+    overflow: hidden;
+  }
+
+  .dashboard-bg-decoration::before {
+    content: '';
+    position: absolute;
+    top: -20%;
+    right: -10%;
+    width: 600px;
+    height: 600px;
+    background: radial-gradient(circle, rgba(19, 146, 236, 0.08) 0%, transparent 70%);
+    border-radius: 50%;
+  }
+
+  .dashboard-bg-decoration::after {
+    content: '';
+    position: absolute;
+    bottom: 10%;
+    left: -5%;
+    width: 400px;
+    height: 400px;
+    background: radial-gradient(circle, rgba(99, 102, 241, 0.06) 0%, transparent 70%);
+    border-radius: 50%;
+  }
+
+  .bg-blob-1 {
+    position: absolute;
+    top: 30%;
+    left: 20%;
+    width: 300px;
+    height: 300px;
+    background: radial-gradient(circle, rgba(16, 185, 129, 0.05) 0%, transparent 70%);
+    border-radius: 50%;
+    animation: float 20s ease-in-out infinite;
+  }
+
+  .bg-blob-2 {
+    position: absolute;
+    bottom: 30%;
+    right: 15%;
+    width: 250px;
+    height: 250px;
+    background: radial-gradient(circle, rgba(245, 158, 11, 0.04) 0%, transparent 70%);
+    border-radius: 50%;
+    animation: float 25s ease-in-out infinite reverse;
+  }
+
+  @keyframes float {
+
+    0%,
+    100% {
+      transform: translate(0, 0);
+    }
+
+    25% {
+      transform: translate(20px, -30px);
+    }
+
+    50% {
+      transform: translate(-10px, 20px);
+    }
+
+    75% {
+      transform: translate(30px, 10px);
+    }
+  }
+
+  @media (min-width: 640px) {
+    .dashboard-container {
+      padding: 2rem 1.5rem;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .dashboard-container {
+      padding: 3rem 2rem;
+    }
+  }
+
+  /* Welcome Header */
+  .dash-header {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    margin-bottom: 2.5rem;
+  }
+
+  @media (min-width: 768px) {
+    .dash-header {
+      flex-direction: row;
+      align-items: flex-end;
+      justify-content: space-between;
+    }
+  }
+
+  /* Force scrollbar to prevent shifting */
+  html {
+    overflow-y: scroll;
+  }
+
+  .dash-header-content {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .dash-title {
+    font-size: 1.875rem;
+    font-weight: 700;
+    color: var(--dash-text-dark);
+    letter-spacing: -0.025em;
+    margin: 0;
+  }
+
+  @media (min-width: 768px) {
+    .dash-title {
+      font-size: 2.25rem;
+    }
+  }
+
+  .dash-subtitle {
+    font-size: 1.125rem;
+    color: var(--dash-text-muted);
+    margin: 0;
+  }
+
+  .dash-subtitle .highlight {
+    color: var(--dash-primary);
+    font-weight: 600;
+  }
+
+  /* Primary Action Button */
+  .btn-new-order {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    background: var(--dash-primary);
+    color: white;
+    padding: 0.875rem 1.5rem;
+    border-radius: 1.5rem;
+    font-weight: 600;
+    font-size: 0.9375rem;
+    text-decoration: none;
+    border: none;
+    cursor: pointer;
+    box-shadow: 0 10px 15px -3px rgba(19, 146, 236, 0.25), 0 4px 6px -4px rgba(19, 146, 236, 0.1);
+    transition: all 0.2s ease;
+  }
+
+  .btn-new-order:hover {
+    background: #1177c7;
+    transform: translateY(-2px);
+    box-shadow: 0 20px 25px -5px rgba(19, 146, 236, 0.4), 0 8px 10px -6px rgba(19, 146, 236, 0.2);
+  }
+
+  .btn-new-order:active {
+    transform: translateY(0);
+  }
+
+  .btn-new-order .material-symbols-outlined {
+    font-size: 1.25rem;
+  }
+
+  /* Content Card */
+  .dash-card {
+    background: var(--dash-white);
+    border-radius: 2rem;
+    box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.05);
+    border: 1px solid #f1f5f9;
+    /* overflow: hidden removed - was clipping filter dropdowns */
+  }
+
+  /* Filter Tabs */
+  .dash-tabs {
+    position: relative;
+    display: flex;
+    gap: 2rem;
+    padding: 1rem 1.5rem 0;
+    border-bottom: 1px solid var(--dash-border);
+    overflow-x: auto;
+  }
+
+  .dash-tab {
+    position: relative;
+    padding-bottom: 1rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--dash-text-muted);
+    background: none;
+    border: none;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: color 0.25s ease;
+  }
+
+  .dash-tab:hover {
+    color: var(--dash-text-dark);
+  }
+
+  .dash-tab.active {
+    color: var(--dash-primary);
+  }
+
+  /* Sliding tab indicator */
+  .tab-indicator {
+    position: absolute;
+    bottom: 0;
+    height: 2px;
+    background: var(--dash-primary);
+    border-radius: 2px 2px 0 0;
+    transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1), width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  /* Tab Content Animation */
+  .dash-table-wrapper,
+  .dash-cards-mobile {
+    transition: opacity 0.25s ease, transform 0.25s ease;
+  }
+
+  .dash-table-wrapper.fade-out,
+  .dash-cards-mobile.fade-out {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  .dash-table-wrapper.fade-in,
+  .dash-cards-mobile.fade-in {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  /* Toolbar */
+  .dash-toolbar {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    padding: 1rem 1.5rem;
+    background: rgba(248, 250, 252, 0.5);
+  }
+
+  @media (min-width: 768px) {
+    .dash-toolbar {
+      flex-direction: row;
+      justify-content: space-between;
+      align-items: center;
+    }
+  }
+
+  .dash-search {
+    position: relative;
+    width: 100%;
+    max-width: 20rem;
+  }
+
+  .dash-search .material-symbols-outlined {
+    position: absolute;
+    left: 0.75rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--dash-text-muted);
+    font-size: 1.25rem;
+  }
+
+  .dash-search input {
+    width: 100%;
+    padding: 0.625rem 1rem 0.625rem 2.5rem;
+    background: var(--dash-white);
+    border: 1px solid var(--dash-border);
+    border-radius: 1rem;
+    font-size: 0.875rem;
+    color: var(--dash-text-dark);
+    outline: none;
+    transition: all 0.2s ease;
+  }
+
+  .dash-search input:focus {
+    border-color: var(--dash-primary);
+    box-shadow: 0 0 0 3px rgba(19, 146, 236, 0.1);
+  }
+
+  .dash-search input::placeholder {
+    color: var(--dash-text-muted);
+  }
+
+  /* Filter Button */
+  .toolbar-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    width: 100%;
+  }
+
+  @media (min-width: 768px) {
+    .toolbar-actions {
+      width: auto;
+    }
+  }
+
+  .filter-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.625rem 1rem;
+    background: var(--dash-white);
+    border: 1px solid var(--dash-border);
+    border-radius: 1rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--dash-text-muted);
+    cursor: pointer;
+    transition: all 0.15s ease;
+    margin-left: auto;
+  }
+
+  .filter-btn:hover {
+    background: #f8fafc;
+    color: var(--dash-text-dark);
+    border-color: var(--dash-primary);
+  }
+
+  .filter-btn.active {
+    background: rgba(19, 146, 236, 0.08);
+    border-color: var(--dash-primary);
+    color: var(--dash-primary);
+  }
+
+  .filter-btn .material-symbols-outlined {
+    font-size: 1.125rem;
+  }
+
+  /* Filter Dropdown */
+  .filter-dropdown {
+    position: relative;
+  }
+
+  .filter-panel {
+    display: none;
+    position: absolute;
+    top: calc(100% + 0.5rem);
+    right: 0;
+    z-index: 9999 !important;
+    /* Max z-index to avoid clipping */
+    min-width: 280px;
+    background: var(--dash-white);
+    border: 1px solid var(--dash-border);
+    border-radius: 1rem;
+    box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.15);
+    padding: 1rem;
+    /* Animation removed to prevent transform stacking context issues */
+    overflow: visible !important;
+    /* Allow dropdowns to spill out */
+  }
+
+  .filter-panel.show {
+    display: block;
+  }
+
+  @keyframes dropdownFadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(-8px);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .filter-group {
+    margin-bottom: 1rem;
+  }
+
+  .filter-group:last-child {
+    margin-bottom: 0;
+  }
+
+  .filter-label {
+    display: block;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--dash-text-muted);
+    margin-bottom: 0.5rem;
+  }
+
+  /* Custom Select Styles */
+  .custom-select-container {
+    position: relative;
+    width: 100%;
+  }
+
+  .custom-select-container.open {
+    z-index: 20;
+    /* Ensure active dropdown sits above subsequent elements */
+  }
+
+  .custom-select-trigger {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.625rem 0.875rem;
+    background: var(--dash-white);
+    border: 1px solid var(--dash-border);
+    border-radius: 0.75rem;
+    font-size: 0.875rem;
+    color: var(--dash-text-dark);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    user-select: none;
+  }
+
+  .custom-select-trigger:hover {
+    border-color: #cbd5e1;
+  }
+
+  .custom-select-trigger.open {
+    border-color: var(--dash-primary);
+    border-bottom-color: transparent;
+    /* Merge with list */
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+  }
+
+  .custom-select-arrow {
+    width: 16px;
+    height: 16px;
+    color: #64748b;
+    transition: transform 0.2s ease;
+  }
+
+  .custom-select-trigger.open .custom-select-arrow {
+    transform: rotate(180deg);
+    color: var(--dash-primary);
+  }
+
+  .custom-select-options {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: white;
+    border: 1px solid var(--dash-primary);
+    border-top: none;
+    /* Seamless join */
+    border-bottom-left-radius: 0.75rem;
+    border-bottom-right-radius: 0.75rem;
+    z-index: 100;
+    display: none;
+    max-height: 250px;
+    overflow-y: auto;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    margin-top: -1px;
+    /* Pull up to cover border */
+  }
+
+  .custom-select-container.open .custom-select-options {
+    display: block;
+    animation: fadeIn 0.1s ease-out;
+  }
+
+  .custom-option {
+    padding: 0.625rem 0.875rem;
+    cursor: pointer;
+    color: var(--dash-text-dark);
+    font-size: 0.875rem;
+    transition: background 0.15s;
+  }
+
+  .custom-option:hover {
+    background: #f1f5f9;
+    color: var(--dash-primary);
+  }
+
+  .custom-option.selected {
+    background: var(--dash-primary);
+    color: white;
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(-5px);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .filter-select option {
+    padding: 0.5rem 0.75rem;
+    background: white;
+    color: var(--dash-text-dark);
+  }
+
+  .filter-actions {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--dash-border);
+  }
+
+  .filter-apply-btn {
+    flex: 1;
+    padding: 0.5rem 1rem;
+    background: var(--dash-primary);
+    color: white;
+    border: none;
+    border-radius: 1rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.15s ease;
+  }
+
+  .filter-apply-btn:hover {
+    background: #1177c7;
+  }
+
+  .filter-clear-btn {
+    padding: 0.5rem 1rem;
+    background: transparent;
+    color: var(--dash-text-muted);
+    border: 1px solid var(--dash-border);
+    border-radius: 1rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+
+  .filter-clear-btn:hover {
+    background: #f8fafc;
+    color: var(--dash-text-dark);
+  }
+
+  /* Table */
+  .dash-table-wrapper {
+    overflow-x: auto;
+  }
+
+  .dash-table {
+    width: 100%;
+    min-width: 900px;
+    border-collapse: collapse;
+    table-layout: fixed;
+  }
+
+  /* Fixed column widths to prevent shifting */
+  .dash-table th:nth-child(1),
+  .dash-table td:nth-child(1) {
+    width: 8%;
+  }
+
+  .dash-table th:nth-child(2),
+  .dash-table td:nth-child(2) {
+    width: 24%;
+  }
+
+  .dash-table th:nth-child(3),
+  .dash-table td:nth-child(3) {
+    width: 18%;
+  }
+
+  .dash-table th:nth-child(4),
+  .dash-table td:nth-child(4) {
+    width: 12%;
+  }
+
+  .dash-table th:nth-child(5),
+  .dash-table td:nth-child(5) {
+    width: 14%;
+  }
+
+  .dash-table th:nth-child(6),
+  .dash-table td:nth-child(6) {
+    width: 12%;
+  }
+
+  .dash-table th:nth-child(7),
+  .dash-table td:nth-child(7) {
+    width: 12%;
+  }
+
+  .dash-table thead tr {
+    background: linear-gradient(to bottom, #f8fafc, #f1f5f9);
+    border-bottom: 2px solid var(--dash-border);
+  }
+
+  .dash-table th {
+    padding: 1rem 1.5rem;
+    text-align: left;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #475569;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .dash-table th.text-right {
+    text-align: right;
+  }
+
+  .dash-table th.text-center {
+    text-align: center;
+  }
+
+  .dash-table tbody tr {
+    transition: background-color 0.15s ease;
+  }
+
+  /* Zebra striping for better readability */
+  .dash-table tbody tr:nth-child(even) {
+    background: #fafbfc;
+  }
+
+  .dash-table tbody tr:hover {
+    background: rgba(19, 146, 236, 0.06);
+  }
+
+  .dash-table td {
+    padding: 1.25rem 1.5rem;
+    border-bottom: 1px solid var(--dash-border);
+    vertical-align: middle;
+  }
+
+  .dash-table td:last-child {
+    border-bottom-color: transparent;
+  }
+
+  /* Order ID */
+  .order-id-cell {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--dash-text-dark);
+  }
+
+  /* Route Cell */
+  .route-cell {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  .route-main {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--dash-text-dark);
+  }
+
+  .route-main .material-symbols-outlined {
+    font-size: 0.875rem;
+    color: var(--dash-text-muted);
+  }
+
+  .route-distance {
+    font-size: 0.75rem;
+    color: var(--dash-text-muted);
+  }
+
+  /* Trip Direction Cell */
+  .vehicle-cell {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .trip-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.25rem 0.75rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    white-space: nowrap;
+  }
+
+  .trip-badge .material-symbols-outlined {
+    font-size: 1rem;
+  }
+
+  /* Menomatka - Blue */
+  .trip-badge.meno {
+    background: #eff6ff;
+    color: #1d4ed8;
+    border: 1px solid #bfdbfe;
+  }
+
+  /* Paluumatka - Orange */
+  .trip-badge.paluu {
+    background: #fff7ed;
+    color: #c2410c;
+    border: 1px solid #fed7aa;
+  }
+
+  /* Status Badges */
+  .status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.25rem 0.75rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    white-space: nowrap;
+  }
+
+  .status-badge .dot {
+    width: 0.375rem;
+    height: 0.375rem;
+    border-radius: 50%;
+  }
+
+  /* In Transit - Blue */
+  .status-badge.in-transit {
+    background: #eff6ff;
+    color: #1d4ed8;
+    border: 1px solid #bfdbfe;
+  }
+
+  .status-badge.in-transit .dot {
+    background: #3b82f6;
+    animation: pulse 2s infinite;
+  }
+
+  /* Scheduled - Gray */
+  .status-badge.scheduled,
+  .status-badge.confirmed {
+    background: #f1f5f9;
+    color: #475569;
+    border: 1px solid #e2e8f0;
+  }
+
+  .status-badge.scheduled .dot,
+  .status-badge.confirmed .dot {
+    background: #64748b;
+  }
+
+  /* Pending - Amber */
+  .status-badge.pending {
+    background: #fffbeb;
+    color: #b45309;
+    border: 1px solid #fde68a;
+  }
+
+  .status-badge.pending .dot {
+    background: #f59e0b;
+    animation: pulse 2s infinite;
+  }
+
+  /* Completed - Green */
+  .status-badge.completed,
+  .status-badge.delivered {
+    background: #f0fdf4;
+    color: #166534;
+    border: 1px solid #bbf7d0;
+  }
+
+  .status-badge.completed .dot,
+  .status-badge.delivered .dot {
+    background: #22c55e;
+  }
+
+  /* Cancelled - Red */
+  .status-badge.cancelled {
+    background: #fef2f2;
+    color: #991b1b;
+    border: 1px solid #fecaca;
+  }
+
+  .status-badge.cancelled .dot {
+    background: #ef4444;
+  }
+
+  @keyframes pulse {
+
+    0%,
+    100% {
+      opacity: 1;
+    }
+
+    50% {
+      opacity: 0.4;
+    }
+  }
+
+  /* ETA Cell */
+  .eta-cell {
+    display: flex;
+    flex-direction: column;
+    gap: 0.125rem;
+  }
+
+  .eta-date {
+    font-size: 0.875rem;
+    color: var(--dash-text-dark);
+  }
+
+  .eta-time {
+    font-size: 0.75rem;
+    color: var(--dash-text-muted);
+  }
+
+  /* Price Cell */
+  .price-cell {
+    text-align: right;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--dash-text-dark);
+  }
+
+  /* Action Button */
+  .action-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.5rem 1rem;
+    border-radius: 9999px;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: #64748b;
+    background: white;
+    border: 1px solid var(--dash-border);
+    text-decoration: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  .action-btn:hover {
+    background: #f8fafc;
+    color: var(--dash-primary);
+    border-color: var(--dash-primary);
+  }
+
+  /* Pagination */
+  .dash-pagination {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem 1.5rem;
+    border-top: 1px solid var(--dash-border);
+    background: var(--dash-white);
+  }
+
+  .pagination-info {
+    font-size: 0.875rem;
+    color: var(--dash-text-muted);
+  }
+
+  .pagination-buttons {
+    display: flex;
+    gap: 0.5rem;
+  }
+
+  .pagination-btn {
+    padding: 0.375rem 0.75rem;
+    border: 1px solid var(--dash-border);
+    border-radius: 0.5rem;
+    font-size: 0.875rem;
+    color: var(--dash-text-muted);
+    background: var(--dash-white);
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+
+  .pagination-btn:hover:not(:disabled) {
+    background: #f8fafc;
+    color: var(--dash-text-dark);
+  }
+
+  .pagination-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  /* Empty State */
+  .dash-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 4rem 2rem;
+    text-align: center;
+  }
+
+  .dash-empty-icon {
+    width: 5rem;
+    height: 5rem;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 1.5rem;
+  }
+
+  .dash-empty-icon .material-symbols-outlined {
+    font-size: 2.5rem;
+    color: var(--dash-primary);
+  }
+
+  .dash-empty-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--dash-text-dark);
+    margin: 0 0 0.5rem 0;
+  }
+
+  .dash-empty-text {
+    font-size: 0.9375rem;
+    color: var(--dash-text-muted);
+    margin: 0 0 1.5rem 0;
+    max-width: 300px;
+  }
+
+  /* Pagination */
+  .dash-pagination {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem 1.5rem;
+    border-top: 1px solid var(--dash-border);
+    background: var(--dash-white);
+  }
+
+  .pagination-info {
+    font-size: 0.875rem;
+    color: var(--dash-text-muted);
+  }
+
+  .pagination-buttons {
+    display: flex;
+    gap: 0.5rem;
+  }
+
+  .pagination-btn {
+    padding: 0.5rem 1rem;
+    border: 1px solid var(--dash-border);
+    border-radius: 1rem;
+    font-size: 0.875rem;
+    color: var(--dash-text-muted);
+    background: var(--dash-white);
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+
+  .pagination-btn:hover:not(:disabled) {
+    background: #f8fafc;
+    color: var(--dash-text-dark);
+    border-color: var(--dash-primary);
+  }
+
+  .pagination-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+
+  /* Mobile Cards (shown on small screens) */
+  .dash-cards-mobile {
+    display: none;
+    flex-direction: column;
+    gap: 1rem;
+    padding: 1rem;
+  }
+
+  @media (max-width: 900px) {
+    .dash-table-wrapper {
+      display: none;
+    }
+
+    .dash-cards-mobile {
+      display: flex;
+    }
+  }
+
+  .mobile-order-card {
+    background: var(--dash-white);
+    border: 1px solid var(--dash-border);
+    border-radius: 1.5rem;
+    padding: 1rem;
+  }
+
+  .mobile-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+  }
+
+  .mobile-card-id {
+    font-weight: 600;
+    color: var(--dash-text-dark);
+  }
+
+  .mobile-card-route {
+    margin-bottom: 1rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--dash-border);
+  }
+
+  .mobile-card-route .route-main {
+    margin-bottom: 0.25rem;
+  }
+
+  .mobile-card-meta {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+    font-size: 0.875rem;
+    margin-bottom: 1rem;
+  }
+
+  .mobile-card-meta-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.125rem;
+  }
+
+  .mobile-meta-label {
+    font-size: 0.6875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--dash-text-muted);
+  }
+
+  .mobile-meta-value {
+    font-weight: 500;
+    color: var(--dash-text-dark);
+  }
+
+  .mobile-card-action {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    width: 100%;
+    padding: 0.75rem;
+    background: var(--dash-primary);
+    color: white;
+    border-radius: 1rem;
+    font-weight: 600;
+    font-size: 0.875rem;
+    text-decoration: none;
+    transition: background 0.15s ease;
+  }
+
+  .mobile-card-action:hover {
+    background: #1177c7;
+  }
+
+  /* Trip Badges (Admin Style) */
+  .trip-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.125rem 0.5rem;
+    border-radius: 9999px;
+    font-size: 0.65rem;
+    font-weight: 600;
+    white-space: nowrap;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 0.25rem;
+    width: fit-content;
+  }
+
+  .trip-badge.meno {
+    background: #eff6ff;
+    color: #1d4ed8;
+    border: 1px solid #bfdbfe;
+  }
+
+  .trip-badge.paluu {
+    background: #fff7ed;
+    color: #c2410c;
+    border: 1px solid #fed7aa;
+  }
+</style>
+{% endblock %}
 
 {% block content %}
-<div class="container">
-  <div class="section-padding">
-    <div class="text-center mb-8">
-      <h1 class="calculator-title">Omat tilaukset</h1>
-      <p class="calculator-subtitle">Hallinnoi kuljetustilauksiasi ja seuraa niiden etenemistä</p>
+{# Calculate order counts #}
+{% set completed_statuses = ['DELIVERED', 'COMPLETED', 'CANCELLED'] %}
+{% set ns = namespace(active=0, completed=0) %}
+{% for order in orders %}
+{% if order.status in completed_statuses %}
+{% set ns.completed = ns.completed + 1 %}
+{% else %}
+{% set ns.active = ns.active + 1 %}
+{% endif %}
+{% endfor %}
+{% set active_count = ns.active %}
+{% set completed_count = ns.completed %}
+
+
+
+<!-- Decorative background -->
+<div class="dashboard-bg-decoration">
+  <div class="bg-blob-1"></div>
+  <div class="bg-blob-2"></div>
+</div>
+
+<div class="dashboard-container">
+  <!-- Welcome Header & Primary Action -->
+  <div class="dash-header">
+    <div class="dash-header-content">
+      <h1 class="dash-title"><span id="dynamicGreeting">Hyvää päivää</span>, {{ current_user.name.split(' ')[0] if
+        current_user and current_user.name
+        else 'Asiakas' }}</h1>
+      <p class="dash-subtitle">
+        Sinulla on <span class="highlight">{{ active_count }} aktiivista tilausta</span>.
+      </p>
     </div>
+    <a class="btn-new-order" href="/order/new/step1">
+      <span class="material-symbols-outlined">add</span>
+      <span>Uusi tilaus</span>
+    </a>
   </div>
 
-  <div class="user-dashboard-wrapper">
-    <div class="user-orders-section">
-      <div class="user-orders-header">
-        <h2 class="user-orders-title">
-          Tilaushistoria
-          <span class="user-orders-count">{{ orders|length }} tilausta</span>
-        </h2>
+  <!-- Content Card -->
+  <div class="dash-card">
+    <!-- Filter Tabs -->
+    <div class="dash-tabs" id="dashTabs">
+      <button type="button" class="dash-tab active" data-tab="active" id="tabActive">
+        Aktiiviset tilaukset
+      </button>
+      <button type="button" class="dash-tab" data-tab="completed" id="tabCompleted">
+        Valmistuneet
+      </button>
+      <div class="tab-indicator" id="tabIndicator"></div>
+    </div>
+
+    <!-- Toolbar / Search -->
+    <div class="dash-toolbar">
+      <div class="dash-search">
+        <span class="material-symbols-outlined">search</span>
+        <input type="text" id="searchInput" placeholder="Hae reitin, tilausnumeron tai rekisterinumeron mukaan..." />
       </div>
+      <div class="toolbar-actions">
+        <div class="filter-dropdown">
+          <button type="button" class="filter-btn" id="filterBtn">
+            <span class="material-symbols-outlined">filter_list</span>
+            Suodata
+          </button>
+          <div class="filter-panel" id="filterPanel">
+            <div class="filter-group">
+              <label class="filter-label">Tilaus tila</label>
+              <div class="custom-select-container" id="filterStatusSelect">
+                <!-- Hidden native select for logic -->
+                <select id="filterStatus" style="display:none">
+                  <option value="">Kaikki tilat</option>
+                  <option value="new">Uusi</option>
+                  <option value="confirmed">Vahvistettu</option>
+                  <option value="in_transit">Kuljetuksessa</option>
+                  <option value="delivered">Toimitettu</option>
+                  <option value="cancelled">Peruutettu</option>
+                </select>
 
-      <div class="user-dashboard-inner">
-        {% set current_tab = request.args.get('tab', 'active') %}
-        <div class="tabs mb-4">
-          <a href="/dashboard?tab=active"
-            class="btn {% if current_tab == 'active' %}btn-primary{% else %}btn-ghost{% endif %} mr-2">Aktiiviset</a>
-          <a href="/dashboard?tab=completed"
-            class="btn {% if current_tab == 'completed' %}btn-primary{% else %}btn-ghost{% endif %}">Valmistuneet</a>
-        </div>
-
-        <div class="calculator-actions mb-4">
-          <a class="btn btn-primary" href="/order/new/step1">+ Uusi tilaus</a>
-        </div>
-      </div>
-
-      <!-- Desktop Table View -->
-      <div class="user-orders-table-wrapper">
-        <table class="user-orders-table">
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>Tila</th>
-              <th>Reitti</th>
-              <th>Matka</th>
-              <th>Hinta</th>
-              <th>Toiminnot</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% if orders %}
-            {% for order in orders %}
-            {% set status_fi = {
-            'NEW': 'Uusi',
-            'CONFIRMED': 'Vahvistettu',
-            'ASSIGNED_TO_DRIVER': 'Noudossa',
-            'DRIVER_ARRIVED': 'Kuljettaja paikalla',
-            'PICKUP_IMAGES_ADDED': 'Noutokuva lisätty',
-            'IN_TRANSIT': 'Kuljetuksessa',
-            'DELIVERY_ARRIVED': 'Toimitus paikalla',
-            'DELIVERY_IMAGES_ADDED': 'Toimituskuva lisätty',
-            'DELIVERED': 'Toimitettu',
-            'COMPLETED': 'Valmis',
-            'CANCELLED': 'Peruutettu'
-            }.get(order.status, order.status) %}
-
-            {% set status_class = {
-            'NEW': 'pending',
-            'CONFIRMED': 'confirmed',
-            'ASSIGNED_TO_DRIVER': 'confirmed',
-            'DRIVER_ARRIVED': 'in-progress',
-            'PICKUP_IMAGES_ADDED': 'in-progress',
-            'IN_TRANSIT': 'in-progress',
-            'DELIVERY_ARRIVED': 'in-progress',
-            'DELIVERY_IMAGES_ADDED': 'in-progress',
-            'DELIVERED': 'completed',
-            'COMPLETED': 'completed',
-            'CANCELLED': 'cancelled'
-            }.get(order.status, 'pending') %}
-
-            <tr>
-              <td class="user-orders-id">
-                #{{ order.id }}
-                {% if order.trip_type %}
-                  <span class="trip-type-badge trip-type-{{ order.trip_type.lower() }}">{{ order.trip_type }}</span>
-                {% endif %}
-              </td>
-              <td class="user-orders-status">
-                <span class="user-status-badge {{ status_class }}">{{ status_fi }}</span>
-              </td>
-              <td class="user-orders-route">{{ order.pickup_address }} → {{ order.dropoff_address }}</td>
-              <td class="user-orders-distance">{{ "%.1f"|format(order.distance_km|float) }} km</td>
-              <td class="user-orders-price">
-                <div class="price-display">
-                  <div class="price-main">{{ "%.2f"|format((order.price_gross|float) / 1.255) }} €</div>
-                  <div class="price-vat">ALV 0%</div>
-                  <div class="price-details">ALV 25,5%: {{ "%.2f"|format((order.price_gross|float) -
-                    ((order.price_gross|float) / 1.255)) }} € | Yhteensä: {{ "%.2f"|format(order.price_gross|float) }} €
-                  </div>
+                <!-- Custom UI -->
+                <div class="custom-select-trigger">
+                  <span class="custom-select-label">Kaikki tilat</span>
+                  <svg class="custom-select-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="6 9 12 15 18 9"></polyline>
+                  </svg>
                 </div>
-              </td>
-              <td class="user-orders-actions">
-                <a class="user-action-btn" href="/order/{{ order.id }}">Avaa</a>
-              </td>
-            </tr>
-            {% endfor %}
-            {% else %}
-            <tr>
-              <td colspan="6" class="user-orders-empty">
-                <div class="empty-state">
-                  {{ icons.package(48, '#94a3b8') }}
-                  <div class="empty-title">Ei tilauksia</div>
-                  <div class="empty-text">Luo ensimmäinen tilauksesi yllä olevalla napilla</div>
+                <div class="custom-select-options">
+                  <div class="custom-option selected" data-value="">Kaikki tilat</div>
+                  <div class="custom-option" data-value="new">Uusi</div>
+                  <div class="custom-option" data-value="confirmed">Vahvistettu</div>
+                  <div class="custom-option" data-value="in_transit">Kuljetuksessa</div>
+                  <div class="custom-option" data-value="delivered">Toimitettu</div>
+                  <div class="custom-option" data-value="cancelled">Peruutettu</div>
                 </div>
-              </td>
-            </tr>
-            {% endif %}
-          </tbody>
-        </table>
-      </div>
-
-      <!-- Mobile Card View -->
-      <div class="user-orders-cards">
-        {% if orders %}
-        {% for order in orders %}
-        {% set status_fi = {
-        'NEW': 'Uusi',
-        'CONFIRMED': 'Vahvistettu',
-        'ASSIGNED_TO_DRIVER': 'Noudossa',
-        'DRIVER_ARRIVED': 'Kuljettaja paikalla',
-        'PICKUP_IMAGES_ADDED': 'Noutokuva lisätty',
-        'IN_TRANSIT': 'Kuljetuksessa',
-        'DELIVERY_ARRIVED': 'Toimitus paikalla',
-        'DELIVERY_IMAGES_ADDED': 'Toimituskuva lisätty',
-        'DELIVERED': 'Toimitettu',
-        'COMPLETED': 'Valmis',
-        'CANCELLED': 'Peruutettu'
-        }.get(order.status, order.status) %}
-
-        {% set status_class = {
-        'NEW': 'pending',
-        'CONFIRMED': 'confirmed',
-        'ASSIGNED_TO_DRIVER': 'confirmed',
-        'DRIVER_ARRIVED': 'in-progress',
-        'PICKUP_IMAGES_ADDED': 'in-progress',
-        'IN_TRANSIT': 'in-progress',
-        'DELIVERY_ARRIVED': 'in-progress',
-        'DELIVERY_IMAGES_ADDED': 'in-progress',
-        'DELIVERED': 'completed',
-        'COMPLETED': 'completed',
-        'CANCELLED': 'cancelled'
-        }.get(order.status, 'pending') %}
-
-        <article class="order-card" role="article" aria-label="Tilaus {{ order.id }}">
-          <!-- Card Header -->
-          <div class="order-card-header">
-            <div class="order-card-id">
-              {{ icons.clipboard(20, '#2563eb') }}
-              <span>#{{ order.id }}</span>
-              {% if order.trip_type %}
-                <span class="trip-type-badge trip-type-{{ order.trip_type.lower() }}">{{ order.trip_type }}</span>
-              {% endif %}
-            </div>
-            <span class="user-status-badge {{ status_class }}" role="status" aria-label="Tilauksen tila">{{ status_fi
-              }}</span>
-          </div>
-
-          <!-- Route Section -->
-          <div class="order-card-route" aria-label="Kuljetusreitti">
-            <div class="route-point">
-              <div class="route-icon pickup">{{ icons.location(20, '#3b82f6') }}</div>
-              <div class="route-text">
-                <div class="route-label">Nouto</div>
-                <div class="route-address">{{ order.pickup_address }}</div>
               </div>
             </div>
-            <div class="route-arrow">↓</div>
-            <div class="route-point">
-              <div class="route-icon delivery">{{ icons.location(20, '#10b981') }}</div>
-              <div class="route-text">
-                <div class="route-label">Toimitus</div>
-                <div class="route-address">{{ order.dropoff_address }}</div>
-              </div>
-            </div>
-          </div>
 
-          <!-- Info Grid -->
-          <div class="order-card-info">
-            <div class="info-item">
-              <div class="info-label">Matka</div>
-              <div class="info-value">{{ "%.1f"|format(order.distance_km|float) }} km</div>
-            </div>
-            <div class="info-item price-item">
-              <div class="info-label">Hinta</div>
-              <div class="info-value price-value">
-                <div class="price-main-mobile">{{ "%.2f"|format((order.price_gross|float) / 1.255) }} €</div>
-                <div class="price-vat-mobile">ALV 0%</div>
-              </div>
-            </div>
-          </div>
+            <div class="filter-group">
+              <label class="filter-label">Järjestä</label>
+              <div class="custom-select-container" id="filterSortSelect">
+                <select id="filterSort" style="display:none">
+                  <option value="newest">Uusin ensin</option>
+                  <option value="oldest">Vanhin ensin</option>
+                  <option value="price_high">Hinta (korkein)</option>
+                  <option value="price_low">Hinta (matalin)</option>
+                </select>
 
-          <!-- Price Details (Expandable) -->
-          <details class="price-details-toggle">
-            <summary class="price-details-summary">Näytä hinnan erittely</summary>
-            <div class="price-details-content">
-              <div class="price-detail-row">
-                <span>Hinta (ALV 0%)</span>
-                <span>{{ "%.2f"|format((order.price_gross|float) / 1.255) }} €</span>
-              </div>
-              <div class="price-detail-row">
-                <span>ALV 25,5%</span>
-                <span>{{ "%.2f"|format((order.price_gross|float) - ((order.price_gross|float) / 1.255)) }} €</span>
-              </div>
-              <div class="price-detail-row total">
-                <span>Yhteensä</span>
-                <span>{{ "%.2f"|format(order.price_gross|float) }} €</span>
+                <div class="custom-select-trigger">
+                  <span class="custom-select-label">Uusin ensin</span>
+                  <svg class="custom-select-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="6 9 12 15 18 9"></polyline>
+                  </svg>
+                </div>
+                <div class="custom-select-options">
+                  <div class="custom-option selected" data-value="newest">Uusin ensin</div>
+                  <div class="custom-option" data-value="oldest">Vanhin ensin</div>
+                  <div class="custom-option" data-value="price_high">Hinta (korkein)</div>
+                  <div class="custom-option" data-value="price_low">Hinta (matalin)</div>
+                </div>
               </div>
             </div>
-          </details>
-
-          <!-- Action Button -->
-          <a href="/order/{{ order.id }}" class="order-card-action" aria-label="Avaa tilaus {{ order.id }}">
-            Avaa tilaus
-            {{ icons.eye(18, '#ffffff') }}
-          </a>
-        </article>
-        {% endfor %}
-        {% else %}
-        <div class="user-orders-empty">
-          <div class="empty-state">
-            {{ icons.package(64, '#94a3b8') }}
-            <div class="empty-title">Ei tilauksia</div>
-            <div class="empty-text">Luo ensimmäinen tilauksesi yllä olevalla napilla</div>
+            <div class="filter-actions">
+              <button type="button" class="filter-clear-btn" id="filterClear">Tyhjennä</button>
+              <button type="button" class="filter-apply-btn" id="filterApply">Käytä</button>
+            </div>
           </div>
         </div>
+      </div>
+    </div>
+
+    <!-- Desktop Table -->
+    <div class="dash-table-wrapper">
+      <table class="dash-table">
+        {% if all_orders %}
+        <thead>
+          <tr>
+            <th>Tilaus ID</th>
+            <th>Reitti & Matka</th>
+            <th>Tila</th>
+            <th>Päivämäärä</th>
+            <th class="text-right">Hinta</th>
+            <th class="text-center">Toiminto</th>
+          </tr>
+        </thead>
         {% endif %}
+        <tbody id="ordersTableBody">
+          {% if all_orders %}
+          {% for order in all_orders %}
+          {% set status_fi = {
+          'NEW': 'Uusi',
+          'CONFIRMED': 'Vahvistettu',
+          'ASSIGNED_TO_DRIVER': 'Noudossa',
+          'DRIVER_ARRIVED': 'Kuljettaja paikalla',
+          'PICKUP_IMAGES_ADDED': 'Noutokuva lisätty',
+          'IN_TRANSIT': 'Kuljetuksessa',
+          'DELIVERY_ARRIVED': 'Toimitus paikalla',
+          'DELIVERY_IMAGES_ADDED': 'Toimituskuva lisätty',
+          'DELIVERED': 'Toimitettu',
+          'COMPLETED': 'Valmis',
+          'CANCELLED': 'Peruutettu'
+          }.get(order.status, order.status) %}
+
+          {% set status_class = {
+          'NEW': 'pending',
+          'CONFIRMED': 'delivered',
+          'ASSIGNED_TO_DRIVER': 'in-transit',
+          'DRIVER_ARRIVED': 'in-transit',
+          'PICKUP_IMAGES_ADDED': 'in-transit',
+          'IN_TRANSIT': 'in-transit',
+          'DELIVERY_ARRIVED': 'in-transit',
+          'DELIVERY_IMAGES_ADDED': 'in-transit',
+          'DELIVERED': 'delivered',
+          'COMPLETED': 'completed',
+          'CANCELLED': 'cancelled'
+          }.get(order.status, 'pending') %}
+
+          {% set is_completed = order.status in completed_statuses %}
+
+          <tr class="order-row" data-status="{{ 'completed' if is_completed else 'active' }}"
+            data-plate="{{ order.reg_number or '' }}">
+            <td>
+              <span class="order-id-cell">#{{ order.user_order_number or order.id }}</span>
+            </td>
+            <td>
+              <div class="route-cell">
+                <span class="route-main">
+                  {{ order.pickup_address.split(',')[0] if ',' in order.pickup_address else order.pickup_address[:20] }}
+                  <span class="material-symbols-outlined">arrow_forward</span>
+                  {{ order.dropoff_address.split(',')[0] if ',' in order.dropoff_address else order.dropoff_address[:20]
+                  }}
+                </span>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <span class="route-distance">{{ "%.1f"|format(order.distance_km|float) }} km</span>
+                  {% if order.trip_type %}
+                  <span class="trip-badge {{ 'paluu' if order.trip_type == 'PALUU' else 'meno' }}">
+                    <span class="material-symbols-outlined text-[12px]">{{ 'west' if order.trip_type == 'PALUU' else
+                      'east' }}</span>
+                    {{ 'Paluumatka' if order.trip_type == 'PALUU' else 'Menomatka' }}
+                  </span>
+                  {% endif %}
+                </div>
+              </div>
+            </td>
+            <td>
+              <span class="status-badge {{ status_class }}">
+                <span class="dot"></span>
+                {{ status_fi }}
+              </span>
+            </td>
+            <td>
+              <div class="eta-cell">
+                <span class="eta-date">{{ order.pickup_date|finnish_date or '-' }}</span>
+                <span class="eta-time">{{ order.pickup_time or '' }}</span>
+              </div>
+            </td>
+            <td class="price-cell">
+              <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 2px;">
+                <span style="font-weight: 600; color: #1e293b;">{{ "%.2f"|format((order.price_gross|float) / 1.255) }}
+                  €</span>
+                <span style="font-size: 11px; color: #94a3b8; font-weight: 400;">sis. alv {{
+                  "%.2f"|format(order.price_gross|float) }} €</span>
+              </div>
+            </td>
+            <td style="text-align: center;">
+              <a class="action-btn" href="/order/{{ order.id }}" title="Avaa tilaus">Avaa</a>
+            </td>
+          </tr>
+          {% endfor %}
+          {% endif %}
+        </tbody>
+      </table>
+
+      <!-- Empty State -->
+      <div id="tableEmpty" class="dash-empty" style="display: none;">
+        <div class="dash-empty-icon">
+          <span class="material-symbols-outlined">local_shipping</span>
+        </div>
+        <h3 class="dash-empty-title">Ei tilauksia</h3>
+        <p class="dash-empty-text" id="emptyText">Aloita ensimmäinen kuljetustilauksesi!</p>
+        <a href="/order/new/step1" class="btn-new-order">
+          <span class="material-symbols-outlined">add</span>
+          Luo uusi tilaus
+        </a>
+      </div>
+    </div>
+
+    <!-- Mobile Cards -->
+    <div class="dash-cards-mobile" id="ordersCards">
+      {% if all_orders %}
+      {% for order in all_orders %}
+      {% set status_fi = {
+      'NEW': 'Uusi',
+      'CONFIRMED': 'Vahvistettu',
+      'ASSIGNED_TO_DRIVER': 'Noudossa',
+      'DRIVER_ARRIVED': 'Kuljettaja paikalla',
+      'PICKUP_IMAGES_ADDED': 'Noutokuva lisätty',
+      'IN_TRANSIT': 'Kuljetuksessa',
+      'DELIVERY_ARRIVED': 'Toimitus paikalla',
+      'DELIVERY_IMAGES_ADDED': 'Toimituskuva lisätty',
+      'DELIVERED': 'Toimitettu',
+      'COMPLETED': 'Valmis',
+      'CANCELLED': 'Peruutettu'
+      }.get(order.status, order.status) %}
+
+      {% set status_class = {
+      'NEW': 'pending',
+      'CONFIRMED': 'delivered',
+      'ASSIGNED_TO_DRIVER': 'in-transit',
+      'DRIVER_ARRIVED': 'in-transit',
+      'PICKUP_IMAGES_ADDED': 'in-transit',
+      'IN_TRANSIT': 'in-transit',
+      'DELIVERY_ARRIVED': 'in-transit',
+      'DELIVERY_IMAGES_ADDED': 'in-transit',
+      'DELIVERED': 'delivered',
+      'COMPLETED': 'completed',
+      'CANCELLED': 'cancelled'
+      }.get(order.status, 'pending') %}
+
+      {% set is_completed = order.status in completed_statuses %}
+
+      <div class="mobile-order-card order-card-item" data-status="{{ 'completed' if is_completed else 'active' }}"
+        data-plate="{{ order.reg_number or '' }}">
+        <div class="mobile-card-header">
+          <span class="mobile-card-id">#{{ order.user_order_number or order.id }}</span>
+          <span class="status-badge {{ status_class }}">
+            <span class="dot"></span>
+            {{ status_fi }}
+          </span>
+        </div>
+
+        <div class="mobile-card-route">
+          <div class="route-main">
+            {{ order.pickup_address.split(',')[0] if ',' in order.pickup_address else order.pickup_address[:25] }}
+            <span class="material-symbols-outlined">arrow_forward</span>
+            {{ order.dropoff_address.split(',')[0] if ',' in order.dropoff_address else order.dropoff_address[:25] }}
+          </div>
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 4px;">
+            <span class="route-distance">{{ "%.1f"|format(order.distance_km|float) }} km</span>
+
+            <!-- Trip Type Badge (Mobile) -->
+            {% if order.trip_type %}
+            <span class="trip-badge {{ 'paluu' if order.trip_type == 'PALUU' else 'meno' }}"
+              style="font-size: 10px; padding: 2px 6px;">
+              <span class="material-symbols-outlined" style="font-size: 10px;">{{ 'west' if order.trip_type == 'PALUU'
+                else 'east' }}</span>
+              {{ 'Paluumatka' if order.trip_type == 'PALUU' else 'Menomatka' }}
+            </span>
+            {% endif %}
+          </div>
+        </div>
+
+        <div class="mobile-card-meta">
+          <div class="mobile-card-meta-item">
+            <span class="mobile-meta-label">Ajoneuvo</span>
+            <span class="mobile-meta-value">{{ order.vehicle_make or 'Ajoneuvo' }}</span>
+          </div>
+          <div class="mobile-card-meta-item">
+            <span class="mobile-meta-label">Hinta (ALV 0%)</span>
+            <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 2px;">
+              <span class="mobile-meta-value">{{ "%.2f"|format((order.price_gross|float) / 1.255) }} €</span>
+              <span style="font-size: 11px; color: #94a3b8; font-weight: 400;">sis. alv {{
+                "%.2f"|format(order.price_gross|float) }} €</span>
+            </div>
+          </div>
+        </div>
+
+        <a href="/order/{{ order.id }}" class="mobile-card-action">
+          Avaa tilaus
+          <span class="material-symbols-outlined">arrow_forward</span>
+        </a>
+      </div>
+      {% endfor %}
+      {% endif %}
+
+      <div id="cardsEmpty" class="dash-empty" style="display: none;">
+        <div class="dash-empty-icon">
+          <span class="material-symbols-outlined">local_shipping</span>
+        </div>
+        <h3 class="dash-empty-title">Ei tilauksia</h3>
+        <p class="dash-empty-text">Aloita ensimmäinen kuljetustilauksesi!</p>
+        <a href="/order/new/step1" class="btn-new-order">
+          <span class="material-symbols-outlined">add</span>
+          Luo uusi tilaus
+        </a>
+      </div>
+    </div>
+
+    <!-- Pagination -->
+    <div class="dash-pagination">
+      <span class="pagination-info" id="paginationInfo">Näytetään 1-10 / {{ all_orders|length if all_orders else 0 }}
+        tilausta</span>
+      <div class="pagination-buttons">
+        <button type="button" class="pagination-btn" id="prevBtn" disabled>Edellinen</button>
+        <button type="button" class="pagination-btn" id="nextBtn">Seuraava</button>
       </div>
     </div>
   </div>
 </div>
+
+{% include 'components/dashboard_footer.html' %}
+
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const tabActive = document.getElementById('tabActive');
+    const tabCompleted = document.getElementById('tabCompleted');
+    const tabIndicator = document.getElementById('tabIndicator');
+    const tableRows = Array.from(document.querySelectorAll('.order-row'));
+    const cardItems = Array.from(document.querySelectorAll('.order-card-item'));
+    const tableEmpty = document.getElementById('tableEmpty');
+    const tableHead = document.querySelector('.dash-table thead');
+    const cardsEmpty = document.getElementById('cardsEmpty');
+    const emptyText = document.getElementById('emptyText');
+    const searchInput = document.getElementById('searchInput');
+    const prevBtn = document.getElementById('prevBtn');
+    const nextBtn = document.getElementById('nextBtn');
+    const paginationInfo = document.getElementById('paginationInfo');
+
+    // Initialize custom dropdowns
+    document.querySelectorAll('.custom-select-container').forEach(container => {
+      const trigger = container.querySelector('.custom-select-trigger');
+      const options = container.querySelector('.custom-select-options');
+      const hiddenSelect = container.querySelector('select');
+      const label = container.querySelector('.custom-select-label');
+
+      // Toggle dropdown
+      trigger.addEventListener('click', (e) => {
+        e.stopPropagation();
+
+        // Close other dropdowns
+        document.querySelectorAll('.custom-select-container').forEach(c => {
+          if (c !== container) {
+            c.classList.remove('open');
+            c.querySelector('.custom-select-trigger').classList.remove('open');
+          }
+        });
+
+        const isOpen = container.classList.contains('open');
+        container.classList.toggle('open', !isOpen);
+        trigger.classList.toggle('open', !isOpen);
+      });
+
+      // Handle option click
+      options.querySelectorAll('.custom-option').forEach(option => {
+        option.addEventListener('click', (e) => {
+          e.stopPropagation();
+
+          // Update UI
+          options.querySelectorAll('.custom-option').forEach(opt => opt.classList.remove('selected'));
+          option.classList.add('selected');
+          label.textContent = option.textContent;
+
+          // Update hidden select and trigger change
+          hiddenSelect.value = option.dataset.value;
+          // Trigger change event manually so existing logic works
+          hiddenSelect.dispatchEvent(new Event('change'));
+
+          // Close dropdown
+          container.classList.remove('open');
+          trigger.classList.remove('open');
+        });
+      });
+    });
+
+    // Close dropdowns when clicking outside
+    document.addEventListener('click', () => {
+      document.querySelectorAll('.custom-select-container').forEach(c => {
+        c.classList.remove('open');
+        const trigger = c.querySelector('.custom-select-trigger');
+        if (trigger) trigger.classList.remove('open');
+      });
+    });
+
+    // Update greeting based on time of day
+    function updateGreeting() {
+      const hour = new Date().getHours();
+      const greetingEl = document.getElementById('dynamicGreeting');
+      if (greetingEl) {
+        let greeting;
+        if (hour >= 5 && hour < 10) {
+          greeting = 'Hyvää huomenta';
+        } else if (hour >= 10 && hour < 18) {
+          greeting = 'Hyvää päivää';
+        } else {
+          greeting = 'Hyvää iltaa';
+        }
+        greetingEl.textContent = greeting;
+      }
+    }
+    updateGreeting();
+
+    // Function to update tab indicator position
+    function updateTabIndicator(tab) {
+      const activeTabEl = tab === 'active' ? tabActive : tabCompleted;
+      if (tabIndicator && activeTabEl) {
+        tabIndicator.style.left = activeTabEl.offsetLeft + 'px';
+        tabIndicator.style.width = activeTabEl.offsetWidth + 'px';
+      }
+    }
+
+    // Filter elements
+    const filterBtn = document.getElementById('filterBtn');
+    const filterPanel = document.getElementById('filterPanel');
+    const filterStatus = document.getElementById('filterStatus');
+    const filterSort = document.getElementById('filterSort');
+    const filterApply = document.getElementById('filterApply');
+    const filterClear = document.getElementById('filterClear');
+
+    // Content containers for animation
+    const tableWrapper = document.querySelector('.dash-table-wrapper');
+    const cardsWrapper = document.querySelector('.dash-cards-mobile');
+
+    const ORDERS_PER_PAGE = 10;
+    let currentTab = 'active';
+    let currentPage = 1;
+    let filteredRows = [];
+    let filteredCards = [];
+    let activeStatusFilter = '';
+    let activeSortOrder = 'newest';
+
+    // Toggle filter panel
+    filterBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      filterPanel.classList.toggle('show');
+      filterBtn.classList.toggle('active');
+    });
+
+    // Close filter panel when clicking outside
+    document.addEventListener('click', (e) => {
+      if (!filterPanel.contains(e.target) && !filterBtn.contains(e.target)) {
+        filterPanel.classList.remove('show');
+        filterBtn.classList.remove('active');
+      }
+    });
+
+    // Apply filters
+    filterApply.addEventListener('click', () => {
+      activeStatusFilter = filterStatus.value;
+      activeSortOrder = filterSort.value;
+      applyFilters();
+      filterPanel.classList.remove('show');
+      filterBtn.classList.toggle('active', activeStatusFilter !== '' || activeSortOrder !== 'newest');
+    });
+
+    // Clear filters
+    filterClear.addEventListener('click', () => {
+      filterStatus.value = '';
+      filterSort.value = 'newest';
+      activeStatusFilter = '';
+      activeSortOrder = 'newest';
+      applyFilters();
+      filterBtn.classList.remove('active');
+    });
+
+    function getFilteredItems(tab) {
+      let rows = tableRows.filter(row => row.dataset.status === tab);
+      let cards = cardItems.filter(card => card.dataset.status === tab);
+
+      // Apply status filter
+      if (activeStatusFilter) {
+        rows = rows.filter(row => {
+          const statusBadge = row.querySelector('.status-badge');
+          const statusText = statusBadge ? statusBadge.textContent.trim().toLowerCase() : '';
+          const statusMap = {
+            'NEW': 'uusi',
+            'CONFIRMED': 'vahvistettu',
+            'IN_TRANSIT': 'kuljetuksessa',
+            'DELIVERED': 'toimitettu',
+            'CANCELLED': 'peruutettu'
+          };
+          return statusText.includes((statusMap[activeStatusFilter] || '').toLowerCase());
+        });
+        cards = cards.filter(card => {
+          const statusBadge = card.querySelector('.status-badge');
+          const statusText = statusBadge ? statusBadge.textContent.trim().toLowerCase() : '';
+          const statusMap = {
+            'NEW': 'uusi',
+            'CONFIRMED': 'vahvistettu',
+            'IN_TRANSIT': 'kuljetuksessa',
+            'DELIVERED': 'toimitettu',
+            'CANCELLED': 'peruutettu'
+          };
+          return statusText.includes((statusMap[activeStatusFilter] || '').toLowerCase());
+        });
+      }
+
+      // Apply sort
+      if (activeSortOrder === 'oldest') {
+        rows = rows.reverse();
+        cards = cards.reverse();
+      }
+
+      return { rows, cards };
+    }
+
+    function getSearchText(element) {
+      const plate = element.dataset.plate || '';
+      return `${element.textContent} ${plate}`.toLowerCase();
+    }
+
+    function applyFilters() {
+      currentPage = 1;
+      const { rows, cards } = getFilteredItems(currentTab);
+
+      // Apply search filter if there's a search query
+      const query = searchInput ? searchInput.value.toLowerCase() : '';
+      if (query) {
+        filteredRows = rows.filter(row => getSearchText(row).includes(query));
+        filteredCards = cards.filter(card => getSearchText(card).includes(query));
+      } else {
+        filteredRows = rows;
+        filteredCards = cards;
+      }
+
+      updatePagination();
+    }
+
+    function updatePagination() {
+      const totalItems = filteredRows.length;
+      const totalPages = Math.ceil(totalItems / ORDERS_PER_PAGE);
+      const start = (currentPage - 1) * ORDERS_PER_PAGE;
+      const end = Math.min(start + ORDERS_PER_PAGE, totalItems);
+
+      // Hide all first
+      tableRows.forEach(row => row.style.display = 'none');
+      cardItems.forEach(card => card.style.display = 'none');
+
+      // Show only current page items
+      for (let i = start; i < end; i++) {
+        if (filteredRows[i]) filteredRows[i].style.display = '';
+        if (filteredCards[i]) filteredCards[i].style.display = '';
+      }
+
+      // Update pagination info
+      if (totalItems > 0) {
+        paginationInfo.textContent = `Näytetään ${start + 1}-${end} / ${totalItems} tilausta`;
+      } else {
+        paginationInfo.textContent = 'Ei tilauksia';
+      }
+
+      // Update buttons
+      prevBtn.disabled = currentPage === 1;
+      nextBtn.disabled = currentPage >= totalPages || totalPages === 0;
+
+      // Show/hide empty state and table header
+      const showEmpty = totalItems === 0;
+      if (tableEmpty) tableEmpty.style.display = showEmpty ? '' : 'none';
+      if (cardsEmpty) cardsEmpty.style.display = showEmpty ? '' : 'none';
+      if (tableHead) tableHead.style.display = showEmpty ? 'none' : '';
+    }
+
+    function animateTabChange(callback) {
+      // Fade out
+      if (tableWrapper) tableWrapper.classList.add('fade-out');
+      if (cardsWrapper) cardsWrapper.classList.add('fade-out');
+
+      setTimeout(() => {
+        callback();
+
+        // Fade in
+        if (tableWrapper) {
+          tableWrapper.classList.remove('fade-out');
+          tableWrapper.classList.add('fade-in');
+        }
+        if (cardsWrapper) {
+          cardsWrapper.classList.remove('fade-out');
+          cardsWrapper.classList.add('fade-in');
+        }
+
+        setTimeout(() => {
+          if (tableWrapper) tableWrapper.classList.remove('fade-in');
+          if (cardsWrapper) cardsWrapper.classList.remove('fade-in');
+        }, 250);
+      }, 150);
+    }
+
+    function filterOrders(tab, animate = true) {
+      if (animate && tab !== currentTab) {
+        animateTabChange(() => doFilterOrders(tab));
+      } else {
+        doFilterOrders(tab);
+      }
+    }
+
+    function doFilterOrders(tab) {
+      currentTab = tab;
+      currentPage = 1;
+
+      // Update tab buttons
+      document.querySelectorAll('.dash-tab').forEach(t => t.classList.remove('active'));
+      if (tab === 'active') {
+        tabActive.classList.add('active');
+      } else {
+        tabCompleted.classList.add('active');
+      }
+
+      // Animate tab indicator
+      updateTabIndicator(tab);
+
+      // Get filtered items
+      applyFilters();
+
+      // Update empty text
+      if (emptyText) {
+        emptyText.textContent = tab === 'active'
+          ? 'Aloita ensimmäinen kuljetustilauksesi!'
+          : 'Ei valmistuneita tilauksia vielä.';
+      }
+
+      // Update URL without reload
+      const url = new URL(window.location);
+      url.searchParams.set('tab', tab);
+      window.history.replaceState({}, '', url);
+    }
+
+    // Search functionality
+    if (searchInput) {
+      searchInput.addEventListener('input', function (e) {
+        applyFilters();
+      });
+    }
+
+    // Pagination buttons
+    prevBtn.addEventListener('click', () => {
+      if (currentPage > 1) {
+        currentPage--;
+        updatePagination();
+      }
+    });
+
+    nextBtn.addEventListener('click', () => {
+      const totalPages = Math.ceil(filteredRows.length / ORDERS_PER_PAGE);
+      if (currentPage < totalPages) {
+        currentPage++;
+        updatePagination();
+      }
+    });
+
+    // Tab click handlers
+    tabActive.addEventListener('click', () => filterOrders('active'));
+    tabCompleted.addEventListener('click', () => filterOrders('completed'));
+
+    // Initialize based on URL param or default to active
+    const urlParams = new URLSearchParams(window.location.search);
+    const initialTab = urlParams.get('tab') || 'active';
+    filterOrders(initialTab, false);
+  });
+</script>
 {% endblock %}

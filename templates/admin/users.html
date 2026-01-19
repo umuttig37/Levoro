@@ -1,116 +1,1034 @@
-{% extends "base/layout.html" %}
-{% import 'components/icons.html' as icons %}
+<!DOCTYPE html>
+<html class="light" lang="fi">
 
-{% block title %}Käyttäjien hallinta – Admin{% endblock %}
+<head>
+  <meta charset="utf-8" />
+  <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+  <title>Levoro Admin - Käyttäjät</title>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+    rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+  <script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "primary": "#1392ec",
+            "background-light": "#f6f7f8",
+            "background-dark": "#101a22",
+          },
+          fontFamily: {
+            "display": ["Inter", "sans-serif"]
+          },
+          borderRadius: { "DEFAULT": "0.5rem", "lg": "1rem", "xl": "1.5rem", "full": "9999px" },
+        },
+      },
+    }
+  </script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&amp;display=swap"
+    rel="stylesheet" />
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+    }
 
-{% block content %}
-<div class="admin-container">
-  <div class="admin-header">
-    <h2>Käyttäjien hallinta</h2>
-    <div class="admin-actions">
-      <a class="btn btn-ghost" href="{{ url_for('main.admin_dashboard') }}">Takaisin tilauksiin</a>
-      <a class="btn btn-ghost" href="{{ url_for('admin.drivers') }}">Kuljettajat</a>
-      <a class="btn btn-secondary" href="{{ url_for('auth.logout') }}">Kirjaudu ulos</a>
-    </div>
-  </div>
+    /* Hide global scrollbar */
+    body::-webkit-scrollbar,
+    html::-webkit-scrollbar {
+      display: none;
+    }
 
-  {% with messages = get_flashed_messages(with_categories=true) %}
+    body,
+    html {
+      -ms-overflow-style: none;
+      /* IE and Edge */
+      scrollbar-width: none;
+      /* Firefox */
+    }
+
+    /* Custom scrollbar */
+    .custom-scrollbar::-webkit-scrollbar {
+      height: 8px;
+      width: 8px;
+    }
+
+    .custom-scrollbar::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background-color: #cbd5e1;
+      border-radius: 4px;
+    }
+
+    .dark .custom-scrollbar::-webkit-scrollbar-thumb {
+      background-color: #475569;
+    }
+
+    /* Flash messages */
+    .flash-messages {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 1000;
+    }
+
+    .flash-message {
+      padding: 1rem;
+      margin-bottom: 1rem;
+      border-radius: 0.5rem;
+      color: white;
+      font-weight: 500;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    }
+
+    .flash-message.success {
+      background-color: #10b981;
+    }
+
+    .flash-message.error {
+      background-color: #ef4444;
+    }
+
+    .flash-message.warning {
+      background-color: #f59e0b;
+    }
+
+    /* Flash message styling */
+    .flash-message.info {
+      background-color: #3b82f6;
+    }
+
+    /* Custom Dropdown Styles */
+    :root {
+      --dash-primary: #1392ec;
+    }
+
+    .custom-select-container {
+      position: relative;
+      width: 100%;
+    }
+
+    .custom-select-container.open {
+      z-index: 20;
+    }
+
+    .custom-select-trigger {
+      width: 100%;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.625rem 0.875rem;
+      background: white;
+      border: 1px solid #e2e8f0;
+      border-radius: 0.75rem;
+      font-size: 0.875rem;
+      color: #0d161b;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      user-select: none;
+    }
+
+    .dark .custom-select-trigger {
+      background: #1e2936;
+      color: white;
+      border-color: #475569;
+    }
+
+    .custom-select-trigger:hover {
+      border-color: #cbd5e1;
+    }
+
+    .dark .custom-select-trigger:hover {
+      border-color: #64748b;
+    }
+
+    .custom-select-trigger.open {
+      border-color: var(--dash-primary);
+      border-bottom-color: transparent;
+      border-bottom-left-radius: 0;
+      border-bottom-right-radius: 0;
+    }
+
+    .custom-select-arrow {
+      width: 16px;
+      height: 16px;
+      color: #94a3b8;
+      transition: transform 0.2s ease;
+    }
+
+    .custom-select-trigger.open .custom-select-arrow {
+      transform: rotate(180deg);
+      color: var(--dash-primary);
+    }
+
+    .custom-select-options {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      background: white;
+      border: 1px solid var(--dash-primary);
+      border-top: none;
+      border-bottom-left-radius: 0.75rem;
+      border-bottom-right-radius: 0.75rem;
+      z-index: 100;
+      display: none;
+      max-height: 250px;
+      overflow-y: auto;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      margin-top: 0;
+    }
+
+    .dark .custom-select-options {
+      background: #1e2936;
+      border-color: rgba(19, 146, 236, 0.5);
+    }
+
+    .custom-select-container.open .custom-select-options {
+      display: block;
+      animation: fadeIn 0.1s ease-out;
+    }
+
+    .custom-option {
+      padding: 0.5rem 0.75rem;
+      cursor: pointer;
+      color: #0d161b;
+      font-size: 0.875rem;
+      transition: background 0.15s;
+    }
+
+    .dark .custom-option {
+      color: white;
+    }
+
+    .custom-option:hover {
+      background: #f1f5f9;
+      color: var(--dash-primary);
+    }
+
+    .dark .custom-option:hover {
+      background: #334155;
+    }
+
+    .custom-option.selected {
+      background: var(--dash-primary);
+      color: white;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(-5px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+  </style>
+</head>
+
+<body
+  class="bg-background-light dark:bg-background-dark min-h-screen w-full flex flex-col text-[#0d161b] dark:text-white transition-colors duration-200">
+  <!-- Flash Messages -->
+  {% with messages=get_flashed_messages(with_categories=true) %}
   {% if messages %}
-  {% for category, message in messages %}
-  <div class="alert alert-{% if category == 'error' %}danger{% else %}{{ category }}{% endif %} mb-4">
-    {{ message }}
+  <div class="flash-messages">
+    {% for category, message in messages %}
+    <div class="flash-message {{ category }}">
+      {{ message }}
+    </div>
+    {% endfor %}
   </div>
-  {% endfor %}
   {% endif %}
   {% endwith %}
 
-  <p class="text-muted">Hallinnoi käyttäjätilien hyväksyntää ja hylkäämistä.</p>
+  <!-- Top Navigation -->
+  <header
+    class="sticky top-0 z-50 border-b border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-[#101a22]/80 backdrop-blur-md">
+    <div class="flex items-center justify-between px-6 py-3 lg:px-10 w-full max-w-[1440px] mx-auto"><a href="/"
+        class="flex items-center gap-4"><img src="/static/LevoroLogo.png" alt="Levoro" class="h-20 w-auto"></a>
+      <div class="flex flex-1 justify-end gap-8">
+        <nav class="hidden md:flex items-center gap-2">
 
-  <table class="admin-table admin-users-table">
-    <thead>
-      <tr>
-        <th>ID</th>
-        <th>Nimi</th>
-        <th>Sähköposti</th>
-        <th>Puhelin</th>
-        <th>Rooli</th>
-        <th>Tila</th>
-        <th>Luotu</th>
-        <th>Toiminnot</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% if users %}
-      {% for user in users %}
-      {% set user_status = user.get('status', 'active') %}
-      {% if user_status == 'active' %}
-      {% set status_text = 'Aktiivinen' %}
-      {% set status_class = 'status-confirmed' %}
-      {% set is_active = true %}
-      {% elif user_status == 'pending' %}
-      {% set status_text = '- Odottaa hyväksyntää' %}
-      {% set status_class = 'status-new' %}
-      {% set is_active = false %}
-      {% else %}
-      {% set status_text = '❓ ' + user_status %}
-      {% set status_class = 'status-new' %}
-      {% set is_active = false %}
-      {% endif %}
+          <a class="px-3 py-2 rounded-md text-slate-700 hover:text-primary hover:bg-slate-100 font-semibold transition-colors"
+            href="{{ url_for('main.admin_dashboard') }}">Tilaukset</a>
 
-      {% if user.get('role') == 'admin' %}
-      {% set role_badge = 'Admin' %}
-      {% set role_class = 'role-admin' %}
-      {% elif user.get('role') == 'driver' %}
-      {% set role_badge = 'Kuljettaja' %}
-      {% set role_class = 'role-driver' %}
-      {% else %}
-      {% set role_badge = 'Asiakas' %}
-      {% set role_class = 'role-customer' %}
-      {% endif %}
+          <a class="px-3 py-2 rounded-md bg-slate-100 text-primary font-semibold transition-colors"
+            href="{{ url_for('admin.users') }}">Käyttäjät</a>
 
-      <tr>
-        <td>#{{ user.id }}</td>
-        <td>{{ user.name }}</td>
-        <td>{{ user.email }}</td>
-        <td>{{ user.phone or '-' }}</td>
-        <td><span class="pill {{ role_class }}">{{ role_badge }}</span></td>
-        <td><span class="status {{ status_class }}">{{ status_text }}</span></td>
-        <td>{{ user.created_at | helsinki_time if user.created_at else '-' }}</td>
-        <td>
-          {% if user.get('role') != 'admin' and user.get('role') != 'driver' %}
-          {% if is_active %}
-          <form method="POST" action="{{ url_for('admin.deny_user') }}" class="admin-inline-form">
-            <input type="hidden" name="user_id" value="{{ user.id }}">
-            <button type="submit" class="btn btn-sm" style="background: #dc2626; color: white;"
-              onclick="return confirm('Haluatko varmasti poistaa käyttäjän {{ user.name }} ({{ user.email }})? Tätä toimintoa ei voi peruuttaa.')">
-              Poista käyttäjä
-            </button>
-          </form>
-          {% else %}
-          <div class="admin-inline-form">
-            <form method="POST" action="{{ url_for('admin.approve_user') }}" class="admin-inline-form">
-              <input type="hidden" name="user_id" value="{{ user.id }}">
-              <button type="submit" class="btn btn-success btn-sm">Hyväksy</button>
-            </form>
-            <form method="POST" action="{{ url_for('admin.deny_user') }}" class="admin-inline-form">
-              <input type="hidden" name="user_id" value="{{ user.id }}">
-              <button type="submit" class="btn btn-sm" style="background: #dc2626; color: white;"
-                onclick="return confirm('Haluatko varmasti hylätä käyttäjän {{ user.name }} ({{ user.email }})? Käyttäjä poistetaan pysyvästi.')">
-                Hylkää
-              </button>
-            </form>
+          <a class="px-3 py-2 rounded-md text-slate-700 hover:text-primary hover:bg-slate-100 font-semibold transition-colors"
+            href="{{ url_for('admin.driver_applications') }}">Hakemukset</a>
+
+          <a class="px-3 py-2 rounded-md text-slate-700 hover:text-primary hover:bg-slate-100 font-semibold transition-colors"
+            href="{{ url_for('admin.discounts') }}">Alennukset</a>
+
+          <a class="px-3 py-2 rounded-md text-slate-700 hover:text-primary hover:bg-slate-100 font-semibold transition-colors"
+            href="{{ url_for('admin.reviews') }}">Arvostelut</a>
+
+          {% if current_user.is_authenticated %}
+          <div class="px-3 py-2 rounded-full bg-slate-100 text-slate-600 font-medium text-sm">
+            Hei, {{ current_user.name }}
           </div>
           {% endif %}
-          {% endif %}
-        </td>
-      </tr>
-      {% endfor %}
-      {% else %}
-      <tr>
-        <td colspan="8" class="muted">Ei käyttäjiä</td>
-      </tr>
-      {% endif %}
-    </tbody>
-  </table>
-</div>
-{% endblock %}
+
+          <a class="px-3 py-2 rounded-md text-slate-700 hover:text-primary hover:bg-slate-100 font-semibold transition-colors"
+            href="{{ url_for('auth.logout') }}">Kirjaudu ulos</a>
+        </nav>
+      </div>
+    </div>
+  </header>
+  <!-- Main Content -->
+  <main class="flex-1 w-full max-w-[1440px] mx-auto p-6 lg:p-10 flex flex-col gap-8">
+    <!-- Header Section -->
+    <div class="flex flex-col md:flex-row md:items-end justify-between gap-4">
+      <div class="flex flex-col gap-2">
+        <h1 class="text-3xl font-black leading-tight tracking-[-0.033em] text-slate-900 dark:text-white">
+          Käyttäjien hallinta</h1>
+        <p class="text-slate-500 dark:text-slate-400 text-base font-normal">Hallinnoi käyttäjätilien hyväksyntää
+          ja hylkäämistä.</p>
+      </div>
+      <!-- Add User Button -->
+      <button type="button" onclick="openCreateUserModal()"
+        class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-primary text-white font-semibold text-sm shadow-lg shadow-primary/20 hover:bg-blue-600 transition-all transform hover:-translate-y-0.5">
+        <span class="material-symbols-outlined text-[20px]">person_add</span>
+        Lisää käyttäjä
+      </button>
+    </div>
+    <!-- Filters Form -->
+    <!-- Filters Form -->
+    <form id="filterForm" method="get" action="{{ url_for('admin.users') }}"
+      class="flex flex-col lg:flex-row gap-4 items-center justify-between">
+
+      <!-- Role Tabs -->
+      <div class="flex p-1 bg-slate-100 dark:bg-slate-800 rounded-xl">
+        <a href="{{ url_for('admin.users', role='user', search=search, status=status) }}"
+          class="px-4 py-2 text-sm font-semibold rounded-lg transition-all inline-block text-center {{ 'bg-white dark:bg-[#1e2936] text-primary shadow-sm' if role_filter == 'user' else 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white' }}">
+          Asiakkaat
+        </a>
+        <a href="{{ url_for('admin.drivers') }}"
+          class="px-4 py-2 text-sm font-semibold rounded-lg transition-all inline-block text-center {{ 'bg-white dark:bg-[#1e2936] text-primary shadow-sm' if request.endpoint == 'admin.drivers' else 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white' }}">
+          Kuljettajat
+        </a>
+        <a href="{{ url_for('admin.users', role='admin', search=search, status=status) }}"
+          class="px-4 py-2 text-sm font-semibold rounded-lg transition-all inline-block text-center {{ 'bg-white dark:bg-[#1e2936] text-primary shadow-sm' if role_filter == 'admin' else 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white' }}">
+          Adminit
+        </a>
+      </div>
+
+      <div class="flex items-center gap-4 w-full lg:w-auto">
+        <!-- Search -->
+        <div class="relative w-full lg:w-[350px]">
+          <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <span
+              class="material-symbols-outlined text-slate-400 group-focus-within:text-primary transition-colors">search</span>
+          </div>
+          <input id="searchInput" name="search" value="{{ search or '' }}"
+            class="block w-full pl-10 pr-3 py-2.5 rounded-xl border-none bg-white dark:bg-[#1e2936] text-slate-900 dark:text-white placeholder-slate-400 focus:ring-2 focus:ring-primary/50 shadow-sm transition-all text-sm"
+            placeholder="Hae nimellä, sähköpostilla tai puhelinnumerolla..." type="text" />
+        </div>
+
+        <!-- Hidden Role Input to Maintain State -->
+        <input type="hidden" name="role" value="{{ role_filter }}">
+
+        <!-- Status Filter (Custom) -->
+        <div class="relative w-full sm:w-48 custom-select-container">
+          <select name="status" id="statusFilter" style="display:none">
+            <option value="" {% if not status_filter %}selected{% endif %}>Tila: Kaikki</option>
+            <option value="active" {% if status_filter=='active' %}selected{% endif %}>Aktiivinen</option>
+            <option value="pending" {% if status_filter=='pending' %}selected{% endif %}>Odottaa</option>
+          </select>
+
+          <!-- Custom UI -->
+          <div class="custom-select-trigger shadow-sm py-2.5">
+            <span class="custom-select-label">Tila: Kaikki</span>
+            <svg class="custom-select-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+          </div>
+          <div class="custom-select-options custom-scrollbar">
+            <div class="custom-option" data-value="">Tila: Kaikki</div>
+            <div class="custom-option" data-value="active">Aktiivinen</div>
+            <div class="custom-option" data-value="pending">Odottaa</div>
+          </div>
+        </div>
+      </div>
+    </form>
+    <!-- Users Table -->
+    <div
+      class="bg-white dark:bg-[#1e2936] rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden flex flex-col">
+      <div class="overflow-x-auto custom-scrollbar">
+        <table class="w-full text-left border-collapse min-w-[1000px]">
+          <thead>
+            <tr class="bg-slate-50/50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-700">
+              <th
+                class="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 w-24">
+                ID</th>
+              <th class="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                Nimi</th>
+              <th class="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                Sähköposti</th>
+              <th class="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                Puhelin</th>
+              <th class="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                Yritys</th>
+              <th class="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                Y-tunnus</th>
+              <th class="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                Rooli</th>
+              <th class="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                Tila</th>
+              <th class="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                Luotu</th>
+              <th
+                class="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 text-right">
+                Toiminnot</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100 dark:divide-slate-700/50">
+            {% if users %}
+            {% for user in users %}
+            <tr class="group hover:bg-blue-50/50 dark:hover:bg-slate-700/30 transition-colors user-row"
+              data-id="{{ user.id }}" data-name="{{ user.name|lower }}" data-email="{{ user.email|lower }}"
+              data-role="{{ user.role }}" data-status="{{ user.get('status', 'active') }}"
+              data-phone="{{ user.phone or '' }}" data-company-name="{{ user.company_name or '' }}"
+              data-business-id="{{ user.business_id or '' }}">
+              <td class="px-6 py-4"><span class="font-medium text-slate-900 dark:text-white text-sm">#{{ user.id
+                  }}</span></td>
+              <td class="px-6 py-4">
+                <a href="{{ url_for('admin.user_detail', user_id=user.id) }}"
+                  class="text-sm font-medium text-slate-900 dark:text-white hover:text-primary transition-colors">
+                  {{ user.name }}
+                </a>
+              </td>
+              <td class="px-6 py-4"><span class="text-sm text-slate-600 dark:text-slate-300">{{ user.email
+                  }}</span></td>
+              <td class="px-6 py-4"><span class="text-sm text-slate-600 dark:text-slate-300">{{ user.phone or
+                  '-' }}</span></td>
+              <td class="px-6 py-4"><span class="text-sm text-slate-600 dark:text-slate-300">{{ user.company_name or
+                  '-' }}</span></td>
+              <td class="px-6 py-4"><span class="text-sm text-slate-600 dark:text-slate-300">{{ user.business_id or
+                  '-' }}</span></td>
+              <td class="px-6 py-4">
+                {% if user.get('role')=='admin' %}
+                <span
+                  class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold border bg-purple-100 text-purple-800 border-purple-200 dark:bg-purple-900/30 dark:text-purple-300 dark:border-purple-800/30">Admin
+                </span>
+                {% elif user.get('role')=='driver' %}
+                <span
+                  class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold border bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-800/30">Kuljettaja
+                </span>
+                {% else %}
+                <span
+                  class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold border bg-slate-100 text-slate-800 border-slate-200 dark:bg-slate-700/50 dark:text-slate-300 dark:border-slate-600/30">Asiakas
+                </span>
+                {% endif %}
+              </td>
+              <td class="px-6 py-4">
+                {% set user_status=user.get('status', 'active') %}
+                {% if user_status=='active' %}
+                <span
+                  class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold border bg-green-100 text-green-800 border-green-200 dark:bg-green-900/30 dark:text-green-300 dark:border-green-800/30"><span
+                    class="material-symbols-outlined text-[14px]">check_circle</span>Aktiivinen </span>
+                {% elif user_status=='pending' %}
+                <span
+                  class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold border bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-800/30"><span
+                    class="material-symbols-outlined text-[14px]">schedule</span>Odottaa </span>
+                {% else %}
+                <span
+                  class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold border bg-slate-100 text-slate-800 border-slate-200 dark:bg-slate-700/50 dark:text-slate-300 dark:border-slate-600/30">
+                  {{ user_status }}
+                </span>
+                {% endif %}
+              </td>
+              <td class="px-6 py-4"><span class="text-sm text-slate-500 dark:text-slate-400">
+                  {{ user.created_at | helsinki_time if user.created_at else '-' }}
+                </span></td>
+              <td class="px-6 py-4 text-right">
+                <div class="flex items-center justify-end gap-2">
+                  <a href="{{ url_for('admin.user_detail', user_id=user.id) }}"
+                    class="inline-flex items-center justify-center p-2 rounded-lg text-primary hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
+                    title="Katso tiedot">
+                    <span class="material-symbols-outlined text-[20px]">visibility</span>
+                  </a>
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+            {% else %}
+            <tr>
+              <td colspan="10" class="px-6 py-12 text-center">
+                <div class="flex flex-col items-center justify-center gap-3">
+                  <div
+                    class="size-12 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400">
+                    <span class="material-symbols-outlined text-[24px]">group_off</span>
+                  </div>
+                  <h3 class="text-slate-900 dark:text-white font-medium">Ei käyttäjiä</h3>
+                  <p class="text-slate-500 dark:text-slate-400 text-sm">Käyttäjiä ei löytynyt juuri nyt.</p>
+                </div>
+              </td>
+            </tr>
+            {% endif %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+  <!-- Edit Modal -->
+  <div id="editModal" style="display: none;"
+    class="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/20 backdrop-blur-sm opacity-0 transition-opacity duration-300"
+    aria-hidden="true">
+    <div
+      class="bg-white dark:bg-[#1e2936] rounded-2xl shadow-xl w-full max-w-lg p-6 transform scale-95 transition-transform duration-300"
+      id="editModalPanel">
+      <h3 class="text-lg font-bold text-slate-900 dark:text-white mb-4">Muokkaa käyttäjää</h3>
+      <form method="POST" action="{{ url_for('admin.update_user') }}" id="editUserForm" class="space-y-3">
+        <input type="hidden" name="user_id" id="editUserId">
+        <div>
+          <label class="block text-sm font-semibold text-slate-600 dark:text-slate-300 mb-1">Nimi</label>
+          <input type="text" name="name" id="editUserName"
+            class="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#1e2936] text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-primary/40"
+            required>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="block text-sm font-semibold text-slate-600 dark:text-slate-300 mb-1">Sähköposti</label>
+            <input type="email" name="email" id="editUserEmail"
+              class="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#1e2936] text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-primary/40"
+              required>
+          </div>
+          <div>
+            <label class="block text-sm font-semibold text-slate-600 dark:text-slate-300 mb-1">Puhelin</label>
+            <input type="text" name="phone" id="editUserPhone"
+              class="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#1e2936] text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-primary/40">
+          </div>
+        </div>
+        <!-- Company Information (shown only for customer users) -->
+        <div id="companyFieldsContainer">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label class="block text-sm font-semibold text-slate-600 dark:text-slate-300 mb-1">Yrityksen nimi</label>
+              <input type="text" name="company_name" id="editUserCompanyName"
+                class="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#1e2936] text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-primary/40"
+                placeholder="Valinnainen">
+            </div>
+            <div>
+              <label class="block text-sm font-semibold text-slate-600 dark:text-slate-300 mb-1">Y-tunnus</label>
+              <input type="text" name="business_id" id="editUserBusinessId"
+                class="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#1e2936] text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-primary/40"
+                placeholder="Valinnainen">
+            </div>
+          </div>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="block text-sm font-semibold text-slate-600 dark:text-slate-300 mb-1">Tila</label>
+            <!-- Custom Status Dropdown for Edit Modal -->
+            <div class="relative custom-select-container" id="editStatusContainer">
+              <select name="status" id="editUserStatus" style="display:none">
+                <option value="active">Aktiivinen</option>
+                <option value="pending">Odottaa</option>
+              </select>
+              <div class="custom-select-trigger">
+                <span class="custom-select-label">Aktiivinen</span>
+                <svg class="custom-select-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                  stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="6 9 12 15 18 9"></polyline>
+                </svg>
+              </div>
+              <div class="custom-select-options custom-scrollbar">
+                <div class="custom-option" data-value="active">Aktiivinen</div>
+                <div class="custom-option" data-value="pending">Odottaa</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="flex justify-end gap-3 pt-3">
+          <button type="button" onclick="closeEditModal()"
+            class="px-4 py-2 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-sm font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">Peruuta</button>
+          <button type="submit"
+            class="px-4 py-2 rounded-lg bg-primary text-white text-sm font-semibold shadow-sm hover:bg-blue-600 transition-colors">Tallenna</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Create User Modal -->
+  <div id="createUserModal" style="display: none;"
+    class="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/20 backdrop-blur-sm opacity-0 transition-opacity duration-300"
+    aria-hidden="true">
+    <div
+      class="bg-white dark:bg-[#1e2936] rounded-2xl shadow-xl w-full max-w-lg p-6 transform scale-95 transition-transform duration-300"
+      id="createUserModalPanel">
+      <h3 class="text-lg font-bold text-slate-900 dark:text-white mb-4">Lisää uusi käyttäjä</h3>
+      <form method="POST" action="{{ url_for('admin.create_user') }}" id="createUserForm" class="space-y-3">
+        <div>
+          <label class="block text-sm font-semibold text-slate-600 dark:text-slate-300 mb-1">Nimi *</label>
+          <input type="text" name="name" id="createUserName"
+            class="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#1e2936] text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-primary/40"
+            required>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="block text-sm font-semibold text-slate-600 dark:text-slate-300 mb-1">Sähköposti *</label>
+            <input type="email" name="email" id="createUserEmail"
+              class="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#1e2936] text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-primary/40"
+              required>
+          </div>
+          <div>
+            <label class="block text-sm font-semibold text-slate-600 dark:text-slate-300 mb-1">Puhelin</label>
+            <input type="text" name="phone" id="createUserPhone"
+              class="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#1e2936] text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-primary/40">
+          </div>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="block text-sm font-semibold text-slate-600 dark:text-slate-300 mb-1">Salasana *</label>
+            <input type="password" name="password" id="createUserPassword"
+              class="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#1e2936] text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-primary/40"
+              required minlength="6">
+          </div>
+          <div>
+            <label class="block text-sm font-semibold text-slate-600 dark:text-slate-300 mb-1">Rooli *</label>
+            <!-- Custom Role Dropdown for Create Modal -->
+            <div class="relative custom-select-container" id="createRoleContainer">
+              <select name="role" id="createUserRole" style="display:none">
+                <option value="user" selected>Asiakas</option>
+                <option value="admin">Admin</option>
+              </select>
+              <div class="custom-select-trigger">
+                <span class="custom-select-label">Asiakas</span>
+                <svg class="custom-select-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                  stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="6 9 12 15 18 9"></polyline>
+                </svg>
+              </div>
+              <div class="custom-select-options custom-scrollbar">
+                <div class="custom-option selected" data-value="user">Asiakas</div>
+                <div class="custom-option" data-value="admin">Admin</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- Admin Password Confirmation (shown only for admin role) -->
+        <div id="adminPasswordField" style="display: none;">
+          <label class="block text-sm font-semibold text-slate-600 dark:text-slate-300 mb-1">
+            <span class="text-amber-600">🔒</span> Vahvista oma salasanasi *
+          </label>
+          <input type="password" name="admin_password" id="createAdminPassword"
+            class="w-full px-3 py-2 rounded-lg border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/20 text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-amber-400"
+            placeholder="Syötä oma admin-salasanasi">
+          <p class="text-xs text-amber-600 dark:text-amber-400 mt-1">Admin-käyttäjän luominen vaatii salasanan
+            vahvistuksen</p>
+        </div>
+        <div class="flex justify-end gap-3 pt-3">
+          <button type="button" onclick="closeCreateUserModal()"
+            class="px-4 py-2 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-sm font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">Peruuta</button>
+          <button type="submit"
+            class="px-4 py-2 rounded-lg bg-primary text-white text-sm font-semibold shadow-sm hover:bg-blue-600 transition-colors">Luo
+            käyttäjä</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Delete Admin Modal (with password confirmation) -->
+  <div id="deleteAdminModal" style="display: none;"
+    class="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/20 backdrop-blur-sm opacity-0 transition-opacity duration-300"
+    aria-hidden="true">
+    <div
+      class="bg-white dark:bg-[#1e2936] rounded-2xl shadow-xl w-full max-w-sm p-6 transform scale-95 transition-transform duration-300"
+      id="deleteAdminModalPanel">
+      <form method="POST" action="{{ url_for('admin.delete_admin_user') }}" id="deleteAdminForm">
+        <input type="hidden" name="user_id" id="deleteAdminUserId">
+        <div class="flex flex-col items-center text-center gap-4">
+          <div class="size-12 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center text-red-600">
+            <span class="material-symbols-outlined text-[24px]">admin_panel_settings</span>
+          </div>
+          <div class="flex flex-col gap-1">
+            <h3 class="text-lg font-bold text-slate-900 dark:text-white">Poista admin-käyttäjä</h3>
+            <p class="text-sm text-slate-500 dark:text-slate-400" id="deleteAdminMessage">
+              Haluatko varmasti poistaa admin-käyttäjän?
+            </p>
+          </div>
+          <div class="w-full">
+            <label class="block text-sm font-semibold text-slate-600 dark:text-slate-300 mb-1 text-left">
+              Vahvista salasanasi
+            </label>
+            <input type="password" name="admin_password" id="deleteAdminPassword" required
+              class="w-full px-3 py-2 rounded-lg border border-red-300 dark:border-red-700 bg-red-50 dark:bg-red-900/20 text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-red-400"
+              placeholder="Syötä oma salasanasi">
+          </div>
+          <div class="flex items-center gap-3 w-full mt-2">
+            <button type="button" onclick="closeDeleteAdminModal()"
+              class="flex-1 py-2.5 px-4 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-semibold text-sm hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
+              Peruuta
+            </button>
+            <button type="submit"
+              class="flex-1 py-2.5 px-4 rounded-xl bg-red-600 text-white font-semibold text-sm hover:bg-red-700 shadow-lg shadow-red-200 dark:shadow-none transition-all transform hover:-translate-y-0.5">
+              Poista admin
+            </button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Confirmation Modal -->
+  <div id="confirmModal" style="display: none;"
+    class="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/20 backdrop-blur-sm opacity-0 transition-opacity duration-300"
+    aria-hidden="true">
+    <div
+      class="bg-white dark:bg-[#1e2936] rounded-2xl shadow-xl w-full max-w-sm p-6 transform scale-95 transition-transform duration-300"
+      id="confirmModalPanel">
+      <div class="flex flex-col items-center text-center gap-4">
+        <div class="size-12 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center text-red-600">
+          <span class="material-symbols-outlined text-[24px]">warning</span>
+        </div>
+        <div class="flex flex-col gap-1">
+          <h3 class="text-lg font-bold text-slate-900 dark:text-white" id="modalTitle">Oletko varma?</h3>
+          <p class="text-sm text-slate-500 dark:text-slate-400" id="modalMessage">Tätä toimintoa ei voi peruuttaa.
+          </p>
+        </div>
+        <div class="flex items-center gap-3 w-full mt-2">
+          <button onclick="closeConfirmModal()"
+            class="flex-1 py-2.5 px-4 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-semibold text-sm hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
+            Peruuta
+          </button>
+          <button id="confirmActionBtn"
+            class="flex-1 py-2.5 px-4 rounded-xl bg-red-600 text-white font-semibold text-sm hover:bg-red-700 shadow-lg shadow-red-200 dark:shadow-none transition-all transform hover:-translate-y-0.5">
+            Vahvista
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let currentForm = null;
+
+    // ==================== Create User Modal ====================
+    function openCreateUserModal() {
+      const modal = document.getElementById('createUserModal');
+      const panel = document.getElementById('createUserModalPanel');
+
+      // Reset form
+      document.getElementById('createUserForm').reset();
+      document.getElementById('adminPasswordField').style.display = 'none';
+      document.getElementById('createAdminPassword').removeAttribute('required');
+
+      // Reset role dropdown to default (Asiakas)
+      const roleContainer = document.getElementById('createRoleContainer');
+      const roleLabel = roleContainer.querySelector('.custom-select-label');
+      const roleOptions = roleContainer.querySelectorAll('.custom-option');
+      document.getElementById('createUserRole').value = 'user';
+      roleLabel.textContent = 'Asiakas';
+      roleOptions.forEach(opt => {
+        opt.classList.remove('selected');
+        if (opt.dataset.value === 'user') opt.classList.add('selected');
+      });
+
+      modal.style.display = 'flex';
+      modal.offsetHeight; // Trigger reflow
+      modal.classList.remove('opacity-0');
+      panel.classList.remove('scale-95');
+      panel.classList.add('scale-100');
+    }
+
+    function closeCreateUserModal() {
+      const modal = document.getElementById('createUserModal');
+      const panel = document.getElementById('createUserModalPanel');
+
+      modal.classList.add('opacity-0');
+      panel.classList.remove('scale-100');
+      panel.classList.add('scale-95');
+      setTimeout(() => { modal.style.display = 'none'; }, 200);
+    }
+
+    function toggleAdminPasswordField() {
+      const role = document.getElementById('createUserRole').value;
+      const adminField = document.getElementById('adminPasswordField');
+      const adminPassword = document.getElementById('createAdminPassword');
+
+      if (role === 'admin') {
+        adminField.style.display = 'block';
+        adminPassword.setAttribute('required', 'required');
+      } else {
+        adminField.style.display = 'none';
+        adminPassword.removeAttribute('required');
+        adminPassword.value = '';
+      }
+    }
+
+    // Close create modal on backdrop click
+    document.getElementById('createUserModal').addEventListener('click', function (e) {
+      if (e.target === this) {
+        closeCreateUserModal();
+      }
+    });
+
+    // ==================== Delete Admin Modal ====================
+    function openDeleteAdminModal(userId, userName) {
+      const modal = document.getElementById('deleteAdminModal');
+      const panel = document.getElementById('deleteAdminModalPanel');
+
+      document.getElementById('deleteAdminUserId').value = userId;
+      document.getElementById('deleteAdminMessage').textContent =
+        `Haluatko varmasti poistaa admin-käyttäjän "${userName}"? Tätä toimintoa ei voi peruuttaa.`;
+      document.getElementById('deleteAdminPassword').value = '';
+
+      modal.style.display = 'flex';
+      modal.offsetHeight; // Trigger reflow
+      modal.classList.remove('opacity-0');
+      panel.classList.remove('scale-95');
+      panel.classList.add('scale-100');
+    }
+
+    function closeDeleteAdminModal() {
+      const modal = document.getElementById('deleteAdminModal');
+      const panel = document.getElementById('deleteAdminModalPanel');
+
+      modal.classList.add('opacity-0');
+      panel.classList.remove('scale-100');
+      panel.classList.add('scale-95');
+      setTimeout(() => { modal.style.display = 'none'; }, 200);
+    }
+
+    // Close delete admin modal on backdrop click
+    document.getElementById('deleteAdminModal').addEventListener('click', function (e) {
+      if (e.target === this) {
+        closeDeleteAdminModal();
+      }
+    });
+
+    // ==================== Confirm Modal ====================
+    function openConfirmModal(formElement, title, message) {
+      currentForm = formElement;
+      document.getElementById('modalTitle').textContent = title;
+      document.getElementById('modalMessage').textContent = message;
+
+      const modal = document.getElementById('confirmModal');
+      const panel = document.getElementById('confirmModalPanel');
+
+      modal.style.display = 'flex';
+      // Trigger reflow
+      modal.offsetHeight;
+
+      modal.classList.remove('opacity-0');
+      panel.classList.remove('scale-95');
+      panel.classList.add('scale-100');
+    }
+
+    function closeConfirmModal() {
+      const modal = document.getElementById('confirmModal');
+      const panel = document.getElementById('confirmModalPanel');
+
+      modal.classList.add('opacity-0');
+      panel.classList.remove('scale-100');
+      panel.classList.add('scale-95');
+
+      setTimeout(() => {
+        modal.style.display = 'none';
+        currentForm = null;
+      }, 300);
+    }
+
+    document.getElementById('confirmActionBtn').addEventListener('click', function () {
+      if (currentForm) {
+        currentForm.submit();
+      }
+      closeConfirmModal();
+    });
+
+    // Close on backdrop click
+    document.getElementById('confirmModal').addEventListener('click', function (e) {
+      if (e.target === this) {
+        closeConfirmModal();
+      }
+    });
+
+    // Edit modal helpers
+    const editModal = document.getElementById('editModal');
+    const editPanel = document.getElementById('editModalPanel');
+    function openEditModal(btn) {
+      const id = btn.dataset.userId;
+      const name = btn.dataset.userName;
+      const email = btn.dataset.userEmail;
+      const phone = btn.dataset.userPhone || '';
+      const companyName = btn.dataset.userCompanyName || '';
+      const businessId = btn.dataset.userBusinessId || '';
+      const status = btn.dataset.userStatus || 'active';
+      const role = btn.dataset.userRole || 'user';
+
+      document.getElementById('editUserId').value = id;
+      document.getElementById('editUserName').value = name;
+      document.getElementById('editUserEmail').value = email;
+      document.getElementById('editUserPhone').value = phone;
+      document.getElementById('editUserCompanyName').value = companyName;
+      document.getElementById('editUserBusinessId').value = businessId;
+
+      // Show/hide company fields based on role (only for customers)
+      const companyFieldsContainer = document.getElementById('companyFieldsContainer');
+      if (role === 'user') {
+        companyFieldsContainer.style.display = 'block';
+      } else {
+        companyFieldsContainer.style.display = 'none';
+      }
+
+      // Update hidden select
+      document.getElementById('editUserStatus').value = status;
+
+      // Update custom dropdown UI
+      const container = document.getElementById('editStatusContainer');
+      const label = container.querySelector('.custom-select-label');
+      const options = container.querySelectorAll('.custom-option');
+      options.forEach(opt => {
+        opt.classList.remove('selected');
+        if (opt.dataset.value === status) {
+          opt.classList.add('selected');
+          label.textContent = opt.textContent;
+        }
+      });
+
+      editModal.style.display = 'flex';
+      editModal.classList.remove('opacity-0');
+      editPanel.classList.remove('scale-95');
+      editPanel.classList.add('scale-100');
+    }
+    function closeEditModal() {
+      editModal.classList.add('opacity-0');
+      editPanel.classList.remove('scale-100');
+      editPanel.classList.add('scale-95');
+      setTimeout(() => { editModal.style.display = 'none'; }, 200);
+    }
+    editModal.addEventListener('click', function (e) {
+      if (e.target === editModal) {
+        closeEditModal();
+      }
+    });
+
+    document.addEventListener('DOMContentLoaded', function () {
+      const searchInput = document.getElementById('searchInput');
+      const roleSelect = document.getElementById('roleFilter');
+      const statusSelect = document.getElementById('statusFilter');
+      const filterForm = document.getElementById('filterForm');
+
+      // --- Initialize Custom Dropdowns ---
+      function initCustomDropdowns() {
+        document.querySelectorAll('.custom-select-container').forEach(container => {
+          const trigger = container.querySelector('.custom-select-trigger');
+          const options = container.querySelector('.custom-select-options');
+          const hiddenSelect = container.querySelector('select');
+          const label = container.querySelector('.custom-select-label');
+
+          if (!trigger || !options || !hiddenSelect || !label) return;
+
+          // Set initial label based on selected option
+          const selectedOption = Array.from(hiddenSelect.options).find(opt => opt.selected);
+
+          if (selectedOption) {
+            label.textContent = selectedOption.text;
+            // Mark corresponding custom option as selected
+            const customOption = options.querySelector(`.custom-option[data-value="${selectedOption.value}"]`);
+
+            if (customOption) {
+              options.querySelectorAll('.custom-option').forEach(opt => opt.classList.remove('selected'));
+              customOption.classList.add('selected');
+            }
+          }
+
+          // Toggle dropdown
+          trigger.onclick = (e) => {
+            e.stopPropagation();
+
+            // Close other dropdowns
+            document.querySelectorAll('.custom-select-container').forEach(c => {
+              if (c !== container) {
+                c.classList.remove('open');
+                const t = c.querySelector('.custom-select-trigger');
+                if (t) t.classList.remove('open');
+              }
+            });
+
+            const isOpen = container.classList.contains('open');
+            container.classList.toggle('open', !isOpen);
+            trigger.classList.toggle('open', !isOpen);
+          };
+
+          // Handle option click
+          options.querySelectorAll('.custom-option').forEach(option => {
+            option.onclick = (e) => {
+              e.stopPropagation();
+
+              // Update UI
+              options.querySelectorAll('.custom-option').forEach(opt => opt.classList.remove('selected'));
+              option.classList.add('selected');
+              label.textContent = option.textContent;
+
+              // Update hidden select and trigger change
+              if (hiddenSelect.value !== option.dataset.value) {
+                hiddenSelect.value = option.dataset.value;
+                hiddenSelect.dispatchEvent(new Event('change'));
+              }
+
+              // Close dropdown
+              container.classList.remove('open');
+              trigger.classList.remove('open');
+            };
+          });
+        });
+      }
+
+      // Close dropdowns when clicking outside
+      document.addEventListener('click', () => {
+        document.querySelectorAll('.custom-select-container').forEach(c => {
+          c.classList.remove('open');
+          const trigger = c.querySelector('.custom-select-trigger');
+          if (trigger) trigger.classList.remove('open');
+        });
+      });
+
+      initCustomDropdowns();
+
+      // Listen for role dropdown change to toggle admin password field
+      const createRoleSelect = document.getElementById('createUserRole');
+      if (createRoleSelect) {
+        createRoleSelect.addEventListener('change', toggleAdminPasswordField);
+      }
+
+      // Auto-submit form when filters change
+      if (roleSelect) roleSelect.addEventListener('change', () => filterForm.submit());
+      if (statusSelect) statusSelect.addEventListener('change', () => filterForm.submit());
+
+      // Submit on Enter key in search input
+      if (searchInput) {
+        searchInput.addEventListener('keypress', (e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            filterForm.submit();
+          }
+        });
+      }
+
+      // Flash messages
+      setTimeout(function () {
+        const messages = document.querySelector('.flash-messages');
+
+        if (messages) {
+          messages.style.transition = 'opacity 1s';
+          messages.style.opacity = '0';
+          setTimeout(() => messages.remove(), 1000);
+        }
+      }, 5000);
+    });
+  </script>
+  {% set footer_button_text = 'Laskuri' %}
+  {% include 'components/dashboard_footer.html' %}
+</body>
+
+</html>

@@ -14,9 +14,14 @@ class AuthService:
     def __init__(self):
         self.user_model = user_model
 
-    def login(self, email: str, password: str) -> Tuple[bool, Optional[Dict], Optional[str]]:
+    def login(self, email: str, password: str, remember: bool = False) -> Tuple[bool, Optional[Dict], Optional[str]]:
         """
         Authenticate user and create session
+
+        Args:
+            email: User email
+            password: User password
+            remember: If True, session will persist for 30 days
 
         Returns:
             Tuple[bool, Optional[Dict], Optional[str]]: (success, user_data, error_message)
@@ -30,6 +35,10 @@ class AuthService:
         session["uid"] = user["id"]
         session["user_email"] = user["email"]
         session["user_role"] = user["role"]
+        
+        # Set session as permanent if remember is True (30 days)
+        if remember:
+            session.permanent = True
 
         return True, user, None
 
@@ -37,18 +46,18 @@ class AuthService:
         """Clear user session"""
         session.clear()
 
-    def register(self, email: str, password: str, name: str, phone: str = None) -> Tuple[bool, Optional[Dict], Optional[str]]:
+    def register(self, email: str, password: str, name: str, phone: str = None, company_name: str = None, business_id: str = None) -> Tuple[bool, Optional[Dict], Optional[str]]:
         """
         Register a new user
-
+        
         Returns:
             Tuple[bool, Optional[Dict], Optional[str]]: (success, user_data, error_message)
         """
         # Validate input
-        if not self._validate_registration_data(email, password, name, phone):
-            return False, None, "Tarkista tiedot"
+        if not self._validate_registration_data(email, password, name, phone, company_name, business_id):
+            return False, None, "Tarkista tiedot. Kaikki kentät ovat pakollisia."
 
-        user, error = self.user_model.create_user(email, password, name, phone=phone)
+        user, error = self.user_model.create_user(email, password, name, phone=phone, company_name=company_name, business_id=business_id)
 
         # Send registration email if user was created successfully
         if user is not None and error is None:
@@ -163,10 +172,14 @@ class AuthService:
 
         return self.user_model.change_password(user_id, current_password, new_password)
 
-    def _validate_registration_data(self, email: str, password: str, name: str, phone: str = None) -> bool:
+    def _validate_registration_data(self, email: str, password: str, name: str, phone: str = None, company_name: str = None, business_id: str = None) -> bool:
         """Validate registration data"""
         # Basic validation
         if not email or not password or not name:
+            return False
+            
+        # Business validation
+        if not company_name or not business_id:
             return False
 
         if len(email.strip()) < 5 or "@" not in email:
@@ -177,8 +190,14 @@ class AuthService:
 
         if len(name.strip()) < 2:
             return False
+            
+        if len(company_name.strip()) < 2:
+            return False
+            
+        if len(business_id.strip()) < 2:
+            return False
 
-        # Validate phone if provided
+        # Validate phone if provided (though it's required in template)
         if phone:
             phone_clean = phone.strip()
             if len(phone_clean) < 5 or len(phone_clean) > 20:

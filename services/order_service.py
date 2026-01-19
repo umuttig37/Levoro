@@ -54,7 +54,7 @@ ROUNDTRIP_DISCOUNT = 0.30
 # Legacy interpolation anchor for metro-to-mid pricing
 LEGACY_INTERPOLATION_START_KM = float(os.getenv("LEGACY_INTERPOLATION_START_KM", "50"))
 # Minimum order price - all orders must be at least this amount (net)
-MINIMUM_ORDER_PRICE_NET = 20.0
+MINIMUM_ORDER_PRICE_NET = 27.0
 
 # External API configuration
 GOOGLE_PLACES_API_KEY = os.getenv("GOOGLE_PLACES_API_KEY", "")

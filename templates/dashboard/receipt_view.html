@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="fi">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Kuitti #{{ order.user_order_number or order.id }}-{{ order.created_at.year }}</title>
+    <style>
+        /* Base Reset & Typography */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+        * {
+            box-sizing: border-box;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            font-size: 10pt;
+            color: #333;
+            margin: 0;
+            padding: 0;
+            line-height: 1.5;
+            background: #fff;
+        }
+
+        /* A4 Page Setup */
+        @page {
+            size: A4;
+            margin: 0;
+        }
+
+        .page {
+            width: 210mm;
+            min-height: 297mm;
+            margin: 0 auto;
+            padding: 15mm 20mm;
+            background: white;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Screen Preview */
+        @media screen {
+            body {
+                background: #f0f0f0;
+                padding: 20px;
+            }
+
+            .page {
+                box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+                margin-bottom: 20px;
+            }
+        }
+
+        /* Header */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 50px;
+        }
+
+        .company-info h1 {
+            font-size: 14pt;
+            font-weight: 600;
+            margin: 0;
+            color: #333;
+        }
+
+        .receipt-title {
+            font-size: 12pt;
+            color: #666;
+            margin-top: 4px;
+        }
+
+        .logo {
+            margin-top: -10px;
+        }
+
+        .logo img {
+            height: 85px;
+            object-fit: contain;
+        }
+
+        /* Recipient & Meta Section */
+        .info-section {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 50px;
+        }
+
+        .recipient {
+            font-size: 10pt;
+        }
+
+        .recipient p {
+            margin: 0;
+        }
+
+        /* Meta Data Grid */
+        .meta-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px 40px;
+            max-width: 320px;
+        }
+
+        .meta-item {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .meta-label {
+            font-size: 8pt;
+            color: #666;
+            margin-bottom: 2px;
+        }
+
+        .meta-value {
+            font-size: 10pt;
+            font-weight: 500;
+        }
+
+        /* Blue separator line */
+        .separator {
+            height: 2px;
+            background: #3b82f6;
+            margin-bottom: 20px;
+        }
+
+        /* Items Table */
+        .items-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 30px;
+        }
+
+        .items-table th {
+            text-align: left;
+            font-size: 8pt;
+            color: #666;
+            font-weight: normal;
+            padding: 10px 8px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .items-table td {
+            padding: 15px 8px;
+            vertical-align: top;
+        }
+
+        .col-item {
+            width: 35%;
+        }
+
+        .col-qty {
+            width: 8%;
+            text-align: center;
+        }
+
+        .col-unit {
+            width: 8%;
+            text-align: center;
+        }
+
+        .col-price {
+            width: 12%;
+            text-align: right;
+        }
+
+        .col-vat {
+            width: 10%;
+            text-align: right;
+        }
+
+        .col-price-vat {
+            width: 14%;
+            text-align: right;
+        }
+
+        .col-total {
+            width: 13%;
+            text-align: right;
+        }
+
+        .item-row td {
+            border-bottom: 2px solid #3b82f6;
+        }
+
+        .item-desc {
+            font-weight: 600;
+            font-size: 9pt;
+            text-transform: uppercase;
+            color: #3b82f6;
+            line-height: 1.4;
+            word-break: break-word;
+        }
+
+        .item-sub {
+            font-size: 8pt;
+            color: #3b82f6;
+            margin-top: 4px;
+        }
+
+        /* Totals */
+        .totals {
+            margin-left: auto;
+            width: 200px;
+            text-align: right;
+        }
+
+        .total-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 5px 0;
+            font-size: 10pt;
+        }
+
+        .total-row span:first-child {
+            color: #666;
+        }
+
+        .total-row.big {
+            font-weight: 700;
+            font-size: 12pt;
+            margin-top: 10px;
+            padding-top: 10px;
+        }
+
+        .total-row.big span:first-child {
+            color: #333;
+        }
+
+        /* Content wrapper for flex grow */
+        .content {
+            flex: 1;
+        }
+
+        /* Footer */
+        .footer {
+            margin-top: auto;
+            padding-top: 30px;
+            border-top: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            font-size: 8pt;
+            color: #666;
+        }
+
+        .footer-col {
+            line-height: 1.8;
+        }
+
+        .footer-col strong {
+            color: #333;
+            font-weight: 500;
+        }
+
+        .page-number {
+            position: absolute;
+            bottom: 15mm;
+            right: 20mm;
+            font-size: 8pt;
+            color: #999;
+        }
+
+        /* Print Trigger */
+        @media print {
+            .no-print {
+                display: none;
+            }
+        }
+    </style>
+</head>
+
+<body onload="window.print()">
+
+    <div class="page">
+        <div class="content">
+            <!-- Header -->
+            <div class="header">
+                <div class="company-info">
+                    <h1>Tiyouba Oy</h1>
+                    <div class="receipt-title">Kuitti #{{ order.user_order_number or order.id }}-{{ order.created_at.year }}</div>
+                </div>
+                <div class="logo">
+                    <img src="/static/LevoroLogo.png" alt="Levoro">
+                </div>
+            </div>
+
+            <!-- Recipient & Meta Info -->
+            <div class="info-section">
+                <div class="recipient">
+                    <p><strong>{{ order.company_name or order.orderer_name or order.customer_name or order.email }}</strong></p>
+                </div>
+                <div class="meta-grid">
+                    <div class="meta-item">
+                        <span class="meta-label">Päivämäärä</span>
+                        <span class="meta-value">{{ issue_date }}</span>
+                    </div>
+                    <div class="meta-item">
+                        <span class="meta-label">Tilausnumero</span>
+                        <span class="meta-value">#{{ order.user_order_number or order.id }}</span>
+                    </div>
+                    <div class="meta-item">
+                        <span class="meta-label">Toimituspäivä</span>
+                        <span class="meta-value">{{ delivery_date | finnish_date }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Blue Separator -->
+            <div class="separator"></div>
+
+            <!-- Items Table -->
+            <table class="items-table">
+                <thead>
+                    <tr>
+                        <th class="col-item">Tuote</th>
+                        <th class="col-qty">Määrä</th>
+                        <th class="col-unit">Yksikkö</th>
+                        <th class="col-price">Hinta</th>
+                        <th class="col-vat">ALV %</th>
+                        <th class="col-price-vat">Hinta sis. ALV</th>
+                        <th class="col-total">Yhteensä</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr class="item-row">
+                        <td>
+                            <div class="item-desc">{{ order.pickup_address | extract_city }} - {{ order.dropoff_address | extract_city }}, {{ delivery_date | finnish_date }}.</div>
+                            <div class="item-sub">Auton rekisteritunnus: {{ order.reg_number or 'Ei määritelty' }}</div>
+                        </td>
+                        <td class="col-qty">1</td>
+                        <td class="col-unit"></td>
+                        <td class="col-price">€{{ "%.2f"|format(net_price) }}</td>
+                        <td class="col-vat">25.5%</td>
+                        <td class="col-price-vat">€{{ "%.2f"|format(final_gross) }}</td>
+                        <td class="col-total">€{{ "%.2f"|format(final_gross) }}</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <!-- Totals -->
+            <div class="totals">
+                <div class="total-row">
+                    <span>Veroton</span>
+                    <span>€{{ "%.2f"|format(net_price) }}</span>
+                </div>
+                <div class="total-row">
+                    <span>ALV 25.5%</span>
+                    <span>€{{ "%.2f"|format(final_vat) }}</span>
+                </div>
+                <div class="total-row big">
+                    <span>Yhteensä</span>
+                    <span>€{{ "%.2f"|format(final_gross) }}</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="footer">
+            <div class="footer-col">
+                <strong>Tiyouba Oy</strong><br>
+                Meri-rastilantie 6<br>
+                00980 Helsinki<br>
+                Finland<br>
+                support@levoro.fi
+            </div>
+        </div>
+
+        <div class="page-number">1/1</div>
+    </div>
+
+</body>
+
+</html>

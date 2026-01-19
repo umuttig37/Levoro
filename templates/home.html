@@ -1,111 +1,1140 @@
 {% extends "base/layout.html" %}
 
-{% block title %}Autonkuljetus – Nopein ja edullisin{% endblock %}
+{% block title %}Levoro – Nopein ja edullisin{% endblock %}
+
+{% block extra_css %}
+<style>
+  /* Hero Section */
+  .hero-new {
+    position: relative;
+    min-height: 480px;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    padding: 2.5rem;
+    border-radius: 1rem;
+    background-size: cover;
+    background-position: center;
+    background-image: linear-gradient(rgba(0, 0, 0, 0.1) 0%, rgba(0, 0, 0, 0.6) 100%),
+      url('/static/hero_car.png');
+    overflow: hidden;
+  }
+
+  .hero-new::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(37, 99, 235, 0.1) 0%, transparent 50%);
+    pointer-events: none;
+  }
+
+  .hero-new>* {
+    position: relative;
+    z-index: 1;
+  }
+
+  .hero-new-content {
+    max-width: 640px;
+  }
+
+  .hero-new-title {
+    font-size: clamp(2rem, 5vw, 3rem);
+    font-weight: 900;
+    color: white;
+    line-height: 1.1;
+    margin-bottom: 0.75rem;
+    letter-spacing: -0.02em;
+  }
+
+  .hero-new-subtitle {
+    font-size: 1.125rem;
+    color: #e2e8f0;
+    margin-bottom: 1.5rem;
+    line-height: 1.5;
+  }
+
+  .hero-new-cta {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.875rem 1.5rem;
+    background: var(--color-primary, #3b82f6);
+    color: white;
+    font-weight: 700;
+    font-size: 1rem;
+    border-radius: 0.5rem;
+    text-decoration: none;
+    transition: all 0.3s ease;
+  }
+
+  .hero-new-cta:hover {
+    background: var(--color-primary-dark, #2563eb);
+    transform: scale(1.05);
+    box-shadow: 0 10px 30px rgba(59, 130, 246, 0.3);
+  }
+
+  .hero-new-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    align-items: center;
+  }
+
+  .hero-driver-btn {
+    background: rgba(255, 255, 255, 0.15);
+    border: 2px solid rgba(255, 255, 255, 0.5);
+    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(8px);
+  }
+
+  .hero-driver-btn:hover {
+    background: rgba(255, 255, 255, 0.25);
+    border-color: rgba(255, 255, 255, 0.8);
+    transform: scale(1.05);
+  }
+
+  /* Section Styling */
+  .section-new {
+    padding: 4rem 0;
+  }
+
+  .section-header-new {
+    margin-bottom: 3rem;
+  }
+
+  .section-title-new {
+    font-size: clamp(1.75rem, 4vw, 2.25rem);
+    font-weight: 800;
+    color: var(--color-heading, #1f2937);
+    margin-bottom: 0.75rem;
+  }
+
+  .section-subtitle-new {
+    font-size: 1rem;
+    color: var(--color-gray-600, #4b5563);
+    max-width: 720px;
+  }
+
+  /* Feature Cards */
+  .feature-grid-new {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1.5rem;
+  }
+
+  .feature-card-new {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    padding: 1.5rem;
+    background: white;
+    border: 1px solid var(--border-light, #e5e7eb);
+    border-radius: 0.75rem;
+    transition: all 0.3s ease;
+  }
+
+  .feature-card-new:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.08);
+  }
+
+  .feature-icon-new {
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--color-primary, #3b82f6);
+    transition: transform 0.3s ease;
+  }
+
+  .feature-card-new:hover .feature-icon-new {
+    transform: translateY(-4px) scale(1.1);
+  }
+
+  .feature-icon-new svg {
+    width: 40px;
+    height: 40px;
+  }
+
+  .feature-title-new {
+    font-size: 1.125rem;
+    font-weight: 700;
+    color: var(--color-heading, #1f2937);
+    margin: 0;
+  }
+
+  .feature-desc-new {
+    font-size: 0.875rem;
+    color: var(--color-gray-500, #6b7280);
+    margin: 0;
+    line-height: 1.6;
+  }
+
+  /* Order Section */
+  .order-section {
+    background: white;
+    border-top: 1px solid var(--border-light, #e5e7eb);
+    border-bottom: 1px solid var(--border-light, #e5e7eb);
+  }
+
+  .order-form-new {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    max-width: 800px;
+    margin: 0 auto;
+  }
+
+  @media (min-width: 768px) {
+    .order-form-new {
+      flex-direction: row;
+      align-items: center;
+    }
+  }
+
+  .order-input-wrapper {
+    position: relative;
+    flex: 1;
+  }
+
+  .order-input-wrapper svg {
+    position: absolute;
+    left: 0.75rem;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 20px;
+    height: 20px;
+    color: var(--color-gray-400, #9ca3af);
+  }
+
+  .order-input-new {
+    width: 100%;
+    height: 56px;
+    padding: 0 1rem 0 2.75rem;
+    border: 1px solid var(--border-light, #e5e7eb);
+    border-radius: 0.5rem;
+    font-size: 1rem;
+    background: var(--color-gray-50, #f9fafb);
+    transition: all 0.2s ease;
+  }
+
+  .order-input-new:focus {
+    outline: none;
+    border-color: var(--color-primary, #3b82f6);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  }
+
+  .order-btn-new {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    height: 56px;
+    padding: 0 2rem;
+    background: var(--color-primary, #3b82f6);
+    color: white;
+    font-weight: 700;
+    font-size: 1rem;
+    border: none;
+    border-radius: 0.5rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    white-space: nowrap;
+  }
+
+  .order-btn-new:hover {
+    background: var(--color-primary-dark, #2563eb);
+    transform: scale(1.02);
+  }
+
+  .order-btn-new svg {
+    width: 20px;
+    height: 20px;
+  }
+
+  /* Swap Route Button */
+  .swap-route-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    background: white;
+    border: 2px solid var(--border-light, #e5e7eb);
+    border-radius: 50%;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    color: var(--color-gray-500, #6b7280);
+  }
+
+  .swap-route-btn:hover {
+    border-color: var(--color-primary, #3b82f6);
+    background: var(--color-primary, #3b82f6);
+    color: white;
+    transform: rotate(180deg);
+  }
+
+  .swap-route-btn:active {
+    transform: rotate(180deg) scale(0.95);
+  }
+
+  @media (max-width: 768px) {
+    .swap-route-btn {
+      transform: rotate(90deg);
+      margin: 0.5rem 0;
+    }
+
+    .swap-route-btn:hover {
+      transform: rotate(270deg);
+    }
+  }
+
+  /* Categories Section - Clean Professional */
+  .category-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 2rem;
+  }
+
+  .category-card {
+    position: relative;
+    border-radius: 1rem;
+    overflow: hidden;
+    aspect-ratio: 4 / 3;
+    cursor: pointer;
+    transition: transform 0.4s ease, box-shadow 0.4s ease;
+  }
+
+  .category-card:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+  }
+
+  .category-card img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.5s ease;
+  }
+
+  .category-card:hover img {
+    transform: scale(1.08);
+  }
+
+  .category-overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, transparent 50%, rgba(0, 0, 0, 0.8) 100%);
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    padding: 1.5rem;
+    transition: background 0.3s ease;
+  }
+
+  .category-card:hover .category-overlay {
+    background: linear-gradient(180deg, transparent 30%, rgba(0, 0, 0, 0.85) 100%);
+  }
+
+  .category-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: white;
+    margin: 0 0 0.5rem 0;
+  }
+
+  .category-desc {
+    font-size: 0.9rem;
+    color: rgba(255, 255, 255, 0.85);
+    margin: 0;
+    line-height: 1.5;
+  }
+
+  /* Contact Section */
+  .contact-section {
+    background: linear-gradient(135deg, var(--color-gray-50, #f9fafb) 0%, #f1f5f9 100%);
+  }
+
+  .contact-grid {
+    display: grid;
+    gap: 3rem;
+  }
+
+  @media (min-width: 768px) {
+    .contact-grid {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+
+  .contact-form-card {
+    background: white;
+    padding: 2rem;
+    border-radius: 0.75rem;
+    border: 1px solid var(--border-light, #e5e7eb);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+  }
+
+  .contact-form-card h3 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin-bottom: 1.5rem;
+    color: var(--color-heading, #1f2937);
+  }
+
+  .contact-form-group {
+    margin-bottom: 1.25rem;
+  }
+
+  .contact-form-group label {
+    display: block;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--color-gray-700, #374151);
+    margin-bottom: 0.5rem;
+  }
+
+  .contact-form-group input,
+  .contact-form-group textarea {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border: 1px solid var(--border-light, #e5e7eb);
+    border-radius: 0.5rem;
+    font-size: 1rem;
+    transition: all 0.2s ease;
+  }
+
+  .contact-form-group input:focus,
+  .contact-form-group textarea:focus {
+    outline: none;
+    border-color: var(--color-primary, #3b82f6);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  }
+
+  .contact-form-group textarea {
+    min-height: 120px;
+    resize: vertical;
+  }
+
+  .contact-submit-btn {
+    width: 100%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.875rem 1.5rem;
+    background: var(--color-primary, #3b82f6);
+    color: white;
+    font-weight: 700;
+    font-size: 1rem;
+    border: none;
+    border-radius: 0.5rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+  }
+
+  .contact-submit-btn:hover {
+    background: var(--color-primary-dark, #2563eb);
+    transform: scale(1.02);
+  }
+
+  .contact-info-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .contact-info-card {
+    display: flex;
+    gap: 1rem;
+    padding: 1.25rem;
+    background: white;
+    border: 1px solid var(--border-light, #e5e7eb);
+    border-radius: 0.75rem;
+    transition: all 0.3s ease;
+  }
+
+  .contact-info-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.05);
+  }
+
+  .contact-info-icon {
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(59, 130, 246, 0.1);
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .contact-info-icon svg {
+    width: 24px;
+    height: 24px;
+    color: var(--color-primary, #3b82f6);
+  }
+
+  .contact-info-content h4 {
+    font-size: 1.125rem;
+    font-weight: 700;
+    margin: 0 0 0.5rem 0;
+    color: var(--color-heading, #1f2937);
+  }
+
+  .contact-info-content p {
+    font-size: 0.875rem;
+    color: var(--color-gray-600, #4b5563);
+    margin: 0;
+    line-height: 1.6;
+  }
+
+  .service-badge-card {
+    display: flex;
+    gap: 1rem;
+    padding: 1.25rem;
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(59, 130, 246, 0.1) 100%);
+    border: 1px solid rgba(16, 185, 129, 0.3);
+    border-radius: 0.75rem;
+    transition: all 0.3s ease;
+  }
+
+  .service-badge-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 10px 20px rgba(16, 185, 129, 0.1);
+  }
+
+  .service-badge-icon {
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .service-badge-icon svg {
+    width: 24px;
+    height: 24px;
+    color: white;
+    stroke: white;
+  }
+
+  .service-badge-content h4 {
+    font-size: 1.125rem;
+    font-weight: 700;
+    margin: 0 0 0.5rem 0;
+    color: #059669;
+  }
+
+  .service-badge-content p {
+    font-size: 0.875rem;
+    color: var(--color-gray-600, #4b5563);
+    margin: 0;
+    line-height: 1.6;
+  }
+
+  /* Collapsible Contact Section */
+  .contact-section-collapsible {
+    padding: 1rem 0;
+    margin: 3rem 0 1rem;
+  }
+
+  .contact-toggle-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    width: 100%;
+    padding: 1rem 1.5rem;
+    background: white;
+    color: var(--color-primary, #3b82f6);
+    border: 2px solid var(--color-primary, #3b82f6);
+    border-radius: 0.75rem;
+    font-size: 1rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+  }
+
+  .contact-toggle-btn:hover {
+    background: var(--color-primary, #3b82f6);
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(59, 130, 246, 0.25);
+  }
+
+  .contact-toggle-btn[aria-expanded="true"] {
+    background: var(--color-primary, #3b82f6);
+    color: white;
+    box-shadow: 0 8px 25px rgba(59, 130, 246, 0.25);
+  }
+
+  .contact-toggle-btn[aria-expanded="true"]:hover {
+    background: var(--color-primary-dark, #2563eb);
+    border-color: var(--color-primary-dark, #2563eb);
+  }
+
+  .contact-toggle-text {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .contact-toggle-chevron {
+    transition: transform 0.3s ease;
+  }
+
+  .contact-toggle-btn[aria-expanded="true"] .contact-toggle-chevron {
+    transform: rotate(180deg);
+  }
+
+  .contact-content-collapsible {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.4s ease;
+  }
+
+  .contact-content-collapsible.open {
+    max-height: 1200px;
+  }
+
+  .contact-content-inner {
+    padding: 2rem 0;
+  }
+
+  .quote-icon-serif {
+    font-family: 'Times New Roman', Times, serif;
+  }
+
+  /* Reviews Section Styles since Tailwind might be missing */
+  .reviews-grid {
+    display: grid;
+    grid-template-columns: repeat(1, minmax(0, 1fr));
+    gap: 2rem;
+  }
+
+  @media (min-width: 768px) {
+    .reviews-grid {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+  }
+
+  .review-card {
+    position: relative;
+    padding: 2rem;
+    background-color: white;
+    border-radius: 1rem;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    border: 1px solid #f3f4f6;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    overflow: hidden;
+    transition: all 0.3s ease;
+  }
+
+  .review-card:hover {
+    transform: translateY(-0.25rem);
+  }
+
+  .quote-icon-bg {
+    position: absolute;
+    top: -1rem;
+    right: -0.5rem;
+    font-size: 10rem;
+    line-height: 1;
+    color: #f3f4f6;
+    opacity: 0.7;
+    user-select: none;
+    z-index: 0;
+    transition: transform 0.5s ease;
+  }
+
+  .review-card:hover .quote-icon-bg {
+    transform: scale(1.1);
+  }
+
+  .review-stars {
+    display: flex;
+    color: #facc15;
+    /* yellow-400 */
+    margin-bottom: 1.5rem;
+    gap: 0.25rem;
+  }
+
+  .review-stars .material-icons {
+    font-size: 24px;
+  }
+
+  .review-text {
+    color: #4b5563;
+    font-size: 1.125rem;
+    font-style: italic;
+    margin-bottom: 2rem;
+    line-height: 1.625;
+    position: relative;
+    z-index: 10;
+  }
+
+  .review-footer {
+    position: relative;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    border-top: 1px solid #f3f4f6;
+    padding-top: 1.5rem;
+  }
+
+  .review-avatar {
+    width: 3rem;
+    height: 3rem;
+    border-radius: 9999px;
+    background-color: #f3f4f6;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 1rem;
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #6b7280;
+    box-shadow: 0 0 0 2px #f9fafb;
+    flex-shrink: 0;
+  }
+
+  .review-author h4 {
+    font-weight: 700;
+    color: #111827;
+    font-size: 1rem;
+    margin: 0;
+  }
+
+  .review-verified {
+    display: flex;
+    align-items: center;
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: #16a34a;
+    /* green-600 */
+    margin-top: 0.125rem;
+  }
+
+  .review-verified .material-icons {
+    font-size: 14px;
+    margin-right: 0.25rem;
+  }
+</style>
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
+{% endblock %}
 
 {% block content %}
-<!-- HERO -->
+<!-- Hero Section -->
 <div class="container">
-  <div class="hero">
-    <div class="hero-content">
-      <div class="hero-badge">
-        <span aria-hidden="true"></span>
-        Saman päivän auton kuljetukset
-      </div>
-      <h1 class="hero-title">Nopein ja edullisin.<br />Levorolla mahdollista.</h1>
-      <p class="hero-subtitle">Suomen nopein, edullisin ja luotettavin tapa siirtää autoja. Läpinäkyvä hinnoittelu,
-        reaaliaikainen seuranta ja helppo tilausportaali.</p>
-      <div class="hero-actions">
-        {% if not current_user or current_user.role != 'driver' %}
-        <a class="btn btn-primary btn-lg" href="/calculator">Laske edullisin hinta nyt</a>
-        {% endif %}
-        <a class="btn btn-secondary btn-lg" href="#how">Miten se toimii</a>
-        {% if not current_user %}
-        <a class="btn btn-outline btn-lg" href="/hae-kuljettajaksi">Hae kuljettajaksi</a>
-        {% endif %}
-      </div>
-      <div class="hero-features">
-        <div class="hero-feature">Toimitus samana päivänä</div>
-        <div class="hero-feature">PK-seudulla kuljetukset alle 28€</div>
-        <div class="hero-feature">Kokeilualennus yritysasiakkaille</div>
+  <div class="section-new" style="padding-top: 2rem;">
+    <div class="hero-new animate-fade-up">
+      <div class="hero-new-content">
+        <h1 class="hero-new-title">Nopein ja edullisin.<br>Levorolla mahdollista.</h1>
+        <p class="hero-new-subtitle">Suomen nopein, edullisin ja luotettavin tapa siirtää autoja. Läpinäkyvä
+          hinnoittelu ja helppo tilausportaali.</p>
+        <div class="hero-new-actions">
+          {% if not current_user or current_user.role != 'driver' %}
+          <a href="/calculator" class="hero-new-cta">
+            Laske edullisin hinta nyt
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
+              <path d="M5 12h14M12 5l7 7-7 7" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+          </a>
+          {% endif %}
+
+        </div>
       </div>
     </div>
   </div>
 </div>
 
-<!-- MIKSI MEIDÄT -->
-<div class="container">
-  <section class="section-padding">
-    <div class="section-header">
-      <h2 class="section-title">Mitä lupaamme</h2>
+<!-- How It Works Section -->
+<div id="how" class="container scroll-mt-20"><!-- Features section for footer link -->
+  <div id="features"></div>
+  <section class="section-new">
+    <div class="section-header-new animate-fade-up">
+      <h2 class="section-title-new">Näin Levoro toimii</h2>
+      <p class="section-subtitle-new">Saat autosi kuljetettua kolmella yksinkertaisella askeleella. Hoidamme kaiken
+        huolella ja ammattitaidolla.</p>
     </div>
-    <div class="grid grid-cols-3">
-      <div class="feature-card">
-        <div class="feature-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-            <path d="M13 2L3 14h8l-1 8 10-12h-8l1-8z" stroke-linejoin="round" stroke-linecap="round"/>
+    <div class="feature-grid-new">
+      <div class="feature-card-new animate-fade-up stagger-1">
+        <div class="feature-icon-new">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="4" y="4" width="16" height="16" rx="2" />
+            <path d="M8 8h8M8 12h5M8 16h8" stroke-linecap="round" />
           </svg>
         </div>
-        <h3 class="feature-title">Nopeus</h3>
-        <p class="feature-description">Kuljetus tilauksesta toimitukseen samana päivänä – ilman turhia mutkia.</p>
+        <div>
+          <h3 class="feature-title-new">Laske tarkka hinta</h3>
+          <p class="feature-desc-new">Syötä nouto- ja toimituspaikka ja saat heti tarkan hinnan kuljetukselle.</p>
+        </div>
       </div>
-      <div class="feature-card">
-        <div class="feature-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-            <circle cx="12" cy="12" r="10" stroke-linejoin="round"/>
-            <path d="M15 8H9.5a2.5 2.5 0 0 0 0 5H14a2.5 2.5 0 0 1 0 5H8m4-13v2m0 10v2" stroke-linecap="round" stroke-linejoin="round"/>
+      <div class="feature-card-new animate-fade-up stagger-2">
+        <div class="feature-icon-new">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="4" width="18" height="18" rx="2" />
+            <path d="M16 2v4M8 2v4M3 10h18" stroke-linecap="round" />
+            <path d="M9 16l2 2 4-4" stroke-linecap="round" stroke-linejoin="round" />
           </svg>
         </div>
-        <h3 class="feature-title">Läpinäkyvä hinta</h3>
-        <p class="feature-description">Selkeä ja reilu hinnoittelu. Hinta lasketaan etukäteen, ei yllätyksiä.</p>
+        <div>
+          <h3 class="feature-title-new">Tilaa helposti verkossa</h3>
+          <p class="feature-desc-new">Täytä tiedot ja tee tilaus kokonaan verkossa. Maksu tapahtuu kätevästi laskulla.
+          </p>
+        </div>
       </div>
-      <div class="feature-card">
-        <div class="feature-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-            <path d="M12 3l7 3v5c0 5-3.5 9-7 10-3.5-1-7-5-7-10V6l7-3z" stroke-linejoin="round" stroke-linecap="round"/>
-            <path d="M8 12l3 3 5-5" stroke-linecap="round" stroke-linejoin="round"/>
+      <div class="feature-card-new animate-fade-up stagger-3">
+        <div class="feature-icon-new">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 3l7 3v5c0 5-3.5 9-7 10-3.5-1-7-5-7-10V6l7-3z" />
+            <path d="M9 12l2 2 4-4" stroke-linecap="round" stroke-linejoin="round" />
           </svg>
         </div>
-        <h3 class="feature-title">Luotettavuus</h3>
-        <p class="feature-description">Vakuutus koko matkan, ajoneuvon live-sijainti, seuranta portaalissa.</p>
-      </div>
-    </div>
-  </section>
-</div>
-
-<!-- MITEN SE TOIMII -->
-<div id="how" class="container">
-  <section class="section-padding">
-    <h2 class="section-title">Miten se toimii</h2>
-    <div class="grid grid-cols-3">
-      <div class="feature-card">
-        <h3 class="feature-title">
-          <span class="step-number">1</span>
-          Lähetä reitti
-        </h3>
-        <p class="feature-description">Valitse nouto ja kohde portaalissa. Saat hinnan heti.</p>
-      </div>
-      <div class="feature-card">
-        <h3 class="feature-title">
-          <span class="step-number">2</span>
-          Vahvista tilaus
-        </h3>
-        <p class="feature-description">Valitse sopiva aika ja lisää tiedot (avaimet, yhteyshenkilöt).</p>
-      </div>
-      <div class="feature-card">
-        <h3 class="feature-title">
-          <span class="step-number">3</span>
-          Seuraa toimitusta
-        </h3>
-        <p class="feature-description">Näet etenemisen ja saat ilmoitukset – kuittaukset tallentuvat portaaliin.</p>
+        <div>
+          <h3 class="feature-title-new">Täysi vakuutusturva</h3>
+          <p class="feature-desc-new">Jokainen kuljetus on täysin vakuutettu ilman lisämaksuja. Ajoneuvosi on turvassa
+            koko matkan ajan.</p>
+        </div>
       </div>
     </div>
   </section>
 </div>
 
-<!-- VAKUUTUSBANNERI -->
+<!-- Order Section -->
+<section class="order-section section-new">
+  <div class="container">
+    <div class="text-center animate-fade-up" style="margin-bottom: 2rem;">
+      <h2 class="section-title-new">Tee tilaus nyt</h2>
+      <p class="section-subtitle-new" style="margin: 0 auto;">Syötä nouto- ja toimitusosoitteet saadaksesi
+        hintatarjouksen välittömästi.</p>
+    </div>
+    <form class="order-form-new" action="/calculator" method="GET">
+      <div class="order-input-wrapper stagger-1">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z" />
+          <circle cx="12" cy="10" r="3" />
+        </svg>
+        <input type="text" id="homePickupAddress" name="pickup" placeholder="Nouto-osoite" class="order-input-new"
+          autocomplete="off">
+      </div>
+      <button type="button" class="swap-route-btn" onclick="swapAddresses()" aria-label="Vaihda osoitteet">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
+          <path d="M7 16V4m0 0L3 8m4-4l4 4M17 8v12m0 0l4-4m-4 4l-4-4" stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
+      </button>
+      <div class="order-input-wrapper stagger-2">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M5 21V5a2 2 0 012-2h10a2 2 0 012 2v16l-7-4-7 4z" />
+        </svg>
+        <input type="text" id="homeDropoffAddress" name="destination" placeholder="Toimitusosoite"
+          class="order-input-new" autocomplete="off">
+      </div>
+      <button type="submit" class="order-btn-new stagger-3">
+        <span>Hae Hinta</span>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M5 12h14M12 5l7 7-7 7" stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
+      </button>
+    </form>
+  </div>
+</section>
+
+
+
+<!-- Reviews Section -->
+<!-- Reviews Section -->
+{% if reviews %}
+<section class="pt-40 pb-24 bg-gray-50 relative overflow-hidden" style="padding-top: 8rem; padding-bottom: 6rem;">
+  <div class="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none opacity-5">
+    <div class="absolute -top-[20%] -left-[10%] w-[60%] h-[60%] bg-primary rounded-full blur-3xl"></div>
+    <div class="absolute bottom-[10%] -right-[10%] w-[40%] h-[40%] bg-blue-400 rounded-full blur-3xl"></div>
+  </div>
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+    <div class="text-center mb-16 animate-fade-up" style="margin-bottom: 5rem;">
+      <h2 class="section-title-new">Mitä asiakkaamme sanovat</h2>
+      <div class="h-1.5 w-20 bg-primary mx-auto rounded-full mt-4"></div>
+    </div>
+
+    <div class="reviews-grid">
+      {% for review in reviews %}
+      <div class="review-card animate-fade-up stagger-{{ loop.index }}">
+        <div class="quote-icon-serif quote-icon-bg">”</div>
+
+        <div style="position: relative; z-index: 10;">
+          <div class="review-stars">
+            {% for i in range(review.rating) %}
+            <i class="material-icons">star</i>
+            {% endfor %}
+          </div>
+          <p class="review-text">
+            "{{ review.comment }}"
+          </p>
+        </div>
+
+        <div class="review-footer">
+          <div class="review-avatar">
+            {{ review.customer_name[0] | upper }}
+          </div>
+          <div class="review-author">
+            <h4>{{ review.customer_name }}</h4>
+            <div class="review-verified">
+              <i class="material-icons">verified</i>
+              <span>Vahvistettu asiakas</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+{% endif %}
+
+<!-- Customer Review Form Section -->
+{% if current_user and current_user.get('role') == 'customer' %}
+<section class="py-16 bg-white">
+  <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="text-center mb-10 animate-fade-up">
+      <h2 class="section-title-new">Lisää kommentti</h2>
+      <p class="text-gray-600 mt-2">Jaa kokemuksesi Levorosta</p>
+    </div>
+
+    <div class="bg-gray-50 rounded-2xl p-8 shadow-sm border border-gray-100 animate-fade-up">
+      <form action="{{ url_for('main.submit_review') }}" method="POST" id="reviewForm" novalidate>
+        <!-- Star Rating -->
+        <div class="mb-6">
+          <label class="block text-sm font-semibold text-gray-700 mb-3">Arvosana *</label>
+          <div class="flex gap-2" id="starRating">
+            <input type="radio" name="rating" value="1" id="star1" class="sr-only" required>
+            <label for="star1"
+              class="star-label cursor-pointer text-4xl text-gray-300 hover:text-yellow-400 transition-colors">
+              <i class="material-icons">star</i>
+            </label>
+
+            <input type="radio" name="rating" value="2" id="star2" class="sr-only">
+            <label for="star2"
+              class="star-label cursor-pointer text-4xl text-gray-300 hover:text-yellow-400 transition-colors">
+              <i class="material-icons">star</i>
+            </label>
+
+            <input type="radio" name="rating" value="3" id="star3" class="sr-only">
+            <label for="star3"
+              class="star-label cursor-pointer text-4xl text-gray-300 hover:text-yellow-400 transition-colors">
+              <i class="material-icons">star</i>
+            </label>
+
+            <input type="radio" name="rating" value="4" id="star4" class="sr-only">
+            <label for="star4"
+              class="star-label cursor-pointer text-4xl text-gray-300 hover:text-yellow-400 transition-colors">
+              <i class="material-icons">star</i>
+            </label>
+
+            <input type="radio" name="rating" value="5" id="star5" class="sr-only">
+            <label for="star5"
+              class="star-label cursor-pointer text-4xl text-gray-300 hover:text-yellow-400 transition-colors">
+              <i class="material-icons">star</i>
+            </label>
+          </div>
+        </div>
+
+        <!-- Comment -->
+        <div class="mb-6">
+          <label for="comment" class="block text-sm font-semibold text-gray-700 mb-2">Kommentti *</label>
+          <textarea name="comment" id="comment" rows="5" required maxlength="500"
+            class="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent resize-none"
+            placeholder="Kerro kokemuksestasi..."></textarea>
+          <div class="text-xs text-gray-500 mt-1" id="charCount">0 / 500 merkkiä</div>
+        </div>
+
+        <!-- Submit Button -->
+        <div class="flex justify-end">
+          <button type="submit"
+            class="px-8 py-3 bg-primary hover:bg-primary-hover text-white font-semibold rounded-lg shadow-md hover:shadow-lg transition-all flex items-center gap-2">
+            <span>Lähetä arvostelu</span>
+            <i class="material-icons text-sm">send</i>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</section>
+
+<script>
+  // Star rating interactive functionality
+  document.addEventListener('DOMContentLoaded', function () {
+    const stars = document.querySelectorAll('#starRating .star-label');
+    const radioInputs = document.querySelectorAll('#starRating input[type="radio"]');
+
+    // Update star colors based on selection
+    function updateStars(rating) {
+      stars.forEach((star, index) => {
+        const icon = star.querySelector('i');
+        if (index < rating) {
+          icon.style.color = '#facc15'; // yellow
+        } else {
+          icon.style.color = '#d1d5db'; // gray
+        }
+      });
+    }
+
+    // Handle star clicks
+    radioInputs.forEach((input, index) => {
+      input.addEventListener('change', function () {
+        if (this.checked) {
+          updateStars(index + 1);
+        }
+      });
+    });
+
+    // Hover effect
+    stars.forEach((star, index) => {
+      star.addEventListener('mouseenter', function () {
+        updateStars(index + 1);
+      });
+    });
+
+    document.getElementById('starRating').addEventListener('mouseleave', function () {
+      const checkedInput = document.querySelector('#starRating input[type="radio"]:checked');
+      if (checkedInput) {
+        const rating = parseInt(checkedInput.value);
+        updateStars(rating);
+      } else {
+        updateStars(0);
+      }
+    });
+
+    // Character counter
+    const commentArea = document.getElementById('comment');
+    const charCount = document.getElementById('charCount');
+
+    commentArea.addEventListener('input', function () {
+      const count = this.value.length;
+      charCount.textContent = `${count} / 500 merkkiä`;
+    });
+  });
+</script>
+{% endif %}
+
+
+
+<!-- Collapsible Contact Section -->
+<section id="contact" class="contact-section-collapsible">
+  <div class="container">
+    <button class="contact-toggle-btn" onclick="toggleContactSection()" aria-expanded="false"
+      aria-controls="contactContent">
+      <span class="contact-toggle-text">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
+          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+        </svg>
+        Ota yhteyttä
+      </span>
+      <svg class="contact-toggle-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+        width="20" height="20">
+        <polyline points="6 9 12 15 18 9"></polyline>
+      </svg>
+    </button>
+
+    <div id="contactContent" class="contact-content-collapsible">
+      <div class="contact-content-inner">
+        <div class="text-center" style="margin-bottom: 2rem;">
+          <h2 class="section-title-new">Ota yhteyttä</h2>
+          <p class="section-subtitle-new" style="margin: 0 auto; max-width: 600px;">Kysymyksiä tai tarjouspyyntöjä?
+            Olemme täällä auttamassa.</p>
+        </div>
+
+        <div class="contact-grid">
+          <!-- Contact Form -->
+          <div class="contact-form-card">
+            <h3>Lähetä viesti</h3>
+            <form action="/yhteystiedot" method="POST" novalidate>
+              <div class="contact-form-group">
+                <label for="contact-name">Nimi</label>
+                <input type="text" id="contact-name" name="name" placeholder="Nimesi" required>
+              </div>
+              <div class="contact-form-group">
+                <label for="contact-email">Sähköposti</label>
+                <input type="email" id="contact-email" name="email" placeholder="sahkoposti@esimerkki.fi" required>
+              </div>
+              <div class="contact-form-group">
+                <label for="contact-message">Viesti</label>
+                <textarea id="contact-message" name="message" placeholder="Kirjoita viestisi tähän..."
+                  required></textarea>
+              </div>
+              <button type="submit" class="contact-submit-btn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
+                  <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+                  <path d="M22 6l-10 7L2 6" />
+                </svg>
+                Lähetä viesti
+              </button>
+            </form>
+          </div>
+
+          <!-- Contact Info -->
+          <div class="contact-info-stack">
+            <div class="contact-info-card">
+              <div class="contact-info-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+                  <path d="M22 6l-10 7L2 6" />
+                </svg>
+              </div>
+              <div class="contact-info-content">
+                <h4>Sähköposti</h4>
+                <p><a href="mailto:support@levoro.fi">support@levoro.fi</a></p>
+              </div>
+            </div>
+
+            <div class="contact-info-card">
+              <div class="contact-info-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path
+                    d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92z" />
+                </svg>
+              </div>
+              <div class="contact-info-content">
+                <h4>Puhelinnumerot</h4>
+                <p><a href="tel:+358449782446">+358 44 978 2446</a></p>
+                <p><a href="tel:+358449826974">+358 44 982 6974</a></p>
+                <p style="font-size: 0.8rem; color: var(--color-gray-500);">Ma-Pe 8:00-17:00</p>
+              </div>
+            </div>
+
+
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<script>
+  function toggleContactSection() {
+    const content = document.getElementById('contactContent');
+    const btn = document.querySelector('.contact-toggle-btn');
+    const isOpen = content.classList.toggle('open');
+    btn.setAttribute('aria-expanded', isOpen);
+
+    if (isOpen) {
+      content.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }
+</script>
+
+<!-- Insurance Banner -->
 <div class="container">
   <section class="section-padding">
-    <div class="trust-banner">
+    <div class="trust-banner animate-fade-up">
       <div class="trust-content">
         <div class="trust-icon">
           <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -126,14 +1155,118 @@
   </section>
 </div>
 
-<!-- FOOTER-CTA -->
+<!-- Footer CTA - Only show for non-logged-in users -->
+{% if not current_user %}
 <div class="container">
   <section class="section-padding text-center">
     <p class="text-muted">Onko sinulla jo tili?</p>
     <div class="flex justify-center gap-4 mt-4 footer-cta">
       <a class="btn btn-ghost" href="/login">Kirjaudu sisään</a>
       <a class="btn btn-ghost" href="/register">Luo yritystili</a>
+      <a class="btn btn-ghost" href="/hae-kuljettajaksi">Hae kuljettajaksi</a>
     </div>
   </section>
 </div>
+{% endif %}
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  // Animate on scroll
+  const observerOptions = {
+    threshold: 0.1,
+    rootMargin: '0px 0px -50px 0px'
+  };
+
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.style.opacity = '1';
+        entry.target.style.transform = 'translateY(0)';
+      }
+    });
+  }, observerOptions);
+
+  document.querySelectorAll('.animate-fade-up').forEach(el => {
+    el.style.opacity = '0';
+    el.style.transform = 'translateY(20px)';
+    el.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
+    observer.observe(el);
+  });
+
+  // Google Places Autocomplete for landing page order form
+  function initLandingAutocomplete() {
+    if (typeof google === 'undefined' || !google.maps || !google.maps.places) {
+      // Retry after a short delay if Google Maps not loaded yet
+      setTimeout(initLandingAutocomplete, 500);
+      return;
+    }
+
+    const pickupInput = document.getElementById('homePickupAddress');
+    const dropoffInput = document.getElementById('homeDropoffAddress');
+
+    if (!pickupInput || !dropoffInput) return;
+
+    const options = {
+      componentRestrictions: { country: ['fi'] },
+      fields: ['formatted_address', 'geometry', 'name'],
+      types: ['geocode', 'establishment']
+    };
+
+    const pickupAutocomplete = new google.maps.places.Autocomplete(pickupInput, options);
+    const dropoffAutocomplete = new google.maps.places.Autocomplete(dropoffInput, options);
+
+    // Handle place selection
+    pickupAutocomplete.addListener('place_changed', function () {
+      const place = pickupAutocomplete.getPlace();
+      if (place.formatted_address) {
+        pickupInput.value = place.formatted_address;
+      }
+    });
+
+    dropoffAutocomplete.addListener('place_changed', function () {
+      const place = dropoffAutocomplete.getPlace();
+      if (place.formatted_address) {
+        dropoffInput.value = place.formatted_address;
+      }
+    });
+
+    // Prevent form submission on Enter when autocomplete is open
+    [pickupInput, dropoffInput].forEach(input => {
+      input.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') {
+          // Check if autocomplete dropdown is visible
+          const pacContainer = document.querySelector('.pac-container');
+          if (pacContainer && pacContainer.style.display !== 'none') {
+            e.preventDefault();
+          }
+        }
+      });
+    });
+  }
+
+  // Initialize autocomplete
+  initLandingAutocomplete();
+
+  // Swap addresses function
+  function swapAddresses() {
+    const pickupInput = document.getElementById('homePickupAddress');
+    const dropoffInput = document.getElementById('homeDropoffAddress');
+
+    if (pickupInput && dropoffInput) {
+      const temp = pickupInput.value;
+      pickupInput.value = dropoffInput.value;
+      dropoffInput.value = temp;
+
+      // Visual feedback - briefly highlight both fields
+      [pickupInput, dropoffInput].forEach(input => {
+        input.style.backgroundColor = '#eff6ff';
+        setTimeout(() => {
+          input.style.backgroundColor = '';
+        }, 300);
+      });
+    }
+  }
+</script>
 {% endblock %}

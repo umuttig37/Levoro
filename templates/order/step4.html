@@ -1,0 +1,255 @@
+{% extends "order/wizard_base.html" %}
+
+{% block title %}Yhteystiedot - Uusi tilaus{% endblock %}
+{% block page_title %}Yhteystiedot{% endblock %}
+{% block page_subtitle %}Kuka on tilauksen yhteyshenkilö?{% endblock %}
+
+{% block extra_styles %}
+<style>
+    /* Error shake animation */
+    @keyframes shake {
+
+        0%,
+        100% {
+            transform: translateX(0);
+        }
+
+        25% {
+            transform: translateX(-4px);
+        }
+
+        75% {
+            transform: translateX(4px);
+        }
+    }
+
+    .shake {
+        animation: shake 0.3s ease-in-out;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<form method="POST" class="space-y-6" novalidate>
+    <!-- Orderer Section -->
+    <div class="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
+        <div class="flex items-center gap-3 mb-6">
+            <div class="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center">
+                <span class="material-symbols-outlined text-blue-600">person</span>
+            </div>
+            <div>
+                <h3 class="font-bold text-slate-900">Tilaajan tiedot</h3>
+                <p class="text-sm text-slate-500">Kuka tilaa kuljetuksen?</p>
+            </div>
+        </div>
+
+        <div class="space-y-4">
+            <!-- Orderer Name -->
+            <div class="group">
+                <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2 pl-1"
+                    for="orderer_name">
+                    Tilaajan nimi *
+                </label>
+                <div class="relative transition-all duration-300 focus-within:transform focus-within:-translate-y-0.5">
+                    <span class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                        <span class="material-symbols-outlined text-lg text-slate-400">badge</span>
+                    </span>
+                    <input
+                        class="block w-full rounded-xl border-gray-200 bg-gray-50/50 text-slate-900 placeholder-gray-400 focus:border-blue-400 focus:ring-4 focus:ring-blue-100 sm:text-sm py-4 pl-10 pr-4 shadow-input transition-all"
+                        type="text" id="orderer_name" name="orderer_name" required value="{{ orderer_name }}"
+                        placeholder="Yrityksen nimi tai yhteyshenkilö" title="Syötä tilaajan nimi">
+                </div>
+            </div>
+
+            <!-- Orderer Email -->
+            <div class="group">
+                <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2 pl-1"
+                    for="orderer_email">
+                    Sähköposti *
+                </label>
+                <div class="relative transition-all duration-300 focus-within:transform focus-within:-translate-y-0.5">
+                    <span class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                        <span class="material-symbols-outlined text-lg text-slate-400">mail</span>
+                    </span>
+                    <input
+                        class="block w-full rounded-xl border-gray-200 bg-gray-50/50 text-slate-900 placeholder-gray-400 focus:border-blue-400 focus:ring-4 focus:ring-blue-100 sm:text-sm py-4 pl-10 pr-4 shadow-input transition-all"
+                        type="email" id="orderer_email" name="orderer_email" required value="{{ orderer_email }}"
+                        placeholder="yritys@example.com" title="Syötä sähköpostiosoite">
+                </div>
+            </div>
+
+            <!-- Orderer Phone -->
+            <div class="group">
+                <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2 pl-1"
+                    for="orderer_phone">
+                    Puhelinnumero *
+                </label>
+                <div class="relative transition-all duration-300 focus-within:transform focus-within:-translate-y-0.5">
+                    <span class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                        <span class="material-symbols-outlined text-lg text-slate-400">phone</span>
+                    </span>
+                    <input
+                        class="block w-full rounded-xl border-gray-200 bg-gray-50/50 text-slate-900 placeholder-gray-400 focus:border-blue-400 focus:ring-4 focus:ring-blue-100 sm:text-sm py-4 pl-10 pr-4 shadow-input transition-all"
+                        type="tel" id="orderer_phone" name="orderer_phone" required value="{{ orderer_phone }}"
+                        placeholder="+358 40 123 4567" title="Käytä vain numeroita ja merkkejä +, -, ( )"
+                        pattern="[+]?[0-9\s\-()]+">
+                </div>
+                <p id="orderer_phone_error" class="text-xs text-red-500 pl-1 mt-1 hidden flex items-center gap-1">
+                    <span class="material-symbols-outlined text-sm">error</span>
+                    Käytä vain numeroita ja merkkejä +, -, ( )
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Customer Section (Optional) -->
+    <div class="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
+        <div class="flex items-center gap-3 mb-6">
+            <div class="w-10 h-10 rounded-xl bg-amber-500/10 flex items-center justify-center">
+                <span class="material-symbols-outlined text-amber-600">groups</span>
+            </div>
+            <div class="flex-1">
+                <h3 class="font-bold text-slate-900">Asiakkaan tiedot</h3>
+                <p class="text-sm text-slate-500">Valinnainen - jos eri kuin tilaaja</p>
+            </div>
+            <span class="text-xs font-medium text-slate-400 bg-slate-100 px-2 py-1 rounded-md">Valinnainen</span>
+        </div>
+
+        <div class="space-y-4">
+            <!-- Customer Name -->
+            <div class="group">
+                <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2 pl-1"
+                    for="customer_name">
+                    Asiakkaan nimi
+                </label>
+                <div class="relative transition-all duration-300 focus-within:transform focus-within:-translate-y-0.5">
+                    <span class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                        <span class="material-symbols-outlined text-lg text-slate-400">person_outline</span>
+                    </span>
+                    <input
+                        class="block w-full rounded-xl border-gray-200 bg-gray-50/50 text-slate-900 placeholder-gray-400 focus:border-amber-400 focus:ring-4 focus:ring-amber-100 sm:text-sm py-4 pl-10 pr-4 shadow-input transition-all"
+                        type="text" id="customer_name" name="customer_name" value="{{ customer_name }}"
+                        placeholder="Vastaanottajan nimi" title="Syötä asiakkaan nimi (valinnainen)">
+                </div>
+            </div>
+
+            <!-- Customer Phone -->
+            <div class="group">
+                <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2 pl-1"
+                    for="customer_phone">
+                    Asiakkaan puhelinnumero
+                </label>
+                <div class="relative transition-all duration-300 focus-within:transform focus-within:-translate-y-0.5">
+                    <span class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                        <span class="material-symbols-outlined text-lg text-slate-400">phone</span>
+                    </span>
+                    <input
+                        class="block w-full rounded-xl border-gray-200 bg-gray-50/50 text-slate-900 placeholder-gray-400 focus:border-amber-400 focus:ring-4 focus:ring-amber-100 sm:text-sm py-4 pl-10 pr-4 shadow-input transition-all"
+                        type="tel" id="customer_phone" name="customer_phone" value="{{ customer_phone }}"
+                        placeholder="+358 40 123 4567" title="Käytä vain numeroita ja merkkejä +, -, ( )"
+                        pattern="[+]?[0-9\s\-()]+">
+                </div>
+                <p id="customer_phone_error" class="text-xs text-red-500 pl-1 mt-1 hidden flex items-center gap-1">
+                    <span class="material-symbols-outlined text-sm">error</span>
+                    Käytä vain numeroita ja merkkejä +, -, ( )
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="flex gap-4 pt-4">
+        <button type="submit" name="action" value="back" formnovalidate
+            class="btn-secondary px-6 py-4 border border-slate-200 rounded-xl text-slate-600 font-semibold hover:bg-slate-50 hover:border-slate-300 flex items-center gap-2">
+            <span class="material-symbols-outlined">arrow_back</span>
+            Takaisin
+        </button>
+        <button type="submit" name="action" value="continue" id="continueBtn"
+            class="btn-gradient flex-1 inline-flex justify-center items-center rounded-xl from-brand-gradient-start to-brand-gradient-end px-6 py-4 text-base font-bold text-white shadow-lg shadow-blue-500/30 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all disabled:from-gray-300 disabled:to-gray-400 disabled:shadow-none disabled:cursor-not-allowed">
+            Jatka
+            <span class="material-symbols-outlined ml-2">arrow_forward</span>
+        </button>
+    </div>
+</form>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Phone number validation with shake animation
+        const phonePattern = /^[+]?[0-9\s\-()]+$/;
+        const continueBtn = document.getElementById('continueBtn');
+        const requiredFields = document.querySelectorAll('input[required]');
+
+        // Function to check if all required fields are valid
+        function checkFormValidity() {
+            let allValid = true;
+            requiredFields.forEach(field => {
+                const value = field.value.trim();
+                if (!value) {
+                    allValid = false;
+                }
+                // Check phone pattern for tel inputs
+                if (field.type === 'tel' && value && !phonePattern.test(value)) {
+                    allValid = false;
+                }
+                // Check email pattern for email inputs
+                if (field.type === 'email' && value && !field.validity.valid) {
+                    allValid = false;
+                }
+            });
+            
+            if (continueBtn) {
+                continueBtn.disabled = !allValid;
+            }
+        }
+
+        // Check on page load (with small delay to ensure values are set)
+        checkFormValidity();
+        setTimeout(checkFormValidity, 100);
+
+        // Check on every input change
+        requiredFields.forEach(field => {
+            field.addEventListener('input', checkFormValidity);
+            field.addEventListener('change', checkFormValidity);
+        });
+
+        // Expose globally
+        window.checkFormValidity = checkFormValidity;
+
+        document.querySelectorAll('input[type="tel"]').forEach(input => {
+            const errorEl = document.getElementById(input.name + '_error');
+
+            input.addEventListener('input', function () {
+                const value = this.value.trim();
+                if (value && !phonePattern.test(value)) {
+                    if (errorEl) errorEl.classList.remove('hidden');
+                    this.setCustomValidity('Virheellinen puhelinnumero');
+                    this.classList.add('border-red-300', 'focus:border-red-400', 'focus:ring-red-100');
+                    this.classList.remove('border-gray-200', 'focus:border-blue-400', 'focus:ring-blue-100', 'focus:border-amber-400', 'focus:ring-amber-100');
+                } else {
+                    if (errorEl) errorEl.classList.add('hidden');
+                    this.setCustomValidity('');
+                    this.classList.remove('border-red-300', 'focus:border-red-400', 'focus:ring-red-100');
+                    this.classList.add('border-gray-200');
+                    // Restore original focus colors based on field
+                    if (this.name === 'customer_phone') {
+                        this.classList.add('focus:border-amber-400', 'focus:ring-amber-100');
+                    } else {
+                        this.classList.add('focus:border-blue-400', 'focus:ring-blue-100');
+                    }
+                }
+            });
+
+            input.addEventListener('blur', function () {
+                const value = this.value.trim();
+                if (value && !phonePattern.test(value)) {
+                    if (errorEl) errorEl.classList.remove('hidden');
+                    this.classList.add('shake');
+                    setTimeout(() => this.classList.remove('shake'), 300);
+                }
+            });
+        });
+    });
+</script>
+{% endblock %}

@@ -387,14 +387,15 @@ class EmailService:
             print(f"   ❌ Failed to send admin driver application notification: {str(e)}")
             return False
 
-    def send_driver_application_approved(self, email: str, name: str) -> bool:
-        """Send approval email to driver"""
+    def send_driver_application_approved(self, email: str, name: str, temp_password: str = None) -> bool:
+        """Send approval email to driver with login credentials"""
         try:
             print(f"[EMAIL] Sending driver application approval to {email}")
 
             html_body = render_template('emails/driver_application_approved.html',
                                       name=name,
-                                      email=email)
+                                      email=email,
+                                      temp_password=temp_password)
 
             return self.send_email(
                 subject="Kuljettajahakemus hyväksytty - Tervetuloa Levorolle!",

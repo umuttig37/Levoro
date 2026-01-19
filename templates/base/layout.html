@@ -1,37 +1,36 @@
 <!doctype html>
 <html lang="fi">
+
 <head>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width,initial-scale=1"/>
-    <title>{% block title %}Autonkuljetus – Portaali{% endblock %}</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>{% block title %}Levoro – Portaali{% endblock %}</title>
+    <meta name="description"
+        content="Levoro tarjoaa nopean ja luotettavan autonkuljetuspalvelun yrityksille ja yksityisille.">
 
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon.png') }}">
 
     <!-- Leaflet CSS -->
-    <link
-        rel="stylesheet"
-        href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
-        crossorigin=""
-    />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
 
     <!-- Leaflet JavaScript -->
-    <script
-        src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
-        crossorigin=""
-    ></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 
     <!-- Google Maps API -->
     {% if google_places_api_key %}
-    <script src="https://maps.googleapis.com/maps/api/js?key={{ google_places_api_key }}&libraries=places&loading=async" async defer></script>
+    <script src="https://maps.googleapis.com/maps/api/js?key={{ google_places_api_key }}&libraries=places&loading=async"
+        async defer></script>
     {% endif %}
 
     <!-- Main CSS -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
 
     <!-- Font Awesome Icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
+        integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA=="
+        crossorigin="anonymous" referrerpolicy="no-referrer" />
 
     <!-- Driver-specific CSS -->
     {% if current_user and current_user.role == 'driver' and request.endpoint and 'driver.' in request.endpoint %}
@@ -41,9 +40,18 @@
     <!-- Dashboard Table CSS -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard-table.css') }}">
 
+    <!-- Animations CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/animations.css') }}">
+
+    <!-- Admin-specific CSS -->
+    {% if current_user and current_user.get('role') == 'admin' %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
+    {% endif %}
+
     <!-- Page-specific CSS -->
     {% block extra_css %}{% endblock %}
 </head>
+
 <body>
     <!-- Header -->
     <header class="header">
@@ -66,7 +74,7 @@
                 <!-- Navigation -->
                 <nav class="nav" id="nav-menu">
                     <a href="/" class="nav-link">Etusivu</a>
-                    <a href="/yhteystiedot" class="nav-link">Yhteystiedot</a>
+                    <a href="/#contact" class="nav-link">Yhteystiedot</a>
 
                     <!-- Role-based navigation -->
                     {% if current_user and current_user.get('role') == 'driver' %}
@@ -75,7 +83,7 @@
                     <!-- Admin users don't need Oma sivu link -->
                     {% elif current_user %}
                     <a href="/order/new/step1" class="nav-link">Uusi tilaus</a>
-                    <a href="/dashboard" class="nav-link">Oma sivu</a>
+                    <a href="/dashboard" class="nav-link">Tilaukset</a>
                     {% else %}
                     <a href="/order/new/step1" class="nav-link">Uusi tilaus</a>
                     {% endif %}
@@ -88,11 +96,11 @@
                     <!-- Auth Links -->
                     {% if current_user %}
                     <span class="pill">Hei, {{ current_user.get('name', 'Käyttäjä') }}</span>
-                    <a class="nav-link" href="/logout">Ulos</a>
+                    <a class="nav-link" href="/logout">Kirjaudu ulos</a>
                     {% else %}
-                    <a href="/hae-kuljettajaksi" class="nav-link">Hae kuljettajaksi</a>
                     <a href="/login" class="nav-link">Kirjaudu</a>
                     <a href="/register" class="nav-link">Luo tili</a>
+                    <a href="/hae-kuljettajaksi" class="btn btn-primary btn-sm ml-2">Hae kuljettajaksi</a>
                     {% endif %}
                 </nav>
             </div>
@@ -101,13 +109,27 @@
 
     <!-- Flash Messages -->
     {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-        <div class="flash-messages container">
-            {% for category, message in messages %}
-            <div class="flash-message {{ category }}">{{ message }}</div>
-            {% endfor %}
+    {% if messages %}
+    <div class="flash-messages container">
+        {% for category, message in messages %}
+        <div class="flash-message {{ category }}">
+            <span>{{ message }}</span>
+            <button type="button" class="flash-close" onclick="this.parentElement.remove()"
+                aria-label="Sulje">&times;</button>
         </div>
-        {% endif %}
+        {% endfor %}
+    </div>
+    <script>
+        // Auto-dismiss flash messages after 5 seconds
+        document.querySelectorAll('.flash-message').forEach(function (msg) {
+            setTimeout(function () {
+                msg.style.opacity = '0';
+                msg.style.transform = 'translateY(-10px)';
+                setTimeout(function () { msg.remove(); }, 300);
+            }, 5000);
+        });
+    </script>
+    {% endif %}
     {% endwith %}
 
     <!-- Main Content -->
@@ -116,27 +138,168 @@
     </main>
 
     <!-- Footer -->
-    <footer class="footer">
+    <footer class="footer-new">
         <div class="container">
-            <div class="footer-inner">
-                <div class="text-center">
-                    <!-- Footer CTA -->
-                    <div class="footer-cta footer-cta-wrapper">
-                        {% if current_user and current_user.role != 'driver' %}
-                        <a href="/calculator" class="btn btn-primary">Laske hinta</a>
-                        {% elif not current_user %}
-                        <a href="/register" class="btn btn-primary">Kirjaudu ja laske hinta</a>
-                        {% endif %}
-                    </div>
-                    <p class="footer-copyright">© 2025 Levoro - Tiyouba Oy | Y-tunnus: 1541430-2</p>
+            <div class="footer-grid">
+                <!-- Company Info -->
+                <div class="footer-brand">
+                    <a href="/" class="footer-logo">
+                        <img src="{{ url_for('static', filename='LevoroLogo.png') }}" alt="Levoro"
+                            class="footer-logo-img">
+                    </a>
+
                 </div>
+
+                <!-- Yritys Column -->
+                <div class="footer-column">
+                    <h4 class="footer-column-title">Yritys</h4>
+                    <ul class="footer-links">
+                        <li><a href="/#features" onclick="smoothScrollTo('features'); return false;">Tietoa meistä</a>
+                        </li>
+                        <li><a href="/hae-kuljettajaksi">Hae kuljettajaksi</a></li>
+                    </ul>
+                </div>
+
+                <!-- Palvelut Column -->
+                <div class="footer-column">
+                    <h4 class="footer-column-title">Palvelut</h4>
+                    <ul class="footer-links">
+                        <li><a href="/" onclick="smoothScrollTo('features'); return false;">Näin palvelu toimii</a></li>
+
+                        <li><a href="/calculator">Laskuri</a></li>
+                    </ul>
+                </div>
+
+                <!-- Tuki Column -->
+                <div class="footer-column">
+                    <h4 class="footer-column-title">Tuki</h4>
+                    <ul class="footer-links">
+                        <li><a href="/#contact" onclick="openContactFromFooter(); return false;">Yhteystiedot</a></li>
+                        <li><a href="/kayttoehdot">Käyttöehdot</a></li>
+
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Footer Bottom -->
+            <div class="footer-bottom">
+                <p class="footer-copyright">© 2026 Levoro - Tiyouba Oy</p>
             </div>
         </div>
     </footer>
 
+    <!-- Back to Top Button -->
+    <button class="back-to-top" id="backToTop" onclick="window.scrollTo({top: 0, behavior: 'smooth'})"
+        aria-label="Takaisin ylös">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
+            <polyline points="18 15 12 9 6 15"></polyline>
+        </svg>
+    </button>
+
+    <script>
+        // Smooth scroll to section - handles both same-page and cross-page navigation
+        function smoothScrollTo(sectionId) {
+            const element = document.getElementById(sectionId);
+            if (element) {
+                // Element exists on this page, scroll to it
+                element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            } else {
+                // Element doesn't exist, navigate to home page with hash
+                window.location.href = '/#' + sectionId;
+            }
+        }
+
+        // Open contact section from footer
+        function openContactFromFooter() {
+            const contactSection = document.getElementById('contact');
+            if (contactSection) {
+                // If there's a toggle function, use it
+                if (typeof toggleContactSection === 'function') {
+                    const content = document.getElementById('contactContent');
+                    if (content && !content.classList.contains('open')) {
+                        toggleContactSection();
+                    }
+                }
+                contactSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            } else {
+                // Navigate to home page contact section
+                window.location.href = '/#contact';
+            }
+        }
+
+        // Show/hide back to top button based on scroll position
+        window.addEventListener('scroll', function () {
+            const backToTop = document.getElementById('backToTop');
+            if (backToTop) {
+                if (window.scrollY > 300) {
+                    backToTop.style.opacity = '1';
+                    backToTop.style.visibility = 'visible';
+                } else {
+                    backToTop.style.opacity = '0';
+                    backToTop.style.visibility = 'hidden';
+                }
+            }
+        });
+
+        // On page load, check for hash and scroll to element
+        document.addEventListener('DOMContentLoaded', function () {
+            if (window.location.hash) {
+                const targetId = window.location.hash.substring(1);
+                setTimeout(function () {
+                    const element = document.getElementById(targetId);
+                    if (element) {
+                        element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        // If it's the contact section, also open it
+                        if (targetId === 'contact' && typeof toggleContactSection === 'function') {
+                            const content = document.getElementById('contactContent');
+                            if (content && !content.classList.contains('open')) {
+                                toggleContactSection();
+                            }
+                        }
+                    }
+                }, 100);
+            }
+        });
+    </script>
+
+    <!-- Toast notification container and function -->
+    <div id="toast-container"
+        style="position:fixed;top:80px;right:20px;z-index:999999;display:flex;flex-direction:column;gap:10px;"></div>
+    <script>
+        window.showToast = function (message, type = 'error') {
+            const container = document.getElementById('toast-container');
+            if (!container) return;
+
+            const toast = document.createElement('div');
+            const colors = {
+                error: { bg: '#ef4444', icon: 'error' },
+                success: { bg: '#10b981', icon: 'check_circle' },
+                warning: { bg: '#f59e0b', icon: 'warning' },
+                info: { bg: '#3b82f6', icon: 'info' }
+            };
+            const { bg, icon } = colors[type] || colors.error;
+
+            toast.style.cssText = `
+                display:flex;align-items:center;gap:10px;padding:14px 20px;
+                background:${bg};color:white;border-radius:10px;
+                box-shadow:0 4px 12px rgba(0,0,0,0.15);font-size:14px;font-weight:500;
+                transform:translateX(120%);transition:transform 0.3s ease;max-width:360px;
+            `;
+            toast.innerHTML = `<span class="material-symbols-outlined" style="font-size:20px;">${icon}</span><span>${message}</span>`;
+            container.appendChild(toast);
+
+            requestAnimationFrame(() => { toast.style.transform = 'translateX(0)'; });
+            setTimeout(() => {
+                toast.style.transform = 'translateX(120%)';
+                setTimeout(() => toast.remove(), 300);
+            }, 4000);
+        };
+    </script>
+
     <!-- Core JavaScript -->
     <script src="{{ url_for('static', filename='js/core/app.js') }}"></script>
     <script src="{{ url_for('static', filename='js/core/navigation.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/core/animations.js') }}"></script>
     <script src="{{ url_for('static', filename='js/utils/validation.js') }}"></script>
 
     <!-- Component JavaScript -->
@@ -145,4 +308,5 @@
     <!-- Page-specific JavaScript -->
     {% block extra_js %}{% endblock %}
 </body>
+
 </html>

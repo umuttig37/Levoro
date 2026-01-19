@@ -1,0 +1,1071 @@
+<!DOCTYPE html>
+<html lang="fi">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>Levoro - {% block title %}Tilaus{% endblock %}</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com?plugins=forms,typography,container-queries"></script>
+    <script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        primary: "#2563eb",
+                        secondary: "#10b981",
+                        "brand-gradient-start": "#3b82f6",
+                        "brand-gradient-end": "#2563eb",
+                        "background-light": "#f3f6fa",
+                        "background-dark": "#0f172a",
+                        "surface-light": "#ffffff",
+                        "surface-dark": "#1e293b",
+                    },
+                    fontFamily: {
+                        sans: ["Inter", "sans-serif"],
+                    },
+                    borderRadius: {
+                        DEFAULT: "0.6rem",
+                        xl: "1.25rem",
+                        '2xl': "1.75rem",
+                    },
+                    boxShadow: {
+                        'soft': '0 4px 20px -2px rgba(0, 0, 0, 0.03), 0 2px 8px -2px rgba(0, 0, 0, 0.02)',
+                        'card': '0 0 0 1px rgba(0,0,0,0.03), 0 8px 30px rgba(0,0,0,0.04)',
+                        'card-hover': '0 0 0 1px rgba(0,0,0,0.03), 0 20px 40px rgba(0,0,0,0.06)',
+                        'input': '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
+                        'glow': '0 0 20px rgba(59, 130, 246, 0.5)'
+                    },
+                    animation: {
+                        'fade-in': 'fadeIn 0.4s ease-out forwards',
+                        'fade-in-1': 'fadeIn 0.4s ease-out 0.1s forwards',
+                        'fade-in-2': 'fadeIn 0.4s ease-out 0.2s forwards',
+                        'fade-in-3': 'fadeIn 0.4s ease-out 0.3s forwards',
+                        'fade-in-4': 'fadeIn 0.4s ease-out 0.4s forwards',
+                        'fade-in-5': 'fadeIn 0.4s ease-out 0.5s forwards',
+                        'slide-up': 'slideUp 0.5s ease-out forwards',
+                        'slide-down': 'slideDown 0.3s ease-out forwards',
+                        'scale-in': 'scaleIn 0.3s ease-out forwards',
+                        'pulse-soft': 'pulseSoft 2s ease-in-out infinite',
+                        'shimmer': 'shimmer 2s linear infinite',
+                    },
+                    keyframes: {
+                        fadeIn: {
+                            '0%': { opacity: '0', transform: 'translateY(8px)' },
+                            '100%': { opacity: '1', transform: 'translateY(0)' },
+                        },
+                        slideUp: {
+                            '0%': { opacity: '0', transform: 'translateY(20px)' },
+                            '100%': { opacity: '1', transform: 'translateY(0)' },
+                        },
+                        slideDown: {
+                            '0%': { opacity: '0', transform: 'translateY(-10px)' },
+                            '100%': { opacity: '1', transform: 'translateY(0)' },
+                        },
+                        scaleIn: {
+                            '0%': { opacity: '0', transform: 'scale(0.95)' },
+                            '100%': { opacity: '1', transform: 'scale(1)' },
+                        },
+                        pulseSoft: {
+                            '0%, 100%': { opacity: '1' },
+                            '50%': { opacity: '0.7' },
+                        },
+                        shimmer: {
+                            '0%': { backgroundPosition: '-200% 0' },
+                            '100%': { backgroundPosition: '200% 0' },
+                        },
+                    },
+                },
+            },
+        };
+    </script>
+
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0"
+        rel="stylesheet" />
+
+    <!-- Flatpickr Date/Time Picker -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/fi.js"></script>
+
+    <!-- Main CSS (for header styles) -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}" />
+
+    <style>
+        /* ===== BASE STYLES ===== */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-image: radial-gradient(circle at top center, #f8fafc 0%, #eff6ff 40%, #f3f6fa 100%);
+            min-height: 100vh;
+        }
+
+        /* Header z-index fix */
+        .header-wizard {
+            z-index: 99999;
+            background: white;
+        }
+
+        /* ===== BUTTON STYLES ===== */
+        .btn-gradient {
+            background: linear-gradient(135deg, var(--tw-gradient-stops));
+            background-size: 200% 200%;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .btn-gradient:hover {
+            background-position: 100% 0;
+            box-shadow: 0 10px 25px -5px rgba(59, 130, 246, 0.4);
+            transform: translateY(-2px);
+        }
+
+        .btn-gradient:active {
+            transform: translateY(0);
+        }
+
+        .btn-secondary {
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .btn-secondary:hover {
+            background: #f1f5f9;
+            transform: translateY(-1px);
+        }
+
+        /* ===== STEP NAVIGATION ===== */
+        .step-nav {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 2rem;
+            padding: 0.5rem;
+            background: #f1f5f9;
+            border-radius: 9999px;
+        }
+
+        .step-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            font-size: 0.8125rem;
+            font-weight: 500;
+            color: #64748b;
+            text-decoration: none;
+            transition: all 0.25s ease;
+            border-radius: 9999px;
+            background: transparent;
+        }
+
+        .step-connector {
+            display: none;
+        }
+
+        .step-item.active {
+            background: white;
+            color: #1e40af;
+            font-weight: 600;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .step-item.active .step-number {
+            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+            color: white;
+            box-shadow: 0 2px 8px rgba(59, 130, 246, 0.4);
+        }
+
+        .step-item.completed {
+            color: #059669;
+        }
+
+        .step-item.completed .step-number {
+            background: #10b981;
+            color: white;
+        }
+
+        .step-item.clickable {
+            cursor: pointer;
+        }
+
+        .step-item.clickable:hover {
+            background: rgba(255, 255, 255, 0.6);
+            color: #3b82f6;
+        }
+
+        .step-item.clickable:hover .step-number {
+            transform: scale(1.05);
+        }
+
+        .step-number {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: #cbd5e1;
+            color: #475569;
+            font-weight: 600;
+            font-size: 0.6875rem;
+            transition: all 0.25s ease;
+            flex-shrink: 0;
+        }
+
+        .step-label {
+            display: block;
+        }
+
+        @media (max-width: 768px) {
+            .step-label {
+                display: none;
+            }
+
+            .step-item {
+                padding: 0.375rem;
+            }
+        }
+
+        /* ===== CHECKBOX ANIMATION ===== */
+        input[type="checkbox"] {
+            transition: transform 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+        }
+
+        input[type="checkbox"]:active {
+            transform: scale(0.9);
+        }
+
+        input[type="checkbox"]:checked {
+            animation: checkPop 0.2s ease-out;
+        }
+
+        @keyframes checkPop {
+            0% {
+                transform: scale(1);
+            }
+
+            50% {
+                transform: scale(1.2);
+            }
+
+            100% {
+                transform: scale(1);
+            }
+        }
+
+        /* ===== FORM INPUT STYLES ===== */
+        .wizard-input {
+            width: 100%;
+            padding: 1rem 1rem 1rem 2.75rem;
+            border: 1px solid #e2e8f0;
+            border-radius: 0.75rem;
+            background: rgba(249, 250, 251, 0.5);
+            font-size: 0.9375rem;
+            color: #0f172a;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .wizard-input:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+            background: white;
+            transform: translateY(-1px);
+        }
+
+        .wizard-input::placeholder {
+            color: #94a3b8;
+        }
+
+        .input-icon {
+            position: absolute;
+            left: 0.875rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #94a3b8;
+            pointer-events: none;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .input-group:focus-within .input-icon {
+            color: #3b82f6;
+            transform: translateY(-50%) scale(1.1);
+        }
+
+        /* ===== MATERIAL ICON FILLED ===== */
+        .icon-filled {
+            font-variation-settings: 'FILL' 1;
+        }
+
+        /* ===== AUTOCOMPLETE STYLES ===== */
+        .ac-list {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-top: none;
+            z-index: 1000;
+            display: none;
+            max-height: 300px;
+            overflow-y: auto;
+            border-radius: 0 0 12px 12px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+            animation: slideDown 0.2s ease-out;
+        }
+
+        .ac-list.show {
+            display: block;
+        }
+
+        .ac-item {
+            padding: 12px 16px;
+            cursor: pointer;
+            border-bottom: 1px solid #f1f5f9;
+            font-size: 0.95rem;
+            color: #334155;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .ac-item:last-child {
+            border-bottom: none;
+        }
+
+        .ac-item:hover,
+        .ac-item.active {
+            background: #f8fafc;
+            color: #2563eb;
+            padding-left: 20px;
+        }
+
+        .ac-item.saved-address {
+            border-left: 3px solid #2563eb;
+            background: #f8fafc;
+        }
+
+        .ac-item.saved-address:hover {
+            background: #eff6ff;
+        }
+
+        /* ===== LOADING & SPINNER ===== */
+        .ac-loading {
+            padding: 12px;
+            color: #64748b;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .spinner {
+            width: 16px;
+            height: 16px;
+            border: 2px solid #e0e0e0;
+            border-top: 2px solid #3b82f6;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* ===== CHECKBOX STYLES ===== */
+        .wizard-checkbox {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.75rem;
+            padding: 1rem;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 0.75rem;
+            cursor: pointer;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .wizard-checkbox:hover {
+            border-color: #3b82f6;
+            background: #eff6ff;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.1);
+        }
+
+        .wizard-checkbox input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            margin-top: 2px;
+            accent-color: #2563eb;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .wizard-checkbox:hover input[type="checkbox"] {
+            transform: scale(1.1);
+        }
+
+        /* ===== DATE/TIME PICKER ===== */
+        .datetime-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+
+        .datetime-input {
+            position: relative;
+        }
+
+        .datetime-input input {
+            width: 100%;
+            padding: 0.875rem 0.875rem 0.875rem 2.75rem;
+            border: 1px solid #e2e8f0;
+            border-radius: 0.75rem;
+            background: white;
+            font-size: 0.9375rem;
+            cursor: pointer;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .datetime-input input:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+            transform: translateY(-1px);
+        }
+
+        .datetime-input .input-icon {
+            color: #10b981;
+        }
+
+        /* ===== FLATPICKR CUSTOM THEME ===== */
+        .flatpickr-calendar {
+            font-family: 'Inter', sans-serif;
+            border-radius: 1rem;
+            box-shadow: 0 20px 50px -12px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(0, 0, 0, 0.03);
+            border: none;
+            overflow: hidden;
+            width: 320px;
+        }
+
+        .flatpickr-calendar.arrowTop:before,
+        .flatpickr-calendar.arrowTop:after,
+        .flatpickr-calendar.arrowBottom:before,
+        .flatpickr-calendar.arrowBottom:after {
+            display: none;
+        }
+
+        .flatpickr-months {
+            background: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%);
+            padding: 1rem;
+            border-radius: 1rem 1rem 0 0;
+        }
+
+        .flatpickr-months .flatpickr-month {
+            background: transparent;
+            height: auto;
+        }
+
+        .flatpickr-current-month {
+            font-weight: 600;
+            font-size: 1.1rem;
+            color: white;
+            padding: 0;
+        }
+
+        .flatpickr-current-month .flatpickr-monthDropdown-months {
+            background: transparent;
+            color: white;
+            font-weight: 600;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.5rem;
+            transition: background 0.2s;
+        }
+
+        .flatpickr-current-month .flatpickr-monthDropdown-months:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .flatpickr-current-month input.cur-year {
+            color: white;
+            font-weight: 600;
+        }
+
+        .flatpickr-months .flatpickr-prev-month,
+        .flatpickr-months .flatpickr-next-month {
+            color: white;
+            fill: white;
+            padding: 0.5rem;
+            border-radius: 0.5rem;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .flatpickr-months .flatpickr-prev-month:hover,
+        .flatpickr-months .flatpickr-next-month:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .flatpickr-months .flatpickr-prev-month svg,
+        .flatpickr-months .flatpickr-next-month svg {
+            width: 14px;
+            height: 14px;
+        }
+
+        .flatpickr-innerContainer {
+            padding: 0.75rem;
+        }
+
+        .flatpickr-weekdays {
+            background: transparent;
+            padding: 0.5rem 0;
+        }
+
+        span.flatpickr-weekday {
+            color: #64748b;
+            font-weight: 600;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+        }
+
+        .flatpickr-days {
+            width: 100%;
+        }
+
+        .dayContainer {
+            width: 100%;
+            min-width: 100%;
+            max-width: 100%;
+        }
+
+        .flatpickr-day {
+            color: #334155;
+            font-weight: 500;
+            border-radius: 0.5rem;
+            height: 40px;
+            line-height: 40px;
+            margin: 2px;
+            max-width: 40px;
+            transition: all 0.15s ease;
+        }
+
+        .flatpickr-day:hover {
+            background: #eff6ff;
+            border-color: transparent;
+        }
+
+        .flatpickr-day.today {
+            border-color: #2563eb;
+            background: #eff6ff;
+            color: #2563eb;
+            font-weight: 600;
+        }
+
+        .flatpickr-day.today:hover {
+            background: #dbeafe;
+        }
+
+        .flatpickr-day.selected,
+        .flatpickr-day.selected:hover {
+            background: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%);
+            border-color: transparent;
+            color: white;
+            font-weight: 600;
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+        }
+
+        .flatpickr-day.flatpickr-disabled,
+        .flatpickr-day.prevMonthDay,
+        .flatpickr-day.nextMonthDay {
+            color: #cbd5e1;
+        }
+
+        .flatpickr-day.flatpickr-disabled:hover {
+            background: transparent;
+            cursor: not-allowed;
+        }
+
+        /* Time picker styling */
+        .flatpickr-time {
+            border-top: 1px solid #e2e8f0;
+            padding: 0.75rem;
+            max-height: none;
+        }
+
+        .flatpickr-time input {
+            font-weight: 600;
+            font-size: 1.25rem;
+            color: #1e293b;
+        }
+
+        .flatpickr-time .numInputWrapper {
+            width: 80px;
+        }
+
+        .flatpickr-time .numInputWrapper:hover {
+            background: #f1f5f9;
+            border-radius: 0.5rem;
+        }
+
+        .flatpickr-time-separator {
+            color: #64748b;
+            font-weight: 600;
+            font-size: 1.25rem;
+        }
+
+        .flatpickr-am-pm {
+            font-weight: 600;
+            color: #2563eb;
+            background: #eff6ff;
+            border-radius: 0.5rem;
+            padding: 0.25rem 0.75rem;
+        }
+
+        .flatpickr-am-pm:hover {
+            background: #dbeafe;
+        }
+
+        /* Custom clear button in footer */
+        .flatpickr-calendar .flatpickr-footer {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.75rem 1rem;
+            border-top: 1px solid #e2e8f0;
+            background: #f8fafc;
+        }
+
+        .flatpickr-calendar .flatpickr-footer button {
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            font-weight: 500;
+            font-size: 0.875rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .flatpickr-calendar .flatpickr-clear-btn {
+            color: #64748b;
+            background: white;
+            border: 1px solid #e2e8f0;
+        }
+
+        .flatpickr-calendar .flatpickr-clear-btn:hover {
+            color: #ef4444;
+            border-color: #fecaca;
+            background: #fef2f2;
+        }
+
+        .flatpickr-calendar .flatpickr-today-btn {
+            color: white;
+            background: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%);
+            border: none;
+        }
+
+        .flatpickr-calendar .flatpickr-today-btn:hover {
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+            transform: translateY(-1px);
+        }
+
+        /* ===== SAVED ADDRESSES ACCORDION ===== */
+        .saved-addresses-toggle {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 100%;
+            padding: 0.875rem 1rem;
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 0.75rem;
+            cursor: pointer;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .saved-addresses-toggle:hover {
+            border-color: #3b82f6;
+            background: #f8fafc;
+            transform: translateY(-1px);
+        }
+
+        .saved-addresses-toggle .toggle-icon {
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .saved-addresses-toggle.open .toggle-icon {
+            transform: rotate(180deg);
+        }
+
+        .saved-addresses-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1), padding 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .saved-addresses-content.open {
+            max-height: 300px;
+            padding-top: 0.5rem;
+        }
+
+        /* ===== CARD ANIMATIONS ===== */
+        .wizard-card {
+            animation: slideUp 0.5s ease-out;
+        }
+
+        .wizard-card-stagger-1 {
+            animation-delay: 0.1s;
+        }
+
+        .wizard-card-stagger-2 {
+            animation-delay: 0.2s;
+        }
+
+        .wizard-card-stagger-3 {
+            animation-delay: 0.3s;
+        }
+
+        /* ===== ERROR MESSAGE ===== */
+        .error-message {
+            animation: slideDown 0.3s ease-out;
+        }
+
+        /* ===== CUSTOM VALIDATION STYLES ===== */
+        .input-error {
+            border-color: #ef4444 !important;
+            background-color: #fef2f2 !important;
+            box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.1) !important;
+            animation: shake 0.5s cubic-bezier(.36, .07, .19, .97) both;
+        }
+
+        .error-text {
+            color: #ef4444;
+            font-size: 0.8rem;
+            margin-top: 0.375rem;
+            display: flex;
+            align-items: center;
+            gap: 0.375rem;
+            font-weight: 500;
+            animation: slideDown 0.2s ease-out;
+        }
+
+        @keyframes shake {
+
+            10%,
+            90% {
+                transform: translate3d(-1px, 0, 0);
+            }
+
+            20%,
+            80% {
+                transform: translate3d(2px, 0, 0);
+            }
+
+            30%,
+            50%,
+            70% {
+                transform: translate3d(-4px, 0, 0);
+            }
+
+            40%,
+            60% {
+                transform: translate3d(4px, 0, 0);
+            }
+        }
+
+        /* ===== CONFIRM PAGE GRID ===== */
+        .confirm-grid-layout {
+            display: grid;
+            grid-template-columns: 1fr 380px;
+            gap: 1.5rem;
+        }
+
+        @media (max-width: 1024px) {
+            .confirm-grid-layout {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* ===== RESPONSIVE ===== */
+        @media (max-width: 768px) {
+            .step-nav {
+                flex-wrap: wrap;
+                gap: 0.5rem;
+            }
+
+            .step-item {
+                padding: 0.5rem 0.75rem;
+                font-size: 0.75rem;
+            }
+
+            .step-item:not(:last-child)::after {
+                display: none;
+            }
+
+            .step-number {
+                width: 28px;
+                height: 28px;
+                font-size: 0.75rem;
+            }
+
+            .datetime-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .step-item span:not(.step-number) {
+                display: none;
+            }
+        }
+    </style>
+    {% block extra_styles %}{% endblock %}
+</head>
+
+<body>
+    <!-- Header -->
+    <header class="header header-wizard">
+        <div class="container">
+            <div class="header-inner">
+                <div class="brand">
+                    <a href="/" class="brand-link" aria-label="Etusivu">
+                        <img src="{{ url_for('static', filename='LevoroLogo.png') }}" alt="" class="brand-logo">
+                    </a>
+                </div>
+
+                <button class="mobile-menu-toggle" aria-label="Avaa menu" id="mobile-menu-toggle">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </button>
+
+                <nav class="nav" id="nav-menu">
+                    <a href="/" class="nav-link">Etusivu</a>
+                    <a href="/#contact" class="nav-link">Yhteystiedot</a>
+                    {% if current_user and current_user.get('role') == 'driver' %}
+                    <a href="/driver/dashboard" class="nav-link">Kuljettajan sivu</a>
+                    {% elif current_user and current_user.get('role') == 'admin' %}
+                    {% elif current_user %}
+                    <a href="/dashboard" class="nav-link">Tilaukset</a>
+                    {% endif %}
+                    {% if current_user and current_user.get('role') == 'admin' %}
+                    <a href="/admin" class="nav-link">Admin</a>
+                    {% endif %}
+                    {% if current_user %}
+                    <span class="pill">Hei, {{ current_user.get('name', 'Käyttäjä') }}</span>
+                    <a class="nav-link" href="/logout">Kirjaudu ulos</a>
+                    {% else %}
+                    <a href="/login" class="nav-link">Kirjaudu</a>
+                    <a href="/register" class="nav-link">Luo tili</a>
+                    {% endif %}
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Page Header -->
+        <div class="text-center mb-8 animate-fade-in opacity-0">
+            <h1 class="text-3xl md:text-4xl font-extrabold text-slate-900 tracking-tight">
+                {% block page_title %}Luo uusi tilaus{% endblock %}
+            </h1>
+            <p class="text-slate-500 mt-2 text-base">
+                {% block page_subtitle %}Täytä tilauksen tiedot vaihe vaiheelta{% endblock %}
+            </p>
+        </div>
+
+        <!-- Step Navigation -->
+        <nav class="step-nav animate-fade-in-1 opacity-0">
+            {% set steps = [
+            ('Nouto', 1),
+            ('Toimitus', 2),
+            ('Ajoneuvo', 3),
+            ('Yhteystiedot', 4),
+            ('Lisätiedot', 5),
+            ('Vahvistus', 6)
+            ] %}
+            {% for step_name, step_num in steps %}
+            {% set step_url = '/order/new/confirm' if step_num == 6 else '/order/new/step' ~ step_num %}
+            {% set is_completed = step_num < active_step %} {% set is_active=step_num==active_step %} {% set
+                is_accessible=step_num in accessible_steps %} {% if is_accessible %} {% if is_active %} <div
+                class="step-item active">
+                <span class="step-number">{{ step_num }}</span>
+                <span>{{ step_name }}</span>
+                </div>
+                {% elif is_completed %}
+                <a href="{{ step_url }}" class="step-item completed clickable">
+                    <span class="step-number">
+                        <span class="material-symbols-outlined text-sm">check</span>
+                    </span>
+                    <span>{{ step_name }}</span>
+                </a>
+                {% else %}
+                <a href="{{ step_url }}" class="step-item clickable">
+                    <span class="step-number">{{ step_num }}</span>
+                    <span>{{ step_name }}</span>
+                </a>
+                {% endif %}
+                {% else %}
+                <div class="step-item opacity-50 cursor-not-allowed">
+                    <span class="step-number">{{ step_num }}</span>
+                    <span>{{ step_name }}</span>
+                </div>
+                {% endif %}
+
+                {% if not loop.last %}
+                <div class="step-connector{% if is_completed %} completed{% endif %}"></div>
+                {% endif %}
+                {% endfor %}
+        </nav>
+
+        <!-- Main Content Card -->
+        <div class="bg-surface-light rounded-2xl shadow-card p-6 md:p-8 wizard-card animate-slide-up opacity-0">
+            {% if error_message %}
+            <div
+                class="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm flex items-center gap-3 error-message">
+                <span class="material-symbols-outlined text-red-500">error</span>
+                <span>{{ error_message }}</span>
+            </div>
+            {% endif %}
+
+            {% block content %}{% endblock %}
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-background-dark text-white pt-12 pb-12 mt-auto relative overflow-hidden">
+        <div class="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-gray-700 to-transparent">
+        </div>
+        <div class="max-w-7xl mx-auto px-6 text-center">
+            <p class="text-sm text-slate-400">© 2026 Levoro - Tiyouba Oy</p>
+        </div>
+    </footer>
+
+    {% block extra_scripts %}{% endblock %}
+
+    <!-- Global Form Validation with Toast Messages -->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const forms = document.querySelectorAll('form');
+
+            forms.forEach(form => {
+                form.addEventListener('submit', (e) => {
+                    let isValid = true;
+                    let firstInvalid = null;
+                    let errorMessages = [];
+
+                    const inputs = form.querySelectorAll('input, select, textarea');
+
+                    inputs.forEach(input => {
+                        if (input.type === 'hidden' || input.disabled) return;
+                        if (input.offsetParent === null) return;
+
+                        clearError(input);
+
+                        if (!input.checkValidity()) {
+                            let message = getValidationMessage(input);
+
+                            if (!errorMessages.includes(message)) {
+                                errorMessages.push(message);
+                            }
+
+                            showError(input);
+                            isValid = false;
+                            if (!firstInvalid) firstInvalid = input;
+                        }
+                    });
+
+                    if (!isValid) {
+                        e.preventDefault();
+                        e.stopPropagation();
+
+                        if (errorMessages.length > 0) {
+                            showToast(errorMessages[0], 'warning');
+                        }
+
+                        if (firstInvalid) {
+                            firstInvalid.focus();
+                            firstInvalid.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        }
+                    }
+                });
+
+                form.querySelectorAll('input, select, textarea').forEach(input => {
+                    input.addEventListener('input', () => clearError(input));
+                    input.addEventListener('change', () => clearError(input));
+                });
+            });
+
+            function getValidationMessage(input) {
+                if (input.validity.valueMissing) {
+                    const label = input.closest('.group')?.querySelector('label')?.textContent?.replace('*', '').replace('(valinnainen)', '').trim()
+                        || input.placeholder
+                        || 'Tämä kenttä';
+                    return `${label} on pakollinen`;
+                } else if (input.validity.typeMismatch && input.type === 'email') {
+                    return 'Syötä kelvollinen sähköpostiosoite';
+                } else if (input.validity.typeMismatch && input.type === 'tel') {
+                    return 'Syötä kelvollinen puhelinnumero';
+                } else if (input.validity.patternMismatch) {
+                    return input.title || 'Tarkista kentän muoto';
+                } else if (input.validity.tooShort) {
+                    return `Vähintään ${input.minLength} merkkiä vaaditaan`;
+                } else if (input.validity.tooLong) {
+                    return `Enintään ${input.maxLength} merkkiä sallittu`;
+                }
+                return 'Tarkista kentän arvo';
+            }
+
+            function showError(input) {
+                input.classList.add('input-error', 'border-red-400', 'ring-2', 'ring-red-100');
+            }
+
+            function clearError(input) {
+                input.classList.remove('input-error', 'border-red-400', 'ring-2', 'ring-red-100');
+            }
+        });
+    </script>
+
+    <!-- Toast notification container and function -->
+    <div id="toast-container"
+        style="position:fixed;top:80px;right:20px;z-index:999999;display:flex;flex-direction:column;gap:10px;"></div>
+    <script>
+        window.showToast = function (message, type = 'error') {
+            const container = document.getElementById('toast-container');
+            if (!container) return;
+
+            const toast = document.createElement('div');
+            const colors = {
+                error: { bg: '#ef4444', icon: 'error' },
+                success: { bg: '#10b981', icon: 'check_circle' },
+                warning: { bg: '#f59e0b', icon: 'warning' },
+                info: { bg: '#3b82f6', icon: 'info' }
+            };
+            const { bg, icon } = colors[type] || colors.error;
+
+            toast.style.cssText = `
+                display:flex;align-items:center;gap:10px;padding:14px 20px;
+                background:${bg};color:white;border-radius:10px;
+                box-shadow:0 4px 12px rgba(0,0,0,0.15);font-size:14px;font-weight:500;
+                transform:translateX(120%);transition:transform 0.3s ease;max-width:360px;
+            `;
+            toast.innerHTML = `<span class="material-symbols-outlined" style="font-size:20px;">${icon}</span><span>${message}</span>`;
+            container.appendChild(toast);
+
+            requestAnimationFrame(() => { toast.style.transform = 'translateX(0)'; });
+            setTimeout(() => {
+                toast.style.transform = 'translateX(120%)';
+                setTimeout(() => toast.remove(), 300);
+            }, 4000);
+        };
+    </script>
+</body>
+
+</html>

@@ -52,10 +52,15 @@ class OrderModel(BaseModel):
             # Generate new order ID
             order_id = counter_manager.get_next_id("orders")
 
+            # Calculate user-specific order number (1, 2, 3... for each user)
+            user_order_count = self.count_documents({"user_id": int(user_id)})
+            user_order_number = user_order_count + 1
+
             # Prepare order document
             order_doc = {
                 "id": order_id,
                 "user_id": int(user_id),
+                "user_order_number": user_order_number,  # User's own order sequence
                 "status": self.STATUS_NEW,
                 "created_at": datetime.now(timezone.utc),
                 "updated_at": datetime.now(timezone.utc),
@@ -178,7 +183,7 @@ class OrderModel(BaseModel):
 
     def add_image(self, order_id: int, image_type: str, image_data: Dict) -> Tuple[bool, Optional[str]]:
         """Add image to order using atomic MongoDB $push operation"""
-        if image_type not in ["pickup", "delivery"]:
+        if image_type not in ["pickup", "delivery", "receipts"]:
             return False, "Virheellinen kuvatyyppi"
 
         try:
@@ -219,7 +224,7 @@ class OrderModel(BaseModel):
 
     def remove_image(self, order_id: int, image_type: str, image_id: str) -> Tuple[bool, Optional[str]]:
         """Remove image from order by ID"""
-        if image_type not in ["pickup", "delivery"]:
+        if image_type not in ["pickup", "delivery", "receipts"]:
             return False, "Virheellinen kuvatyyppi"
 
         try:
@@ -371,6 +376,49 @@ class OrderModel(BaseModel):
         except Exception as e:
             return False, f"Tietojen päivitys epäonnistui: {str(e)}"
 
+    def publish_pending_images(self, order_id: int, image_types: Optional[List[str]] = None) -> Tuple[bool, Optional[str]]:
+        """Publish admin-uploaded images that are pending customer visibility."""
+        if image_types is None:
+            image_types = ["pickup", "delivery", "receipts"]
+
+        try:
+            order = self.find_by_id(order_id)
+            if not order:
+                return False, "Tilausta ei löytynyt"
+
+            images = order.get("images", {})
+            if not images:
+                return True, None
+
+            updated_images = dict(images)
+            changed = False
+
+            for image_type in image_types:
+                type_images = images.get(image_type, [])
+                if not isinstance(type_images, list):
+                    type_images = [type_images] if type_images else []
+
+                new_type_images = []
+                for img in type_images:
+                    if isinstance(img, dict) and img.get("visible_to_customer") is False:
+                        img = {**img, "visible_to_customer": True}
+                        changed = True
+                    new_type_images.append(img)
+
+                if new_type_images != type_images:
+                    updated_images[image_type] = new_type_images
+
+            if not changed:
+                return True, None
+
+            success = self.update_one(
+                {"id": int(order_id)},
+                {"$set": {"images": updated_images, "updated_at": datetime.now(timezone.utc)}}
+            )
+            return success, None
+        except Exception as e:
+            return False, f"Kuvien julkaisu epäonnistui: {str(e)}"
+
     def update_driver_status(self, order_id: int, new_status: str, timestamp_field: Optional[str] = None, 
                             required_current_status: Optional[str] = None) -> Tuple[bool, Optional[str]]:
         """Update order status with optional timestamp field
@@ -482,11 +530,29 @@ class OrderModel(BaseModel):
                 "orderer_name": 1,
                 "orderer_email": 1,
                 "orderer_phone": 1,
-                # Customer (Asiakas) fields - from order document
+                # Customer (Asiakas) fields - from order document with fallback to user profile
                 "customer_reference": 1,
-                "customer_name": 1,
-                "customer_phone": 1,
-                "customer_email": 1,
+                "customer_name": {
+                    "$cond": [
+                        {"$or": [{"$eq": ["$customer_name", None]}, {"$eq": ["$customer_name", ""]}]},
+                        "$customer.name",
+                        "$customer_name"
+                    ]
+                },
+                "customer_phone": {
+                    "$cond": [
+                        {"$or": [{"$eq": ["$customer_phone", None]}, {"$eq": ["$customer_phone", ""]}]},
+                        "$customer.phone",
+                        "$customer_phone"
+                    ]
+                },
+                "customer_email": {
+                    "$cond": [
+                        {"$or": [{"$eq": ["$customer_email", None]}, {"$eq": ["$customer_email", ""]}]},
+                        "$customer.email",
+                        "$customer_email"
+                    ]
+                },
                 # Legacy fields for backward compatibility
                 "user_name": "$customer.name",
                 "user_email": "$customer.email",
@@ -498,6 +564,166 @@ class OrderModel(BaseModel):
             }}
         ]
         return self.aggregate(pipeline)
+
+    def get_orders_with_driver_info_paginated(
+        self, 
+        search: Optional[str] = None,
+        status: Optional[str] = None,
+        date_filter: Optional[str] = None,
+        page: int = 1,
+        per_page: int = 30
+    ) -> Tuple[List[Dict], int]:
+        """Get orders with driver info with search, filtering, and pagination
+        
+        Args:
+            search: Search term for order ID, customer name, or driver name
+            status: Filter by order status
+            date_filter: Filter by date ('today', '7days', '30days', 'all')
+            page: Page number (1-indexed)
+            per_page: Items per page
+            
+        Returns:
+            Tuple of (orders list, total count)
+        """
+        from datetime import timedelta
+        
+        # Build match filter
+        match_filter = {}
+        
+        # Status filter
+        if status and status in self.VALID_STATUSES:
+            match_filter["status"] = status
+        
+        # Date filter
+        if date_filter and date_filter != 'all':
+            now = datetime.now(timezone.utc)
+            if date_filter == 'today':
+                start_of_day = now.replace(hour=0, minute=0, second=0, microsecond=0)
+                match_filter["created_at"] = {"$gte": start_of_day}
+            elif date_filter == '7days':
+                match_filter["created_at"] = {"$gte": now - timedelta(days=7)}
+            elif date_filter == '30days':
+                match_filter["created_at"] = {"$gte": now - timedelta(days=30)}
+        
+        # Build aggregation pipeline
+        pipeline = []
+        
+        # Initial match for date and status
+        if match_filter:
+            pipeline.append({"$match": match_filter})
+        
+        # Sort by newest first
+        pipeline.append({"$sort": {"id": -1}})
+        
+        # Lookup customer and driver info
+        pipeline.extend([
+            {"$lookup": {
+                "from": "users",
+                "localField": "user_id",
+                "foreignField": "id",
+                "as": "customer"
+            }},
+            {"$lookup": {
+                "from": "users",
+                "localField": "driver_id",
+                "foreignField": "id",
+                "as": "driver"
+            }},
+            {"$unwind": {"path": "$customer", "preserveNullAndEmptyArrays": True}},
+            {"$unwind": {"path": "$driver", "preserveNullAndEmptyArrays": True}},
+        ])
+        
+        # Add computed fields for search
+        pipeline.append({
+            "$addFields": {
+                "id_string": {"$toString": "$id"},
+                "customer_name_search": {"$ifNull": ["$customer_name", "$customer.name"]},
+                "driver_name_search": {"$ifNull": ["$driver_name", "$driver.name"]}
+            }
+        })
+        
+        # Search filter (after join so we can search on customer/driver names)
+        if search and search.strip():
+            search_term = search.strip()
+            search_regex = {"$regex": search_term, "$options": "i"}
+            pipeline.append({
+                "$match": {
+                    "$or": [
+                        {"id_string": search_regex},
+                        {"customer_name_search": search_regex},
+                        {"driver_name_search": search_regex},
+                        {"orderer_name": search_regex},
+                        {"reg_number": search_regex}
+                    ]
+                }
+            })
+        
+        # Use $facet to get both count and paginated results in one query
+        skip = (page - 1) * per_page
+        pipeline.append({
+            "$facet": {
+                "total": [{"$count": "count"}],
+                "orders": [
+                    {"$skip": skip},
+                    {"$limit": per_page},
+                    {"$project": {
+                        "_id": 0,
+                        "id": 1, "status": 1,
+                        "pickup_address": 1, "dropoff_address": 1,
+                        "distance_km": 1, "price_gross": 1,
+                        "created_at": 1, "updated_at": 1,
+                        "assigned_at": 1, "arrival_time": 1,
+                        "pickup_started": 1, "delivery_completed": 1,
+                        "images": 1,
+                        "reg_number": 1, "winter_tires": 1,
+                        "pickup_date": 1, "additional_info": 1,
+                        "trip_type": 1, "parent_order_id": 1, "return_order_id": 1,
+                        "orderer_name": 1,
+                        "orderer_email": 1,
+                        "orderer_phone": 1,
+                        "customer_reference": 1,
+                        "customer_name": {
+                            "$cond": [
+                                {"$or": [{"$eq": ["$customer_name", None]}, {"$eq": ["$customer_name", ""]}]},
+                                "$customer.name",
+                                "$customer_name"
+                            ]
+                        },
+                        "customer_phone": {
+                            "$cond": [
+                                {"$or": [{"$eq": ["$customer_phone", None]}, {"$eq": ["$customer_phone", ""]}]},
+                                "$customer.phone",
+                                "$customer_phone"
+                            ]
+                        },
+                        "customer_email": {
+                            "$cond": [
+                                {"$or": [{"$eq": ["$customer_email", None]}, {"$eq": ["$customer_email", ""]}]},
+                                "$customer.email",
+                                "$customer_email"
+                            ]
+                        },
+                        "user_name": "$customer.name",
+                        "user_email": "$customer.email",
+                        "email": 1, "phone": 1, "company": 1,
+                        "driver_name": {"$ifNull": ["$driver_name", "$driver.name"]},
+                        "driver_email": "$driver.email",
+                        "driver_phone": {"$ifNull": ["$driver_phone", "$driver.phone"]}
+                    }}
+                ]
+            }
+        })
+        
+        result = list(self.aggregate(pipeline))
+        
+        if result:
+            total = result[0]["total"][0]["count"] if result[0]["total"] else 0
+            orders = result[0]["orders"]
+        else:
+            total = 0
+            orders = []
+        
+        return orders, total
 
     def update_driver_progress(self, order_id: int, progress_key: str, metadata: Dict) -> Tuple[bool, Optional[str]]:
         """

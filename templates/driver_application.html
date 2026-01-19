@@ -5,320 +5,922 @@
 
 {% block extra_css %}
 <style>
+    /* Application Container */
     .application-container {
-        max-width: 800px;
-        margin: 0 auto;
-        padding: 20px;
-    }
-
-
-    .application-header {
-        position: relative;
-        text-align: center;
-        margin-bottom: 48px;
-        padding: 48px 24px;
-        background: linear-gradient(135deg, rgba(59, 130, 246, 0.16), rgba(37, 99, 235, 0.08));
-        border: 1px solid var(--color-primary-100, #dbeafe);
-        border-radius: 20px;
-        color: var(--color-gray-800, #1f2937);
-        overflow: hidden;
-    }
-
-    .application-header::before {
-        content: "";
-        position: absolute;
-        inset: 0;
-        background:
-            radial-gradient(circle at 20% 20%, rgba(59, 130, 246, 0.18), transparent 55%),
-            radial-gradient(circle at 80% 10%, rgba(37, 99, 235, 0.12), transparent 45%),
-            radial-gradient(circle at 50% 100%, rgba(14, 116, 144, 0.12), transparent 50%);
-        opacity: 0.65;
-    }
-
-    .application-header>* {
-        position: relative;
-        z-index: 1;
-    }
-
-    .application-badge {
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-        padding: 8px 18px;
-        border-radius: 999px;
-        background: rgba(255, 255, 255, 0.75);
-        color: var(--color-primary-700, #1d4ed8);
-        font-weight: 600;
-        font-size: 0.9rem;
-        margin-bottom: 18px;
-        box-shadow: 0 6px 18px rgba(59, 130, 246, 0.18);
-    }
-
-    .application-title {
-        font-size: clamp(2.2rem, 4vw, 2.9rem);
-        font-weight: 800;
-        margin-bottom: 14px;
-        color: var(--color-gray-900, #0f172a);
-    }
-
-    .application-subtitle {
-        font-size: 1.05rem;
-        color: var(--color-gray-600, #4b5563);
         max-width: 640px;
         margin: 0 auto;
-        line-height: 1.6;
+        padding: 2rem 1rem 4rem;
     }
 
-    .application-form {
-        background: white;
-        border-radius: 12px;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
-        padding: 40px;
+    /* Page Header */
+    .application-page-header {
+        text-align: center;
+        margin-bottom: 2rem;
     }
 
-    .form-section {
-        margin-bottom: 32px;
-    }
-
-    .form-section-title {
-        font-size: 1.3rem;
+    .application-page-title {
+        font-size: clamp(1.75rem, 4vw, 2.25rem);
         font-weight: 700;
-        color: var(--color-gray-900, #111827);
-        margin-bottom: 16px;
-        padding-bottom: 8px;
-        border-bottom: 2px solid var(--color-primary-100, #dbeafe);
+        color: var(--color-heading, #1f2937);
+        margin-bottom: 0.5rem;
+        letter-spacing: -0.02em;
     }
 
-    .form-grid {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 20px;
+    /* Progress Stepper */
+    .progress-stepper {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 2.5rem;
+        padding: 0 0.5rem;
+        position: relative;
     }
 
-    .form-grid.single-column {
-        grid-template-columns: 1fr;
+    .progress-track {
+        position: absolute;
+        top: 50%;
+        left: 30px;
+        right: 30px;
+        height: 2px;
+        background: var(--color-gray-200, #e5e7eb);
+        transform: translateY(-50%);
+        z-index: 0;
     }
 
-    .form-group {
-        margin-bottom: 20px;
+    .progress-track-fill {
+        height: 100%;
+        background: var(--color-primary, #3b82f6);
+        width: 0%;
+        transition: width 0.3s ease;
     }
 
-    .form-group.full-width {
-        grid-column: 1 / -1;
+    .step-item {
+        position: relative;
+        z-index: 1;
+        background: white;
+        padding: 0 0.25rem;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.5rem;
     }
 
-    .form-label {
-        display: block;
+    .step-icon {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
         font-weight: 600;
-        color: var(--color-gray-700, #374151);
-        margin-bottom: 6px;
-    }
-
-    .form-label.required::after {
-        content: " *";
-        color: var(--color-red-500, #ef4444);
-    }
-
-    .form-input,
-    .form-select,
-    .form-textarea {
-        width: 100%;
-        padding: 12px 16px;
+        font-size: 0.875rem;
+        background: white;
         border: 2px solid var(--color-gray-200, #e5e7eb);
-        border-radius: 8px;
+        color: var(--color-gray-500, #6b7280);
+        transition: all 0.3s ease;
+    }
+
+    .step-item.active .step-icon {
+        border-color: var(--color-primary, #3b82f6);
+        color: var(--color-primary, #3b82f6);
+    }
+
+    .step-item.completed .step-icon {
+        background: var(--color-primary, #3b82f6);
+        border-color: var(--color-primary, #3b82f6);
+        color: white;
+    }
+
+    .step-label {
+        font-size: 0.75rem;
+        font-weight: 500;
+        color: var(--color-gray-500, #6b7280);
+        transition: color 0.3s ease;
+        text-align: center;
+        max-width: 70px;
+    }
+
+    .step-item.active .step-label {
+        color: var(--color-heading, #1f2937);
+    }
+
+    .step-item.completed .step-label {
+        color: var(--color-primary, #3b82f6);
+    }
+
+    /* Form Card */
+    .application-card {
+        background: white;
+        border: 1px solid var(--border-light, #e5e7eb);
+        border-radius: 1rem;
+        padding: 2rem;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        overflow: visible;
+    }
+
+    /* Steps */
+    .form-step {
+        display: none;
+        animation: fadeIn 0.4s ease;
+    }
+
+    .form-step.active {
+        display: block;
+    }
+
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(10px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .step-title {
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: var(--color-heading, #1f2937);
+        margin-bottom: 1.5rem;
+        padding-bottom: 1rem;
+        border-bottom: 1px solid var(--border-light, #e5e7eb);
+    }
+
+    /* Form Fields */
+    .form-group-new {
+        margin-bottom: 1.25rem;
+    }
+
+    .form-label-new {
+        display: block;
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: var(--color-gray-700, #374151);
+        margin-bottom: 0.5rem;
+    }
+
+    .form-label-new.required::after {
+        content: "*";
+        color: #ef4444;
+        margin-left: 0.25rem;
+    }
+
+    .form-input-new {
+        width: 100%;
+        padding: 0.75rem 1rem;
+        border: 1px solid var(--border-light, #e5e7eb);
+        border-radius: 0.5rem;
         font-size: 1rem;
         transition: all 0.2s ease;
-        box-sizing: border-box;
     }
 
-    .form-input:focus,
-    .form-select:focus,
-    .form-textarea:focus {
+    .form-input-new:focus {
         outline: none;
         border-color: var(--color-primary, #3b82f6);
         box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
     }
 
-    .form-textarea {
-        min-height: 100px;
-        resize: vertical;
-    }
-
-    .form-help {
-        font-size: 0.875rem;
-        color: var(--color-gray-600, #4b5563);
-        margin-top: 4px;
-    }
-
-    .form-actions {
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        gap: 16px;
-        margin-top: 40px;
-        padding-top: 30px;
-        border-top: 1px solid var(--color-gray-200, #e5e7eb);
-    }
-
-    .btn {
-        display: inline-block;
-        padding: 14px 32px;
+    .form-textarea-new {
+        width: 100%;
+        padding: 0.75rem 1rem;
+        border: 1px solid var(--border-light, #e5e7eb);
+        border-radius: 0.5rem;
         font-size: 1rem;
+        transition: all 0.2s ease;
+        resize: vertical;
+        min-height: 120px;
+        font-family: inherit;
+    }
+
+    .form-textarea-new:focus {
+        outline: none;
+        border-color: var(--color-primary, #3b82f6);
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    }
+
+    .form-help-new {
+        font-size: 0.8rem;
+        color: var(--color-gray-500, #6b7280);
+        margin-top: 0.375rem;
+    }
+
+    /* Two Column Grid */
+    .form-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+    }
+
+    @media (max-width: 480px) {
+        .form-row {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    /* Form Actions */
+    .form-actions-new {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 2rem;
+        padding-top: 1.5rem;
+        border-top: 1px solid var(--border-light, #e5e7eb);
+    }
+
+    .btn-prev,
+    .btn-next,
+    .btn-submit-new {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.75rem 1.5rem;
+        border-radius: 0.5rem;
         font-weight: 600;
-        text-decoration: none;
-        border-radius: 8px;
-        border: none;
+        font-size: 0.95rem;
         cursor: pointer;
         transition: all 0.2s ease;
     }
 
-    .form-actions .btn {
-        margin: 0;
-        min-width: 190px;
+    .btn-prev {
+        background: transparent;
+        border: 1px solid var(--border-light, #e5e7eb);
+        color: var(--color-gray-600, #4b5563);
     }
 
-    .btn-primary {
+    .btn-prev:hover {
+        background: var(--color-gray-50, #f9fafb);
+        border-color: var(--color-gray-300, #d1d5db);
+    }
+
+    .btn-next,
+    .btn-submit-new {
         background: var(--color-primary, #3b82f6);
+        border: none;
         color: white;
     }
 
-    .btn-primary:hover {
-        background: var(--color-primary-600, #2563eb);
+    .btn-next:hover,
+    .btn-submit-new:hover {
+        background: var(--color-primary-dark, #2563eb);
         transform: translateY(-1px);
-        box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
     }
 
-    .btn-ghost {
-        background: transparent;
-        color: var(--color-gray-600, #4b5563);
-        border: 2px solid var(--color-gray-300, #d1d5db);
+    .btn-submit-new:disabled {
+        opacity: 0.7;
+        cursor: not-allowed;
+        transform: none;
     }
 
-    .btn-ghost:hover {
+    /* Compact Upload Box */
+    .upload-box {
+        width: 180px;
+        height: 180px;
+        border: 2px dashed var(--border-light, #d1d5db);
+        border-radius: 0.75rem;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.2s ease;
         background: var(--color-gray-50, #f9fafb);
-        border-color: var(--color-gray-400, #9ca3af);
+        position: relative;
+        overflow: hidden;
     }
 
-    .required-note {
-        background: var(--color-amber-50, #fffbeb);
-        border: 1px solid var(--color-amber-200, #fde68a);
-        color: var(--color-amber-800, #92400e);
-        padding: 12px 16px;
-        border-radius: 8px;
-        margin-bottom: 30px;
-        font-size: 0.9rem;
+    .upload-box:hover {
+        border-color: var(--color-primary, #3b82f6);
+        background: #eff6ff;
     }
 
-    @media (max-width: 768px) {
-        .form-grid {
-            grid-template-columns: 1fr;
+    .upload-box.has-image {
+        border-style: solid;
+        border-color: var(--color-primary, #3b82f6);
+        background: white;
+    }
+
+    .upload-box input[type="file"] {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        opacity: 0;
+        cursor: pointer;
+        z-index: 2;
+    }
+
+    .upload-placeholder {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.5rem;
+        color: var(--color-gray-400, #9ca3af);
+        pointer-events: none;
+    }
+
+    .upload-box.has-image .upload-placeholder {
+        display: none;
+    }
+
+    .upload-icon {
+        width: 32px;
+        height: 32px;
+        color: var(--color-gray-400, #9ca3af);
+    }
+
+    .upload-text {
+        font-size: 0.75rem;
+        font-weight: 500;
+        text-align: center;
+    }
+
+    .upload-preview {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        border-radius: 0.5rem;
+        display: none;
+    }
+
+    .upload-box.has-image .upload-preview {
+        display: block;
+    }
+
+    .upload-remove {
+        position: absolute;
+        top: 4px;
+        right: 4px;
+        width: 24px;
+        height: 24px;
+        background: rgba(220, 38, 38, 0.9);
+        border: none;
+        border-radius: 50%;
+        color: white;
+        font-size: 14px;
+        cursor: pointer;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 3;
+        transition: background 0.2s ease;
+    }
+
+    .upload-box.has-image .upload-remove {
+        display: flex;
+    }
+
+    .upload-remove:hover {
+        background: #dc2626;
+    }
+
+    .upload-boxes-row {
+        display: flex;
+        gap: 2rem;
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+
+    .upload-box-group {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .upload-box-label {
+        font-size: 0.8125rem;
+        font-weight: 500;
+        color: var(--color-gray-600, #4b5563);
+    }
+
+    .upload-box-label.required::after {
+        content: "*";
+        color: #ef4444;
+        margin-left: 0.25rem;
+    }
+
+    /* Character Counter */
+    .char-counter {
+        font-size: 0.75rem;
+        color: var(--color-gray-400, #9ca3af);
+        text-align: right;
+        margin-top: 0.25rem;
+    }
+
+    .char-counter.warning {
+        color: #f59e0b;
+    }
+
+    .char-counter.limit {
+        color: #ef4444;
+    }
+
+    /* Info Box */
+    .info-box {
+        background: #f0f9ff;
+        border: 1px solid #bae6fd;
+        border-radius: 0.5rem;
+        padding: 1rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .info-box p {
+        font-size: 0.875rem;
+        color: #0369a1;
+        margin: 0;
+        line-height: 1.5;
+    }
+
+    /* Terms Checkbox - Circular with Pop Animation */
+    .terms-checkbox {
+        display: flex;
+        align-items: flex-start;
+        gap: 1rem;
+        margin-top: 1.5rem;
+        padding: 1rem;
+        background: white;
+        border: 1px solid #e5e7eb;
+        border-radius: 0.75rem;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    .terms-checkbox:hover {
+        border-color: var(--color-primary, #3b82f6);
+        box-shadow: 0 2px 8px rgba(59, 130, 246, 0.08);
+    }
+
+    .terms-checkbox input[type="checkbox"] {
+        appearance: none;
+        -webkit-appearance: none;
+        width: 1.25rem;
+        height: 1.25rem;
+        border: 2px solid #d1d5db;
+        border-radius: 50%;
+        background-color: white;
+        cursor: pointer;
+        display: inline-block;
+        flex-shrink: 0;
+        margin-top: 2px;
+        transition: transform 0.15s ease-in-out, box-shadow 0.15s ease-in-out, background-color 0.15s ease-in-out, border-color 0.15s ease-in-out;
+    }
+
+    .terms-checkbox input[type="checkbox"]:active {
+        transform: scale(0.9);
+    }
+
+    .terms-checkbox input[type="checkbox"]:checked {
+        border-color: var(--color-primary, #3b82f6);
+        background-color: var(--color-primary, #3b82f6);
+        background-size: 100% 100%;
+        background-position: center;
+        background-repeat: no-repeat;
+        background-image: url("data:image/svg+xml,%3csvg viewBox='0 0 16 16' fill='white' xmlns='http://www.w3.org/2000/svg'%3e%3cpath d='M12.207 4.793a1 1 0 010 1.414l-5 5a1 1 0 01-1.414 0l-2-2a1 1 0 011.414-1.414L6.5 9.086l4.293-4.293a1 1 0 011.414 0z'/%3e%3c/svg%3e");
+        animation: checkPop 0.2s ease-out;
+    }
+
+    @keyframes checkPop {
+        0% {
+            transform: scale(1);
         }
 
-        .application-form {
-            padding: 24px;
+        50% {
+            transform: scale(1.2);
         }
 
-        .application-title {
-            font-size: 2.1rem;
+        100% {
+            transform: scale(1);
+        }
+    }
+
+    .terms-checkbox input[type="checkbox"]:focus {
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+    }
+
+    .terms-checkbox label {
+        font-size: 0.875rem;
+        color: var(--color-gray-600, #4b5563);
+        line-height: 1.6;
+        cursor: pointer;
+    }
+
+    .terms-checkbox a {
+        color: var(--color-primary, #3b82f6);
+        text-decoration: underline;
+    }
+
+    .terms-checkbox a:hover {
+        color: var(--color-primary-dark, #2563eb);
+    }
+
+    /* Birthdate Picker - Custom Dropdowns (Admin Style) */
+    .birthdate-picker {
+        display: grid;
+        grid-template-columns: 1fr 1.5fr 1fr;
+        gap: 0.75rem;
+        position: relative;
+    }
+
+    /* Ensure birthdate form group has space for dropdown */
+    .form-group-new:has(.birthdate-picker) {
+        margin-bottom: 1.25rem;
+        padding-bottom: 0;
+    }
+
+    @media (max-width: 480px) {
+        .birthdate-picker {
+            grid-template-columns: 1fr 1fr;
         }
 
-        .application-subtitle {
-            font-size: 1rem;
+        .birthdate-picker .custom-select-container:last-child {
+            grid-column: span 2;
+        }
+    }
+
+    /* Custom Select Container (aligned with admin filters) */
+    .custom-select-container {
+        position: relative;
+        width: 100%;
+    }
+
+    .custom-select-container.open {
+        z-index: 1000;
+    }
+
+    /* Custom Select Trigger (Button) */
+    .custom-select-trigger {
+        width: 100%;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.75rem 1rem;
+        background: white;
+        border: 1px solid var(--border-light, #e5e7eb);
+        border-radius: 0.75rem;
+        font-size: 1rem;
+        color: var(--color-gray-800, #1f2937);
+        cursor: pointer;
+        transition: all 0.15s ease;
+        user-select: none;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+    }
+
+    .custom-select-trigger:hover {
+        border-color: var(--color-gray-300, #d1d5db);
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.08);
+    }
+
+    .custom-select-trigger.open {
+        border-color: var(--color-primary, #3b82f6);
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.14);
+    }
+
+    .custom-select-label {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .custom-select-label.placeholder {
+        color: var(--color-gray-400, #9ca3af);
+    }
+
+    .custom-select-arrow {
+        width: 18px;
+        height: 18px;
+        color: var(--color-gray-500, #6b7280);
+        transition: transform 0.2s ease;
+        flex-shrink: 0;
+    }
+
+    .custom-select-trigger.open .custom-select-arrow {
+        transform: rotate(180deg);
+        color: var(--color-primary, #3b82f6);
+    }
+
+    /* Custom Select Dropdown */
+    .custom-select-options {
+        position: absolute;
+        top: calc(100% + 6px);
+        left: 0;
+        right: 0;
+        background: white;
+        border: 1px solid var(--border-light, #e5e7eb);
+        border-radius: 0.75rem;
+        z-index: 1001;
+        display: none;
+        max-height: 240px;
+        overflow-y: auto;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
+    }
+
+    .custom-select-container.open .custom-select-options {
+        display: block;
+        animation: dropdownFadeIn 0.15s ease-out;
+    }
+
+    @keyframes dropdownFadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(-4px);
         }
 
-        .form-actions {
-            flex-direction: column;
+        to {
+            opacity: 1;
+            transform: translateY(0);
         }
+    }
+
+    /* Custom Dropdown Options */
+    .custom-option {
+        padding: 0.625rem 1rem;
+        cursor: pointer;
+        color: var(--color-gray-700, #374151);
+        font-size: 0.95rem;
+        transition: background 0.1s ease;
+    }
+
+    .custom-option:hover {
+        background: var(--color-gray-50, #f9fafb);
+        color: var(--color-primary, #3b82f6);
+    }
+
+    .custom-option.selected {
+        background: var(--color-primary, #3b82f6);
+        color: white;
+        font-weight: 600;
+    }
+
+    .custom-option.selected:hover {
+        background: var(--color-primary-dark, #2563eb);
+    }
+
+    /* Scrollbar for dropdown */
+    .custom-select-options::-webkit-scrollbar {
+        width: 6px;
+    }
+
+    .custom-select-options::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    .custom-select-options::-webkit-scrollbar-thumb {
+        background: var(--color-gray-300, #d1d5db);
+        border-radius: 3px;
     }
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="application-container">
-    <div class="application-header">
-        <div class="application-badge">Liity Levoro-kuljettajaksi</div>
-        <h1 class="application-title">Hae kuljettajaksi</h1>
-        <p class="application-subtitle">
-            Rekisteröidy kuljettajaksi Levoron järjestelmään.
-            Admin hyväksyy hakemuksesi, jonka jälkeen voit aloittaa kuljettajana.
-        </p>
+    <div class="application-page-header">
+        <h1 class="application-page-title">Hae kuljettajaksi</h1>
+        <p style="color: var(--color-gray-600, #4b5563);">Liity tiimiimme muutamalla askeleella</p>
     </div>
 
-    <form class="application-form" method="POST" action="/hae-kuljettajaksi" enctype="multipart/form-data">
-        <div class="required-note">
-            <strong>Huomio:</strong> Tähdellä (*) merkityt kentät ovat pakollisia.
+    <!-- Progress Stepper -->
+    <div class="progress-stepper">
+        <div class="progress-track">
+            <div class="progress-track-fill" id="progressFill"></div>
         </div>
 
-        <!-- Personal Information -->
-        <div class="form-section">
-            <h2 class="form-section-title">Henkilötiedot</h2>
-            <div class="form-grid">
-                <div class="form-group">
-                    <label class="form-label required" for="first_name">Etunimi</label>
-                    <input type="text" id="first_name" name="first_name" class="form-input" required maxlength="50"
-                        placeholder="Etunimi" value="{{ request.form.get('first_name', '') }}">
+        <div class="step-item active" data-step="1">
+            <div class="step-icon">1</div>
+            <span class="step-label">Tiedot</span>
+        </div>
+        <div class="step-item" data-step="2">
+            <div class="step-icon">2</div>
+            <span class="step-label">Osoite</span>
+        </div>
+        <div class="step-item" data-step="3">
+            <div class="step-icon">3</div>
+            <span class="step-label">Esittely</span>
+        </div>
+        <div class="step-item" data-step="4">
+            <div class="step-icon">4</div>
+            <span class="step-label">Ajokortti</span>
+        </div>
+    </div>
+
+    <!-- Form Card -->
+    <form class="application-card" id="applicationForm" method="POST" action="/hae-kuljettajaksi"
+        enctype="multipart/form-data" novalidate>
+
+        <!-- Step 1: Personal Info -->
+        <div class="form-step active" data-step="1">
+            <h2 class="step-title">Henkilötiedot</h2>
+            <div class="form-row">
+                <div class="form-group-new">
+                    <label class="form-label-new required" for="first_name">Etunimi</label>
+                    <input type="text" id="first_name" name="first_name" class="form-input-new" required
+                        value="{{ request.form.get('first_name', '') }}" placeholder="Anna etunimesi">
                 </div>
-                <div class="form-group">
-                    <label class="form-label required" for="last_name">Sukunimi</label>
-                    <input type="text" id="last_name" name="last_name" class="form-input" required maxlength="80"
-                        placeholder="Sukunimi" value="{{ request.form.get('last_name', '') }}">
+                <div class="form-group-new">
+                    <label class="form-label-new required" for="last_name">Sukunimi</label>
+                    <input type="text" id="last_name" name="last_name" class="form-input-new" required
+                        value="{{ request.form.get('last_name', '') }}" placeholder="Anna sukunimesi">
                 </div>
-                <div class="form-group full-width">
-                    <label class="form-label required" for="email">Sähköposti</label>
-                    <input type="email" id="email" name="email" class="form-input" required maxlength="100"
-                        placeholder="nimi@esimerkki.fi" value="{{ request.form.get('email', '') }}">
+            </div>
+            <div class="form-group-new">
+                <label class="form-label-new required" for="email">Sähköposti</label>
+                <input type="email" id="email" name="email" class="form-input-new" required
+                    value="{{ request.form.get('email', '') }}" placeholder="esimerkki@sähköposti.fi">
+            </div>
+            <div class="form-group-new">
+                <label class="form-label-new required" for="phone">Puhelinnumero</label>
+                <input type="tel" id="phone" name="phone" class="form-input-new" required
+                    value="{{ request.form.get('phone', '') }}" placeholder="+358 40 123 4567">
+            </div>
+            <div class="form-group-new">
+                <label class="form-label-new required">Syntymäaika</label>
+                <div class="birthdate-picker">
+                    <!-- Day Dropdown -->
+                    <div class="custom-select-container" id="dayContainer">
+                        <select id="birth_day" name="birth_day" style="display:none" required>
+                            <option value="" disabled selected>Päivä</option>
+                        </select>
+                        <div class="custom-select-trigger">
+                            <span class="custom-select-label placeholder">Päivä</span>
+                            <svg class="custom-select-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <polyline points="6 9 12 15 18 9"></polyline>
+                            </svg>
+                        </div>
+                        <div class="custom-select-options" id="dayOptions"></div>
+                    </div>
+
+                    <!-- Month Dropdown -->
+                    <div class="custom-select-container" id="monthContainer">
+                        <select id="birth_month" name="birth_month" style="display:none" required>
+                            <option value="" disabled selected>Kuukausi</option>
+                            <option value="1">Tammikuu</option>
+                            <option value="2">Helmikuu</option>
+                            <option value="3">Maaliskuu</option>
+                            <option value="4">Huhtikuu</option>
+                            <option value="5">Toukokuu</option>
+                            <option value="6">Kesäkuu</option>
+                            <option value="7">Heinäkuu</option>
+                            <option value="8">Elokuu</option>
+                            <option value="9">Syyskuu</option>
+                            <option value="10">Lokakuu</option>
+                            <option value="11">Marraskuu</option>
+                            <option value="12">Joulukuu</option>
+                        </select>
+                        <div class="custom-select-trigger">
+                            <span class="custom-select-label placeholder">Kuukausi</span>
+                            <svg class="custom-select-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <polyline points="6 9 12 15 18 9"></polyline>
+                            </svg>
+                        </div>
+                        <div class="custom-select-options">
+                            <div class="custom-option" data-value="1">Tammikuu</div>
+                            <div class="custom-option" data-value="2">Helmikuu</div>
+                            <div class="custom-option" data-value="3">Maaliskuu</div>
+                            <div class="custom-option" data-value="4">Huhtikuu</div>
+                            <div class="custom-option" data-value="5">Toukokuu</div>
+                            <div class="custom-option" data-value="6">Kesäkuu</div>
+                            <div class="custom-option" data-value="7">Heinäkuu</div>
+                            <div class="custom-option" data-value="8">Elokuu</div>
+                            <div class="custom-option" data-value="9">Syyskuu</div>
+                            <div class="custom-option" data-value="10">Lokakuu</div>
+                            <div class="custom-option" data-value="11">Marraskuu</div>
+                            <div class="custom-option" data-value="12">Joulukuu</div>
+                        </div>
+                    </div>
+
+                    <!-- Year Dropdown -->
+                    <div class="custom-select-container" id="yearContainer">
+                        <select id="birth_year" name="birth_year" style="display:none" required>
+                            <option value="" disabled selected>Vuosi</option>
+                        </select>
+                        <div class="custom-select-trigger">
+                            <span class="custom-select-label placeholder">Vuosi</span>
+                            <svg class="custom-select-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <polyline points="6 9 12 15 18 9"></polyline>
+                            </svg>
+                        </div>
+                        <div class="custom-select-options" id="yearOptions"></div>
+                    </div>
                 </div>
-                <div class="form-group full-width">
-                    <label class="form-label required" for="phone">Puhelinnumero</label>
-                    <input type="tel" id="phone" name="phone" class="form-input" required maxlength="20"
-                        placeholder="+358 40 123 4567" value="{{ request.form.get('phone', '') }}">
+                <input type="hidden" id="birth_date" name="birth_date" value="{{ request.form.get('birth_date', '') }}">
+            </div>
+        </div>
+
+        <!-- Step 2: Address Info -->
+        <div class="form-step" data-step="2">
+            <h2 class="step-title">Osoitetiedot</h2>
+            <div class="form-group-new">
+                <label class="form-label-new required" for="street_address">Katuosoite</label>
+                <input type="text" id="street_address" name="street_address" class="form-input-new" required
+                    value="{{ request.form.get('street_address', '') }}" placeholder="Esimerkkikatu 123 A 4">
+            </div>
+            <div class="form-row">
+                <div class="form-group-new">
+                    <label class="form-label-new required" for="postal_code">Postinumero</label>
+                    <input type="text" id="postal_code" name="postal_code" class="form-input-new" required
+                        value="{{ request.form.get('postal_code', '') }}" placeholder="00100" maxlength="5"
+                        pattern="[0-9]{5}">
+                </div>
+                <div class="form-group-new">
+                    <label class="form-label-new required" for="city">Kaupunki</label>
+                    <input type="text" id="city" name="city" class="form-input-new" required
+                        value="{{ request.form.get('city', '') }}" placeholder="Helsinki">
                 </div>
             </div>
         </div>
 
-        <!-- Password -->
-        <div class="form-section">
-            <h2 class="form-section-title">Salasana</h2>
-            <div class="form-grid">
-                <div class="form-group">
-                    <label class="form-label required" for="password">Salasana</label>
-                    <input type="password" id="password" name="password" class="form-input" required minlength="6"
-                        placeholder="Vähintään 6 merkkiä">
-                    <div class="form-help">Salasana tulee olla vähintään 6 merkkiä pitkä</div>
-                </div>
-                <div class="form-group">
-                    <label class="form-label required" for="password_confirm">Vahvista salasana</label>
-                    <input type="password" id="password_confirm" name="password_confirm" class="form-input" required
-                        placeholder="Syötä salasana uudelleen">
-                </div>
+        <!-- Step 3: About Yourself -->
+        <div class="form-step" data-step="3">
+            <h2 class="step-title">Kerro itsestäsi</h2>
+            <div class="info-box">
+                <p>Kerro meille hieman itsestäsi ja miksi haluaisit liittyä Levoron kuljettajatiimiin. Voit mainita
+                    esimerkiksi ajokokemuksestasi, kielitaidoistasi tai muista vahvuuksistasi.</p>
+            </div>
+            <div class="form-group-new">
+                <label class="form-label-new required" for="about_me">Esittelyteksti</label>
+                <textarea id="about_me" name="about_me" class="form-textarea-new" required
+                    placeholder="Kerro hieman itsestäsi, ajokokemuksestasi ja miksi haluat ryhtyä kuljettajaksi..."
+                    maxlength="1000">{{ request.form.get('about_me', '') }}</textarea>
+                <div class="char-counter" id="charCounter">0 / 1000</div>
+            </div>
+            <div class="form-group-new">
+                <label class="form-label-new" for="driving_experience">Ajokokemus (vuosina)</label>
+                <input type="number" id="driving_experience" name="driving_experience" class="form-input-new"
+                    value="{{ request.form.get('driving_experience', '') }}" placeholder="5" min="0" max="70">
+                <p class="form-help-new">Kuinka monta vuotta olet ajanut autoa?</p>
+            </div>
+            <div class="form-group-new">
+                <label class="form-label-new" for="languages">Kielet</label>
+                <input type="text" id="languages" name="languages" class="form-input-new"
+                    value="{{ request.form.get('languages', '') }}" placeholder="Suomi, Englanti, Ruotsi">
+                <p class="form-help-new">Erota kielet pilkulla</p>
             </div>
         </div>
 
-        <!-- Driver's License Images -->
-        <div class="form-section">
-            <h2 class="form-section-title">{{ icons.id_card(20, 'currentColor', 'icon-inline') }} Ajokortti</h2>
-            <div class="form-help" style="margin-bottom: 20px; font-size: 0.95rem;">
-                Lataa selkeät kuvat ajokortistasi molemmilta puolilta. Varmista, että kaikki tiedot ovat luettavissa.
+        <!-- Step 4: License Upload -->
+        <div class="form-step" data-step="4">
+            <h2 class="step-title">Ajokorttitiedot</h2>
+            <div class="info-box">
+                <p>Lataa selkeät kuvat ajokortistasi molemmin puolin. Varmista, että kaikki tiedot ovat luettavissa.</p>
             </div>
-            <div class="form-grid">
-                <div class="form-group">
-                    <label class="form-label required" for="license_front">Ajokortti (etuosa)</label>
-                    <input type="file" id="license_front" name="license_front" class="form-input"
-                        accept=".jpg,.jpeg,.png,.webp" required>
-                    <div class="form-help">Ajokortin etupuoli (max 5MB)</div>
+            <div class="upload-boxes-row">
+                <div class="upload-box-group">
+                    <span class="upload-box-label required">Ajokortti (etuosa)</span>
+                    <div class="upload-box" id="upload_box_front">
+                        <input type="file" id="license_front" name="license_front" accept=".jpg,.jpeg,.png,.webp"
+                            required onchange="previewUpload(this, 'front')">
+                        <div class="upload-placeholder">
+                            <svg class="upload-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                                <polyline points="17 8 12 3 7 8" />
+                                <line x1="12" y1="3" x2="12" y2="15" />
+                            </svg>
+                            <span class="upload-text">Valitse kuva</span>
+                        </div>
+                        <img src="" alt="Esikatselu" class="upload-preview" id="preview_front">
+                        <button type="button" class="upload-remove" onclick="removeUpload('front', event)">✕</button>
+                    </div>
                 </div>
-                <div class="form-group">
-                    <label class="form-label required" for="license_back">Ajokortti (takaosa)</label>
-                    <input type="file" id="license_back" name="license_back" class="form-input"
-                        accept=".jpg,.jpeg,.png,.webp" required>
-                    <div class="form-help">Ajokortin takapuoli (max 5MB)</div>
+                <div class="upload-box-group">
+                    <span class="upload-box-label required">Ajokortti (takaosa)</span>
+                    <div class="upload-box" id="upload_box_back">
+                        <input type="file" id="license_back" name="license_back" accept=".jpg,.jpeg,.png,.webp" required
+                            onchange="previewUpload(this, 'back')">
+                        <div class="upload-placeholder">
+                            <svg class="upload-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                                <polyline points="17 8 12 3 7 8" />
+                                <line x1="12" y1="3" x2="12" y2="15" />
+                            </svg>
+                            <span class="upload-text">Valitse kuva</span>
+                        </div>
+                        <img src="" alt="Esikatselu" class="upload-preview" id="preview_back">
+                        <button type="button" class="upload-remove" onclick="removeUpload('back', event)">✕</button>
+                    </div>
                 </div>
+            </div>
+
+            <!-- Terms Agreement -->
+            <div class="terms-checkbox">
+                <input type="checkbox" id="terms_accepted" name="terms_accepted" required>
+                <label for="terms_accepted">
+                    Olen lukenut ja hyväksyn <a href="/kuljettajan-ehdot" target="_blank">kuljettajan käyttöehdot</a>.
+                    Ymmärrän, että hakemukseni käsitellään ja minuun otetaan yhteyttä sähköpostitse.
+                </label>
             </div>
         </div>
 
-        <div class="form-actions">
-            <button type="submit" class="btn btn-primary">Lähetä hakemus</button>
-            <a href="/" class="btn btn-ghost">Peruuta</a>
+        <!-- Navigation Buttons -->
+        <div class="form-actions-new">
+            <button type="button" class="btn-prev" id="prevBtn" style="visibility: hidden;">Takaisin</button>
+            <button type="button" class="btn-next" id="nextBtn">Seuraava</button>
+            <button type="submit" class="btn-submit-new" id="submitBtn" style="display: none;">Lähetä hakemus</button>
         </div>
     </form>
 </div>
@@ -326,62 +928,496 @@
 
 {% block extra_js %}
 <script>
-    // Form validation and UX improvements
     document.addEventListener('DOMContentLoaded', function () {
-        const form = document.querySelector('.application-form');
-        const submitButton = form.querySelector('button[type="submit"]');
-        const passwordInput = document.getElementById('password');
-        const passwordConfirmInput = document.getElementById('password_confirm');
+        const form = document.getElementById('applicationForm');
+        const steps = document.querySelectorAll('.form-step');
+        const stepIndicators = document.querySelectorAll('.step-item');
+        const progressFill = document.getElementById('progressFill');
+        const prevBtn = document.getElementById('prevBtn');
+        const nextBtn = document.getElementById('nextBtn');
+        const submitBtn = document.getElementById('submitBtn');
 
-        // Password validation
-        function validatePasswords() {
-            const password = passwordInput.value;
-            const passwordConfirm = passwordConfirmInput.value;
+        let currentStep = 1;
+        const totalSteps = steps.length;
 
-            if (passwordConfirm && password !== passwordConfirm) {
-                passwordConfirmInput.setCustomValidity('Salasanat eivät täsmää');
-                return false;
+        // Prevent Enter key from submitting the form - go to next step instead
+        form.addEventListener('keydown', function (e) {
+            if (e.key === 'Enter' && e.target.tagName !== 'TEXTAREA') {
+                e.preventDefault();
+                // If not on last step, go to next step
+                if (currentStep < totalSteps) {
+                    nextBtn.click();
+                } else {
+                    // On last step, trigger submit button
+                    submitBtn.click();
+                }
+            }
+        });
+
+        // Character counter for about_me
+        const aboutMe = document.getElementById('about_me');
+        const charCounter = document.getElementById('charCounter');
+
+        if (aboutMe && charCounter) {
+            function updateCharCounter() {
+                const len = aboutMe.value.length;
+                charCounter.textContent = `${len} / 1000`;
+                charCounter.classList.remove('warning', 'limit');
+                if (len >= 1000) {
+                    charCounter.classList.add('limit');
+                } else if (len >= 800) {
+                    charCounter.classList.add('warning');
+                }
+            }
+            aboutMe.addEventListener('input', updateCharCounter);
+            updateCharCounter();
+        }
+
+        function updateUI() {
+            // Show/Hide steps
+            steps.forEach(step => {
+                if (parseInt(step.dataset.step) === currentStep) {
+                    step.classList.add('active');
+                } else {
+                    step.classList.remove('active');
+                }
+            });
+
+            // Update Progress Bar
+            const progress = ((currentStep - 1) / (totalSteps - 1)) * 100;
+            progressFill.style.width = `${progress}%`;
+
+            // Update Indicators
+            stepIndicators.forEach(indicator => {
+                const stepNum = parseInt(indicator.dataset.step);
+                indicator.classList.remove('active', 'completed');
+                if (stepNum === currentStep) {
+                    indicator.classList.add('active');
+                } else if (stepNum < currentStep) {
+                    indicator.classList.add('completed');
+                    indicator.querySelector('.step-icon').innerHTML = '✓';
+                } else {
+                    indicator.querySelector('.step-icon').innerText = stepNum;
+                }
+            });
+
+            // Update Buttons
+            prevBtn.style.visibility = currentStep === 1 ? 'hidden' : 'visible';
+
+            if (currentStep === totalSteps) {
+                nextBtn.style.display = 'none';
+                submitBtn.style.display = 'inline-flex';
             } else {
-                passwordConfirmInput.setCustomValidity('');
-                return true;
+                nextBtn.style.display = 'inline-flex';
+                nextBtn.innerText = 'Seuraava';
+                submitBtn.style.display = 'none';
             }
         }
 
-        passwordInput.addEventListener('input', validatePasswords);
-        passwordConfirmInput.addEventListener('input', validatePasswords);
+        function validateStep(step) {
+            const activeStepEl = document.querySelector(`.form-step[data-step="${step}"]`);
+            const inputs = activeStepEl.querySelectorAll('input[required], textarea[required]');
+            let isValid = true;
+            let firstInvalid = null;
+            let errorMessages = [];
 
-        form.addEventListener('submit', function (e) {
-            // Validate passwords before submission
-            if (!validatePasswords()) {
-                e.preventDefault();
-                alert('Salasanat eivät täsmää. Tarkista salasanat.');
-                return;
+            inputs.forEach(input => {
+                // Clear previous error styling
+                input.style.borderColor = '';
+                input.style.boxShadow = '';
+
+                // Handle checkbox validation
+                if (input.type === 'checkbox') {
+                    if (!input.checked) {
+                        isValid = false;
+                        if (!firstInvalid) {
+                            firstInvalid = input;
+                            errorMessages.push('Hyväksy käyttöehdot jatkaaksesi');
+                        }
+                    }
+                    return;
+                }
+
+                // Handle file input validation
+                if (input.type === 'file') {
+                    if (!input.files || input.files.length === 0) {
+                        isValid = false;
+                        const uploadBox = input.closest('.upload-box');
+                        if (uploadBox) {
+                            uploadBox.style.borderColor = '#f87171';
+                            uploadBox.style.boxShadow = '0 0 0 3px rgba(248, 113, 113, 0.15)';
+                        }
+                        if (!firstInvalid) {
+                            firstInvalid = input;
+                            const label = input.closest('.upload-box-group')?.querySelector('.upload-box-label')?.textContent?.replace('*', '').trim() || 'Kuva';
+                            errorMessages.push(`Lataa ${label.toLowerCase()}`);
+                        }
+                    }
+                    return;
+                }
+
+                // Handle other inputs
+                if (!input.checkValidity()) {
+                    isValid = false;
+                    // Add error styling
+                    input.style.borderColor = '#f87171';
+                    input.style.boxShadow = '0 0 0 3px rgba(248, 113, 113, 0.15)';
+
+                    if (!firstInvalid) {
+                        firstInvalid = input;
+                        // Get field label for message
+                        const label = input.closest('.form-group-new')?.querySelector('label')?.textContent?.replace('*', '').trim()
+                            || 'Kenttä';
+                        errorMessages.push(`${label} on pakollinen`);
+                    }
+                }
+            });
+
+            // Postal code format validation on step 2
+            if (step === 2 && isValid) {
+                const postalCode = document.getElementById('postal_code');
+                if (postalCode && !/^[0-9]{5}$/.test(postalCode.value)) {
+                    postalCode.style.borderColor = '#f87171';
+                    postalCode.style.boxShadow = '0 0 0 3px rgba(248, 113, 113, 0.15)';
+                    errorMessages.push('Postinumeron tulee olla 5 numeroa');
+                    isValid = false;
+                    firstInvalid = postalCode;
+                }
             }
 
-            // Disable submit button to prevent double submission
-            submitButton.disabled = true;
-            submitButton.textContent = 'Lähetetään...';
+            // Show first error message
+            if (errorMessages.length > 0) {
+                showToast(errorMessages[0], 'warning');
+            }
 
-            // Re-enable after 3 seconds if form doesn't submit
-            setTimeout(() => {
-                submitButton.disabled = false;
-                submitButton.textContent = 'Lähetä hakemus';
-            }, 3000);
+            if (firstInvalid) {
+                firstInvalid.focus();
+            }
+
+            return isValid;
+        }
+
+        nextBtn.addEventListener('click', () => {
+            if (validateStep(currentStep)) {
+                currentStep++;
+                updateUI();
+                // Scroll to top of form
+                document.querySelector('.application-card').scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
         });
 
-        // Phone number formatting
+        prevBtn.addEventListener('click', () => {
+            if (currentStep > 1) {
+                currentStep--;
+                updateUI();
+                document.querySelector('.application-card').scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        });
+
+        // Initialize Phone Formatting
         const phoneInput = document.getElementById('phone');
-        phoneInput.addEventListener('input', function (e) {
-            let value = e.target.value.replace(/\D/g, '');
-            if (value.startsWith('358')) {
-                value = '+' + value;
-            } else if (value.startsWith('0')) {
-                value = '+358' + value.substring(1);
-            } else if (!value.startsWith('+')) {
-                value = '+358' + value;
+        if (phoneInput) {
+            phoneInput.addEventListener('input', function (e) {
+                let value = e.target.value.replace(/\D/g, '');
+                if (value.startsWith('358')) {
+                    value = '+' + value;
+                } else if (value.startsWith('0')) {
+                    value = '+358' + value.substring(1);
+                }
+                e.target.value = value;
+            });
+        }
+
+        // Postal code formatting - numbers only
+        const postalInput = document.getElementById('postal_code');
+        if (postalInput) {
+            postalInput.addEventListener('input', function (e) {
+                e.target.value = e.target.value.replace(/\D/g, '').slice(0, 5);
+            });
+        }
+
+        // Initialize Custom Birthdate Picker
+        initBirthdatePicker();
+
+        // Initial Render
+        updateUI();
+
+        // Custom Birthdate Picker with Admin-style Dropdowns
+        function initBirthdatePicker() {
+            const dayContainer = document.getElementById('dayContainer');
+            const monthContainer = document.getElementById('monthContainer');
+            const yearContainer = document.getElementById('yearContainer');
+            const daySelect = document.getElementById('birth_day');
+            const monthSelect = document.getElementById('birth_month');
+            const yearSelect = document.getElementById('birth_year');
+            const dayOptions = document.getElementById('dayOptions');
+            const yearOptions = document.getElementById('yearOptions');
+            const birthDateHidden = document.getElementById('birth_date');
+
+            if (!dayContainer || !monthContainer || !yearContainer) return;
+
+            const currentYear = new Date().getFullYear();
+            const minYear = currentYear - 100;
+            const maxYear = currentYear - 18;
+
+            // Initialize a single custom select container
+            function initCustomSelect(container) {
+                const trigger = container.querySelector('.custom-select-trigger');
+                const label = container.querySelector('.custom-select-label');
+                const options = container.querySelector('.custom-select-options');
+                const hiddenSelect = container.querySelector('select');
+
+                if (!trigger || !options || !hiddenSelect) return;
+
+                // Toggle dropdown on trigger click
+                trigger.addEventListener('click', function (e) {
+                    e.stopPropagation();
+
+                    // Close other dropdowns in birthdate picker
+                    document.querySelectorAll('.birthdate-picker .custom-select-container').forEach(c => {
+                        if (c !== container) {
+                            c.classList.remove('open');
+                            c.querySelector('.custom-select-trigger')?.classList.remove('open');
+                        }
+                    });
+
+                    const isOpen = container.classList.contains('open');
+                    container.classList.toggle('open', !isOpen);
+                    trigger.classList.toggle('open', !isOpen);
+                });
+
+                // Handle option click
+                options.addEventListener('click', function (e) {
+                    const option = e.target.closest('.custom-option');
+                    if (!option) return;
+
+                    e.stopPropagation();
+
+                    // Update UI
+                    options.querySelectorAll('.custom-option').forEach(opt => opt.classList.remove('selected'));
+                    option.classList.add('selected');
+                    label.textContent = option.textContent;
+                    label.classList.remove('placeholder');
+
+                    // Update hidden select and trigger change event
+                    hiddenSelect.value = option.dataset.value;
+                    hiddenSelect.dispatchEvent(new Event('change'));
+
+                    // Close dropdown
+                    container.classList.remove('open');
+                    trigger.classList.remove('open');
+                });
             }
-            e.target.value = value;
-        });
-    });
+
+            // Populate day options based on month/year
+            function updateDayOptions() {
+                const month = parseInt(monthSelect.value) || 1;
+                const year = parseInt(yearSelect.value) || currentYear;
+                const daysInMonth = new Date(year, month, 0).getDate();
+                const selectedDay = daySelect.value;
+
+                // Clear existing options
+                dayOptions.innerHTML = '';
+                while (daySelect.options.length > 1) {
+                    daySelect.remove(1);
+                }
+
+                // Add day options
+                for (let day = 1; day <= daysInMonth; day++) {
+                    // Hidden select option
+                    const opt = document.createElement('option');
+                    opt.value = day;
+                    opt.textContent = day;
+                    daySelect.appendChild(opt);
+
+                    // Custom dropdown option
+                    const div = document.createElement('div');
+                    div.className = 'custom-option';
+                    div.dataset.value = day;
+                    div.textContent = day;
+                    if (selectedDay && parseInt(selectedDay) === day) {
+                        div.classList.add('selected');
+                    }
+                    dayOptions.appendChild(div);
+                }
+
+                // Restore selection if still valid
+                if (selectedDay && parseInt(selectedDay) <= daysInMonth) {
+                    daySelect.value = selectedDay;
+                } else if (selectedDay) {
+                    daySelect.value = '';
+                    const dayLabel = dayContainer.querySelector('.custom-select-label');
+                    dayLabel.textContent = 'Päivä';
+                    dayLabel.classList.add('placeholder');
+                }
+            }
+
+            // Populate year options
+            function populateYearOptions() {
+                yearOptions.innerHTML = '';
+                for (let year = maxYear; year >= minYear; year--) {
+                    // Hidden select option
+                    const opt = document.createElement('option');
+                    opt.value = year;
+                    opt.textContent = year;
+                    yearSelect.appendChild(opt);
+
+                    // Custom dropdown option
+                    const div = document.createElement('div');
+                    div.className = 'custom-option';
+                    div.dataset.value = year;
+                    div.textContent = year;
+                    yearOptions.appendChild(div);
+                }
+            }
+
+            // Update the hidden birth_date field
+            function updateHiddenDate() {
+                const day = daySelect.value;
+                const month = monthSelect.value;
+                const year = yearSelect.value;
+
+                if (day && month && year) {
+                    const paddedMonth = month.toString().padStart(2, '0');
+                    const paddedDay = day.toString().padStart(2, '0');
+                    birthDateHidden.value = `${year}-${paddedMonth}-${paddedDay}`;
+                } else {
+                    birthDateHidden.value = '';
+                }
+            }
+
+            // Initialize
+            populateYearOptions();
+            updateDayOptions();
+
+            // Setup custom select behavior for all three containers
+            initCustomSelect(dayContainer);
+            initCustomSelect(monthContainer);
+            initCustomSelect(yearContainer);
+
+            // Update days when month or year changes
+            monthSelect.addEventListener('change', function () {
+                updateDayOptions();
+                updateHiddenDate();
+            });
+            yearSelect.addEventListener('change', function () {
+                updateDayOptions();
+                updateHiddenDate();
+            });
+            daySelect.addEventListener('change', updateHiddenDate);
+
+            // Close all dropdowns when clicking outside
+            document.addEventListener('click', function () {
+                document.querySelectorAll('.birthdate-picker .custom-select-container').forEach(c => {
+                    c.classList.remove('open');
+                    c.querySelector('.custom-select-trigger')?.classList.remove('open');
+                });
+            });
+
+            // Pre-fill if there's an existing value
+            if (birthDateHidden.value) {
+                const parts = birthDateHidden.value.split('-');
+                if (parts.length === 3) {
+                    // Set year
+                    yearSelect.value = parts[0];
+                    const yearLabel = yearContainer.querySelector('.custom-select-label');
+                    yearLabel.textContent = parts[0];
+                    yearLabel.classList.remove('placeholder');
+                    yearOptions.querySelector(`[data-value="${parts[0]}"]`)?.classList.add('selected');
+
+                    // Set month
+                    const monthVal = parseInt(parts[1]).toString();
+                    monthSelect.value = monthVal;
+                    const monthLabel = monthContainer.querySelector('.custom-select-label');
+                    const monthOption = monthContainer.querySelector(`.custom-option[data-value="${monthVal}"]`);
+                    if (monthOption) {
+                        monthLabel.textContent = monthOption.textContent;
+                        monthLabel.classList.remove('placeholder');
+                        monthOption.classList.add('selected');
+                    }
+
+                    // Update days and set day
+                    updateDayOptions();
+                    const dayVal = parseInt(parts[2]).toString();
+                    daySelect.value = dayVal;
+                    const dayLabel = dayContainer.querySelector('.custom-select-label');
+                    dayLabel.textContent = dayVal;
+                    dayLabel.classList.remove('placeholder');
+                    dayOptions.querySelector(`[data-value="${dayVal}"]`)?.classList.add('selected');
+                }
+            }
+        }
+    }); // End of DOMContentLoaded
+
+    // Image Preview Functions for Compact Upload Boxes
+    function previewUpload(input, type) {
+        const box = document.getElementById('upload_box_' + type);
+        const preview = document.getElementById('preview_' + type);
+
+        if (input.files && input.files[0]) {
+            const reader = new FileReader();
+
+            reader.onload = function (e) {
+                preview.src = e.target.result;
+                box.classList.add('has-image');
+            };
+
+            reader.readAsDataURL(input.files[0]);
+        }
+    }
+
+    function removeUpload(type, event) {
+        event.preventDefault();
+        event.stopPropagation();
+
+        const input = document.getElementById('license_' + type);
+        const box = document.getElementById('upload_box_' + type);
+        const preview = document.getElementById('preview_' + type);
+
+        // Clear the file input
+        input.value = '';
+
+        // Hide and clear preview
+        preview.src = '';
+        box.classList.remove('has-image');
+    }
+
+    // Toast notification function
+    (function () {
+        // Create toast container if it doesn't exist
+        let container = document.getElementById('toast-container');
+        if (!container) {
+            container = document.createElement('div');
+            container.id = 'toast-container';
+            container.style.cssText = 'position:fixed;top:80px;right:20px;z-index:999999;display:flex;flex-direction:column;gap:10px;';
+            document.body.appendChild(container);
+        }
+
+        window.showToast = function (message, type = 'error') {
+            const toast = document.createElement('div');
+            const colors = {
+                error: { bg: '#ef4444', icon: '✕' },
+                success: { bg: '#10b981', icon: '✓' },
+                warning: { bg: '#f59e0b', icon: '⚠' },
+                info: { bg: '#3b82f6', icon: 'ℹ' }
+            };
+            const { bg, icon } = colors[type] || colors.error;
+
+            toast.style.cssText = `
+                display:flex;align-items:center;gap:12px;padding:14px 20px;
+                background:${bg};color:white;border-radius:12px;
+                box-shadow:0 4px 20px rgba(0,0,0,0.15);font-size:0.9375rem;font-weight:500;
+                transform:translateX(120%);transition:transform 0.3s ease;max-width:360px;
+            `;
+            toast.innerHTML = `<span style="font-size:18px;">${icon}</span><span>${message}</span>`;
+            container.appendChild(toast);
+
+            requestAnimationFrame(() => { toast.style.transform = 'translateX(0)'; });
+            setTimeout(() => {
+                toast.style.transform = 'translateX(120%)';
+                setTimeout(() => toast.remove(), 300);
+            }, 4000);
+        };
+    })();
 </script>
 {% endblock %}

@@ -85,7 +85,7 @@ class UserModel(BaseModel):
         
         return True, None
 
-    def create_user(self, email, password, name, role="user", phone=None):
+    def create_user(self, email, password, name, role="user", phone=None, company_name=None, business_id=None):
         """Create a new user"""
         # Check if user already exists
         if self.find_by_email(email):
@@ -107,6 +107,8 @@ class UserModel(BaseModel):
             "email": email.lower().strip(),
             "password_hash": generate_password_hash(password),
             "name": name.strip(),
+            "company_name": company_name.strip() if company_name else None,
+            "business_id": business_id.strip() if business_id else None,
             "role": role,
             "phone": phone.strip() if phone else None,
             "status": "pending" if role == "user" else "active",
@@ -256,6 +258,13 @@ class UserModel(BaseModel):
         user = self.find_by_id(user_id)
         return user and user.get("role") == "admin"
 
+    def verify_password(self, user_id, password):
+        """Verify a user's password without logging in"""
+        user = self.find_by_id(user_id)
+        if not user:
+            return False
+        return check_password_hash(user["password_hash"], password)
+
     def is_driver(self, user_id):
         """Check if user is driver"""
         user = self.find_by_id(user_id)
@@ -296,6 +305,29 @@ class UserModel(BaseModel):
                 "updated_at": datetime.now(timezone.utc)
             }}
         )
+
+    def update_driver_rating(self, driver_id, average_rating, total_ratings):
+        """Update driver's average rating and total ratings count"""
+        return self.update_one(
+            {"id": int(driver_id)},
+            {"$set": {
+                "average_rating": round(average_rating, 2),
+                "total_ratings": total_ratings,
+                "rating_updated_at": datetime.now(timezone.utc),
+                "updated_at": datetime.now(timezone.utc)
+            }}
+        )
+
+    def get_driver_rating(self, driver_id):
+        """Get driver's rating information"""
+        driver = self.find_by_id(driver_id)
+        if not driver:
+            return None
+        return {
+            "average_rating": driver.get("average_rating", 0.0),
+            "total_ratings": driver.get("total_ratings", 0),
+            "rating_updated_at": driver.get("rating_updated_at")
+        }
 
     def get_user_stats(self):
         """Get user statistics"""

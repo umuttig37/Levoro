@@ -1,690 +1,779 @@
-{% extends "base/layout.html" %}
+<!DOCTYPE html>
+<html class="light" lang="fi">
 
-{% block title %}Alennusten hallinta - Admin{% endblock %}
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>Levoro Admin - Alennukset</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+        rel="stylesheet" />
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#1392ec",
+                        "background-light": "#f6f7f8",
+                        "background-dark": "#101a22",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: { "DEFAULT": "0.5rem", "lg": "1rem", "xl": "1.5rem", "full": "9999px" },
+                },
+            },
+        }
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&amp;display=swap"
+        rel="stylesheet" />
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
 
-{% block content %}
-<div class="admin-page discounts-page">
-    <!-- Page Header -->
-    <div class="admin-header">
-        <h2>Alennusten hallinta</h2>
-        <div class="admin-actions">
-            <a class="btn btn-ghost" href="{{ url_for('main.admin_dashboard') }}">Tilaukset</a>
-            <a class="btn btn-ghost" href="/admin/users">Käyttäjät</a>
-            <a class="btn btn-ghost" href="/admin/drivers">Kuljettajat</a>
-            <a class="btn btn-primary" href="{{ url_for('admin.discount_new') }}">
-                <i class="fas fa-plus"></i> Uusi alennus
+        /* Hide global scrollbar */
+        body::-webkit-scrollbar,
+        html::-webkit-scrollbar {
+            display: none;
+        }
+
+        body,
+        html {
+            -ms-overflow-style: none;
+            /* IE and Edge */
+            scrollbar-width: none;
+            /* Firefox */
+        }
+
+        /* Custom scrollbar */
+        .custom-scrollbar::-webkit-scrollbar {
+            height: 8px;
+            width: 8px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background-color: #cbd5e1;
+            border-radius: 4px;
+        }
+
+        .dark .custom-scrollbar::-webkit-scrollbar-thumb {
+            background-color: #475569;
+        }
+
+        /* Flash messages */
+        .flash-messages {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
+
+        .flash-message {
+            padding: 1rem;
+            margin-bottom: 1rem;
+            border-radius: 0.5rem;
+            color: white;
+            font-weight: 500;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        .flash-message.success {
+            background-color: #10b981;
+        }
+
+        .flash-message.error {
+            background-color: #ef4444;
+        }
+
+        .flash-message.warning {
+            background-color: #f59e0b;
+        }
+
+        .flash-message.info {
+            background-color: #3b82f6;
+        }
+
+        /* Custom Dropdown Styles (From Dashboard) */
+        :root {
+            --dash-primary: #1392ec;
+        }
+
+        .custom-select-container {
+            position: relative;
+            width: 100%;
+        }
+
+        .custom-select-container.open {
+            z-index: 20;
+        }
+
+        .custom-select-trigger {
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.625rem 0.875rem;
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 0.75rem;
+            font-size: 0.875rem;
+            color: #0d161b;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            user-select: none;
+        }
+
+        .dark .custom-select-trigger {
+            background: #1e2936;
+            color: white;
+            border-color: #475569;
+        }
+
+        .custom-select-trigger:hover {
+            border-color: #cbd5e1;
+        }
+
+        .dark .custom-select-trigger:hover {
+            border-color: #64748b;
+        }
+
+        .custom-select-trigger.open {
+            border-color: var(--dash-primary);
+            border-bottom-color: transparent;
+            border-bottom-left-radius: 0;
+            border-bottom-right-radius: 0;
+        }
+
+        .custom-select-arrow {
+            width: 16px;
+            height: 16px;
+            color: #94a3b8;
+            transition: transform 0.2s ease;
+        }
+
+        .custom-select-trigger.open .custom-select-arrow {
+            transform: rotate(180deg);
+            color: var(--dash-primary);
+        }
+
+        .custom-select-options {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border: 1px solid var(--dash-primary);
+            border-top: none;
+            border-bottom-left-radius: 0.75rem;
+            border-bottom-right-radius: 0.75rem;
+            z-index: 100;
+            display: none;
+            max-height: 250px;
+            overflow-y: auto;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            margin-top: 0;
+        }
+
+        .dark .custom-select-options {
+            background: #1e2936;
+            border-color: rgba(19, 146, 236, 0.5);
+        }
+
+        .custom-select-container.open .custom-select-options {
+            display: block;
+            animation: fadeIn 0.1s ease-out;
+        }
+
+        .custom-option {
+            padding: 0.5rem 0.75rem;
+            cursor: pointer;
+            color: #0d161b;
+            font-size: 0.875rem;
+            transition: background 0.15s;
+        }
+
+        .dark .custom-option {
+            color: white;
+        }
+
+        .custom-option:hover {
+            background: #f1f5f9;
+            color: var(--dash-primary);
+        }
+
+        .dark .custom-option:hover {
+            background: #334155;
+        }
+
+        .custom-option.selected {
+            background: var(--dash-primary);
+            color: white;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-5px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
+</head>
+
+<body
+    class="bg-background-light dark:bg-background-dark min-h-screen w-full flex flex-col text-[#0d161b] dark:text-white transition-colors duration-200">
+
+    <!-- Flash Messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    <div class="flash-messages">
+        {% for category, message in messages %}
+        <div class="flash-message {{ category }}">
+            {{ message }}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+    {% endwith %}
+
+    <!-- Top Navigation -->
+    <header
+        class="sticky top-0 z-50 border-b border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-[#101a22]/80 backdrop-blur-md">
+        <div class="flex items-center justify-between px-6 py-3 lg:px-10 w-full max-w-[1440px] mx-auto">
+            <a href="/" class="flex items-center gap-4">
+                <img src="/static/LevoroLogo.png" alt="Levoro" class="h-20 w-auto">
+            </a>
+            <div class="flex flex-1 justify-end gap-8">
+                <nav class="hidden md:flex items-center gap-2">
+
+                    <a class="px-3 py-2 rounded-md text-slate-700 hover:text-primary hover:bg-slate-100 font-semibold transition-colors"
+                        href="{{ url_for('main.admin_dashboard') }}">Tilaukset</a>
+
+                    <a class="px-3 py-2 rounded-md text-slate-700 hover:text-primary hover:bg-slate-100 font-semibold transition-colors"
+                        href="{{ url_for('admin.users') }}">Käyttäjät</a>
+
+                    <a class="px-3 py-2 rounded-md text-slate-700 hover:text-primary hover:bg-slate-100 font-semibold transition-colors"
+                        href="{{ url_for('admin.driver_applications') }}">Hakemukset</a>
+
+                    <a class="px-3 py-2 rounded-md bg-slate-100 text-primary font-semibold transition-colors"
+                        href="{{ url_for('admin.discounts') }}">Alennukset</a>
+
+                    <a class="px-3 py-2 rounded-md text-slate-700 hover:text-primary hover:bg-slate-100 font-semibold transition-colors"
+                        href="{{ url_for('admin.reviews') }}">Arvostelut</a>
+
+                    {% if current_user.is_authenticated %}
+                    <div class="px-3 py-2 rounded-full bg-slate-100 text-slate-600 font-medium text-sm">
+                        Hei, {{ current_user.name }}
+                    </div>
+                    {% endif %}
+
+                    <a class="px-3 py-2 rounded-md text-slate-700 hover:text-primary hover:bg-slate-100 font-semibold transition-colors"
+                        href="{{ url_for('auth.logout') }}">Kirjaudu ulos</a>
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-1 w-full max-w-[1440px] mx-auto p-6 lg:p-10 flex flex-col gap-8">
+        <!-- Header Section -->
+        <div class="flex flex-col md:flex-row md:items-end justify-between gap-4">
+            <div class="flex flex-col gap-2">
+                <h1 class="text-3xl font-black leading-tight tracking-[-0.033em] text-slate-900 dark:text-white">
+                    Alennusten hallinta</h1>
+                <p class="text-slate-500 dark:text-slate-400 text-base font-normal">Hallitse alennuskoodeja ja
+                    kampanjoita.</p>
+            </div>
+            <a href="{{ url_for('admin.discount_new') }}"
+                class="flex items-center justify-center gap-2 rounded-xl bg-green-600 hover:bg-green-700 text-white px-5 py-2.5 shadow-lg shadow-green-200 dark:shadow-none transition-all transform hover:-translate-y-0.5 font-bold text-sm">
+                <span class="material-symbols-outlined text-[20px]">add</span>
+                <span>Uusi alennus</span>
             </a>
         </div>
-    </div>
 
-    <!-- Filters -->
-    <div class="filters-bar">
-        <form method="GET" action="{{ url_for('admin.discounts') }}" class="filters-form">
-            <div class="filter-group">
-                <label class="checkbox-label">
-                    <input type="checkbox" name="include_inactive" value="true" 
-                           {% if include_inactive %}checked{% endif %}
-                           onchange="this.form.submit()">
-                    <span>Näytä myös käytöstä poistetut</span>
+        <!-- Stats Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <!-- Total -->
+            <div
+                class="bg-white dark:bg-[#1e2936] p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center gap-4">
+                <div class="p-3 rounded-lg bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400">
+                    <span class="material-symbols-outlined text-[24px]">percent</span>
+                </div>
+                <div>
+                    <div class="text-2xl font-bold text-slate-900 dark:text-white leading-none mb-1">{{
+                        discounts|length }}</div>
+                    <div class="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">Yhteensä
+                    </div>
+                </div>
+            </div>
+            <!-- Active -->
+            <div
+                class="bg-white dark:bg-[#1e2936] p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center gap-4">
+                <div class="p-3 rounded-lg bg-green-50 text-green-600 dark:bg-green-900/30 dark:text-green-400">
+                    <span class="material-symbols-outlined text-[24px]">check_circle</span>
+                </div>
+                <div>
+                    <div class="text-2xl font-bold text-slate-900 dark:text-white leading-none mb-1">{{
+                        discounts|selectattr('active')|list|length }}</div>
+                    <div class="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">
+                        Aktiivisia</div>
+                </div>
+            </div>
+            <!-- Inactive -->
+            <div
+                class="bg-white dark:bg-[#1e2936] p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center gap-4">
+                <div class="p-3 rounded-lg bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-400">
+                    <span class="material-symbols-outlined text-[24px]">cancel</span>
+                </div>
+                <div>
+                    <div class="text-2xl font-bold text-slate-900 dark:text-white leading-none mb-1">{{
+                        discounts|rejectattr('active')|list|length }}</div>
+                    <div class="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">Ei
+                        käytössä</div>
+                </div>
+            </div>
+            <!-- Codes -->
+            <div
+                class="bg-white dark:bg-[#1e2936] p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center gap-4">
+                <div class="p-3 rounded-lg bg-purple-50 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400">
+                    <span class="material-symbols-outlined text-[24px]">confirmation_number</span>
+                </div>
+                <div>
+                    <div class="text-2xl font-bold text-slate-900 dark:text-white leading-none mb-1">{{
+                        discounts|selectattr('scope', 'equalto', 'code')|list|length }}</div>
+                    <div class="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">
+                        Kampanjakoodit</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Controls Toolbar -->
+        <div class="flex flex-col lg:flex-row gap-4 items-center justify-between">
+            <!-- Search -->
+            <div class="w-full lg:w-[450px]">
+                <div class="relative group">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <span
+                            class="material-symbols-outlined text-slate-400 group-focus-within:text-primary transition-colors">search</span>
+                    </div>
+                    <input id="discountSearch"
+                        class="block w-full pl-10 pr-3 py-3 rounded-xl border-none bg-white dark:bg-[#1e2936] text-slate-900 dark:text-white placeholder-slate-400 focus:ring-2 focus:ring-primary/50 shadow-sm transition-all text-sm"
+                        placeholder="Hae nimeä, tyyppiä tai koodia..." type="search" />
+                </div>
+            </div>
+
+            <!-- Filters (Custom Dropdown) -->
+            <div class="flex flex-col sm:flex-row items-center gap-4 w-full lg:w-auto">
+
+                <!-- Start Custom Dropdown -->
+                <div class="relative w-full sm:w-64 custom-select-container">
+                    <select id="discountFilter" style="display:none">
+                        <option value="">Kaikki alennukset</option>
+                        <option value="active">Aktiiviset</option>
+                        <option value="inactive">Ei käytössä</option>
+                        <option value="account">Asiakaskohtaiset</option>
+                        <option value="global">Kaikille</option>
+                        <option value="code">Kampanjakoodit</option>
+                        <option value="first_order">Ensitilaajille</option>
+                    </select>
+
+                    <!-- Custom UI -->
+                    <div class="custom-select-trigger shadow-sm">
+                        <span class="custom-select-label">Kaikki alennukset</span>
+                        <svg class="custom-select-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="6 9 12 15 18 9"></polyline>
+                        </svg>
+                    </div>
+                    <div class="custom-select-options custom-scrollbar">
+                        <div class="custom-option" data-value="">Kaikki alennukset</div>
+                        <div class="custom-option" data-value="active">Aktiiviset</div>
+                        <div class="custom-option" data-value="inactive">Ei käytössä</div>
+                        <div class="custom-option" data-value="account">Asiakaskohtaiset</div>
+                        <div class="custom-option" data-value="global">Kaikille</div>
+                        <div class="custom-option" data-value="code">Kampanjakoodit</div>
+                        <div class="custom-option" data-value="first_order">Ensitilaajille</div>
+                    </div>
+                </div>
+                <!-- End Custom Dropdown -->
+
+                <label class="flex items-center gap-2 cursor-pointer select-none">
+                    <input type="checkbox" id="showInactive"
+                        class="w-5 h-5 text-primary rounded border-slate-300 focus:ring-primary bg-white dark:bg-slate-800 dark:border-slate-600"
+                        {% if include_inactive %}checked{% endif %}>
+                    <span class="text-sm font-medium text-slate-700 dark:text-slate-300">Näytä poistetut</span>
                 </label>
             </div>
-        </form>
-        <div class="filters-info">
-            <span class="badge badge-info">{{ discounts|length }} alennusta</span>
         </div>
-    </div>
 
-    <!-- Discounts Table -->
-    <div class="content-section">
-        {% if discounts %}
-        <div class="table-tools">
-            <div class="search-field">
-                <i class="fas fa-search"></i>
-                <input type="search" id="discountSearch" placeholder="Hae nimeä, tyyppiä tai koodia">
-            </div>
-            <div class="filter-field">
-                <label for="discountFilter">Näytä</label>
-                <select id="discountFilter">
-                    <option value="">Kaikki alennukset</option>
-                    <option value="active">Aktiiviset</option>
-                    <option value="inactive">Ei käytössä</option>
-                    <option value="account">Asiakaskohtaiset</option>
-                    <option value="global">Kaikille</option>
-                    <option value="code">Kampanjakoodit</option>
-                    <option value="first_order">Ensitilaajille</option>
-                </select>
-            </div>
-        </div>
-        <div class="data-table-container">
-            <table class="data-table discounts-table">
-                <thead>
-                    <tr>
-                        <th>ID</th>
-                        <th>Nimi</th>
-                        <th>Tyyppi</th>
-                        <th>Arvo</th>
-                        <th>Laajuus</th>
-                        <th>Ehdot</th>
-                        <th>Käyttäjiä</th>
-                        <th>Tila</th>
-                        <th>Toiminnot</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for discount in discounts %}
-                    <tr class="{% if not discount.active %}inactive-row{% endif %}"
-                        data-name="{{ discount.name|default('', true)|lower }}"
-                        data-status="{{ 'active' if discount.active else 'inactive' }}"
-                        data-scope="{{ discount.scope|default('', true) }}"
-                        data-type="{{ discount.type_label|default('', true)|lower }}"
-                        data-code="{{ discount.code|default('', true)|lower }}"
-                        data-description="{{ discount.description|default('', true)|lower }}">
-                        <td class="id-cell">
-                            <span class="discount-id">#{{ discount.id }}</span>
-                        </td>
-                        <td class="name-cell">
-                            <a href="{{ url_for('admin.discount_detail', discount_id=discount.id) }}" class="discount-name">
-                                {{ discount.name }}
-                            </a>
-                            {% if discount.description %}
-                            <div class="description-preview">{{ discount.description[:80] }}{% if discount.description|length > 80 %}...{% endif %}</div>
-                            {% endif %}
-                        </td>
-                        <td class="type-cell">
-                            <span class="badge badge-type badge-{{ discount.type }}">
-                                {{ discount.type_label }}
-                            </span>
-                        </td>
-                        <td class="value-cell">
-                            <strong>{{ discount.value_formatted }}</strong>
-                        </td>
-                        <td class="scope-cell">
-                            <span class="badge badge-scope badge-{{ discount.scope }}">
-                                {{ discount.scope_label }}
-                            </span>
-                            {% if discount.scope == 'code' and discount.code %}
-                            <div class="promo-code">
-                                <code>{{ discount.code }}</code>
-                            </div>
-                            {% endif %}
-                        </td>
-                        <td class="conditions-cell">
-                            {% if discount.conditions %}
-                            <div class="conditions-list">
-                                {% for condition in discount.conditions %}
-                                <span class="condition-tag"><i class="fas fa-check"></i> {{ condition }}</span>
-                                {% endfor %}
-                            </div>
-                            {% else %}
-                            <span class="text-muted">Ei ehtoja</span>
-                            {% endif %}
-                        </td>
-                        <td class="users-cell">
-                            {% if discount.scope == 'account' %}
-                            <span class="user-count {% if discount.assigned_count > 0 %}has-users{% endif %}">
-                                <i class="fas fa-user"></i> {{ discount.assigned_count }}
-                            </span>
-                            {% else %}
-                            <span class="text-muted">—</span>
-                            {% endif %}
-                        </td>
-                        <td class="status-cell">
-                            {% if discount.active %}
-                            <span class="badge badge-success">Aktiivinen</span>
-                            {% else %}
-                            <span class="badge badge-secondary">Ei käytössä</span>
-                            {% endif %}
-                        </td>
-                        <td class="actions-cell">
-                            <div class="action-buttons">
-                                <a href="{{ url_for('admin.discount_detail', discount_id=discount.id) }}" 
-                                   class="btn btn-sm btn-ghost btn-action" title="Muokkaa">
-                                    <i class="fas fa-edit"></i>
-                                    <span>Muokkaa</span>
-                                </a>
-                                <form method="POST" action="{{ url_for('admin.discount_toggle', discount_id=discount.id) }}" class="inline-form">
-                                    <button type="submit" class="btn btn-sm btn-ghost btn-action" 
+        <!-- Table Card -->
+        <div
+            class="bg-white dark:bg-[#1e2936] rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden flex flex-col">
+            <div class="overflow-x-auto custom-scrollbar">
+                {% if discounts %}
+                <table class="w-full text-left border-collapse min-w-[1000px]" id="discountsTable">
+                    <thead>
+                        <tr class="bg-slate-50/50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-700">
+                            <th
+                                class="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 text-left">
+                                Alennus</th>
+                            <th
+                                class="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                                Tyyppi</th>
+                            <th
+                                class="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                                Arvo</th>
+                            <th
+                                class="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                                Laajuus</th>
+                            <th
+                                class="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                                Ehdot</th>
+                            <th
+                                class="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                                Tila</th>
+                            <th
+                                class="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 text-right">
+                                Toiminnot</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100 dark:divide-slate-700/50">
+                        {% for discount in discounts %}
+                        <tr class="group hover:bg-blue-50/50 dark:hover:bg-slate-700/30 transition-colors discount-row {% if not discount.active %}opacity-60 bg-slate-50/50 dark:bg-slate-800/20{% endif %}"
+                            data-name="{{ discount.name|default('', true)|lower }}"
+                            data-status="{{ 'active' if discount.active else 'inactive' }}"
+                            data-scope="{{ discount.scope|default('', true) }}"
+                            data-type="{{ discount.type_label|default('', true)|lower }}"
+                            data-code="{{ discount.code|default('', true)|lower }}"
+                            data-description="{{ discount.description|default('', true)|lower }}">
+                            <td class="px-6 py-4">
+                                <div class="flex flex-col">
+                                    <a href="{{ url_for('admin.discount_detail', discount_id=discount.id) }}"
+                                        class="font-medium text-slate-900 dark:text-white text-sm hover:text-primary transition-colors">
+                                        {{ discount.name }}
+                                    </a>
+                                    {% if discount.description %}
+                                    <span class="text-xs text-slate-500 dark:text-slate-400 mt-1">{{
+                                        discount.description[:60] }}{% if discount.description|length > 60 %}...{% endif
+                                        %}</span>
+                                    {% endif %}
+                                    <span class="text-[10px] text-slate-400 mt-0.5 font-mono">#{{ discount.id }}</span>
+                                </div>
+                            </td>
+                            <td class="px-6 py-4">
+                                {% set type_colors = {
+                                'percentage': 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300',
+                                'fixed_amount': 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300',
+                                'free_kilometers': 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300',
+                                'price_cap': 'bg-pink-100 text-pink-800 dark:bg-pink-900/30 dark:text-pink-300',
+                                'custom_rate': 'bg-purple-100 text-purple-800 dark:bg-purple-900/30
+                                dark:text-purple-300',
+                                'tiered_percentage': 'bg-purple-100 text-purple-800 dark:bg-purple-900/30
+                                dark:text-purple-300'
+                                } %}
+                                <span
+                                    class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {{ type_colors.get(discount.type, 'bg-slate-100 text-slate-800') }}">
+                                    {{ discount.type_label }}
+                                </span>
+                            </td>
+                            <td class="px-6 py-4">
+                                <span class="font-bold text-slate-900 dark:text-white text-sm">{{
+                                    discount.value_formatted }}</span>
+                            </td>
+                            <td class="px-6 py-4">
+                                {% set scope_colors = {
+                                'account': 'bg-amber-50 text-amber-700 dark:bg-amber-900/20 dark:text-amber-300',
+                                'global': 'bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-300',
+                                'code': 'bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-300',
+                                'first_order': 'bg-pink-50 text-pink-700 dark:bg-pink-900/20 dark:text-pink-300'
+                                } %}
+                                <div class="flex flex-col gap-1 items-start">
+                                    <span
+                                        class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium {{ scope_colors.get(discount.scope, 'bg-slate-50 text-slate-600') }}">
+                                        {{ discount.scope_label }}
+                                    </span>
+                                    {% if discount.scope == 'code' and discount.code %}
+                                    <code
+                                        class="text-xs bg-slate-100 dark:bg-slate-700 px-1.5 py-0.5 rounded text-slate-600 dark:text-slate-300 font-mono border border-slate-200 dark:border-slate-600">{{
+                                        discount.code }}</code>
+                                    {% endif %}
+                                    {% if discount.scope == 'account' and discount.assigned_count > 0 %}
+                                    <span class="flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400">
+                                        <span class="material-symbols-outlined text-[14px]">person</span>
+                                        {{ discount.assigned_count }}
+                                    </span>
+                                    {% endif %}
+                                </div>
+                            </td>
+                            <td class="px-6 py-4">
+                                {% if discount.conditions %}
+                                <div class="flex flex-wrap gap-1">
+                                    {% for condition in discount.conditions[:2] %}
+                                    <span
+                                        class="px-1.5 py-0.5 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded text-[10px]">{{
+                                        condition }}</span>
+                                    {% endfor %}
+                                    {% if discount.conditions|length > 2 %}
+                                    <span class="text-[10px] text-slate-400 px-1">+{{ discount.conditions|length - 2
+                                        }}</span>
+                                    {% endif %}
+                                </div>
+                                {% else %}
+                                <span class="text-slate-300 dark:text-slate-600">—</span>
+                                {% endif %}
+                            </td>
+                            <td class="px-6 py-4">
+                                {% if discount.active %}
+                                <span
+                                    class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-green-50 text-green-700 border border-green-100 dark:bg-green-900/20 dark:border-green-800/50 dark:text-green-300">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-green-500"></span> Aktiivinen
+                                </span>
+                                {% else %}
+                                <span
+                                    class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-slate-50 text-slate-600 border border-slate-200 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-400">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-slate-400"></span> Ei käytössä
+                                </span>
+                                {% endif %}
+                            </td>
+                            <td class="px-6 py-4 text-right">
+                                <div class="flex items-center justify-end gap-2">
+                                    <a href="{{ url_for('admin.discount_detail', discount_id=discount.id) }}"
+                                        class="p-1.5 rounded-lg text-slate-400 hover:text-primary hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors inline-flex items-center justify-center"
+                                        title="Muokkaa">
+                                        <span class="material-symbols-outlined text-[20px]">edit</span>
+                                    </a>
+                                    <form method="POST"
+                                        action="{{ url_for('admin.discount_toggle', discount_id=discount.id) }}"
+                                        class="inline-block">
+                                        <button type="submit"
+                                            class="p-1.5 rounded-lg transition-colors inline-flex items-center justify-center {% if discount.active %}text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-900/20{% else %}text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20{% endif %}"
                                             title="{% if discount.active %}Poista käytöstä{% else %}Aktivoi{% endif %}">
-                                        <i class="fas {% if discount.active %}fa-toggle-on{% else %}fa-toggle-off{% endif %}"></i>
-                                        <span>{% if discount.active %}Poista käytöstä{% else %}Aktivoi{% endif %}</span>
-                                    </button>
-                                </form>
-                            </div>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-            <div id="tableEmptyNotice" class="table-empty-notice hidden">
-                <i class="fas fa-search"></i> Ei tuloksia suodatuksilla.
+                                            <span class="material-symbols-outlined text-[20px]">
+                                                {% if discount.active %}block{% else %}check_circle{% endif %}
+                                            </span>
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                <div id="tableEmptyNotice" class="hidden py-12 text-center">
+                    <div class="flex flex-col items-center justify-center gap-3">
+                        <div
+                            class="size-12 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400">
+                            <span class="material-symbols-outlined text-[24px]">search_off</span>
+                        </div>
+                        <h3 class="text-slate-900 dark:text-white font-medium">Ei tuloksia</h3>
+                        <p class="text-slate-500 dark:text-slate-400 text-sm">Hakuehdoilla ei löytynyt alennuksia.</p>
+                    </div>
+                </div>
+                {% else %}
+                <div class="py-16 text-center">
+                    <div class="flex flex-col items-center justify-center gap-4">
+                        <div
+                            class="size-16 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400">
+                            <span class="material-symbols-outlined text-[32px]">local_offer</span>
+                        </div>
+                        <div class="text-center">
+                            <h3 class="text-lg font-semibold text-slate-900 dark:text-white mb-1">Ei alennuksia vielä
+                            </h3>
+                            <p class="text-slate-500 dark:text-slate-400 text-sm max-w-xs mx-auto">Luo ensimmäinen
+                                alennus aloittaaksesi kampanjat.</p>
+                        </div>
+                        <a href="{{ url_for('admin.discount_new') }}"
+                            class="flex items-center justify-center gap-2 rounded-xl bg-primary hover:bg-blue-600 text-white px-5 py-2.5 shadow-sm transition-colors font-semibold text-sm mt-2">
+                            <span class="material-symbols-outlined text-[20px]">add</span>
+                            <span>Luo alennus</span>
+                        </a>
+                    </div>
+                </div>
+                {% endif %}
             </div>
         </div>
-        {% else %}
-        <div class="empty-state">
-            <div class="empty-icon">
-                <i class="fas fa-tags"></i>
-            </div>
-            <h3>Ei alennuksia</h3>
-            <p>Et ole vielä luonut yhtään alennusta.</p>
-            <a href="{{ url_for('admin.discount_new') }}" class="btn btn-primary">
-                <i class="fas fa-plus"></i> Luo ensimmäinen alennus
-            </a>
-        </div>
-        {% endif %}
-    </div>
-
-</div>
-
-<style>
-/* Discounts Page Styles */
-:root {
-    --primary: #2563eb;
-    --primary-dark: #1d4ed8;
-    --success: #10b981;
-    --warning: #f59e0b;
-    --danger: #ef4444;
-    --gray-50: #f9fafb;
-    --gray-100: #f3f4f6;
-    --gray-200: #e5e7eb;
-    --gray-300: #d1d5db;
-    --gray-400: #9ca3af;
-    --gray-500: #6b7280;
-    --gray-600: #4b5563;
-    --gray-700: #374151;
-    --gray-800: #1f2937;
-    --gray-900: #111827;
-}
-
-.discounts-page {
-    padding: 20px;
-    max-width: 1400px;
-    margin: 0 auto;
-}
-
-.admin-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 24px;
-    flex-wrap: wrap;
-    gap: 16px;
-}
-
-.admin-header h2 {
-    margin: 0;
-    font-size: 1.75rem;
-    font-weight: 700;
-    color: var(--gray-900);
-}
-
-.admin-actions {
-    display: flex;
-    gap: 10px;
-    flex-wrap: wrap;
-}
-
-/* Filters Bar */
-.filters-bar {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    background: white;
-    padding: 16px 20px;
-    border-radius: 12px;
-    margin-bottom: 20px;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-    border: 1px solid var(--gray-200);
-}
-
-.checkbox-label {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    cursor: pointer;
-    font-size: 0.9375rem;
-    color: var(--gray-700);
-}
-
-.checkbox-label input[type="checkbox"] {
-    width: 18px;
-    height: 18px;
-    cursor: pointer;
-}
-
-/* Badge Styles */
-.badge {
-    display: inline-flex;
-    align-items: center;
-    padding: 4px 10px;
-    border-radius: 20px;
-    font-size: 0.75rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.02em;
-}
-
-.badge-info {
-    background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
-    color: var(--primary);
-}
-
-.badge-success {
-    background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
-    color: #059669;
-}
-
-.badge-secondary {
-    background: var(--gray-100);
-    color: var(--gray-500);
-}
-
-/* Type Badges */
-.badge-percentage {
-    background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
-    color: #b45309;
-}
-
-.badge-fixed_amount {
-    background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
-    color: #047857;
-}
-
-.badge-free_kilometers {
-    background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
-    color: #1d4ed8;
-}
-
-.badge-price_cap {
-    background: linear-gradient(135deg, #fce7f3 0%, #fbcfe8 100%);
-    color: #be185d;
-}
-
-.badge-custom_rate {
-    background: linear-gradient(135deg, #e9d5ff 0%, #d8b4fe 100%);
-    color: #7c3aed;
-}
-
-.badge-tiered_percentage {
-    background: linear-gradient(135deg, #f3e8ff 0%, #e9d5ff 100%);
-    color: #7e22ce;
-}
-
-/* Scope Badges */
-.badge-scope {
-    font-size: 0.6875rem;
-}
-
-.badge-account {
-    background: #fef3c7;
-    color: #b45309;
-}
-
-.badge-global {
-    background: #d1fae5;
-    color: #047857;
-}
-
-.badge-code {
-    background: #dbeafe;
-    color: #1d4ed8;
-}
-
-.badge-first_order {
-    background: #fce7f3;
-    color: #be185d;
-}
-
-/* Data Table */
-.data-table-container {
-    background: white;
-    border-radius: 12px;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-    border: 1px solid var(--gray-200);
-    overflow: hidden;
-}
-
-.data-table {
-    width: 100%;
-    border-collapse: collapse;
-}
-
-.data-table th {
-    background: var(--gray-50);
-    padding: 14px 16px;
-    text-align: left;
-    font-size: 0.75rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: var(--gray-600);
-    border-bottom: 2px solid var(--gray-200);
-}
-
-.data-table td {
-    padding: 16px;
-    border-bottom: 1px solid var(--gray-100);
-    vertical-align: middle;
-}
-
-.data-table tbody tr:hover {
-    background: var(--gray-50);
-}
-
-.data-table tbody tr:last-child td {
-    border-bottom: none;
-}
-
-.inactive-row {
-    opacity: 0.5;
-}
-
-.inactive-row:hover {
-    opacity: 0.7;
-}
-
-/* Cell Styles */
-.discount-id {
-    font-family: monospace;
-    font-size: 0.8125rem;
-    color: var(--gray-500);
-    background: var(--gray-100);
-    padding: 4px 8px;
-    border-radius: 4px;
-}
-
-.discount-name {
-    font-weight: 600;
-    color: var(--gray-900);
-    text-decoration: none;
-    transition: color 0.2s;
-}
-
-.discount-name:hover {
-    color: var(--primary);
-}
-
-.description-preview {
-    font-size: 0.8125rem;
-    color: var(--gray-500);
-    margin-top: 4px;
-}
-
-.promo-code {
-    margin-top: 6px;
-}
-
-.promo-code code {
-    font-family: monospace;
-    font-size: 0.75rem;
-    background: var(--gray-900);
-    color: #10b981;
-    padding: 4px 8px;
-    border-radius: 4px;
-}
-
-.conditions-list {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 4px;
-    font-size: 0.8125rem;
-}
-
-.condition-tag {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    color: var(--gray-600);
-    background: var(--gray-100);
-    padding: 2px 8px;
-    border-radius: 4px;
-}
-
-.condition-tag i {
-    color: var(--success);
-    font-size: 0.6875rem;
-}
-
-.user-count {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 0.875rem;
-    color: var(--gray-400);
-}
-
-.user-count.has-users {
-    color: var(--primary);
-    font-weight: 600;
-}
-
-.text-muted {
-    color: var(--gray-400);
-}
-
-.action-buttons {
-    display: flex;
-    gap: 8px;
-}
-
-.inline-form {
-    display: inline;
-}
-
-.hidden {
-    display: none;
-}
-
-/* Buttons */
-.btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    padding: 10px 18px;
-    border-radius: 8px;
-    font-weight: 600;
-    font-size: 0.875rem;
-    cursor: pointer;
-    transition: all 0.2s;
-    border: none;
-    text-decoration: none;
-}
-
-.btn-primary {
-    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
-    color: white;
-}
-
-.btn-primary:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
-}
-
-.btn-ghost {
-    background: transparent;
-    color: var(--gray-700);
-    border: 1px solid var(--gray-200);
-}
-
-.btn-ghost:hover {
-    background: var(--gray-50);
-    border-color: var(--gray-300);
-}
-
-.btn-sm {
-    padding: 6px 12px;
-    font-size: 0.8125rem;
-}
-
-.btn-action {
-    background: var(--gray-100);
-    border: 1px solid var(--gray-200);
-    color: var(--gray-800);
-    padding: 6px 14px;
-}
-
-.btn-action:hover {
-    background: var(--gray-200);
-    border-color: var(--gray-300);
-    color: var(--gray-900);
-}
-
-.btn-action i {
-    font-size: 0.875rem;
-}
-
-/* Empty State */
-.empty-state {
-    text-align: center;
-    padding: 60px 20px;
-    background: white;
-    border-radius: 12px;
-    border: 2px dashed var(--gray-300);
-}
-
-.empty-icon {
-    width: 80px;
-    height: 80px;
-    background: var(--gray-100);
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin: 0 auto 20px;
-}
-
-.empty-icon i {
-    font-size: 2rem;
-    color: var(--gray-400);
-}
-
-.empty-state h3 {
-    margin: 0 0 8px;
-    font-size: 1.25rem;
-    color: var(--gray-900);
-}
-
-.empty-state p {
-    margin: 0 0 24px;
-    color: var(--gray-500);
-}
-
-/* Stats Overview */
-.table-tools {
-    margin-bottom: 12px;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 12px;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.search-field {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    background: white;
-    border: 1px solid var(--gray-200);
-    border-radius: var(--radius);
-    padding: 8px 12px;
-    flex: 1;
-    min-width: 240px;
-}
-
-.search-field input {
-    border: none;
-    outline: none;
-    width: 100%;
-    font-size: 0.95rem;
-}
-
-.filter-field {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.filter-field select {
-    padding: 8px 12px;
-    border-radius: var(--radius);
-    border: 1px solid var(--gray-200);
-    background: white;
-}
-
-.table-empty-notice {
-    padding: 16px;
-    text-align: center;
-    color: var(--gray-500);
-}
-
-
-/* Responsive */
-@media (max-width: 768px) {
-    .admin-header {
-        flex-direction: column;
-        align-items: flex-start;
-    }
-    
-    .filters-bar {
-        flex-direction: column;
-        gap: 12px;
-        align-items: flex-start;
-    }
-    
-    .data-table-container {
-        overflow-x: auto;
-    }
-    
-    .data-table {
-        min-width: 800px;
-    }
-}
-</style>
-
-<script>
-document.addEventListener("DOMContentLoaded", function () {
-    const searchInput = document.getElementById("discountSearch");
-    const filterSelect = document.getElementById("discountFilter");
-    const rows = Array.from(document.querySelectorAll(".discounts-table tbody tr"));
-    const emptyNotice = document.getElementById("tableEmptyNotice");
-
-    function applyFilters() {
-        const searchTerm = (searchInput?.value || "").toLowerCase().trim();
-        const filter = filterSelect?.value || "";
-        let visible = 0;
-
-        rows.forEach(row => {
-            const name = row.dataset.name || "";
-            const type = row.dataset.type || "";
-            const scope = row.dataset.scope || "";
-            const status = row.dataset.status || "";
-            const code = row.dataset.code || "";
-            const description = row.dataset.description || "";
-
-            const matchesText = !searchTerm || [name, type, scope, code, description].some(val => val.includes(searchTerm));
-            let matchesFilter = true;
-            if (filter === "active" || filter === "inactive") {
-                matchesFilter = status === filter;
-            } else if (filter) {
-                matchesFilter = scope === filter;
+    </main>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const searchInput = document.getElementById('discountSearch');
+            // discountFilter is now hidden, used by custom dropdown logic
+            const hiddenSelect = document.getElementById('discountFilter');
+            const showInactiveCheckbox = document.getElementById('showInactive');
+            const tableRows = document.querySelectorAll('.discount-row');
+            const emptyNotice = document.getElementById('tableEmptyNotice');
+            const table = document.getElementById('discountsTable');
+
+            // --- Initialize Custom Dropdowns (Copied from dashboard.html) ---
+            function initCustomDropdowns() {
+                document.querySelectorAll('.custom-select-container').forEach(container => {
+                    const trigger = container.querySelector('.custom-select-trigger');
+                    const options = container.querySelector('.custom-select-options');
+                    const hiddenSelect = container.querySelector('select');
+                    const label = container.querySelector('.custom-select-label');
+
+                    if (!trigger || !options || !hiddenSelect || !label) return;
+
+                    // Set initial label based on selected option
+                    const selectedOption = Array.from(hiddenSelect.options).find(opt => opt.selected);
+                    if (selectedOption) {
+                        label.textContent = selectedOption.text;
+                        // Mark corresponding custom option as selected
+                        const customOption = options.querySelector(`.custom-option[data-value="${selectedOption.value}"]`);
+                        if (customOption) {
+                            options.querySelectorAll('.custom-option').forEach(opt => opt.classList.remove('selected'));
+                            customOption.classList.add('selected');
+                        }
+                    }
+
+                    // Toggle dropdown
+                    trigger.onclick = (e) => {
+                        e.stopPropagation();
+
+                        // Close other dropdowns
+                        document.querySelectorAll('.custom-select-container').forEach(c => {
+                            if (c !== container) {
+                                c.classList.remove('open');
+                                const t = c.querySelector('.custom-select-trigger');
+                                if (t) t.classList.remove('open');
+                            }
+                        });
+
+                        const isOpen = container.classList.contains('open');
+                        container.classList.toggle('open', !isOpen);
+                        trigger.classList.toggle('open', !isOpen);
+                    };
+
+                    // Handle option click
+                    options.querySelectorAll('.custom-option').forEach(option => {
+                        option.onclick = (e) => {
+                            e.stopPropagation();
+
+                            // Update UI
+                            options.querySelectorAll('.custom-option').forEach(opt => opt.classList.remove('selected'));
+                            option.classList.add('selected');
+                            label.textContent = option.textContent;
+
+                            // Update hidden select and trigger change
+                            if (hiddenSelect.value !== option.dataset.value) {
+                                hiddenSelect.value = option.dataset.value;
+                                // Trigger change event manually so existing logic works
+                                hiddenSelect.dispatchEvent(new Event('change'));
+                            }
+
+                            // Close dropdown
+                            container.classList.remove('open');
+                            trigger.classList.remove('open');
+                        };
+                    });
+                });
             }
 
-            if (matchesText && matchesFilter) {
-                row.style.display = "";
-                visible += 1;
-            } else {
-                row.style.display = "none";
+            // Close dropdowns when clicking outside
+            document.addEventListener('click', () => {
+                document.querySelectorAll('.custom-select-container').forEach(c => {
+                    c.classList.remove('open');
+                    const trigger = c.querySelector('.custom-select-trigger');
+                    if (trigger) trigger.classList.remove('open');
+                });
+            });
+
+            initCustomDropdowns();
+
+
+            function filterTable() {
+                const searchTerm = searchInput.value.toLowerCase();
+                const filterValue = hiddenSelect.value; // Read from hidden select
+                const showInactive = showInactiveCheckbox.checked;
+
+                let visibleCount = 0;
+
+                tableRows.forEach(row => {
+                    // Data attributes
+                    const name = row.dataset.name || '';
+                    const status = row.dataset.status || '';
+                    const scope = row.dataset.scope || '';
+                    const type = row.dataset.type || '';
+                    const code = row.dataset.code || '';
+                    const description = row.dataset.description || '';
+
+                    // 1. Inactive Check
+                    let isInactive = (status === 'inactive');
+                    if (isInactive && !showInactive && filterValue !== 'inactive') {
+                        row.style.display = 'none';
+                        return;
+                    }
+
+                    // 2. Filter Dropdown
+                    let matchesFilter = true;
+                    if (filterValue) {
+                        if (filterValue === 'active') matchesFilter = (status === 'active');
+                        else if (filterValue === 'inactive') matchesFilter = (status === 'inactive');
+                        else if (filterValue === 'account') matchesFilter = (scope === 'account');
+                        else if (filterValue === 'global') matchesFilter = (scope === 'global');
+                        else if (filterValue === 'code') matchesFilter = (scope === 'code');
+                        else if (filterValue === 'first_order') matchesFilter = (scope === 'first_order');
+                        else matchesFilter = true;
+                    }
+
+                    // 3. Search
+                    let matchesSearch = true;
+                    if (searchTerm) {
+                        matchesSearch = name.includes(searchTerm) ||
+                            code.includes(searchTerm) ||
+                            type.includes(searchTerm) ||
+                            description.includes(searchTerm);
+                    }
+
+                    if (matchesFilter && matchesSearch) {
+                        row.style.display = '';
+                        visibleCount++;
+                    } else {
+                        row.style.display = 'none';
+                    }
+                });
+
+                // Show empty notice if no rows visible (and table exists)
+                if (table) {
+                    if (visibleCount === 0) {
+                        table.classList.add('hidden');
+                        if (emptyNotice) emptyNotice.classList.remove('hidden');
+                    } else {
+                        table.classList.remove('hidden');
+                        if (emptyNotice) emptyNotice.classList.add('hidden');
+                    }
+                }
             }
+
+            // Events
+            if (searchInput) searchInput.addEventListener('input', filterTable);
+            if (hiddenSelect) hiddenSelect.addEventListener('change', filterTable);
+            if (showInactiveCheckbox) showInactiveCheckbox.addEventListener('change', filterTable);
+
+            // Flash messages
+            setTimeout(function () {
+                const messages = document.querySelector('.flash-messages');
+                if (messages) {
+                    messages.style.transition = 'opacity 1s';
+                    messages.style.opacity = '0';
+                    setTimeout(() => messages.remove(), 1000);
+                }
+            }, 5000);
         });
+    </script>
+    {% set footer_button_text = 'Laskuri' %}
+    {% include 'components/dashboard_footer.html' %}
+</body>
 
-        if (emptyNotice) {
-            emptyNotice.style.display = visible ? "none" : "block";
-        }
-    }
-
-    searchInput?.addEventListener("input", () => applyFilters());
-    filterSelect?.addEventListener("change", applyFilters);
-
-    applyFilters();
-});
-</script>
-{% endblock %}
+</html>

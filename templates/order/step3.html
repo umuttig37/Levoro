@@ -1,0 +1,205 @@
+{% extends "order/wizard_base.html" %}
+
+{% block title %}Ajoneuvo - Uusi tilaus{% endblock %}
+{% block page_title %}Ajoneuvon tiedot{% endblock %}
+{% block page_subtitle %}Minkä auton kuljetamme?{% endblock %}
+
+{% block extra_styles %}
+<style>
+    .input-uppercase {
+        text-transform: uppercase;
+    }
+
+    /* Checkbox animation */
+    input[type="checkbox"] {
+        transition: transform 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+    }
+
+    input[type="checkbox"]:active {
+        transform: scale(0.9);
+    }
+
+    input[type="checkbox"]:checked {
+        animation: checkPop 0.2s ease-out;
+    }
+
+    @keyframes checkPop {
+        0% {
+            transform: scale(1);
+        }
+
+        50% {
+            transform: scale(1.2);
+        }
+
+        100% {
+            transform: scale(1);
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<form method="POST" class="space-y-6" novalidate>
+    <!-- Outbound Vehicle Section -->
+    <div class="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
+        <div class="flex items-center gap-3 mb-6">
+            <div class="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                <span class="material-symbols-outlined text-primary">directions_car</span>
+            </div>
+            <div>
+                <h3 class="font-bold text-slate-900">Menomatkan ajoneuvo</h3>
+                <p class="text-sm text-slate-500">Auto joka kuljetetaan määränpäähän</p>
+            </div>
+        </div>
+
+        <!-- Registration Number -->
+        <div class="group mb-4">
+            <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2 pl-1"
+                for="reg_number">
+                Rekisterinumero *
+            </label>
+            <div class="relative transition-all duration-300 focus-within:transform focus-within:-translate-y-0.5">
+                <span class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                    <span class="material-symbols-outlined text-lg text-slate-400">badge</span>
+                </span>
+                <input
+                    class="block w-full rounded-xl border-gray-200 bg-gray-50/50 text-slate-900 placeholder-gray-400 focus:border-blue-400 focus:ring-4 focus:ring-blue-100 sm:text-sm py-4 pl-10 pr-4 shadow-input transition-all input-uppercase"
+                    type="text" id="reg_number" name="reg_number" required value="{{ reg_number }}"
+                    placeholder="ABC-123" title="Syötä ajoneuvon rekisterinumero">
+            </div>
+        </div>
+
+        <!-- Winter Tires Checkbox -->
+        <div
+            class="rounded-xl border border-gray-200 bg-white p-4 transition-all hover:border-blue-300 hover:shadow-sm">
+            <label for="winter_tires" class="flex items-center gap-4 cursor-pointer">
+                <div class="flex-shrink-0">
+                    <input type="checkbox" id="winter_tires" name="winter_tires" value="1" {{ 'checked' if winter_tires
+                        else '' }}
+                        class="w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-200 cursor-pointer"
+                        title="Valitse jos autossa on talvirenkaat">
+                </div>
+                <div class="flex-1">
+                    <span class="font-semibold text-slate-900 mt-0.5 inline-block">Autossa on talvirenkaat</span>
+                </div>
+                <!-- Icon -->
+                <div class="hidden sm:flex items-center justify-center w-9 h-9 rounded-full bg-blue-50 flex-shrink-0">
+                    <span class="material-symbols-outlined text-blue-500 text-xl">ac_unit</span>
+                </div>
+            </label>
+        </div>
+    </div>
+
+    <!-- Return Vehicle Section (shown if paluu_auto is checked) -->
+    {% if paluu_auto %}
+    <div class="bg-blue-50/50 border border-blue-200 rounded-2xl p-6 shadow-sm">
+        <div class="flex items-center gap-3 mb-6">
+            <div class="w-10 h-10 rounded-xl bg-blue-500/20 flex items-center justify-center">
+                <span class="material-symbols-outlined text-blue-600">sync</span>
+            </div>
+            <div class="flex-1">
+                <h3 class="font-bold text-blue-900">Paluuauton tiedot</h3>
+                <p class="text-sm text-blue-600">Auto joka tuodaan takaisin</p>
+            </div>
+            <span
+                class="bg-gradient-to-r from-orange-500 to-orange-600 text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-sm">-30%</span>
+        </div>
+
+        <!-- Return Registration Number -->
+        <div class="group mb-4">
+            <label class="block text-xs font-semibold uppercase tracking-wider text-blue-700 mb-2 pl-1"
+                for="return_reg_number">
+                Rekisterinumero (paluuauto) *
+            </label>
+            <div class="relative transition-all duration-300 focus-within:transform focus-within:-translate-y-0.5">
+                <span class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                    <span class="material-symbols-outlined text-lg text-blue-500">badge</span>
+                </span>
+                <input
+                    class="block w-full rounded-xl border-blue-200 bg-white text-slate-900 placeholder-gray-400 focus:border-blue-400 focus:ring-4 focus:ring-blue-100 sm:text-sm py-4 pl-10 pr-4 shadow-input transition-all input-uppercase"
+                    type="text" id="return_reg_number" name="return_reg_number" required value="{{ return_reg_number }}"
+                    placeholder="XYZ-456" title="Syötä paluuauton rekisterinumero">
+            </div>
+        </div>
+
+        <!-- Return Winter Tires Checkbox -->
+        <div
+            class="rounded-xl border border-blue-200 bg-white p-4 transition-all hover:border-blue-400 hover:shadow-sm">
+            <label for="return_winter_tires" class="flex items-center gap-4 cursor-pointer">
+                <div class="flex-shrink-0">
+                    <input type="checkbox" id="return_winter_tires" name="return_winter_tires" value="1" {{ 'checked' if
+                        return_winter_tires else '' }}
+                        class="w-5 h-5 rounded border-blue-300 text-blue-600 focus:ring-blue-200 cursor-pointer"
+                        title="Valitse jos paluuautossa on talvirenkaat">
+                </div>
+                <div class="flex-1">
+                    <span class="font-semibold text-blue-900 mt-0.5 inline-block">Paluuautossa on talvirenkaat</span>
+                </div>
+                <!-- Icon -->
+                <div class="hidden sm:flex items-center justify-center w-9 h-9 rounded-full bg-blue-100 flex-shrink-0">
+                    <span class="material-symbols-outlined text-blue-600 text-xl">ac_unit</span>
+                </div>
+            </label>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Actions -->
+    <div class="flex gap-4 pt-4">
+        <button type="submit" name="action" value="back" formnovalidate
+            class="btn-secondary px-6 py-4 border border-slate-200 rounded-xl text-slate-600 font-semibold hover:bg-slate-50 hover:border-slate-300 flex items-center gap-2">
+            <span class="material-symbols-outlined">arrow_back</span>
+            Takaisin
+        </button>
+        <button type="submit" name="action" value="continue" id="continueBtn"
+            class="btn-gradient flex-1 inline-flex justify-center items-center rounded-xl from-brand-gradient-start to-brand-gradient-end px-6 py-4 text-base font-bold text-white shadow-lg shadow-blue-500/30 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all disabled:from-gray-300 disabled:to-gray-400 disabled:shadow-none disabled:cursor-not-allowed">
+            Jatka
+            <span class="material-symbols-outlined ml-2">arrow_forward</span>
+        </button>
+    </div>
+</form>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    // Form validity checker for disabled button
+    document.addEventListener('DOMContentLoaded', function() {
+        const continueBtn = document.getElementById('continueBtn');
+        const regInput = document.getElementById('reg_number');
+        const returnRegInput = document.getElementById('return_reg_number');
+
+        function checkFormValidity() {
+            const regValid = regInput && regInput.value.trim() !== '';
+            // Check return reg only if it exists (paluu_auto enabled)
+            const returnRegValid = !returnRegInput || returnRegInput.value.trim() !== '';
+            
+            if (continueBtn) {
+                continueBtn.disabled = !(regValid && returnRegValid);
+            }
+        }
+
+        // Check on page load (with small delay to ensure values are set)
+        checkFormValidity();
+        setTimeout(checkFormValidity, 100);
+
+        // Check on input changes
+        if (regInput) {
+            regInput.addEventListener('input', checkFormValidity);
+        }
+        if (returnRegInput) {
+            returnRegInput.addEventListener('input', checkFormValidity);
+        }
+
+        // Expose globally
+        window.checkFormValidity = checkFormValidity;
+
+        // Auto-uppercase registration numbers
+        document.querySelectorAll('input[name="reg_number"], input[name="return_reg_number"]').forEach(input => {
+            input.addEventListener('input', function () {
+                this.value = this.value.toUpperCase();
+            });
+        });
+    });
+</script>
+{% endblock %}

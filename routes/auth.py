@@ -4,6 +4,7 @@ Authentication Routes
 
 from flask import Blueprint, request, redirect, url_for, flash, render_template
 from services.auth_service import auth_service
+from utils.rate_limiter import check_rate_limit
 
 auth_bp = Blueprint('auth', __name__)
 
@@ -20,14 +21,21 @@ def login():
 
     email = request.form.get("email", "").strip().lower()
     password = request.form.get("password", "")
+    remember_me = request.form.get("remember_me") == "on"
     nxt = request.form.get("next", "")
+
+    # Rate limit: 20 attempts per 5 minutes, 2 minute lockout if exceeded
+    allowed, retry_after = check_rate_limit(f"login:{request.remote_addr}", limit=20, window_seconds=300, lockout_seconds=120)
+    if not allowed:
+        flash("Liian monta kirjautumisyritystä. Yritä uudelleen hetken kuluttua.", "error")
+        return redirect(url_for("auth.login"))
 
     if not email or not password:
         flash("Sähköposti ja salasana vaaditaan", "error")
         return redirect(url_for("auth.login"))
 
-    # Use auth service for login
-    success, _, error = auth_service.login(email, password)
+    # Use auth service for login with remember_me option
+    success, _, error = auth_service.login(email, password, remember=remember_me)
 
     if not success:
         flash(error, "error")
@@ -54,8 +62,10 @@ def register():
     password = request.form.get("password", "")
     name = request.form.get("name", "").strip()
     phone = request.form.get("phone", "").strip()
+    company_name = request.form.get("company_name", "").strip()
+    business_id = request.form.get("business_id", "").strip()
 
-    success, user, error = auth_service.register(email, password, name, phone)
+    success, user, error = auth_service.register(email, password, name, phone, company_name, business_id)
 
     if not success:
         flash(error, "error")

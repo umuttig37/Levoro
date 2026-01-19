@@ -767,69 +767,272 @@ input[type="file"]::file-selector-button {
     opacity: 0.5;
 }
 
-/* Autocomplete component */
+/* Autocomplete component - Enhanced Modern Style */
 .autocomplete {
     position: relative;
+    z-index: 1;
+}
+
+/* When input is focused, raise entire autocomplete container above siblings */
+.autocomplete:focus-within {
+    z-index: 9999;
 }
 
 .ac-list {
     position: absolute;
     left: 0;
     right: 0;
-    top: 100%;
-    z-index: var(--z-dropdown, 1000);
-    background: var(--bg-primary);
-    border: 1px solid var(--border-light);
-    border-radius: var(--radius-lg);
-    box-shadow: var(--shadow-lg);
+    top: calc(100% - 1px);
+    z-index: 9999;
+    background: var(--color-white, #ffffff);
+    border: 1px solid var(--color-primary, #3b82f6);
+    border-top: none;
+    border-radius: 0 0 12px 12px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.12), 0 4px 12px rgba(0, 0, 0, 0.08);
     overflow: hidden;
     display: none;
-    max-height: 260px;
+    max-height: 320px;
     overflow-y: auto;
+    animation: acSlideIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* When dropdown is visible, adjust input border-radius */
+.autocomplete:focus-within input {
+    border-radius: 12px 12px 0 0;
+    border-bottom-color: transparent;
+}
+
+@keyframes acSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-8px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Custom scrollbar for autocomplete */
+.ac-list::-webkit-scrollbar {
+    width: 6px;
+}
+
+.ac-list::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.ac-list::-webkit-scrollbar-thumb {
+    background: var(--color-gray-300, #d1d5db);
+    border-radius: 3px;
+}
+
+.ac-list::-webkit-scrollbar-thumb:hover {
+    background: var(--color-gray-400, #9ca3af);
+}
+
+/* Section headers in autocomplete */
+.ac-list>div[style*="font-weight: 600"] {
+    background: var(--color-gray-50, #f9fafb);
+    padding: 0.625rem 1rem !important;
+    font-size: 0.75rem !important;
+    font-weight: 600 !important;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--color-gray-500, #6b7280) !important;
+    border-bottom: 1px solid var(--color-gray-100, #f3f4f6) !important;
+    position: sticky;
+    top: 0;
+    z-index: 1;
+}
+
+/* Autocomplete items */
+.ac-item {
+    padding: 0.875rem 1rem;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    border-bottom: 1px solid var(--color-gray-100, #f3f4f6);
+    font-size: 0.9375rem;
+    color: var(--color-gray-700, #374151);
+}
+
+.ac-item:last-child {
+    border-bottom: none;
+}
+
+.ac-item:hover,
+.ac-item.active {
+    background: linear-gradient(135deg, rgba(37, 99, 235, 0.06) 0%, rgba(59, 130, 246, 0.08) 100%);
+    color: var(--color-gray-900, #111827);
+}
+
+.ac-item:active {
+    background: linear-gradient(135deg, rgba(37, 99, 235, 0.1) 0%, rgba(59, 130, 246, 0.12) 100%);
+}
+
+/* Saved address items */
+.ac-item.saved-address {
+    padding: 0.875rem 1rem;
+    border-left: 3px solid var(--color-primary, #2563eb);
+    background: linear-gradient(135deg, rgba(37, 99, 235, 0.03) 0%, rgba(59, 130, 246, 0.04) 100%);
+}
+
+.ac-item.saved-address:hover {
+    background: linear-gradient(135deg, rgba(37, 99, 235, 0.08) 0%, rgba(59, 130, 246, 0.1) 100%);
+    border-left-color: var(--color-primary-dark, #1d4ed8);
+}
+
+.ac-item.saved-address>div:first-child {
+    font-weight: 600;
+    color: var(--color-gray-900, #111827);
+    margin-bottom: 0.25rem;
+}
+
+.ac-item.saved-address>div:last-child {
+    font-size: 0.8125rem;
+    color: var(--color-gray-500, #6b7280);
+}
+
+/* Empty state */
+.ac-empty {
+    padding: 1.5rem 1rem;
+    color: var(--color-gray-400, #9ca3af);
+    text-align: center;
+    font-size: 0.875rem;
+}
+
+/* Loading state */
+.ac-loading {
+    padding: 1rem;
+    color: var(--color-gray-500, #6b7280);
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-size: 0.875rem;
+}
+
+/* Error state */
+.ac-error {
+    padding: 1rem;
+    color: var(--color-error, #ef4444);
+    font-size: 0.875rem;
+    text-align: center;
+}
+
+/* Section headers for saved addresses and search results */
+.ac-section-header {
+    padding: 0.5rem 1rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--color-gray-500, #6b7280);
+    background: var(--color-gray-50, #f9fafb);
+    border-bottom: 1px solid var(--color-gray-100, #f3f4f6);
+    display: flex;
+    align-items: center;
+}
+
+/* Saved address item with two-line display */
+.ac-saved-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem;
+    border-left: 3px solid var(--color-primary, #2563eb);
+    background: linear-gradient(135deg, rgba(37, 99, 235, 0.02) 0%, rgba(59, 130, 246, 0.03) 100%);
+}
+
+.ac-saved-item:hover {
+    background: linear-gradient(135deg, rgba(37, 99, 235, 0.06) 0%, rgba(59, 130, 246, 0.08) 100%);
+    border-left-color: var(--color-primary-dark, #1d4ed8);
+}
+
+.ac-item-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.ac-item-name {
+    font-weight: 600;
+    color: var(--color-gray-900, #111827);
+    font-size: 0.875rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.ac-item-address {
+    font-size: 0.8125rem;
+    color: var(--color-gray-500, #6b7280);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-top: 0.125rem;
+}
+
+/* Add new address button in autocomplete */
+.ac-add-new {
+    padding: 0.625rem 1rem;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--color-primary, #2563eb);
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    border-top: 1px solid var(--color-gray-100, #f3f4f6);
+    transition: all 0.15s ease;
+}
+
+.ac-add-new:hover {
+    background: linear-gradient(135deg, rgba(37, 99, 235, 0.04) 0%, rgba(59, 130, 246, 0.06) 100%);
+    color: var(--color-primary-dark, #1d4ed8);
+}
+
+/* Sections container */
+.ac-saved-section,
+.ac-places-section {
+    border-bottom: 1px solid var(--color-gray-100, #f3f4f6);
+}
+
+.ac-saved-section:last-child,
+.ac-places-section:last-child {
+    border-bottom: none;
 }
 
 /* Mobile autocomplete improvements */
 @media (max-width: 768px) {
     .ac-list {
-        max-height: 200px;
-        font-size: var(--font-size-base);
+        max-height: 260px;
+        border-radius: 10px;
+        top: calc(100% + 2px);
     }
 
     .ac-item {
-        padding: var(--space-4);
-        font-size: var(--font-size-base);
+        padding: 1rem;
+        font-size: 1rem;
         white-space: normal;
-        line-height: 1.4;
+        line-height: 1.5;
     }
-}
 
-.ac-item {
-    padding: var(--space-3);
-    cursor: pointer;
-    white-space: nowrap;
-    text-overflow: ellipsis;
-    overflow: hidden;
-    transition: background-color var(--transition-fast);
-}
-
-.ac-item:hover,
-.ac-item.active {
-    background: var(--color-primary-50, rgba(59, 130, 246, 0.1));
-}
-
-.ac-empty {
-    padding: var(--space-3);
-    color: var(--text-muted);
+    .ac-item.saved-address {
+        padding: 1rem;
+    }
 }
 
 /* Map components */
 #map,
 .mini-map {
     width: 100%;
-    height: 320px;
+    height: 100%;
+    min-height: 320px;
     border-radius: var(--radius-lg);
-    border: 1px solid var(--border-light);
-    box-shadow: var(--shadow-md);
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
 }
 
 .mini-map {
