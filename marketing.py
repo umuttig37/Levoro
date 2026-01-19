@@ -47,13 +47,17 @@ def contact_submit():
     email = request.form.get('email', '').strip()
     message = request.form.get('message', '').strip()
     
+    print(f"[CONTACT FORM] Received submission from: {name} <{email}>")
+    
     # Validate required fields
     if not name or not email or not message:
+        print(f"[CONTACT FORM] Validation failed - missing fields")
         flash('Täytä kaikki kentät.', 'error')
         return redirect(url_for('main.index', _anchor='contact'))
     
     # Get admin email from environment or use default
     admin_email = os.getenv('ADMIN_EMAIL', 'support@levoro.fi')
+    print(f"[CONTACT FORM] Will send to admin: {admin_email}")
     
     # Create email HTML
     html_body = f"""
@@ -77,26 +81,30 @@ def contact_submit():
         <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 20px 0;">
         
         <p style="color: #6b7280; font-size: 0.875rem;">
-            Voit vastata suoraan tähän sähköpostiin.
+            Voit vastata suoraan tähän sähköpostiin painamalla "Reply/Vastaa".
         </p>
     </div>
     """
     
     try:
         # Send email to admin with reply-to set to the visitor's email
+        print(f"[CONTACT FORM] Attempting to send email...")
         success = email_service.send_email(
             subject=f"Yhteydenotto: {name}",
             recipients=[admin_email],
             html_body=html_body,
-            sender=f"Levoro Yhteydenotto <noreply@levoro.fi>"
+            sender=f"Levoro Yhteydenotto <noreply@levoro.fi>",
+            reply_to=email  # Now visitor can receive replies directly
         )
         
         if success:
+            print(f"[CONTACT FORM] Email sent successfully!")
             flash('Viestisi on lähetetty! Vastaamme mahdollisimman pian.', 'success')
         else:
+            print(f"[CONTACT FORM] Email sending returned False")
             flash('Viestin lähetys epäonnistui. Yritä myöhemmin uudelleen.', 'error')
     except Exception as e:
-        print(f"Contact form error: {e}")
+        print(f"[CONTACT FORM] Exception: {e}")
         flash('Viestin lähetys epäonnistui. Yritä myöhemmin uudelleen.', 'error')
     
     return redirect(url_for('main.index', _anchor='contact'))
