@@ -846,10 +846,29 @@
         }
 
         // --- Calculation Logic ---
+        // Safety timeout to reset stuck isCalculating flag (30 seconds max)
+        let calcTimeout = null;
+
+        // Reset stuck state on window focus (in case something went wrong)
+        window.addEventListener('focus', () => {
+            if (isCalculating) {
+                console.warn('Resetting stuck isCalculating flag on window focus');
+                isCalculating = false;
+                const btn = document.getElementById('calcBtn');
+                if (btn) {
+                    btn.innerHTML = 'Laske hinta';
+                    btn.classList.remove('opacity-75', 'cursor-wait');
+                }
+            }
+        });
+
         async function calc() {
             // Rate limiting
             const now = Date.now();
-            if (isCalculating) return;
+            if (isCalculating) {
+                console.log('Calculation already in progress, ignoring');
+                return;
+            }
             if (now - lastCalculationTime < RATE_LIMIT_MS) {
                 showError(`Odota hetki ennen uutta laskentaa.`);
                 return;
@@ -865,12 +884,23 @@
 
             // UI Loading State
             isCalculating = true;
-            lastCalculationTime = now;
             const btn = document.getElementById('calcBtn');
             const originalText = btn.innerHTML;
             btn.innerHTML = `<span class="material-symbols-outlined animate-spin text-xl mr-2">progress_activity</span> Lasketaan...`;
             btn.classList.add('opacity-75', 'cursor-wait');
             document.getElementById('err').classList.add('hidden');
+
+            // Safety timeout - force reset after 30 seconds to prevent stuck state
+            if (calcTimeout) clearTimeout(calcTimeout);
+            calcTimeout = setTimeout(() => {
+                if (isCalculating) {
+                    console.warn('Calculation timed out, forcing reset');
+                    isCalculating = false;
+                    btn.innerHTML = originalText;
+                    btn.classList.remove('opacity-75', 'cursor-wait');
+                    showError('Laskenta kesti liian kauan. Yritä uudelleen.');
+                }
+            }, 30000);
 
             // Normalize addresses for comparison (remove spaces, lowercase)
             const normFrom = fromVal.toLowerCase().replace(/\s/g, '');
@@ -879,6 +909,7 @@
             // Validation: Same address
             if (normFrom === normTo) {
                 showError('Lähtö- ja kohdeosoite eivät voi olla samat. Ole hyvä ja tarkista osoitteet.');
+                if (calcTimeout) clearTimeout(calcTimeout);
                 isCalculating = false;
                 btn.innerHTML = originalText;
                 btn.classList.remove('opacity-75', 'cursor-wait');
@@ -905,7 +936,13 @@
                     // Map common backend errors to user-friendly messages
                     let friendlyMsg = quote.error || 'Virhe hinnan laskennassa';
 
-                    if (quote.error && (quote.error.includes('ZERO_RESULTS') || quote.error.includes('NOT_FOUND'))) {
+                    if (quoteRes.status === 429) {
+                        // Rate limited - user clicked too many times
+                        friendlyMsg = 'Liian monta pyyntöä. Odota hetki ja yritä uudelleen.';
+                    } else if (quoteRes.status === 503) {
+                        // Routing service unavailable - can retry immediately
+                        friendlyMsg = 'Reitityspalvelu on väliaikaisesti poissa käytöstä. Yritä uudelleen.';
+                    } else if (quote.error && (quote.error.includes('ZERO_RESULTS') || quote.error.includes('NOT_FOUND'))) {
                         friendlyMsg = 'Reittiä ei löytynyt näiden osoitteiden välille. Tarkista osoitteet.';
                     } else if (quote.error && quote.error.includes('same')) {
                         friendlyMsg = 'Lähtö- ja kohdeosoite ovat liian lähellä toisiaan.';
@@ -957,9 +994,17 @@
                     receipt.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
                 }
 
+                // Update rate limit timer only on SUCCESS - allows immediate retry on errors
+                lastCalculationTime = Date.now();
+
             } catch (e) {
                 showError(e.message);
             } finally {
+                // Clear the safety timeout
+                if (calcTimeout) {
+                    clearTimeout(calcTimeout);
+                    calcTimeout = null;
+                }
                 isCalculating = false;
                 btn.innerHTML = originalText;
                 btn.classList.remove('opacity-75', 'cursor-wait');
@@ -974,7 +1019,7 @@
 
         function demo() {
             document.getElementById('from').value = 'Mannerheimintie 1, Helsinki';
-            document.getElementById('to').value = 'Hämeenkatu 1, Tampere';
+            document.getElementById('to').value = 'Rutaperäntie 9, 37560 Lempäälä, Suomi';
             calc();
         }
 

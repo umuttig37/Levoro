@@ -13,13 +13,13 @@ def get_app():
 
 app = get_app()
 
-@app.get("/kayttoehdot")
+@app.get("/terms")
 def terms():
     """Legacy terms route - redirect to new customer terms"""
     from flask import redirect
-    return redirect('/sopimusehdot', code=301)
+    return redirect('/kayttoehdot', code=301)
 
-@app.get("/sopimusehdot")
+@app.get("/kayttoehdot")
 def customer_terms():
     """Customer terms of service page"""
     from flask import render_template

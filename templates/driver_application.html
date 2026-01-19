@@ -481,9 +481,17 @@
     }
 
     @keyframes checkPop {
-        0% { transform: scale(1); }
-        50% { transform: scale(1.2); }
-        100% { transform: scale(1); }
+        0% {
+            transform: scale(1);
+        }
+
+        50% {
+            transform: scale(1.2);
+        }
+
+        100% {
+            transform: scale(1);
+        }
     }
 
     .terms-checkbox input[type="checkbox"]:focus {
@@ -525,6 +533,7 @@
         .birthdate-picker {
             grid-template-columns: 1fr 1fr;
         }
+
         .birthdate-picker .custom-select-container:last-child {
             grid-column: span 2;
         }
@@ -617,6 +626,7 @@
             opacity: 0;
             transform: translateY(-4px);
         }
+
         to {
             opacity: 1;
             transform: translateY(0);
@@ -733,7 +743,8 @@
                         </select>
                         <div class="custom-select-trigger">
                             <span class="custom-select-label placeholder">Päivä</span>
-                            <svg class="custom-select-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <svg class="custom-select-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
                                 <polyline points="6 9 12 15 18 9"></polyline>
                             </svg>
                         </div>
@@ -759,7 +770,8 @@
                         </select>
                         <div class="custom-select-trigger">
                             <span class="custom-select-label placeholder">Kuukausi</span>
-                            <svg class="custom-select-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <svg class="custom-select-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
                                 <polyline points="6 9 12 15 18 9"></polyline>
                             </svg>
                         </div>
@@ -786,7 +798,8 @@
                         </select>
                         <div class="custom-select-trigger">
                             <span class="custom-select-label placeholder">Vuosi</span>
-                            <svg class="custom-select-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <svg class="custom-select-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
                                 <polyline points="6 9 12 15 18 9"></polyline>
                             </svg>
                         </div>
@@ -809,7 +822,8 @@
                 <div class="form-group-new">
                     <label class="form-label-new required" for="postal_code">Postinumero</label>
                     <input type="text" id="postal_code" name="postal_code" class="form-input-new" required
-                        value="{{ request.form.get('postal_code', '') }}" placeholder="00100" maxlength="5" pattern="[0-9]{5}">
+                        value="{{ request.form.get('postal_code', '') }}" placeholder="00100" maxlength="5"
+                        pattern="[0-9]{5}">
                 </div>
                 <div class="form-group-new">
                     <label class="form-label-new required" for="city">Kaupunki</label>
@@ -823,7 +837,8 @@
         <div class="form-step" data-step="3">
             <h2 class="step-title">Kerro itsestäsi</h2>
             <div class="info-box">
-                <p>Kerro meille hieman itsestäsi ja miksi haluaisit liittyä Levoron kuljettajatiimiin. Voit mainita esimerkiksi ajokokemuksestasi, kielitaidoistasi tai muista vahvuuksistasi.</p>
+                <p>Kerro meille hieman itsestäsi ja miksi haluaisit liittyä Levoron kuljettajatiimiin. Voit mainita
+                    esimerkiksi ajokokemuksestasi, kielitaidoistasi tai muista vahvuuksistasi.</p>
             </div>
             <div class="form-group-new">
                 <label class="form-label-new required" for="about_me">Esittelyteksti</label>
@@ -890,12 +905,13 @@
                     </div>
                 </div>
             </div>
-            
+
             <!-- Terms Agreement -->
             <div class="terms-checkbox">
                 <input type="checkbox" id="terms_accepted" name="terms_accepted" required>
                 <label for="terms_accepted">
-                    Olen lukenut ja hyväksyn <a href="/kuljettajan-ehdot" target="_blank">kuljettajan sopimusehdot</a>. Ymmärrän, että hakemukseni käsitellään ja minuun otetaan yhteyttä sähköpostitse.
+                    Olen lukenut ja hyväksyn <a href="/kuljettajan-ehdot" target="_blank">kuljettajan käyttöehdot</a>.
+                    Ymmärrän, että hakemukseni käsitellään ja minuun otetaan yhteyttä sähköpostitse.
                 </label>
             </div>
         </div>
@@ -925,7 +941,7 @@
         const totalSteps = steps.length;
 
         // Prevent Enter key from submitting the form - go to next step instead
-        form.addEventListener('keydown', function(e) {
+        form.addEventListener('keydown', function (e) {
             if (e.key === 'Enter' && e.target.tagName !== 'TEXTAREA') {
                 e.preventDefault();
                 // If not on last step, go to next step
@@ -941,7 +957,7 @@
         // Character counter for about_me
         const aboutMe = document.getElementById('about_me');
         const charCounter = document.getElementById('charCounter');
-        
+
         if (aboutMe && charCounter) {
             function updateCharCounter() {
                 const len = aboutMe.value.length;
@@ -1009,19 +1025,19 @@
                 // Clear previous error styling
                 input.style.borderColor = '';
                 input.style.boxShadow = '';
-                
+
                 // Handle checkbox validation
                 if (input.type === 'checkbox') {
                     if (!input.checked) {
                         isValid = false;
                         if (!firstInvalid) {
                             firstInvalid = input;
-                            errorMessages.push('Hyväksy sopimusehdot jatkaaksesi');
+                            errorMessages.push('Hyväksy käyttöehdot jatkaaksesi');
                         }
                     }
                     return;
                 }
-                
+
                 // Handle file input validation
                 if (input.type === 'file') {
                     if (!input.files || input.files.length === 0) {
@@ -1039,19 +1055,19 @@
                     }
                     return;
                 }
-                
+
                 // Handle other inputs
                 if (!input.checkValidity()) {
                     isValid = false;
                     // Add error styling
                     input.style.borderColor = '#f87171';
                     input.style.boxShadow = '0 0 0 3px rgba(248, 113, 113, 0.15)';
-                    
+
                     if (!firstInvalid) {
                         firstInvalid = input;
                         // Get field label for message
-                        const label = input.closest('.form-group-new')?.querySelector('label')?.textContent?.replace('*', '').trim() 
-                                   || 'Kenttä';
+                        const label = input.closest('.form-group-new')?.querySelector('label')?.textContent?.replace('*', '').trim()
+                            || 'Kenttä';
                         errorMessages.push(`${label} on pakollinen`);
                     }
                 }
@@ -1115,7 +1131,7 @@
         // Postal code formatting - numbers only
         const postalInput = document.getElementById('postal_code');
         if (postalInput) {
-            postalInput.addEventListener('input', function(e) {
+            postalInput.addEventListener('input', function (e) {
                 e.target.value = e.target.value.replace(/\D/g, '').slice(0, 5);
             });
         }
@@ -1154,9 +1170,9 @@
                 if (!trigger || !options || !hiddenSelect) return;
 
                 // Toggle dropdown on trigger click
-                trigger.addEventListener('click', function(e) {
+                trigger.addEventListener('click', function (e) {
                     e.stopPropagation();
-                    
+
                     // Close other dropdowns in birthdate picker
                     document.querySelectorAll('.birthdate-picker .custom-select-container').forEach(c => {
                         if (c !== container) {
@@ -1171,10 +1187,10 @@
                 });
 
                 // Handle option click
-                options.addEventListener('click', function(e) {
+                options.addEventListener('click', function (e) {
                     const option = e.target.closest('.custom-option');
                     if (!option) return;
-                    
+
                     e.stopPropagation();
 
                     // Update UI
@@ -1280,18 +1296,18 @@
             initCustomSelect(yearContainer);
 
             // Update days when month or year changes
-            monthSelect.addEventListener('change', function() {
+            monthSelect.addEventListener('change', function () {
                 updateDayOptions();
                 updateHiddenDate();
             });
-            yearSelect.addEventListener('change', function() {
+            yearSelect.addEventListener('change', function () {
                 updateDayOptions();
                 updateHiddenDate();
             });
             daySelect.addEventListener('change', updateHiddenDate);
 
             // Close all dropdowns when clicking outside
-            document.addEventListener('click', function() {
+            document.addEventListener('click', function () {
                 document.querySelectorAll('.birthdate-picker .custom-select-container').forEach(c => {
                     c.classList.remove('open');
                     c.querySelector('.custom-select-trigger')?.classList.remove('open');
@@ -1367,7 +1383,7 @@
     }
 
     // Toast notification function
-    (function() {
+    (function () {
         // Create toast container if it doesn't exist
         let container = document.getElementById('toast-container');
         if (!container) {
@@ -1377,7 +1393,7 @@
             document.body.appendChild(container);
         }
 
-        window.showToast = function(message, type = 'error') {
+        window.showToast = function (message, type = 'error') {
             const toast = document.createElement('div');
             const colors = {
                 error: { bg: '#ef4444', icon: '✕' },
@@ -1386,7 +1402,7 @@
                 info: { bg: '#3b82f6', icon: 'ℹ' }
             };
             const { bg, icon } = colors[type] || colors.error;
-            
+
             toast.style.cssText = `
                 display:flex;align-items:center;gap:12px;padding:14px 20px;
                 background:${bg};color:white;border-radius:12px;
@@ -1395,7 +1411,7 @@
             `;
             toast.innerHTML = `<span style="font-size:18px;">${icon}</span><span>${message}</span>`;
             container.appendChild(toast);
-            
+
             requestAnimationFrame(() => { toast.style.transform = 'translateX(0)'; });
             setTimeout(() => {
                 toast.style.transform = 'translateX(120%)';

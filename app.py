@@ -1386,7 +1386,7 @@ def submit_driver_application():
 
     # Validate terms acceptance
     if not application_data.get("terms_accepted"):
-        flash("Virhe: Sinun tulee hyväksyä sopimusehdot", "error")
+        flash("Virhe: Sinun tulee hyväksyä käyttöehdot", "error")
         return render_template('driver_application.html')
 
     # Validate license images
