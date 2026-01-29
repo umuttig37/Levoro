@@ -352,6 +352,33 @@ class OrderModel(BaseModel):
         except Exception as e:
             return False, f"Palkkion päivitys epäonnistui: {str(e)}"
 
+    def update_price_gross(self, order_id: int, price_gross: float) -> Tuple[bool, Optional[str]]:
+        """Update gross price for an order"""
+        try:
+            if price_gross < 0:
+                return False, "Hinta ei voi olla negatiivinen"
+
+            success = self.update_one(
+                {"id": int(order_id)},
+                {"$set": {
+                    "price_gross": float(price_gross),
+                    "updated_at": datetime.now(timezone.utc)
+                }}
+            )
+            return success, None
+        except Exception as e:
+            return False, f"Hinnan päivitys epäonnistui: {str(e)}"
+
+    def delete_order(self, order_id: int) -> Tuple[bool, Optional[str]]:
+        """Delete order by id"""
+        try:
+            success = self.delete_one({"id": int(order_id)})
+            if not success:
+                return False, "Tilausta ei löytynyt"
+            return True, None
+        except Exception as e:
+            return False, f"Tilauksen poistaminen epäonnistui: {str(e)}"
+
     def update_order_details(self, order_id: int, car_model: Optional[str] = None,
                             car_brand: Optional[str] = None, additional_info: Optional[str] = None,
                             driver_notes: Optional[str] = None) -> Tuple[bool, Optional[str]]:

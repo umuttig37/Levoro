@@ -1317,6 +1317,7 @@
 
           {% set is_completed = order.status in completed_statuses %}
           {% set manual_pricing = order.manual_pricing or order.pickup_from_eu %}
+          {% set has_price = (order.price_gross|default(0)|float) > 0 %}
 
           <tr class="order-row" data-status="{{ 'completed' if is_completed else 'active' }}"
             data-plate="{{ order.reg_number or '' }}">
@@ -1356,7 +1357,7 @@
               </div>
             </td>
             <td class="price-cell">
-              {% if manual_pricing %}
+              {% if manual_pricing and not has_price %}
               <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 2px;">
                 <span style="font-weight: 600; color: #1e293b;">Hinta sovitaan erikseen</span>
                 <span style="font-size: 11px; color: #94a3b8; font-weight: 400;">beta</span>
@@ -1428,6 +1429,7 @@
 
       {% set is_completed = order.status in completed_statuses %}
       {% set manual_pricing = order.manual_pricing or order.pickup_from_eu %}
+      {% set has_price = (order.price_gross|default(0)|float) > 0 %}
 
       <div class="mobile-order-card order-card-item" data-status="{{ 'completed' if is_completed else 'active' }}"
         data-plate="{{ order.reg_number or '' }}">
@@ -1467,7 +1469,7 @@
           </div>
           <div class="mobile-card-meta-item">
             <span class="mobile-meta-label">Hinta</span>
-            {% if manual_pricing %}
+            {% if manual_pricing and not has_price %}
             <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 2px;">
               <span class="mobile-meta-value">Hinta sovitaan erikseen</span>
               <span style="font-size: 11px; color: #94a3b8; font-weight: 400;">beta</span>

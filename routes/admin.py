@@ -1238,6 +1238,7 @@ def update_order_details(order_id):
 
     # Get form data
     driver_reward = request.form.get('driver_reward')
+    price_gross = request.form.get('price_gross')
     car_brand = request.form.get('car_brand', '').strip()
     car_model = request.form.get('car_model', '').strip()
     additional_info = request.form.get('additional_info', '').strip()
@@ -1259,6 +1260,23 @@ def update_order_details(order_id):
             flash('Virhe: Virheellinen palkkion arvo', 'error')
             return redirect(url_for('admin.order_detail', order_id=order_id))
 
+    # Update price (gross)
+    if price_gross is not None and price_gross != '':
+        try:
+            normalized = price_gross.replace(',', '.')
+            price_gross_float = float(normalized)
+            if price_gross_float < 0:
+                flash('Virhe: Hinta ei voi olla negatiivinen', 'error')
+                return redirect(url_for('admin.order_detail', order_id=order_id))
+
+            success, error = order_model.update_price_gross(order_id, price_gross_float)
+            if not success:
+                flash(f'Hinnan päivitys epäonnistui: {error}', 'error')
+                return redirect(url_for('admin.order_detail', order_id=order_id))
+        except ValueError:
+            flash('Virhe: Virheellinen hinnan arvo', 'error')
+            return redirect(url_for('admin.order_detail', order_id=order_id))
+
     # Update order details (including additional_info which is now admin-editable)
     success, error = order_model.update_order_details(
         order_id,
@@ -1274,6 +1292,21 @@ def update_order_details(order_id):
         flash(f'Virhe: {error}', 'error')
 
     return redirect(url_for('admin.order_detail', order_id=order_id))
+
+
+@admin_bp.route("/order/<int:order_id>/delete", methods=["POST"])
+@admin_required
+def delete_order(order_id):
+    """Delete an order (admin only)"""
+    from models.order import order_model
+
+    success, error = order_model.delete_order(order_id)
+    if success:
+        flash(f"Tilaus #{order_id} poistettu.", "success")
+        return redirect(url_for("main.admin_dashboard"))
+    else:
+        flash(f"Virhe: {error}", "error")
+        return redirect(url_for("admin.order_detail", order_id=order_id))
 
 
 # ==================== DISCOUNT MANAGEMENT ====================
