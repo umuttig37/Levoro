@@ -241,9 +241,13 @@
                 <div class="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
                     <div class="flex items-center justify-between mb-6">
                         <h3 class="text-lg font-bold text-slate-900">Reitti & Aikataulu</h3>
-                        <span
-                            class="text-xs font-medium text-slate-500 bg-slate-50 px-2 py-1 rounded border border-slate-100">{{
-                            order.distance_km|default(0) }} km</span>
+                        <span id="adminDistanceBadge"
+                            class="text-xs font-medium text-slate-500 bg-slate-50 px-2 py-1 rounded border border-slate-100"
+                            data-km="{{ "%.1f"|format(order.distance_km|default(0)) }}"
+                            data-pickup="{{ order.pickup_address|e }}"
+                            data-dropoff="{{ order.dropoff_address|e }}">
+                            {{ "%.1f"|format(order.distance_km|default(0)) }} km
+                        </span>
                     </div>
                     <div class="space-y-6">
                         <!-- Pickup -->
@@ -728,6 +732,20 @@
                         </div>
                         {% endif %}
 
+                        <div>
+                            <div class="flex items-center gap-2 mb-1">
+                                <span class="material-symbols-outlined text-slate-400 text-[18px]">public</span>
+                                <span class="text-xs font-bold text-slate-500 uppercase">Ulkomaan kuljetus</span>
+                            </div>
+                            <p class="text-sm font-semibold text-slate-900 ml-6">
+                                {% if order.pickup_from_eu %}
+                                <span class="text-green-600">Kyllä</span> (Eurooppa &rarr; Suomi)
+                                {% else %}
+                                <span class="text-slate-500">Ei</span>
+                                {% endif %}
+                            </p>
+                        </div>
+
                         <!-- Vehicle Info -->
                         {% if order.reg_number or order.winter_tires is not none %}
                         <div>
@@ -901,6 +919,34 @@
                 } catch (error) { /* Geocoding failed silently */ }
             }
             geocodeAndShowRoute();
+        });
+
+        document.addEventListener('DOMContentLoaded', function () {
+            const badge = document.getElementById('adminDistanceBadge');
+            if (!badge) return;
+
+            const rawKm = (badge.dataset.km || '').replace(',', '.');
+            const currentKm = Number(rawKm);
+            if (currentKm && currentKm > 0) return;
+
+            const pickup = badge.dataset.pickup || '';
+            const dropoff = badge.dataset.dropoff || '';
+            if (!pickup || !dropoff) return;
+
+            fetch('/api/route_geo', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ pickup: pickup, dropoff: dropoff })
+            })
+                .then(r => r.json())
+                .then(data => {
+                    const km = Number(data.km);
+                    if (!isFinite(km) || km <= 0) return;
+                    const kmText = km.toFixed(1);
+                    badge.dataset.km = kmText;
+                    badge.textContent = `${kmText} km`;
+                })
+                .catch(() => { });
         });
 
         document.addEventListener('DOMContentLoaded', function () {

@@ -199,8 +199,30 @@
     <!-- Divider -->
     <div class="border-t border-gray-200 my-2"></div>
 
+    <!-- EU Pickup Option -->
+    <div class="rounded-xl border border-gray-200 bg-white p-4 transition-all hover:border-blue-300 hover:shadow-sm">
+        <label for="pickup_from_eu_checkbox" class="flex items-start gap-4 cursor-pointer">
+            <div class="flex-shrink-0 mt-0.5">
+                <input type="checkbox" id="pickup_from_eu_checkbox" name="pickup_from_eu" value="1" {{ 'checked' if pickup_from_eu
+                    else '' }} class="w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-200 cursor-pointer">
+            </div>
+            <div class="flex-1">
+                <div class="flex items-center gap-3 flex-wrap">
+                    <span class="font-bold text-slate-900 text-base">Kuljetus ulkomaasta</span>
+                    <span class="inline-flex items-center gap-1 bg-blue-100 text-blue-700 text-xs font-bold px-2.5 py-1 rounded-full">
+                        Beta
+                    </span>
+                </div>
+                <p class="text-sm text-slate-500 mt-1">Eurooppa &rarr; Suomi (automaattinen hinnoittelu tulossa)</p>
+            </div>
+            <div class="hidden sm:flex items-center justify-center w-9 h-9 rounded-full bg-blue-50 flex-shrink-0">
+                <span class="material-symbols-outlined text-blue-500 text-xl">public</span>
+            </div>
+        </label>
+    </div>
+
     <!-- Return Trip Option - Paluuajo (Clean with accent) -->
-    <div class="rounded-xl border border-gray-200 bg-white p-4 transition-all hover:border-orange-300 hover:shadow-sm">
+    <div id="paluu_auto_card" class="rounded-xl border border-gray-200 bg-white p-4 transition-all hover:border-orange-300 hover:shadow-sm">
         <label for="paluu_auto_checkbox" class="flex items-start gap-4 cursor-pointer">
             <div class="flex-shrink-0 mt-0.5">
                 <input type="checkbox" id="paluu_auto_checkbox" name="paluu_auto" value="1" {{ 'checked' if paluu_auto
@@ -533,6 +555,11 @@
     }
 
     // --- Google Places Autocomplete ---
+    function getPickupScope() {
+        const euToggle = document.getElementById('pickup_from_eu_checkbox');
+        return euToggle && euToggle.checked ? 'eu' : 'fi';
+    }
+
     class WizardAutocomplete {
         constructor(input, listEl, placeIdInput) {
             this.input = input;
@@ -600,7 +627,7 @@
                 const response = await fetch('/api/places_autocomplete', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ query: q })
+                    body: JSON.stringify({ query: q, scope: getPickupScope() })
                 });
                 if (!response.ok) throw new Error();
                 const data = await response.json();
@@ -694,6 +721,8 @@
             this.input.value = addr.fullAddress;
             if (this.placeIdInput) this.placeIdInput.value = '';
             this.hide();
+            this.input.dispatchEvent(new Event('input', { bubbles: true }));
+            this.input.dispatchEvent(new Event('change', { bubbles: true }));
         }
 
         pick(i) {
@@ -702,6 +731,8 @@
             this.input.value = item.description;
             if (this.placeIdInput) this.placeIdInput.value = item.place_id || '';
             this.hide();
+            this.input.dispatchEvent(new Event('input', { bubbles: true }));
+            this.input.dispatchEvent(new Event('change', { bubbles: true }));
         }
 
         onKey(e) {
@@ -711,17 +742,48 @@
 
         show() { this.list.style.display = 'block'; }
         hide() { this.list.style.display = 'none'; }
+        clearCache() { this.cache.clear(); }
     }
 
     // Initialize
     document.addEventListener('DOMContentLoaded', function () {
         loadSavedAddresses();
 
-        new WizardAutocomplete(
+        const pickupAutocomplete = new WizardAutocomplete(
             document.getElementById('from_step'),
             document.getElementById('ac_from_step'),
             document.getElementById('pickup_place_id')
         );
+
+        const euToggle = document.getElementById('pickup_from_eu_checkbox');
+        const paluuCheckbox = document.getElementById('paluu_auto_checkbox');
+        const paluuCard = document.getElementById('paluu_auto_card');
+        const pickupPlaceId = document.getElementById('pickup_place_id');
+
+        function syncPaluuAuto() {
+            if (!euToggle || !paluuCheckbox) return;
+            if (euToggle.checked) {
+                paluuCheckbox.checked = false;
+                paluuCheckbox.disabled = true;
+                if (paluuCard) {
+                    paluuCard.classList.add('opacity-60', 'pointer-events-none');
+                }
+            } else {
+                paluuCheckbox.disabled = false;
+                if (paluuCard) {
+                    paluuCard.classList.remove('opacity-60', 'pointer-events-none');
+                }
+            }
+        }
+
+        if (euToggle) {
+            euToggle.addEventListener('change', () => {
+                syncPaluuAuto();
+                if (pickupPlaceId) pickupPlaceId.value = '';
+                if (pickupAutocomplete) pickupAutocomplete.clearCache();
+            });
+        }
+        syncPaluuAuto();
 
         // Date validation
         const pickupDate = document.getElementById('pickup_date');

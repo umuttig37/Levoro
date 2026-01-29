@@ -62,7 +62,13 @@
     {% endif %}
 </div>
 
-{% if order.price_gross %}
+{% if order.manual_pricing %}
+<div class="price-highlight">
+    <div class="price-label">Beta</div>
+    <div class="price-amount">Hinta sovitaan erikseen</div>
+    <div class="price-details">Ulkomaan kuljetus (Eurooppa -> Suomi)</div>
+</div>
+{% elif order.price_gross %}
 <div class="price-highlight">
     <div class="price-label">Kuljetuksen hinta</div>
     <div class="price-amount">{{ "%.2f"|format(order.price_gross / 1.255) }} €</div>

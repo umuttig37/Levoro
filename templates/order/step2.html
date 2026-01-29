@@ -562,7 +562,7 @@
                 const response = await fetch('/api/places_autocomplete', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ query: q })
+                    body: JSON.stringify({ query: q, scope: 'fi' })
                 });
                 if (!response.ok) throw new Error();
                 const data = await response.json();
@@ -690,10 +690,21 @@
         // Date validation
         const pickupDateStep2 = document.getElementById('pickup_date_step2');
         const deliveryDate = document.getElementById('last_delivery_date');
+        const pickupFromEu = {{ 'true' if pickup_from_eu else 'false' }};
+
+        function addDays(dateStr, days) {
+            if (!dateStr) return '';
+            const d = new Date(dateStr + 'T00:00:00');
+            if (Number.isNaN(d.getTime())) return '';
+            d.setDate(d.getDate() + days);
+            return d.toISOString().split('T')[0];
+        }
 
         if (deliveryDate) {
             const today = new Date().toISOString().split('T')[0];
-            const minDate = pickupDateStep2?.value || today;
+            const baseDate = pickupDateStep2?.value || today;
+            const minDate = pickupFromEu ? (addDays(baseDate, 2) || baseDate) : baseDate;
+            window.deliveryMinDate = minDate;
             deliveryDate.min = minDate;
             if (!deliveryDate.value || deliveryDate.value < minDate) {
                 deliveryDate.value = minDate;
@@ -780,12 +791,13 @@
         const dateInput = document.getElementById('last_delivery_date');
         if (dateInput) {
             const today = new Date();
+            const minDate = window.deliveryMinDate || 'today';
             flatpickr(dateInput, {
                 locale: 'fi',
                 dateFormat: 'Y-m-d',
                 altInput: true,
                 altFormat: 'd.m.Y',
-                minDate: 'today',
+                minDate: minDate,
                 disableMobile: true,
                 defaultDate: dateInput.value || today,
                 onReady: function(selectedDates, dateStr, instance) {

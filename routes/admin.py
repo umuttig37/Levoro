@@ -883,6 +883,7 @@ def order_detail(order_id):
             "distance_km": 1, "price_gross": 1,
             "reg_number": 1, "winter_tires": 1, "pickup_date": 1, "last_delivery_date": 1,
             "pickup_time": 1, "delivery_time": 1,
+            "pickup_from_eu": 1,
             "created_at": 1, "updated_at": 1,
             "extras": 1, "images": 1,
             "orderer_name": 1, "orderer_email": 1, "orderer_phone": 1,
@@ -909,6 +910,7 @@ def order_detail(order_id):
     order.setdefault('status', 'NEW')
     order.setdefault('pickup_address', '')
     order.setdefault('dropoff_address', '')
+    order.setdefault('pickup_from_eu', False)
     
     status_fi = translate_status(order.get('status', 'NEW'))
 

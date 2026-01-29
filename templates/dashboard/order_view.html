@@ -295,7 +295,10 @@
                         <div
                             class="absolute bottom-6 left-6 inline-flex items-center gap-2 px-4 py-2 bg-white/95 dark:bg-slate-800/95 rounded-full shadow-lg border border-slate-100 dark:border-slate-600 z-10 backdrop-blur-sm">
                             <span class="material-symbols-outlined text-[18px] text-primary">route</span>
-                            <span class="text-sm font-semibold text-primary">{{ distance_km }} km Matka</span>
+                            <span id="distanceBadgeText" class="text-sm font-semibold text-primary"
+                                data-km="{{ "%.1f"|format(distance_km) }}"
+                                data-pickup="{{ order.pickup_address|e }}"
+                                data-dropoff="{{ order.dropoff_address|e }}"> {{ "%.1f"|format(distance_km) }} km Matka</span>
                         </div>
                     </div>
 
@@ -590,6 +593,11 @@
                 <div
                     class="bg-white dark:bg-slate-800 rounded-xl shadow-lg shadow-slate-200/50 dark:shadow-black/20 border border-slate-100 dark:border-slate-700/50 p-6">
                     <div class="flex items-center justify-between mb-6">
+                        {% if order.manual_pricing %}
+                        <span class="text-sm font-medium text-slate-500 dark:text-slate-400">Hinta</span>
+                    </div>
+                    <div class="text-base font-semibold text-slate-700 dark:text-slate-200">Hinta sovitaan erikseen (beta)</div>
+                    {% else %}
                         <span class="text-sm font-medium text-slate-500 dark:text-slate-400">Hinta (ALV 0%)</span>
                     </div>
                     <div class="text-4xl font-bold text-slate-900 dark:text-white mb-1">
@@ -597,6 +605,7 @@
                     </div>
                     <p class="text-sm text-slate-500 dark:text-slate-400 mb-6">sis. alv {{
                         "{:,.2f}".format(price_gross).replace('.', ',') }} €</p>
+                    {% endif %}
 
 
 
@@ -749,5 +758,35 @@
 }) ();
 </script>
 {% endif %}
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const badge = document.getElementById('distanceBadgeText');
+        if (!badge) return;
+
+        const rawKm = (badge.dataset.km || '').replace(',', '.');
+        const currentKm = Number(rawKm);
+        if (currentKm && currentKm > 0) return;
+
+        const pickup = badge.dataset.pickup || '';
+        const dropoff = badge.dataset.dropoff || '';
+        if (!pickup || !dropoff) return;
+
+        fetch('/api/route_geo', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ pickup: pickup, dropoff: dropoff })
+        })
+            .then(r => r.json())
+            .then(data => {
+                const km = Number(data.km);
+                if (!isFinite(km) || km <= 0) return;
+                const kmText = km.toFixed(1);
+                badge.dataset.km = kmText;
+                badge.textContent = `${kmText} km Matka`;
+            })
+            .catch(() => { });
+    });
+</script>
 
 {% endblock %}

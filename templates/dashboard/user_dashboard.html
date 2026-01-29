@@ -1316,6 +1316,7 @@
           }.get(order.status, 'pending') %}
 
           {% set is_completed = order.status in completed_statuses %}
+          {% set manual_pricing = order.manual_pricing or order.pickup_from_eu %}
 
           <tr class="order-row" data-status="{{ 'completed' if is_completed else 'active' }}"
             data-plate="{{ order.reg_number or '' }}">
@@ -1355,13 +1356,21 @@
               </div>
             </td>
             <td class="price-cell">
+              {% if manual_pricing %}
+              <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 2px;">
+                <span style="font-weight: 600; color: #1e293b;">Hinta sovitaan erikseen</span>
+                <span style="font-size: 11px; color: #94a3b8; font-weight: 400;">beta</span>
+              </div>
+              {% else %}
               <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 2px;">
                 <span style="font-weight: 600; color: #1e293b;">{{ "%.2f"|format((order.price_gross|float) / 1.255) }}
-                  €</span>
+                  &euro;</span>
                 <span style="font-size: 11px; color: #94a3b8; font-weight: 400;">sis. alv {{
-                  "%.2f"|format(order.price_gross|float) }} €</span>
+                  "%.2f"|format(order.price_gross|float) }} &euro;</span>
               </div>
+              {% endif %}
             </td>
+
             <td style="text-align: center;">
               <a class="action-btn" href="/order/{{ order.id }}" title="Avaa tilaus">Avaa</a>
             </td>
@@ -1418,6 +1427,7 @@
       }.get(order.status, 'pending') %}
 
       {% set is_completed = order.status in completed_statuses %}
+      {% set manual_pricing = order.manual_pricing or order.pickup_from_eu %}
 
       <div class="mobile-order-card order-card-item" data-status="{{ 'completed' if is_completed else 'active' }}"
         data-plate="{{ order.reg_number or '' }}">
@@ -1456,15 +1466,21 @@
             <span class="mobile-meta-value">{{ order.vehicle_make or 'Ajoneuvo' }}</span>
           </div>
           <div class="mobile-card-meta-item">
-            <span class="mobile-meta-label">Hinta (ALV 0%)</span>
+            <span class="mobile-meta-label">Hinta</span>
+            {% if manual_pricing %}
             <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 2px;">
-              <span class="mobile-meta-value">{{ "%.2f"|format((order.price_gross|float) / 1.255) }} €</span>
-              <span style="font-size: 11px; color: #94a3b8; font-weight: 400;">sis. alv {{
-                "%.2f"|format(order.price_gross|float) }} €</span>
+              <span class="mobile-meta-value">Hinta sovitaan erikseen</span>
+              <span style="font-size: 11px; color: #94a3b8; font-weight: 400;">beta</span>
             </div>
+            {% else %}
+            <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 2px;">
+              <span class="mobile-meta-value">{{ "%.2f"|format((order.price_gross|float) / 1.255) }} &euro;</span>
+              <span style="font-size: 11px; color: #94a3b8; font-weight: 400;">sis. alv {{
+                "%.2f"|format(order.price_gross|float) }} &euro;</span>
+            </div>
+            {% endif %}
           </div>
         </div>
-
         <a href="/order/{{ order.id }}" class="mobile-card-action">
           Avaa tilaus
           <span class="material-symbols-outlined">arrow_forward</span>

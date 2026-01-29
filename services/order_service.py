@@ -77,7 +77,7 @@ class OrderService:
         """Create a new order with pricing calculation"""
         try:
             # Calculate pricing if addresses are provided
-            if "pickup_address" in order_data and "dropoff_address" in order_data:
+            if "pickup_address" in order_data and "dropoff_address" in order_data and not order_data.get("manual_pricing"):
                 pickup_place_id = order_data.get("pickup_place_id", "")
                 dropoff_place_id = order_data.get("dropoff_place_id", "")
                 distance_km = self.calculate_route_distance(
@@ -749,6 +749,64 @@ class OrderService:
 
         except Exception as e:
             print(f"Geocoding error: {e}")
+
+        return None
+
+    def _extract_country_code(self, components: List[Dict]) -> Optional[str]:
+        """Extract ISO country code from Google address components."""
+        if not components:
+            return None
+        for component in components:
+            types = component.get("types") or []
+            if "country" in types:
+                code = component.get("short_name") or component.get("long_name")
+                if code:
+                    return str(code).upper()
+        return None
+
+    def get_country_code(self, address: str = "", place_id: str = "") -> Optional[str]:
+        """Resolve ISO country code using Place Details or Geocoding."""
+        if not GOOGLE_PLACES_API_KEY or (not address and not place_id):
+            return None
+
+        try:
+            if place_id:
+                url = "https://maps.googleapis.com/maps/api/place/details/json"
+                params = {
+                    "place_id": place_id,
+                    "fields": "address_component",
+                    "language": "fi",
+                    "key": GOOGLE_PLACES_API_KEY
+                }
+                response = requests.get(url, params=params, timeout=10)
+                response.raise_for_status()
+                data = response.json()
+                if data.get("status") == "OK":
+                    components = data.get("result", {}).get("address_components") or []
+                    code = self._extract_country_code(components)
+                    if code:
+                        return code
+        except Exception as e:
+            print(f"Place details country lookup failed: {e}")
+
+        if not address:
+            return None
+
+        try:
+            url = "https://maps.googleapis.com/maps/api/geocode/json"
+            params = {
+                "address": address,
+                "key": GOOGLE_PLACES_API_KEY,
+                "language": "fi"
+            }
+            response = requests.get(url, params=params, timeout=10)
+            response.raise_for_status()
+            data = response.json()
+            if data.get("status") == "OK" and data.get("results"):
+                components = data["results"][0].get("address_components") or []
+                return self._extract_country_code(components)
+        except Exception as e:
+            print(f"Geocode country lookup failed: {e}")
 
         return None
 

@@ -67,7 +67,12 @@
         <div class="detail-value">{{ "%.1f"|format(order.distance_km) }} km</div>
     </div>
     {% endif %}
-    {% if order.price_gross %}
+    {% if order.manual_pricing %}
+    <div class="detail-row">
+        <div class="detail-label">Hinta:</div>
+        <div class="detail-value"><strong style="font-size: 1.2em; color: #0f172a;">Hinta sovitaan erikseen (beta)</strong></div>
+    </div>
+{% elif order.price_gross %}
     <div class="detail-row">
         <div class="detail-label">Hinta (ALV 0%):</div>
         <div class="detail-value"><strong style="font-size: 1.5em; color: #0f172a;">{{ "%.2f"|format(order.price_gross /

@@ -75,7 +75,12 @@
     </div>
     {% endif %}
 
-    {% if order.price_gross %}
+    {% if order.manual_pricing %}
+    <div class="detail-row" style="padding-top: 16px; border-top: 2px solid #e5e7eb; margin-top: 12px;">
+        <div class="detail-label">Hinta:</div>
+        <div class="detail-value">Hinta sovitaan erikseen (beta)</div>
+    </div>
+{% elif order.price_gross %}
     <div class="detail-row" style="padding-top: 16px; border-top: 2px solid #e5e7eb; margin-top: 12px;">
         <div class="detail-label">Hinta:</div>
         <div class="detail-value">

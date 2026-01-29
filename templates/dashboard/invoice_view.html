@@ -312,7 +312,12 @@
         </div>
 
         <!-- Items -->
-        <table class="items-table">
+        {% if order.manual_pricing %}
+        <div class="info-box" style="margin-top: 12px;">
+            <strong>Beta:</strong> Hinta sovitaan erikseen (Eurooppa -> Suomi).
+        </div>
+        {% else %}
+<table class="items-table">
             <thead>
                 <tr>
                     <th class="col-item">Item</th>
@@ -338,12 +343,14 @@
             </tbody>
         </table>
 
-        <!-- Totals -->
+                
+<!-- Totals -->
         <div class="totals">
             <div class="total-row">
                 <span>Net total</span>
                 <span>{{ "%.2f"|format(net_price) }} €</span>
             </div>
+        
             <div class="total-row">
                 <span>VAT 24.0%</span>
                 <span>{{ "%.2f"|format(final_vat) }} €</span>
@@ -354,7 +361,9 @@
             </div>
         </div>
 
-        <!-- Payment Footer -->
+                
+        {% endif %}
+<!-- Payment Footer -->
         <div class="payment-footer">
             <div class="pay-label">PAY TO:</div>
             <div class="payment-grid">

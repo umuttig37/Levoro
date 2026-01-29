@@ -471,7 +471,10 @@
             'Peruutettu'}
             }.get(order.status, {'class': 'bg-slate-100 text-slate-600', 'icon': 'help', 'label': order.status}) %}
 
-            <tr class="group hover:bg-blue-50/50 dark:hover:bg-slate-700/30 transition-colors order-row">
+            <tr class="group hover:bg-blue-50/50 dark:hover:bg-slate-700/30 transition-colors order-row"
+              data-distance-km="{{ "%.1f"|format(order.distance_km|default(0)) }}"
+              data-pickup="{{ order.pickup_address|e }}"
+              data-dropoff="{{ order.dropoff_address|e }}">
               <td class="px-6 py-4">
                 <span class="font-medium text-slate-900 dark:text-white text-sm">#{{ order.id }}</span>
               </td>
@@ -513,11 +516,11 @@
                     <span class="material-symbols-outlined text-slate-400 text-[14px]">arrow_right_alt</span>
                     <span>{{ order.dropoff_address | extract_city }}</span>
                   </div>
-                  <span class="text-xs text-slate-400">{{ order.distance_km }} km</span>
+                  <span class="text-xs text-slate-400 distance-km-text">{{ order.distance_km }} km</span>
                 </div>
               </td>
               <td class="px-6 py-4 text-right">
-                <span class="text-sm text-slate-600 dark:text-slate-300 whitespace-nowrap">{{ order.distance_km }}
+                <span class="text-sm text-slate-600 dark:text-slate-300 whitespace-nowrap distance-km-text">{{ order.distance_km }}
                   km</span>
               </td>
               <td class="px-6 py-4 text-right">
@@ -819,6 +822,40 @@
           setTimeout(() => messages.remove(), 1000);
         }
       }, 5000);
+    });
+  </script>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      const rows = Array.from(document.querySelectorAll('.order-row[data-pickup][data-dropoff]'));
+      if (!rows.length) return;
+
+      rows.forEach(row => {
+        const rawKm = (row.dataset.distanceKm || '').replace(',', '.');
+        const currentKm = Number(rawKm);
+        if (currentKm && currentKm > 0) return;
+
+        const pickup = row.dataset.pickup || '';
+        const dropoff = row.dataset.dropoff || '';
+        if (!pickup || !dropoff) return;
+
+        fetch('/api/route_geo', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ pickup: pickup, dropoff: dropoff })
+        })
+          .then(r => r.json())
+          .then(data => {
+            const km = Number(data.km);
+            if (!isFinite(km) || km <= 0) return;
+            const kmText = km.toFixed(1);
+            row.dataset.distanceKm = kmText;
+            row.querySelectorAll('.distance-km-text').forEach(el => {
+              el.textContent = `${kmText} km`;
+            });
+          })
+          .catch(() => { });
+      });
     });
   </script>
 

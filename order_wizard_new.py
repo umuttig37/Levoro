@@ -12,6 +12,7 @@ from services.order_service import order_service
 from models.database import db_manager
 from models.order import order_model
 from utils.rate_limiter import check_rate_limit
+from utils.geo import EUROPE_COUNTRY_CODES
 from html import unescape
 
 
@@ -23,6 +24,15 @@ def sanitize_text(value: str, max_length: int = 1000) -> str:
     cleaned = re.sub(r"<[^>]+>", "", unescape(str(value)))
     cleaned = cleaned.replace("\x00", "")
     return cleaned.strip()[:max_length]
+
+def parse_iso_date(value: str):
+    """Parse YYYY-MM-DD date string to date."""
+    if not value:
+        return None
+    try:
+        return datetime.datetime.strptime(value, "%Y-%m-%d").date()
+    except Exception:
+        return None
 
 def get_app():
     from app import app
@@ -86,14 +96,18 @@ def order_step1_v2():
         d["pickup_place_id"] = request.form.get("pickup_place_id", "").strip()
         d["pickup_date"] = request.form.get("pickup_date", "").strip()
         d["pickup_time"] = request.form.get("pickup_time", "").strip() or None
-        d["paluu_auto"] = bool(request.form.get("paluu_auto"))
-        if not d["paluu_auto"]:
+        pickup_from_eu = bool(request.form.get("pickup_from_eu"))
+        d["pickup_from_eu"] = pickup_from_eu
+        d["paluu_auto"] = bool(request.form.get("paluu_auto")) if not pickup_from_eu else False
+        if pickup_from_eu or not d["paluu_auto"]:
             d["return_delivery_date"] = None
         session["order_draft"] = d
         return redirect("/order/new/step2")
 
     # GET
     d = session.get("order_draft", {})
+    if d.get("pickup_from_eu"):
+        d["paluu_auto"] = False
     
     # Handle query params from calculator
     qp_pick = request.args.get("pickup", "").strip()
@@ -128,7 +142,8 @@ def order_step1_v2():
         pickup_place_id=d.get("pickup_place_id", ""),
         pickup_date=pickup_date,
         pickup_time=d.get("pickup_time", ""),
-        paluu_auto=d.get("paluu_auto", False)
+        paluu_auto=d.get("paluu_auto", False),
+        pickup_from_eu=d.get("pickup_from_eu", False)
     )
 
 
@@ -153,6 +168,10 @@ def order_step2_v2():
         d["saved_dropoff_phone"] = request.form.get("saved_dropoff_phone", "").strip()
         d["last_delivery_date"] = request.form.get("last_delivery_date") or None
         d["delivery_time"] = request.form.get("delivery_time", "").strip() or None
+        pickup_from_eu = bool(d.get("pickup_from_eu"))
+        if pickup_from_eu:
+            d["paluu_auto"] = False
+            d["return_delivery_date"] = None
         
         if d.get("paluu_auto"):
             d["return_delivery_date"] = d.get("last_delivery_date") or d.get("pickup_date")
@@ -171,22 +190,61 @@ def order_step2_v2():
             session["error_message"] = "Nouto- ja toimitusosoite eivät voi olla samat. Tarkista osoitteet."
             session["order_draft"] = d
             return redirect("/order/new/step2")
-        
-        # Try to calculate route to validate addresses
-        try:
-            km = order_service.route_km(
-                pickup_addr, dropoff_addr,
-                d.get("pickup_place_id", ""),
-                d.get("dropoff_place_id", "")
+
+        if pickup_from_eu:
+            pickup_code = order_service.get_country_code(
+                pickup_addr, d.get("pickup_place_id", "")
             )
-            if km <= 0:
-                session["error_message"] = "Reitin laskenta epäonnistui. Tarkista että osoitteet ovat oikein."
+            dropoff_code = order_service.get_country_code(
+                dropoff_addr, d.get("dropoff_place_id", "")
+            )
+            d["pickup_country_code"] = pickup_code
+            d["dropoff_country_code"] = dropoff_code
+
+            if not pickup_code or not dropoff_code:
+                session["error_message"] = "Osoitteiden maan tunnistaminen ep\u00e4onnistui. Valitse osoitteet listasta."
                 session["order_draft"] = d
                 return redirect("/order/new/step2")
-        except Exception as e:
-            session["error_message"] = "Reitin laskenta epäonnistui. Tarkista että osoitteet ovat oikein ja yritä uudelleen."
-            session["order_draft"] = d
-            return redirect("/order/new/step2")
+
+            if pickup_code == "FI":
+                session["error_message"] = "Ulkomaan kuljetuksessa noudon on oltava Suomen ulkopuolelta."
+                session["order_draft"] = d
+                return redirect("/order/new/step2")
+
+            if pickup_code not in EUROPE_COUNTRY_CODES:
+                session["error_message"] = "Nouto-osoitteen tulee olla Euroopassa."
+                session["order_draft"] = d
+                return redirect("/order/new/step2")
+
+            if dropoff_code != "FI":
+                session["error_message"] = "Toimitusosoitteen tulee olla Suomessa."
+                session["order_draft"] = d
+                return redirect("/order/new/step2")
+
+            pickup_date_val = parse_iso_date(d.get("pickup_date"))
+            delivery_date_val = parse_iso_date(d.get("last_delivery_date"))
+            if pickup_date_val and delivery_date_val:
+                min_delivery = pickup_date_val + datetime.timedelta(days=2)
+                if delivery_date_val < min_delivery:
+                    session["error_message"] = "Ulkomaan kuljetuksissa toimitusp\u00e4iv\u00e4n tulee olla v\u00e4hint\u00e4\u00e4n 2 p\u00e4iv\u00e4\u00e4 noutop\u00e4iv\u00e4n j\u00e4lkeen."
+                    session["order_draft"] = d
+                    return redirect("/order/new/step2")
+        else:
+            # Try to calculate route to validate addresses
+            try:
+                km = order_service.route_km(
+                    pickup_addr, dropoff_addr,
+                    d.get("pickup_place_id", ""),
+                    d.get("dropoff_place_id", "")
+                )
+                if km <= 0:
+                    session["error_message"] = "Reitin laskenta ep\u00e4onnistui. Tarkista ett\u00e4 osoitteet ovat oikein."
+                    session["order_draft"] = d
+                    return redirect("/order/new/step2")
+            except Exception as e:
+                session["error_message"] = "Reitin laskenta ep\u00e4onnistui. Tarkista ett\u00e4 osoitteet ovat oikein ja yrit\u00e4 uudelleen."
+                session["order_draft"] = d
+                return redirect("/order/new/step2")
         
         session["order_draft"] = d
         return redirect("/order/new/step3")
@@ -197,6 +255,12 @@ def order_step2_v2():
     # Date handling
     pickup_date = d.get("pickup_date") or datetime.date.today().isoformat()
     delivery_date = d.get("last_delivery_date") or pickup_date
+    if d.get("pickup_from_eu"):
+        pickup_dt = parse_iso_date(pickup_date)
+        if pickup_dt:
+            min_delivery = (pickup_dt + datetime.timedelta(days=2)).isoformat()
+            if not delivery_date or delivery_date < min_delivery:
+                delivery_date = min_delivery
 
     error_message = session.pop("error_message", None)
 
@@ -211,7 +275,8 @@ def order_step2_v2():
         dropoff_place_id=d.get("dropoff_place_id", ""),
         delivery_date=delivery_date,
         delivery_time=d.get("delivery_time", ""),
-        saved_phone=d.get("saved_dropoff_phone", "")
+        saved_phone=d.get("saved_dropoff_phone", ""),
+        pickup_from_eu=d.get("pickup_from_eu", False)
     )
 
 
@@ -391,6 +456,10 @@ def order_confirm_v2():
         return access_check
 
     d = session.get("order_draft", {})
+    pickup_from_eu = bool(d.get("pickup_from_eu"))
+    if pickup_from_eu:
+        d["paluu_auto"] = False
+    manual_pricing = pickup_from_eu
     required = ["pickup", "dropoff", "reg_number", "orderer_name", "orderer_email", "orderer_phone"]
     missing = [k for k in required if not d.get(k)]
     
@@ -410,14 +479,15 @@ def order_confirm_v2():
     net = vat = gross = 0.0
     outbound_original_net = 0.0
     
-    try:
-        km = order_service.route_km(
-            d["pickup"], d["dropoff"],
-            d.get("pickup_place_id", ""),
-            d.get("dropoff_place_id", "")
-        )
-    except Exception as e:
-        pricing_error = "Reitin laskenta epäonnistui. Tarkista osoitteet."
+    if not manual_pricing:
+        try:
+            km = order_service.route_km(
+                d["pickup"], d["dropoff"],
+                d.get("pickup_place_id", ""),
+                d.get("dropoff_place_id", "")
+            )
+        except Exception as e:
+            pricing_error = "Reitin laskenta ep\u00e4onnistui. Tarkista osoitteet."
 
     user_id = int(u["id"]) if u.get("id") else None
     is_first_order = False
@@ -429,7 +499,7 @@ def order_confirm_v2():
             pass
 
     outbound_discount_amount = 0.0
-    if km > 0 and not pricing_error:
+    if km > 0 and not pricing_error and not manual_pricing:
         pricing = order_service.price_from_km_with_discounts(
             km,
             pickup_addr=d.get("pickup"),
@@ -446,7 +516,7 @@ def order_confirm_v2():
         outbound_original_net = pricing.get("display_original_net", pricing.get("original_net", net))
 
     # Return trip calculations
-    paluu_auto = d.get("paluu_auto", False)
+    paluu_auto = bool(d.get("paluu_auto", False)) and not manual_pricing
     return_km = 0.0
     return_net = return_vat = return_gross = 0.0
     return_original_net = 0.0
@@ -535,6 +605,8 @@ def order_confirm_v2():
             "price_vat": float(vat),
             "price_gross": float(gross),
             "discount_amount": float(round(outbound_discount_amount, 2)),
+            "manual_pricing": manual_pricing,
+            "pickup_from_eu": pickup_from_eu,
             "winter_tires": d.get("winter_tires", False),
             "trip_type": order_model.TRIP_TYPE_OUTBOUND if paluu_auto else None
         }
@@ -637,7 +709,9 @@ def order_confirm_v2():
         total_vat=total_vat,
         total_gross=total_gross,
         total_discount_amount=total_discount_amount,
-        total_original_net=total_original_net
+        total_original_net=total_original_net,
+        manual_pricing=manual_pricing,
+        pickup_from_eu=pickup_from_eu
     )
 
 

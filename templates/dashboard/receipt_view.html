@@ -315,7 +315,12 @@
             <div class="separator"></div>
 
             <!-- Items Table -->
-            <table class="items-table">
+            {% if order.manual_pricing %}
+            <div class="info-box" style="margin-top: 12px;">
+                <strong>Beta:</strong> Hinta sovitaan erikseen (Eurooppa -> Suomi).
+            </div>
+            {% else %}
+<table class="items-table">
                 <thead>
                     <tr>
                         <th class="col-item">Tuote</th>
@@ -349,6 +354,7 @@
                     <span>Veroton</span>
                     <span>€{{ "%.2f"|format(net_price) }}</span>
                 </div>
+            
                 <div class="total-row">
                     <span>ALV 25.5%</span>
                     <span>€{{ "%.2f"|format(final_vat) }}</span>
@@ -360,7 +366,8 @@
             </div>
         </div>
 
-        <!-- Footer -->
+            {% endif %}
+<!-- Footer -->
         <div class="footer">
             <div class="footer-col">
                 <strong>Tiyouba Oy</strong><br>

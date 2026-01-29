@@ -639,6 +639,7 @@ def api_places_autocomplete():
     """Google Places Autocomplete API endpoint"""
     data = request.get_json(force=True, silent=True) or {}
     query = (data.get("query") or "").strip()
+    scope = (data.get("scope") or "fi").strip().lower()
 
     if not query:
         return jsonify({"error": "Query required"}), 400
@@ -653,10 +654,11 @@ def api_places_autocomplete():
         params = {
             "input": query,
             "key": GOOGLE_PLACES_API_KEY,
-            "components": "country:FI",  # Restrict to Finland (uppercase country code)
             "language": "fi",
             "types": "address",  # Only address type to avoid API conflicts
         }
+        if scope == "fi":
+            params["components"] = "country:FI"  # Restrict to Finland
 
         response = requests.get(url, params=params, timeout=10)
         response.raise_for_status()
